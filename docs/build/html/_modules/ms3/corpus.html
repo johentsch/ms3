@@ -662,21 +662,21 @@
 <span class="sd">        corpora in a :obj:`Parse` object.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory:</span>
-<span class="sd">                Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus&#39;s</span>
-<span class="sd">                fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.</span>
-<span class="sd">            filter_other_fnames:</span>
-<span class="sd">                Set to True if you want to filter out all fnames that were not matched up with one of the added files.</span>
-<span class="sd">                This can be useful if you&#39;re loading TSV files with labels and want to parse only the scores for which</span>
-<span class="sd">                you have added labels.</span>
-<span class="sd">            file_re, folder_re:</span>
-<span class="sd">                Regular expressions for filtering certain file names or folder names.</span>
-<span class="sd">                The regEx are checked with search(), not match(), allowing for fuzzy search.</span>
-<span class="sd">            exclude_re:</span>
-<span class="sd">                Exclude files and folders containing this regular expression.</span>
+<span class="sd">          directory:</span>
+<span class="sd">              Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus&#39;s</span>
+<span class="sd">              fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.</span>
+<span class="sd">          filter_other_fnames:</span>
+<span class="sd">              Set to True if you want to filter out all fnames that were not matched up with one of the added files.</span>
+<span class="sd">              This can be useful if you&#39;re loading TSV files with labels and want to parse only the scores for which</span>
+<span class="sd">              you have added labels.</span>
+<span class="sd">          file_re, folder_re:</span>
+<span class="sd">              Regular expressions for filtering certain file names or folder names.</span>
+<span class="sd">              The regEx are checked with search(), not match(), allowing for fuzzy search.</span>
+<span class="sd">          exclude_re:</span>
+<span class="sd">              Exclude files and folders containing this regular expression.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of :obj:`File` objects pertaining to the matched, newly added paths.</span>
+<span class="sd">          List of :obj:`File` objects pertaining to the matched, newly added paths.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="n">all_file_paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">scan_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span>
@@ -904,10 +904,10 @@
 <span class="sd">        (trying to infer their type from the path), and appends those to :attr:`files`.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            paths: File paths that are to be registered with this Corpus object.</span>
+<span class="sd">          paths: File paths that are to be registered with this Corpus object.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A list of :obj:`File` objects corresponding to parseable files (based on their extensions).</span>
+<span class="sd">          A list of :obj:`File` objects corresponding to parseable files (based on their extensions).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">resolved_paths</span> <span class="o">=</span> <span class="n">resolve_paths_argument</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1061,10 +1061,10 @@
 <span class="sd">        has more than one file, the user will be asked which ones to use. The others will be excluded from the view.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facet: Which facet to disambiguate.</span>
-<span class="sd">            ask_for_input:</span>
-<span class="sd">                By default, if there is anything to disambiguate, the user is asked to select a group of files.</span>
-<span class="sd">                Pass False to see only the questions and choices without actually disambiguating.</span>
+<span class="sd">          facet: Which facet to disambiguate.</span>
+<span class="sd">          ask_for_input:</span>
+<span class="sd">              By default, if there is anything to disambiguate, the user is asked to select a group of files.</span>
+<span class="sd">              Pass False to see only the questions and choices without actually disambiguating.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">facet</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Let&#39;s disambiguate one facet at a time. Received invalid argument </span><span class="si">{</span><span class="n">facet</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">assert</span> <span class="n">facet</span> <span class="ow">in</span> <span class="n">Facet</span><span class="o">.</span><span class="n">__args__</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">facet</span><span class="si">}</span><span class="s2">&#39; is not a valid facet. Choose one of </span><span class="si">{</span><span class="n">Facet</span><span class="o">.</span><span class="n">__args__</span><span class="si">}</span><span class="s2">.&quot;</span>
@@ -1357,17 +1357,17 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">                Only relevant when ``choose=&#39;all&#39;``. By default, only scores and TSV files that have already been</span>
-<span class="sd">                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected</span>
-<span class="sd">                under the given view.</span>
-<span class="sd">            choose:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">            interval_index:</span>
-<span class="sd">            flat:</span>
-<span class="sd">            include_empty:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">              Only relevant when ``choose=&#39;all&#39;``. By default, only scores and TSV files that have already been</span>
+<span class="sd">              parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected</span>
+<span class="sd">              under the given view.</span>
+<span class="sd">          choose:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">          interval_index:</span>
+<span class="sd">          flat:</span>
+<span class="sd">          include_empty:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -1481,11 +1481,11 @@
 <span class="sd">        this function to retrieve the comprehensive list, ignoring views.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            fnames_in_metadata: fnames that are listed in the &#39;metadata.tsv&#39; file for this corpus, if present</span>
-<span class="sd">            fnames_not_in_metadata: fnames that are not listed in the &#39;metadata.tsv&#39; file for this corpus</span>
+<span class="sd">          fnames_in_metadata: fnames that are listed in the &#39;metadata.tsv&#39; file for this corpus, if present</span>
+<span class="sd">          fnames_not_in_metadata: fnames that are not listed in the &#39;metadata.tsv&#39; file for this corpus</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            The file names included in &#39;metadata.tsv&#39; and/or those of all other scores.</span>
+<span class="sd">          The file names included in &#39;metadata.tsv&#39; and/or those of all other scores.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">fnames_in_metadata</span><span class="p">:</span>
@@ -1642,15 +1642,15 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Iterate through (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">            interval_index:</span>
-<span class="sd">            include_files:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">          interval_index:</span>
+<span class="sd">          include_files:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).</span>
+<span class="sd">          (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">selected_facets</span> <span class="o">=</span> <span class="n">resolve_facets_param</span><span class="p">(</span><span class="n">facets</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">choose</span> <span class="o">==</span> <span class="s1">&#39;ask&#39;</span><span class="p">:</span>
@@ -1890,7 +1890,7 @@
 <div class="viewcode-block" id="Corpus.parse"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">cols</span><span class="o">=</span><span class="p">{},</span> <span class="n">infer_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Shorthand for executing parse_scores and parse_tsv at a time.</span>
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
+<span class="sd">          view_name:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_scores</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_tsv</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="n">infer_types</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
@@ -2085,8 +2085,8 @@
 <span class="sd">        :attr:`ix2orphan_file`.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.</span>
-<span class="sd">            fnames: Fnames of the pieces that the files are to be matched to. Those that don&#39;t match any will be stored under :attr:`ix2orphan_file`.</span>
+<span class="sd">          files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.</span>
+<span class="sd">          fnames: Fnames of the pieces that the files are to be matched to. Those that don&#39;t match any will be stored under :attr:`ix2orphan_file`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">fnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">fnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span>
@@ -2280,23 +2280,23 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update scores created with an older MuseScore version to the latest MuseScore 3 version.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            root_dir:</span>
-<span class="sd">                In case you want to create output paths for the updated MuseScore files based on a folder different</span>
-<span class="sd">                from :attr:`corpus_path`.</span>
-<span class="sd">            folder:</span>
-<span class="sd">                * The default &#39;.&#39; has the updated scores written to the same directory as the old ones, effectively</span>
-<span class="sd">                  overwriting them if ``root_dir`` is None.</span>
-<span class="sd">                * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.</span>
-<span class="sd">                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">                  For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">                  ``root_dir``.</span>
-<span class="sd">            suffix: String to append to the file names of the updated files, e.g. &#39;_updated&#39;.</span>
-<span class="sd">            overwrite: By default, existing files are not overwritten. Pass True to allow this.</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">              In case you want to create output paths for the updated MuseScore files based on a folder different</span>
+<span class="sd">              from :attr:`corpus_path`.</span>
+<span class="sd">          folder:</span>
+<span class="sd">              * The default &#39;.&#39; has the updated scores written to the same directory as the old ones, effectively</span>
+<span class="sd">                overwriting them if ``root_dir`` is None.</span>
+<span class="sd">              * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.</span>
+<span class="sd">              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">                For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">                ``root_dir``.</span>
+<span class="sd">          suffix: String to append to the file names of the updated files, e.g. &#39;_updated&#39;.</span>
+<span class="sd">          overwrite: By default, existing files are not overwritten. Pass True to allow this.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A list of all up-to-date paths, whether they had to be converted or were already in the latest version.</span>
+<span class="sd">          A list of all up-to-date paths, whether they had to be converted or were already in the latest version.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Set the attribute &#39;ms&#39; to your MuseScore 3 executable to update scores.&quot;</span>
         <span class="n">up2date_paths</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2343,15 +2343,15 @@
 <span class="sd">        (for instance with respect to column order) making sure that the content doesn&#39;t change.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">                By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
-<span class="sd">                force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
-<span class="sd">            choose:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">              By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
+<span class="sd">              force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
+<span class="sd">          choose:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of paths that have been overwritten.</span>
+<span class="sd">          List of paths that have been overwritten.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_pieces</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">):</span>
@@ -2582,20 +2582,20 @@
 <span class="sd">        attached to the Score in red, just like any deleted label.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            key: Key of the detached labels you want to compare to the ones in the score.</span>
-<span class="sd">            new_color, old_color:</span>
-<span class="sd">                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
-<span class="sd">                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
-<span class="sd">            detached_is_newer:</span>
-<span class="sd">                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
-<span class="sd">                will turn ``old_color``, as opposed to the default.</span>
-<span class="sd">            add_to_rna:</span>
-<span class="sd">                By default, new labels are attached to the Roman Numeral layer.</span>
-<span class="sd">                Pass False to attach them to the chord layer instead.</span>
+<span class="sd">          key: Key of the detached labels you want to compare to the ones in the score.</span>
+<span class="sd">          new_color, old_color:</span>
+<span class="sd">              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
+<span class="sd">              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
+<span class="sd">          detached_is_newer:</span>
+<span class="sd">              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
+<span class="sd">              will turn ``old_color``, as opposed to the default.</span>
+<span class="sd">          add_to_rna:</span>
+<span class="sd">              By default, new labels are attached to the Roman Numeral layer.</span>
+<span class="sd">              Pass False to attach them to the chord layer instead.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Number of scores in which labels have changed.</span>
-<span class="sd">            Number of scores in which no label has chnged.</span>
+<span class="sd">          Number of scores in which labels have changed.</span>
+<span class="sd">          Number of scores in which no label has chnged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">changed</span><span class="p">,</span> <span class="n">unchanged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_pieces</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">):</span>
@@ -2976,24 +2976,24 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;  Store facets extracted from parsed scores as TSV files.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            root_dir:</span>
-<span class="sd">            measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:</span>
-<span class="sd">                Specify directory where to store the corresponding TSV files.</span>
-<span class="sd">            measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:</span>
-<span class="sd">                Optionally specify suffixes appended to the TSVs&#39; file names. If ``unfold=True`` the suffixes default to ``_unfolded``.</span>
-<span class="sd">            metadata_suffix:</span>
-<span class="sd">                Specify a suffix to update the &#39;metadata{suffix}.tsv&#39; file for this corpus. For the main file, pass &#39;&#39;</span>
-<span class="sd">            markdown:</span>
-<span class="sd">                By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing</span>
-<span class="sd">                the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,</span>
-<span class="sd">                this table will be appended or overwritten after the heading ``# Overview``.</span>
-<span class="sd">            simulate:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">                By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full</span>
-<span class="sd">                playthrough, including correct positioning of first and second endings.</span>
-<span class="sd">            interval_index:</span>
-<span class="sd">            silence_label_warnings:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">          measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:</span>
+<span class="sd">              Specify directory where to store the corresponding TSV files.</span>
+<span class="sd">          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:</span>
+<span class="sd">              Optionally specify suffixes appended to the TSVs&#39; file names. If ``unfold=True`` the suffixes default to ``_unfolded``.</span>
+<span class="sd">          metadata_suffix:</span>
+<span class="sd">              Specify a suffix to update the &#39;metadata{suffix}.tsv&#39; file for this corpus. For the main file, pass &#39;&#39;</span>
+<span class="sd">          markdown:</span>
+<span class="sd">              By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing</span>
+<span class="sd">              the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,</span>
+<span class="sd">              this table will be appended or overwritten after the heading ``# Overview``.</span>
+<span class="sd">          simulate:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">              By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full</span>
+<span class="sd">              playthrough, including correct positioning of first and second endings.</span>
+<span class="sd">          interval_index:</span>
+<span class="sd">          silence_label_warnings:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -3082,20 +3082,20 @@
 <span class="sd">        Gathers the metadata from parsed and currently selected scores and updates &#39;metadata.tsv&#39; with the information.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.</span>
-<span class="sd">            suffix:</span>
-<span class="sd">                Added to the filename: &#39;metadata{suffix}.tsv&#39;. Defaults to &#39;&#39;. Metadata files with suffix may be</span>
-<span class="sd">                used to store views with particular subselections of pieces.</span>
-<span class="sd">            markdown_file:</span>
-<span class="sd">                By default, a subset of metadata columns will be written to &#39;README.md&#39; in the same folder as the TSV file.</span>
-<span class="sd">                If the file exists, it will be scanned for a line containing the string &#39;# Overview&#39; and overwritten</span>
-<span class="sd">                from that line onwards.</span>
-<span class="sd">            view_name:</span>
-<span class="sd">                The view under which you want to update metadata from the selected parsed files. Defaults to None,</span>
-<span class="sd">                i.e. the active view.</span>
+<span class="sd">          root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.</span>
+<span class="sd">          suffix:</span>
+<span class="sd">              Added to the filename: &#39;metadata{suffix}.tsv&#39;. Defaults to &#39;&#39;. Metadata files with suffix may be</span>
+<span class="sd">              used to store views with particular subselections of pieces.</span>
+<span class="sd">          markdown_file:</span>
+<span class="sd">              By default, a subset of metadata columns will be written to &#39;README.md&#39; in the same folder as the TSV file.</span>
+<span class="sd">              If the file exists, it will be scanned for a line containing the string &#39;# Overview&#39; and overwritten</span>
+<span class="sd">              from that line onwards.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">              The view under which you want to update metadata from the selected parsed files. Defaults to None,</span>
+<span class="sd">              i.e. the active view.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            The file paths to which metadata was written.</span>
+<span class="sd">          The file paths to which metadata was written.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">md</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_metadata</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">md</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -3139,20 +3139,20 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            write_empty_values:</span>
-<span class="sd">                If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
-<span class="sd">                will be set to &#39;&#39;.</span>
-<span class="sd">            remove_unused_fields:</span>
-<span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
-<span class="sd">            write_text_fields:</span>
-<span class="sd">                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
-<span class="sd">                ``lyricist_text``, and ``part_name_text`` into the score headers.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          write_empty_values:</span>
+<span class="sd">              If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
+<span class="sd">              will be set to &#39;&#39;.</span>
+<span class="sd">          remove_unused_fields:</span>
+<span class="sd">              If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+<span class="sd">          write_text_fields:</span>
+<span class="sd">              If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
+<span class="sd">              ``lyricist_text``, and ``part_name_text`` into the score headers.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
+<span class="sd">          List of File objects of those scores of which the XML structure has been modified.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">updated_scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_pieces</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
@@ -3377,16 +3377,16 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Performs a single parse and returns the resulting Score object or None.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        file: File object with path information of a score that can be opened (or converted) with MuseScore 3.</span>
-<span class="sd">        logger: Logger to be used within this function (not for the parsing itself).</span>
-<span class="sd">        logger_cfg: Logger config for the new Score object (and therefore for the parsing itself).</span>
-<span class="sd">        read_only:</span>
-<span class="sd">            Pass True to return smaller objects that do not keep a copy of the original XML structure in memory.</span>
-<span class="sd">            In order to make changes to the score after parsing, this needs to be False (default).</span>
-<span class="sd">        ms: MuseScore executable in case the file needs to be converted.</span>
+<span class="sd">      file: File object with path information of a score that can be opened (or converted) with MuseScore 3.</span>
+<span class="sd">      logger: Logger to be used within this function (not for the parsing itself).</span>
+<span class="sd">      logger_cfg: Logger config for the new Score object (and therefore for the parsing itself).</span>
+<span class="sd">      read_only:</span>
+<span class="sd">          Pass True to return smaller objects that do not keep a copy of the original XML structure in memory.</span>
+<span class="sd">          In order to make changes to the score after parsing, this needs to be False (default).</span>
+<span class="sd">      ms: MuseScore executable in case the file needs to be converted.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        The parsed score.</span>
+<span class="sd">      The parsed score.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">full_path</span>
     <span class="n">file</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">file</span>

@@ -555,20 +555,20 @@
 <span class="sd">        :meth:`exclude` at once.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name: New name of the view.</span>
-<span class="sd">            only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.</span>
-<span class="sd">            include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.</span>
-<span class="sd">            include_tsv: Whether or not TSV files should be included.</span>
-<span class="sd">            exclude_review: Whether or not files and folder that include &#39;review&#39; should be excluded.</span>
-<span class="sd">            file_paths:</span>
-<span class="sd">                The exact file names will be extracted and used as exclusive filter, that is, all files that do not have</span>
-<span class="sd">                one of these file names will be excluded. This is regardless of eventual relative or absolute paths included</span>
-<span class="sd">                in the argument.</span>
-<span class="sd">            file_re: Include only files whose file name includes this regular expression.</span>
-<span class="sd">            folder_re: Include only files from folders whose name includes this regular expression.</span>
-<span class="sd">            exclude_re: Exclude all file and folders whose name includes this regular expression.</span>
-<span class="sd">            folder_paths: Include only files from these folders.</span>
-<span class="sd">            **logger_cfg:</span>
+<span class="sd">          view_name: New name of the view.</span>
+<span class="sd">          only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.</span>
+<span class="sd">          include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.</span>
+<span class="sd">          include_tsv: Whether or not TSV files should be included.</span>
+<span class="sd">          exclude_review: Whether or not files and folder that include &#39;review&#39; should be excluded.</span>
+<span class="sd">          file_paths:</span>
+<span class="sd">              The exact file names will be extracted and used as exclusive filter, that is, all files that do not have</span>
+<span class="sd">              one of these file names will be excluded. This is regardless of eventual relative or absolute paths included</span>
+<span class="sd">              in the argument.</span>
+<span class="sd">          file_re: Include only files whose file name includes this regular expression.</span>
+<span class="sd">          folder_re: Include only files from folders whose name includes this regular expression.</span>
+<span class="sd">          exclude_re: Exclude all file and folders whose name includes this regular expression.</span>
+<span class="sd">          folder_paths: Include only files from these folders.</span>
+<span class="sd">          **logger_cfg:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -660,11 +660,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            file:</span>
+<span class="sd">          file:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            False if file is to be discarded from this view.</span>
-<span class="sd">            The criterion based on which the file is being excluded.</span>
+<span class="sd">          False if file is to be discarded from this view.</span>
+<span class="sd">          The criterion based on which the file is being excluded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">full_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span>
@@ -731,8 +731,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Keep only the files that pass _.check_file().</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            files: :obj:`File` objects to be filtered.</span>
-<span class="sd">            key: Aggregate results from several filter runs under this dictionary key.</span>
+<span class="sd">          files: :obj:`File` objects to be filtered.</span>
+<span class="sd">          key: Aggregate results from several filter runs under this dictionary key.</span>
 
 <span class="sd">        Returns:</span>
 

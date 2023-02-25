@@ -976,7 +976,7 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        measures: Measures table with columns [&#39;mc&#39;, &#39;dont_count&#39;, &#39;numbering_offset&#39;].</span>
+<span class="sd">      measures: Measures table with columns [&#39;mc&#39;, &#39;dont_count&#39;, &#39;numbering_offset&#39;].</span>
 
 <span class="sd">    Returns:</span>
 
@@ -1000,11 +1000,11 @@
 <span class="sd">    the incomplete MN 32).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        measures: Measures table with columns [&#39;mc&#39;, &#39;mn&#39;, &#39;dont_count&#39;]</span>
+<span class="sd">      measures: Measures table with columns [&#39;mc&#39;, &#39;mn&#39;, &#39;dont_count&#39;]</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        &#39;mn_playthrough&#39; Series of disambiguated measure number strings. If no measure repeats, the result will be</span>
-<span class="sd">        equivalent to converting column &#39;mn&#39; to strings and appending &#39;a&#39; to all of them.</span>
+<span class="sd">      &#39;mn_playthrough&#39; Series of disambiguated measure number strings. If no measure repeats, the result will be</span>
+<span class="sd">      equivalent to converting column &#39;mn&#39; to strings and appending &#39;a&#39; to all of them.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">previous_occurrences</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
 
@@ -1321,10 +1321,10 @@
 <span class="sd">    it with the corresponding long name. Trailing numbers are separated by a space in this case.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        token: Individual token after splitting alternative readings.</span>
-<span class="sd">        abbreviations: {abbreviation -&gt; long name} dict for string replacement.</span>
-<span class="sd">        fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,</span>
-<span class="sd">            again in lowercase. Pass False to use only the original string.</span>
+<span class="sd">      token: Individual token after splitting alternative readings.</span>
+<span class="sd">      abbreviations: {abbreviation -&gt; long name} dict for string replacement.</span>
+<span class="sd">      fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,</span>
+<span class="sd">          again in lowercase. Pass False to use only the original string.</span>
 
 <span class="sd">    Returns:</span>
 
@@ -1372,14 +1372,14 @@
 <span class="sd">    tokens.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        levels: Collection of strings indicating analytical layers.</span>
-<span class="sd">        tokens: Collection of tokens coming along, same size as levels.</span>
-<span class="sd">        mc: Pass the label&#39;s label&#39;s MC to display it in error messages.</span>
-<span class="sd">        abbreviations: {abbrevation -&gt; long name} mapping abbreviations to what they are to be replaced with</span>
+<span class="sd">      levels: Collection of strings indicating analytical layers.</span>
+<span class="sd">      tokens: Collection of tokens coming along, same size as levels.</span>
+<span class="sd">      mc: Pass the label&#39;s label&#39;s MC to display it in error messages.</span>
+<span class="sd">      abbreviations: {abbrevation -&gt; long name} mapping abbreviations to what they are to be replaced with</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A {(form_tree, level) -&gt; token} dict where form_tree is either &#39;&#39; or a letter between a-h identifying one of</span>
-<span class="sd">        several trees annotated in parallel.</span>
+<span class="sd">      A {(form_tree, level) -&gt; token} dict where form_tree is either &#39;&#39; or a letter between a-h identifying one of</span>
+<span class="sd">      several trees annotated in parallel.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">column2value</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">reading_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^((?:[ivx]+\&amp;?)+):&quot;</span>
@@ -1463,13 +1463,13 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Splits a form label and applies distribute_tokens_over_levels()</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        label: Complete form label including indications of analytical layer(s).</span>
-<span class="sd">        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to</span>
-<span class="sd">            long names. Pass False to prevent that.</span>
-<span class="sd">        **kwargs: Abbreviation=&#39;long name&#39; mappings to resolve individual abbreviations</span>
+<span class="sd">      label: Complete form label including indications of analytical layer(s).</span>
+<span class="sd">      default_abbreviations: By default, each token component is checked against a mapping from abbreviations to</span>
+<span class="sd">          long names. Pass False to prevent that.</span>
+<span class="sd">      **kwargs: Abbreviation=&#39;long name&#39; mappings to resolve individual abbreviations</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.</span>
+<span class="sd">      A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">extracted_levels</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">FORM_LEVEL_CAPTURE_REGEX</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
     <span class="n">extracted_tokens</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">FORM_LEVEL_SPLIT_REGEX</span><span class="p">,</span> <span class="n">label</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
@@ -1483,17 +1483,17 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Expands form labels into a hierarchical view of levels in a table.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.</span>
-<span class="sd">        fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,</span>
-<span class="sd">            even if it doesn&#39;t come with a form label. This may be desired for increased intuition of proportions,</span>
-<span class="sd">            rather than seeing all form labels right below each other. In order to add the empty rows, even without</span>
-<span class="sd">            knowing the number of measures, pass -1.</span>
-<span class="sd">        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to</span>
-<span class="sd">            long names. Pass False to prevent that.</span>
-<span class="sd">        **kwargs: Abbreviation=&#39;long name&#39; mappings to resolve individual abbreviations</span>
+<span class="sd">      fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.</span>
+<span class="sd">      fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,</span>
+<span class="sd">          even if it doesn&#39;t come with a form label. This may be desired for increased intuition of proportions,</span>
+<span class="sd">          rather than seeing all form labels right below each other. In order to add the empty rows, even without</span>
+<span class="sd">          knowing the number of measures, pass -1.</span>
+<span class="sd">      default_abbreviations: By default, each token component is checked against a mapping from abbreviations to</span>
+<span class="sd">          long names. Pass False to prevent that.</span>
+<span class="sd">      **kwargs: Abbreviation=&#39;long name&#39; mappings to resolve individual abbreviations</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.</span>
+<span class="sd">      A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">form_labels</span> <span class="o">=</span> <span class="n">fl</span><span class="o">.</span><span class="n">form_label</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;amp;&quot;</span><span class="p">,</span> <span class="s2">&quot;&amp;&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">extracted_levels</span> <span class="o">=</span> <span class="n">form_labels</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">FORM_LEVEL_CAPTURE_REGEX</span><span class="p">)</span>
@@ -1654,16 +1654,16 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        fifths: Number of fifths representing the inveral</span>
-<span class="sd">        smallest: Pass True if you want to wrap intervals of a fifths and larger to the downward counterpart.</span>
-<span class="sd">        perfect: String representing the perfect interval quality, defaults to &#39;P&#39;.</span>
-<span class="sd">        major: String representing the major interval quality, defaults to &#39;M&#39;.</span>
-<span class="sd">        minor: String representing the minor interval quality, defaults to &#39;m&#39;.</span>
-<span class="sd">        augmented: String representing the augmented interval quality, defaults to &#39;a&#39;.</span>
-<span class="sd">        diminished: String representing the diminished interval quality, defaults to &#39;d&#39;.</span>
+<span class="sd">      fifths: Number of fifths representing the inveral</span>
+<span class="sd">      smallest: Pass True if you want to wrap intervals of a fifths and larger to the downward counterpart.</span>
+<span class="sd">      perfect: String representing the perfect interval quality, defaults to &#39;P&#39;.</span>
+<span class="sd">      major: String representing the major interval quality, defaults to &#39;M&#39;.</span>
+<span class="sd">      minor: String representing the minor interval quality, defaults to &#39;m&#39;.</span>
+<span class="sd">      augmented: String representing the augmented interval quality, defaults to &#39;a&#39;.</span>
+<span class="sd">      diminished: String representing the diminished interval quality, defaults to &#39;d&#39;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Name of the interval as a string.</span>
+<span class="sd">      Name of the interval as a string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fifths_plus_one</span> <span class="o">=</span> <span class="n">fifths</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># making 0 = fourth, 1 = unison, 2 = fifth etc.</span>
     <span class="n">int_num</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;5&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;7&quot;</span><span class="p">][</span><span class="n">fifths_plus_one</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span>
@@ -1705,9 +1705,9 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tpc: Tonal pitch class(es) to turn into a note name.</span>
-<span class="sd">        ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14</span>
-<span class="sd">        minor: Pass True if the string is to be returned as lowercase.</span>
+<span class="sd">      tpc: Tonal pitch class(es) to turn into a note name.</span>
+<span class="sd">      ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14</span>
+<span class="sd">      minor: Pass True if the string is to be returned as lowercase.</span>
 
 <span class="sd">    Returns:</span>
 
@@ -1755,10 +1755,10 @@
 <span class="sd">       ``midi`` which allows for adding octave information.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        fifths: Tonal pitch class(es) to turn into a note name.</span>
-<span class="sd">        midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).</span>
-<span class="sd">        ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14</span>
-<span class="sd">        minor: Pass True if the string is to be returned as lowercase.</span>
+<span class="sd">      fifths: Tonal pitch class(es) to turn into a note name.</span>
+<span class="sd">      midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).</span>
+<span class="sd">      ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14</span>
+<span class="sd">      minor: Pass True if the string is to be returned as lowercase.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
@@ -1842,12 +1842,12 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Boiler plate used by fifths2-functions.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        fifths: Stack of fifths</span>
-<span class="sd">        steps: Collection of seven names, scale degrees, intervals, etc.</span>
-<span class="sd">        inverted: By default, return accidental + step. Pass True to get step + accidental instead.</span>
+<span class="sd">      fifths: Stack of fifths</span>
+<span class="sd">      steps: Collection of seven names, scale degrees, intervals, etc.</span>
+<span class="sd">      inverted: By default, return accidental + step. Pass True to get step + accidental instead.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Accidentals + step from ``steps`` or, if inverted, step + accidentals.</span>
+<span class="sd">      Accidentals + step from ``steps`` or, if inverted, step + accidentals.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">acc</span> <span class="o">=</span> <span class="n">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
     <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -1876,10 +1876,10 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        MS: A path to the executable, installed command, or one of the keywords {&#39;auto&#39;, &#39;win&#39;, &#39;mac&#39;}</span>
+<span class="sd">      MS: A path to the executable, installed command, or one of the keywords {&#39;auto&#39;, &#39;win&#39;, &#39;mac&#39;}</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Path to the executable if found or None.</span>
+<span class="sd">      Path to the executable if found or None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">MS</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">MS</span>
@@ -2598,13 +2598,13 @@
 <span class="sd">    :func:`make_continuous_offset_series` instead.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        measures: Measures table containing a &#39;quarterbeats&#39; column.</span>
-<span class="sd">        all_endings: Uses the column &#39;quarterbeats_all_endings&#39; of the measures table if it has one, otherwise</span>
-<span class="sd">            falls back to the default &#39;quarterbeats&#39;.</span>
+<span class="sd">      measures: Measures table containing a &#39;quarterbeats&#39; column.</span>
+<span class="sd">      all_endings: Uses the column &#39;quarterbeats_all_endings&#39; of the measures table if it has one, otherwise</span>
+<span class="sd">          falls back to the default &#39;quarterbeats&#39;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        {MC -&gt; quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,</span>
-<span class="sd">        values for MCs that are part of a first ending (or third or larger) are NA.</span>
+<span class="sd">      {MC -&gt; quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,</span>
+<span class="sd">      values for MCs that are part of a first ending (or third or larger) are NA.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">measures</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">all_endings</span> <span class="ow">and</span> <span class="s1">&#39;quarterbeats_all_endings&#39;</span> <span class="ow">in</span> <span class="n">measures</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
@@ -2791,11 +2791,11 @@
 <span class="sd">    i.e., only for notes in the same staff and voice.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        chords_table:</span>
-<span class="sd">        notes_table:</span>
+<span class="sd">      chords_table:</span>
+<span class="sd">      notes_table:</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Merged DataFrame.</span>
+<span class="sd">      Merged DataFrame.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">notes_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;tied&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;octave&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]</span> <span class="c1"># &#39;gracenote&#39;, &#39;tremolo&#39; would be contained in chords already</span>
     <span class="n">present_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">notes_columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">notes_table</span><span class="p">]</span>
@@ -3330,22 +3330,22 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Generator of filtered file paths in ``directory``.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        directory: Directory to be scanned for files.</span>
-<span class="sd">        file_re, folder_re:</span>
-<span class="sd">            Regular expressions for filtering certain file names or folder names.</span>
-<span class="sd">            The regEx are checked with search(), not match(), allowing for fuzzy search.</span>
-<span class="sd">        exclude_re:</span>
-<span class="sd">            Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.</span>
-<span class="sd">        recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.</span>
-<span class="sd">        subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.</span>
-<span class="sd">        progress: Pass True to display the progress (useful for large directories).</span>
-<span class="sd">        exclude_files_only:</span>
-<span class="sd">            By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.</span>
-<span class="sd">        return_metadata:</span>
-<span class="sd">            If set to True, &#39;metadata.tsv&#39; are always yielded regardless of ``file_re``.</span>
+<span class="sd">      directory: Directory to be scanned for files.</span>
+<span class="sd">      file_re, folder_re:</span>
+<span class="sd">          Regular expressions for filtering certain file names or folder names.</span>
+<span class="sd">          The regEx are checked with search(), not match(), allowing for fuzzy search.</span>
+<span class="sd">      exclude_re:</span>
+<span class="sd">          Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.</span>
+<span class="sd">      recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.</span>
+<span class="sd">      subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.</span>
+<span class="sd">      progress: Pass True to display the progress (useful for large directories).</span>
+<span class="sd">      exclude_files_only:</span>
+<span class="sd">          By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.</span>
+<span class="sd">      return_metadata:</span>
+<span class="sd">          If set to True, &#39;metadata.tsv&#39; are always yielded regardless of ``file_re``.</span>
 
 <span class="sd">    Yields:</span>
-<span class="sd">        Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.</span>
+<span class="sd">      Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">file_re</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">file_re</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;.*&quot;</span>
@@ -3704,23 +3704,23 @@
 <span class="sd">    equal values. There are several options of how to deal with NA values.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        S: Series in which to group identical adjacent values with each other.</span>
-<span class="sd">        na_values:</span>
-<span class="sd">            | &#39;group&#39; creates individual groups for NA values (default).</span>
-<span class="sd">            | &#39;backfill&#39; or &#39;bfill&#39; groups NA values with the subsequent group</span>
-<span class="sd">            | &#39;pad&#39;, &#39;ffill&#39; groups NA values with the preceding group</span>
-<span class="sd">            | Any other string works like &#39;group&#39;, with the difference that the groups will be named with this value.</span>
-<span class="sd">            | Passing None means NA values &amp; ranges are being ignored, i.e. they will also be present in the output and the</span>
-<span class="sd">              subsequent value will be based on the preceding value.</span>
-<span class="sd">        prevent_merge:</span>
-<span class="sd">            By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.</span>
-<span class="sd">        Pass True to prevent this. For example, take the sequence [&#39;a&#39;, NA, &#39;a&#39;] with ``na_values=&#39;ffill&#39;``: By default,</span>
-<span class="sd">        it will be merged to one single group ``[1, 1, 1], {1: &#39;a&#39;}``. However, passing ``prevent_merge=True`` will</span>
-<span class="sd">        result in ``[1, 1, 2], {1: &#39;a&#39;, 2: &#39;a&#39;}``.</span>
+<span class="sd">      S: Series in which to group identical adjacent values with each other.</span>
+<span class="sd">      na_values:</span>
+<span class="sd">          | &#39;group&#39; creates individual groups for NA values (default).</span>
+<span class="sd">          | &#39;backfill&#39; or &#39;bfill&#39; groups NA values with the subsequent group</span>
+<span class="sd">          | &#39;pad&#39;, &#39;ffill&#39; groups NA values with the preceding group</span>
+<span class="sd">          | Any other string works like &#39;group&#39;, with the difference that the groups will be named with this value.</span>
+<span class="sd">          | Passing None means NA values &amp; ranges are being ignored, i.e. they will also be present in the output and the</span>
+<span class="sd">            subsequent value will be based on the preceding value.</span>
+<span class="sd">      prevent_merge:</span>
+<span class="sd">          By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.</span>
+<span class="sd">          Pass True to prevent this. For example, take the sequence [&#39;a&#39;, NA, &#39;a&#39;] with ``na_values=&#39;ffill&#39;``: By default,</span>
+<span class="sd">          it will be merged to one single group ``[1, 1, 1], {1: &#39;a&#39;}``. However, passing ``prevent_merge=True`` will</span>
+<span class="sd">          result in ``[1, 1, 2], {1: &#39;a&#39;, 2: &#39;a&#39;}``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A series with increasing integers that can be used for grouping.</span>
-<span class="sd">        A dictionary mapping the integers to the grouped values.</span>
+<span class="sd">      A series with increasing integers that can be used for grouping.</span>
+<span class="sd">      A dictionary mapping the integers to the grouped values.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">reindex_flag</span> <span class="o">=</span> <span class="kc">False</span>
@@ -3775,7 +3775,7 @@
 <span class="sd">    &#39;mn_playthrough&#39; which contains the values of &#39;mn&#39; as string with letters {&#39;a&#39;, &#39;b&#39;, ...} appended.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        measures: Measures table with columns [&#39;mc&#39;, &#39;next&#39;, &#39;dont_count&#39;]</span>
+<span class="sd">      measures: Measures table with columns [&#39;mc&#39;, &#39;next&#39;, &#39;dont_count&#39;]</span>
 
 <span class="sd">    Returns:</span>
 
@@ -3806,13 +3806,13 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        df: DataFrame needs to have the columns &#39;mc&#39;. If &#39;mn&#39; is present, the column &#39;mn&#39; will be added, too.</span>
-<span class="sd">        playthrough2mc:</span>
-<span class="sd">            A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds</span>
-<span class="sd">            to continuous MC</span>
+<span class="sd">      df: DataFrame needs to have the columns &#39;mc&#39;. If &#39;mn&#39; is present, the column &#39;mn&#39; will be added, too.</span>
+<span class="sd">      playthrough2mc:</span>
+<span class="sd">          A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds</span>
+<span class="sd">          to continuous MC</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A copy of the dataframe with the columns &#39;mc_playthrough&#39; and &#39;mn_playthrough&#39; (if &#39;mn&#39; is present) inserted.</span>
+<span class="sd">      A copy of the dataframe with the columns &#39;mc_playthrough&#39; and &#39;mn_playthrough&#39; (if &#39;mn&#39; is present) inserted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n_occurrences</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
     <span class="n">result_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
@@ -3901,17 +3901,17 @@
 <span class="sd">    Write the DataFrame ``metadata_df`` to ``path``, updating an existing file rather than overwriting it.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        metadata_df:</span>
-<span class="sd">            DataFrame with one row per piece and an index of strings identifying pieces. The index is used for</span>
-<span class="sd">            updating a potentially pre-existent file, from which the first column ∈ (&#39;fname&#39;, &#39;fnames&#39;, &#39;name&#39;, &#39;names&#39;)</span>
-<span class="sd">            will be used as index.</span>
-<span class="sd">        path:</span>
-<span class="sd">            If folder path, the filename &#39;metadata.tsv&#39; will be appended; file_path will be used as is but a</span>
-<span class="sd">            warning is thrown if the extension is not .tsv</span>
-<span class="sd">        index: Pass True if you want the first column of the output to be a RangeIndex starting from 0.</span>
+<span class="sd">      metadata_df:</span>
+<span class="sd">          DataFrame with one row per piece and an index of strings identifying pieces. The index is used for</span>
+<span class="sd">          updating a potentially pre-existent file, from which the first column ∈ (&#39;fname&#39;, &#39;fnames&#39;, &#39;name&#39;, &#39;names&#39;)</span>
+<span class="sd">          will be used as index.</span>
+<span class="sd">      path:</span>
+<span class="sd">          If folder path, the filename &#39;metadata.tsv&#39; will be appended; file_path will be used as is but a</span>
+<span class="sd">          warning is thrown if the extension is not .tsv</span>
+<span class="sd">      index: Pass True if you want the first column of the output to be a RangeIndex starting from 0.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        True if the metadata were successfully written, False otherwise.</span>
+<span class="sd">      True if the metadata were successfully written, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">metadata_df</span> <span class="o">=</span> <span class="n">metadata_df</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">)</span>
     <span class="n">metadata_df</span> <span class="o">=</span> <span class="n">enforce_fname_index_for_metadata</span><span class="p">(</span><span class="n">metadata_df</span><span class="p">)</span>
@@ -3977,8 +3977,8 @@
 <span class="sd">    scanned for a line containing the string &#39;# Overview&#39; and overwritten from that line onwards.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        metadata_df: DataFrame containing metadata.</span>
-<span class="sd">        file_path: Path of the markdown file.</span>
+<span class="sd">      metadata_df: DataFrame containing metadata.</span>
+<span class="sd">      file_path: Path of the markdown file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">rename4markdown</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="s1">&#39;file_name&#39;</span><span class="p">,</span>
@@ -4105,30 +4105,30 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        absolute: Absolute key expressed as Roman scale degree of the local key.</span>
-<span class="sd">        localkey: The local key in terms of which ``absolute`` will be expressed.</span>
-<span class="sd">        global_minor: Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.</span>
+<span class="sd">      absolute: Absolute key expressed as Roman scale degree of the local key.</span>
+<span class="sd">      localkey: The local key in terms of which ``absolute`` will be expressed.</span>
+<span class="sd">      global_minor: Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        In a minor context, the key of II would appear within the key of vii as #III.</span>
+<span class="sd">      In a minor context, the key of II would appear within the key of vii as #III.</span>
 
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;VI&#39;, global_minor=False)</span>
-<span class="sd">            &#39;bvi&#39;       # F minor expressed with respect to A major</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;vi&#39;, global_minor=False)</span>
-<span class="sd">            &#39;vi&#39;        # F minor expressed with respect to A minor</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;VI&#39;, global_minor=True)</span>
-<span class="sd">            &#39;vi&#39;        # F minor expressed with respect to Ab major</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;vi&#39;, global_minor=True)</span>
-<span class="sd">            &#39;#vi&#39;       # F minor expressed with respect to Ab minor</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;VI&#39;, global_minor=False)</span>
+<span class="sd">          &#39;bvi&#39;       # F minor expressed with respect to A major</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;vi&#39;, global_minor=False)</span>
+<span class="sd">          &#39;vi&#39;      # F minor expressed with respect to A minor</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;VI&#39;, global_minor=True)</span>
+<span class="sd">          &#39;vi&#39;      # F minor expressed with respect to Ab major</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;iv&#39;, &#39;vi&#39;, global_minor=True)</span>
+<span class="sd">          &#39;#vi&#39;       # F minor expressed with respect to Ab minor</span>
 
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;IV&#39;, global_minor=False)</span>
-<span class="sd">            &#39;III&#39;       # A major expressed with respect to F major</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;iv&#39;, global_minor=False)</span>
-<span class="sd">            &#39;#III&#39;       # A major expressed with respect to F minor</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;IV&#39;, global_minor=True)</span>
-<span class="sd">            &#39;bIII&#39;       # Ab major expressed with respect to F major</span>
-<span class="sd">            &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;iv&#39;, global_minor=False)</span>
-<span class="sd">            &#39;III&#39;       # Ab major expressed with respect to F minor</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;IV&#39;, global_minor=False)</span>
+<span class="sd">          &#39;III&#39;       # A major expressed with respect to F major</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;iv&#39;, global_minor=False)</span>
+<span class="sd">          &#39;#III&#39;       # A major expressed with respect to F minor</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;IV&#39;, global_minor=True)</span>
+<span class="sd">          &#39;bIII&#39;       # Ab major expressed with respect to F major</span>
+<span class="sd">          &gt;&gt;&gt; abs2rel_key(&#39;VI&#39;, &#39;iv&#39;, global_minor=False)</span>
+<span class="sd">          &#39;III&#39;       # Ab major expressed with respect to F minor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">absolute</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">localkey</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">absolute</span>
@@ -4171,26 +4171,26 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        relative: Relative key or chord expressed as Roman scale degree of the local key.</span>
-<span class="sd">        localkey: The local key to which `rel` is relative.</span>
-<span class="sd">        global_minor: Has to be set to True if `localkey` is a scale degree of a global minor key.</span>
+<span class="sd">      relative: Relative key or chord expressed as Roman scale degree of the local key.</span>
+<span class="sd">      localkey: The local key to which `rel` is relative.</span>
+<span class="sd">      global_minor: Has to be set to True if `localkey` is a scale degree of a global minor key.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        If the label viio6/VI appears in the context of the local key VI or vi,</span>
-<span class="sd">        the absolute key to which viio6 applies depends on the global key.</span>
-<span class="sd">        The comments express the examples in relation to global C major or C minor.</span>
+<span class="sd">      If the label viio6/VI appears in the context of the local key VI or vi,</span>
+<span class="sd">      the absolute key to which viio6 applies depends on the global key.</span>
+<span class="sd">      The comments express the examples in relation to global C major or C minor.</span>
 
-<span class="sd">            &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;VI&#39;, global_minor=False)</span>
-<span class="sd">            &#39;#iv&#39;       # vi of A major = F# minor</span>
-<span class="sd">            &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;vi&#39;, global_minor=False)</span>
-<span class="sd">            &#39;iv&#39;        # vi of A minor = F minor</span>
-<span class="sd">            &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;VI&#39;, global_minor=True)</span>
-<span class="sd">            &#39;iv&#39;        # vi of Ab major = F minor</span>
-<span class="sd">            &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;vi&#39;, global_minor=True)</span>
-<span class="sd">            &#39;biv&#39;       # vi of Ab minor = Fb minor</span>
+<span class="sd">          &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;VI&#39;, global_minor=False)</span>
+<span class="sd">          &#39;#iv&#39;       # vi of A major = F# minor</span>
+<span class="sd">          &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;vi&#39;, global_minor=False)</span>
+<span class="sd">          &#39;iv&#39;      # vi of A minor = F minor</span>
+<span class="sd">          &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;VI&#39;, global_minor=True)</span>
+<span class="sd">          &#39;iv&#39;      # vi of Ab major = F minor</span>
+<span class="sd">          &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;vi&#39;, global_minor=True)</span>
+<span class="sd">          &#39;biv&#39;       # vi of Ab minor = Fb minor</span>
 
-<span class="sd">        The same examples hold if you&#39;re expressing in terms of the global key</span>
-<span class="sd">        the root of a VI-chord within the local keys VI or vi.</span>
+<span class="sd">      The same examples hold if you&#39;re expressing in terms of the global key</span>
+<span class="sd">      the root of a VI-chord within the local keys VI or vi.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">relative</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">localkey</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">relative</span>
@@ -4779,10 +4779,10 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        messages:</span>
+<span class="sd">      messages:</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        {logger_name -&gt; [ignored_warnings]} dict.</span>
+<span class="sd">      {logger_name -&gt; [ignored_warnings]} dict.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ignored_warnings</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">logger_name</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">parse_ignored_warnings</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
@@ -4892,11 +4892,11 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to</span>
-<span class="sd">            reflect the whole duration.</span>
+<span class="sd">      df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to</span>
+<span class="sd">          reflect the whole duration.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        DataFrame with one row.</span>
+<span class="sd">      DataFrame with one row.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">df</span>
@@ -5065,12 +5065,12 @@
 <span class="sd">    suffixes.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        files:</span>
-<span class="sd">        choose: If &#39;auto&#39; (default), the file with the shortest disambiguation string is chosen. Set to True</span>
-<span class="sd">            if you want to be asked to manually choose a file.</span>
+<span class="sd">      files:</span>
+<span class="sd">      choose: If &#39;auto&#39; (default), the file with the shortest disambiguation string is chosen. Set to True</span>
+<span class="sd">          if you want to be asked to manually choose a file.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        The selected file.</span>
+<span class="sd">      The selected file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n_files</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n_files</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -5183,19 +5183,19 @@
 <span class="sd">    the type&#39;s expected literal values (strings).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        argument:</span>
-<span class="sd">            If string, wrapped in a list, otherwise expected to be a tuple of strings (passing a list will fail).</span>
-<span class="sd">            If None, a list of all possible values according to the type is returned if none_means_all.</span>
-<span class="sd">        typ:</span>
-<span class="sd">            A typing.Literal declaration or a TypeVar where the first component is one, or a tuple of allowed values.</span>
-<span class="sd">            All allowed values should be strings.</span>
-<span class="sd">        none_means_all:</span>
-<span class="sd">            By default, None values are replaced with all allowed values, if specified.</span>
-<span class="sd">            Pass False to return None in this case.</span>
+<span class="sd">      argument:</span>
+<span class="sd">          If string, wrapped in a list, otherwise expected to be a tuple of strings (passing a list will fail).</span>
+<span class="sd">          If None, a list of all possible values according to the type is returned if none_means_all.</span>
+<span class="sd">      typ:</span>
+<span class="sd">          A typing.Literal declaration or a TypeVar where the first component is one, or a tuple of allowed values.</span>
+<span class="sd">          All allowed values should be strings.</span>
+<span class="sd">      none_means_all:</span>
+<span class="sd">          By default, None values are replaced with all allowed values, if specified.</span>
+<span class="sd">          Pass False to return None in this case.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        The list of accepted strings.</span>
-<span class="sd">        The list of rejected strings.</span>
+<span class="sd">      The list of accepted strings.</span>
+<span class="sd">      The list of rejected strings.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">typ</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">allowed</span> <span class="o">=</span> <span class="kc">None</span>
@@ -5299,8 +5299,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Makes sure that the given path(s) exists(s) and filters out those that don&#39;t.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        paths: One or several paths given as strings.</span>
-<span class="sd">        files: By default, only file paths are returned. Set to False to return only folders.</span>
+<span class="sd">      paths: One or several paths given as strings.</span>
+<span class="sd">      files: By default, only file paths are returned. Set to False to return only folders.</span>
 
 <span class="sd">    Returns:</span>
 
@@ -5336,22 +5336,22 @@
 <span class="sd">    Constructs a path based on the arguments.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        file: This function uses the fields corpus_path, subdir, and type.</span>
-<span class="sd">        root_dir:</span>
-<span class="sd">            Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
-<span class="sd">            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
-<span class="sd">            ``root_dir`` is ignored.</span>
-<span class="sd">        folder:</span>
-<span class="sd">            * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
-<span class="sd">            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">              ``root_dir``.</span>
-<span class="sd">            * If ``folder`` == &#39;&#39; (empty string), the result will be `root_dir`.</span>
+<span class="sd">      file: This function uses the fields corpus_path, subdir, and type.</span>
+<span class="sd">      root_dir:</span>
+<span class="sd">          Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
+<span class="sd">          Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
+<span class="sd">          ``root_dir`` is ignored.</span>
+<span class="sd">      folder:</span>
+<span class="sd">          * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
+<span class="sd">          * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">          * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">            For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">          * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">            ``root_dir``.</span>
+<span class="sd">          * If ``folder`` == &#39;&#39; (empty string), the result will be `root_dir`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        The constructed directory path.</span>
+<span class="sd">      The constructed directory path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;~&#39;</span> <span class="ow">in</span> <span class="n">folder</span><span class="p">):</span>
         <span class="n">folder</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
@@ -5376,26 +5376,25 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Constructs a file path based on the arguments.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        file: This function uses the fields fname, corpus_path, subdir, and type.</span>
-<span class="sd">        root_dir:</span>
-<span class="sd">            Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
-<span class="sd">            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
-<span class="sd">            ``root_dir`` is ignored.</span>
-<span class="sd">        folder:</span>
-<span class="sd">            Different behaviours are available. Note that only the third option ensures that file paths are distinct for</span>
-<span class="sd">            files that have identical fnames but are located in different subdirectories of the same corpus.</span>
-
-<span class="sd">            * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
-<span class="sd">            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">              ``root_dir``.</span>
-<span class="sd">        suffix: String to append to the file&#39;s fname.</span>
-<span class="sd">        fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.</span>
+<span class="sd">      file: This function uses the fields fname, corpus_path, subdir, and type.</span>
+<span class="sd">      root_dir:</span>
+<span class="sd">        Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
+<span class="sd">        Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
+<span class="sd">        ``root_dir`` is ignored.</span>
+<span class="sd">      folder:</span>
+<span class="sd">        Different behaviours are available. Note that only the third option ensures that file paths are distinct for</span>
+<span class="sd">        files that have identical fnames but are located in different subdirectories of the same corpus.</span>
+<span class="sd">        * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
+<span class="sd">        * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">        * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">          For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">        * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">          ``root_dir``.</span>
+<span class="sd">      suffix: String to append to the file&#39;s fname.</span>
+<span class="sd">      fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        The constructed file path.</span>
+<span class="sd">      The constructed file path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">fext</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">compute_path_from_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="n">folder</span><span class="p">)</span>
@@ -5440,9 +5439,9 @@
 <span class="sd">    The file needs to have existed at the revision in question.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        file:</span>
-<span class="sd">        git_revision:</span>
-<span class="sd">        repo_path:</span>
+<span class="sd">      file:</span>
+<span class="sd">      git_revision:</span>
+<span class="sd">      repo_path:</span>
 
 <span class="sd">    Returns:</span>
 

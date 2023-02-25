@@ -700,14 +700,14 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.</span>
-<span class="sd">        measures:</span>
-<span class="sd">        unfold:</span>
-<span class="sd">        quarterbeats:</span>
-<span class="sd">        interval_index:</span>
+<span class="sd">      dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.</span>
+<span class="sd">      measures:</span>
+<span class="sd">      unfold:</span>
+<span class="sd">      quarterbeats:</span>
+<span class="sd">      interval_index:</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Altered copies of `dfs`.</span>
+<span class="sd">      Altered copies of `dfs`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">sum</span><span class="p">((</span><span class="n">unfold</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="p">,</span> <span class="n">interval_index</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;At least one of the &#39;unfold&#39;, &#39;quarterbeats&#39;, and &#39;interval_index&#39; arguments needs to be True.&quot;</span>
     <span class="k">assert</span> <span class="n">measures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;measures cannot be None&quot;</span>
@@ -1367,13 +1367,13 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column &#39;duration_qb&#39; accordingly.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.</span>
-<span class="sd">        boolean_mask: Boolean mask where every True value starts a new segment.</span>
-<span class="sd">        warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.</span>
-<span class="sd">            Set warn_na to True if you want the logger to throw a warning in this case.</span>
+<span class="sd">      df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.</span>
+<span class="sd">      boolean_mask: Boolean mask where every True value starts a new segment.</span>
+<span class="sd">      warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.</span>
+<span class="sd">          Set warn_na to True if you want the logger to throw a warning in this case.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Reduced DataFrame with updated &#39;duration_qb&#39; column and :obj:`pandas.IntervalIndex` on the first level.</span>
+<span class="sd">      Reduced DataFrame with updated &#39;duration_qb&#39; column and :obj:`pandas.IntervalIndex` on the first level.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s1">&#39;quarterbeats&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;DataFrame is missing the column &#39;quarterbeats&#39;&quot;</span><span class="p">)</span>

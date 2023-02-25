@@ -452,16 +452,16 @@ class _MSCX_bs4(LoggedClass):
         |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
 
         Args:
-            mode:
-                Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
-                namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
-                (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
-                markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
-                'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-            interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          mode:
+              Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
+              namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
+              (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
+              markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
+              'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
+          interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
+          DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
         """
         if mode == 'strict':
             chords = self.cl()
@@ -490,10 +490,10 @@ class _MSCX_bs4(LoggedClass):
         all other tables, except ``measures`` are generated.
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
+          DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
         events = column_order(self.add_standard_cols(self._events))
         if unfold:
@@ -513,16 +513,16 @@ class _MSCX_bs4(LoggedClass):
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
         Args:
-            detection_regex:
-                By default, detects all labels starting with one or two digits followed by a column
-                (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
-            exclude_harmony_layer:
-                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
-                Pass True in order to retrieve only StaffText form labels.
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          detection_regex:
+              By default, detects all labels starting with one or two digits followed by a column
+              (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+          exclude_harmony_layer:
+              By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
+              Pass True in order to retrieve only StaffText form labels.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame containing all StaffTexts matching the ``detection_regex``
+          DataFrame containing all StaffTexts matching the ``detection_regex``
         """
         form = self.fl(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer)
         if form is None:
@@ -537,7 +537,7 @@ class _MSCX_bs4(LoggedClass):
     def fl(self, detection_regex: str = None, exclude_harmony_layer=False) -> pd.DataFrame:
         """ Get the raw :ref:`form_labels` (or other) that match the ``detection_regex``, but without adding quarterbeat columns.
 
-        Args:
+        {ref}`$1`
             detection_regex:
                 By default, detects all labels starting with one or two digits followed by a column
                 (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
@@ -590,10 +590,10 @@ class _MSCX_bs4(LoggedClass):
         |repeats|, |next|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
+          DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
         measures = self.ml()
         duration_qb = (measures.act_dur * 4).astype(float)
@@ -650,7 +650,7 @@ class _MSCX_bs4(LoggedClass):
         """ Get the raw :ref:`measures` without adding quarterbeat columns.
 
         Args:
-            recompute: By default, the measures are cached. Pass True to enforce recomputing anew.
+          recompute: By default, the measures are cached. Pass True to enforce recomputing anew.
         """
         if recompute or self._ml is None:
             self._ml = self._make_measure_list()
@@ -665,10 +665,10 @@ class _MSCX_bs4(LoggedClass):
 
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`notes` of the MuseScore file.
+          DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         notes = self.nl()
         if unfold:
@@ -682,7 +682,7 @@ class _MSCX_bs4(LoggedClass):
         """ Get the raw :ref:`notes` without adding quarterbeat columns.
 
         Args:
-            recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.
+          recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._nl) == 0:
             self.make_standard_notelist()
@@ -696,10 +696,10 @@ class _MSCX_bs4(LoggedClass):
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
+          DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         nrl = self.nrl()
         if unfold:
@@ -713,7 +713,7 @@ class _MSCX_bs4(LoggedClass):
         """Get the raw :ref:`notes_and_rests` without adding quarterbeat columns.
 
         Args:
-            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
+          recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._nrl) == 0:
             nr = pd.concat([self.nl(), self.rl()]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
@@ -729,12 +729,12 @@ class _MSCX_bs4(LoggedClass):
         Used for computing quarterbeats for other facets.
 
         Args:
-            all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
-                falls back to the default 'quarterbeats'.
+          all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+              falls back to the default 'quarterbeats'.
 
         Returns:
-            {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
-            values for MCs that are part of a first ending (or third or larger) are NA.
+          {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+          values for MCs that are part of a first ending (or third or larger) are NA.
         """
         measures = self.measures(unfold=unfold)
         if unfold:
@@ -751,10 +751,10 @@ class _MSCX_bs4(LoggedClass):
         |nominal_duration|, |scalar|, |volta|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`rests` of the MuseScore file.
+          DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
         if unfold:
@@ -768,7 +768,7 @@ class _MSCX_bs4(LoggedClass):
         """Get the raw :ref:`rests` without adding quarterbeat columns.
 
         Args:
-            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
+          recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._rl) == 0:
             self.make_standard_restlist()
@@ -872,25 +872,25 @@ class _MSCX_bs4(LoggedClass):
         unprocessed ones.
 
         Args:
-            staff: Get information from a particular staff only (1 = upper staff)
-            voice: Get information from a particular voice only (1 = only the first layer of every staff)
-            mode:
-                | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
-                  DataFrame has no empty columns except for those parameters that are set to True.
-                | 'strict': Create columns for exactly those parameters that are set to True, regardless whether they occur in the score
-                  or not (in which case the column will be empty).
-            lyrics: Include lyrics.
-            dynamics: Include dynamic markings such as f or p.
-            articulation: Include articulation such as arpeggios.
-            staff_text: Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
-            system_text: Include system text such as movement titles.
-            tempo: Include tempo markings.
-            spanners: Include spanners such as slurs, 8va lines, pedal lines etc.
-            thoroughbass: Include thoroughbass figures' levels and durations.
-            **kwargs:
+          staff: Get information from a particular staff only (1 = upper staff)
+          voice: Get information from a particular voice only (1 = only the first layer of every staff)
+          mode:
+              | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+                DataFrame has no empty columns except for those parameters that are set to True.
+              | 'strict': Create columns for exactly those parameters that are set to True, regardless whether they occur in the score
+                or not (in which case the column will be empty).
+          lyrics: Include lyrics.
+          dynamics: Include dynamic markings such as f or p.
+          articulation: Include articulation such as arpeggios.
+          staff_text: Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
+          system_text: Include system text such as movement titles.
+          tempo: Include tempo markings.
+          spanners: Include spanners such as slurs, 8va lines, pedal lines etc.
+          thoroughbass: Include thoroughbass figures' levels and durations.
+          **kwargs:
 
         Returns:
-            DataFrame representing all <Chord> tags in the score with the selected features.
+          DataFrame representing all <Chord> tags in the score with the selected features.
         """
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
@@ -1880,29 +1880,29 @@ and {loc_after} before the subsequent {nxt_name}.""")
         only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
 
         Args:
-            from_mc: MC in which the score segment starts.
-            from_mc_onset: mc_onset where the score segment starts.
-            to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.
-            to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.
-            midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
-            tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
-            inverse:
-                By default, only notes where all specified filters (midi and/or tpc) apply are colored.
-                Set to True to color only those notes where none of the specified filters match.
-            color_name:
-                Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or
-                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
-            color_html:
-                Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
-                needs to be string of length 6.
-            color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.
-            color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.
-            color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.
-            color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+          from_mc: MC in which the score segment starts.
+          from_mc_onset: mc_onset where the score segment starts.
+          to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.
+          to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.
+          midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
+          tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
+          inverse:
+              By default, only notes where all specified filters (midi and/or tpc) apply are colored.
+              Set to True to color only those notes where none of the specified filters match.
+          color_name:
+              Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or
+              a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+          color_html:
+              Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
+              needs to be string of length 6.
+          color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.
+          color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.
+          color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.
+          color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
 
         Returns:
-            List of durations (in fractions) of all notes that have been colored.
-            List of durations (in fractions) of all notes that have not been colored.
+          List of durations (in fractions) of all notes that have been colored.
+          List of durations (in fractions) of all notes that have not been colored.
         """
         if len(self.tags) == 0:
             if self.read_only:
@@ -2241,15 +2241,15 @@ def make_spanner_cols(df: pd.DataFrame,
         """
 
         Args:
-            spanner_type: Create one or several columns expressing all <Spanner type=``spanner_type``> tags.
-            subtype:
-                Defaults to None. If at least one spanner includes a <subtype> tag, the function will call itself
-                for every subtype and create column names of the form spanner_type:subtype
+          spanner_type: Create one or several columns expressing all <Spanner type=``spanner_type``> tags.
+          subtype:
+              Defaults to None. If at least one spanner includes a <subtype> tag, the function will call itself
+              for every subtype and create column names of the form spanner_type:subtype
 
         Returns:
-            {column_name -> [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective
-            spanner's span. In the case of Slurs, however, this is true only for rows with events occurring in the
-            same voice as the spanner.
+          {column_name -> [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective
+          spanner's span. In the case of Slurs, however, this is true only for rows with events occurring in the
+          same voice as the spanner.
         """
         nonlocal df
         if spanner_type == 'Slur':

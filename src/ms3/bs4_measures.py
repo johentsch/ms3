@@ -521,11 +521,11 @@ def get_volta_structure(measures, mc, volta_start, volta_length, frac_col=None) 
     Uses: :func:`treat_group`
 
     Args:
-        measures: Measures table containing the columns indicated in the other arguments.
-        mc, volta_start, volta_length, frac_col: column names
+      measures: Measures table containing the columns indicated in the other arguments.
+      mc, volta_start, volta_length, frac_col: column names
 
     Returns:
-        {first_mc -> {volta_number -> [MC] } }
+      {first_mc -> {volta_number -> [MC] } }
     """
     cols = [mc, volta_start, volta_length]
     sel = measures[volta_start].notna()
@@ -826,10 +826,10 @@ def treat_group(mc: int,
 
 
     Args:
-        mc: MC of the first bar of the first measure.
-        group:
-            Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
-            where columns are (MC, volta number, volta length).
+      mc: MC of the first bar of the first measure.
+      group:
+          Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
+          where columns are (MC, volta number, volta length).
 
     Returns:
 

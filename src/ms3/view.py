@@ -176,20 +176,20 @@ class View(LoggedClass):
         :meth:`exclude` at once.
 
         Args:
-            view_name: New name of the view.
-            only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.
-            include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.
-            include_tsv: Whether or not TSV files should be included.
-            exclude_review: Whether or not files and folder that include 'review' should be excluded.
-            file_paths:
-                The exact file names will be extracted and used as exclusive filter, that is, all files that do not have
-                one of these file names will be excluded. This is regardless of eventual relative or absolute paths included
-                in the argument.
-            file_re: Include only files whose file name includes this regular expression.
-            folder_re: Include only files from folders whose name includes this regular expression.
-            exclude_re: Exclude all file and folders whose name includes this regular expression.
-            folder_paths: Include only files from these folders.
-            **logger_cfg:
+          view_name: New name of the view.
+          only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.
+          include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.
+          include_tsv: Whether or not TSV files should be included.
+          exclude_review: Whether or not files and folder that include 'review' should be excluded.
+          file_paths:
+              The exact file names will be extracted and used as exclusive filter, that is, all files that do not have
+              one of these file names will be excluded. This is regardless of eventual relative or absolute paths included
+              in the argument.
+          file_re: Include only files whose file name includes this regular expression.
+          folder_re: Include only files from folders whose name includes this regular expression.
+          exclude_re: Exclude all file and folders whose name includes this regular expression.
+          folder_paths: Include only files from these folders.
+          **logger_cfg:
 
         Returns:
 
@@ -281,11 +281,11 @@ class View(LoggedClass):
         """ Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.
 
         Args:
-            file:
+          file:
 
         Returns:
-            False if file is to be discarded from this view.
-            The criterion based on which the file is being excluded.
+          False if file is to be discarded from this view.
+          The criterion based on which the file is being excluded.
         """
         if file.full_path in self.excluded_file_paths:
             return False, 'file'
@@ -352,8 +352,8 @@ class View(LoggedClass):
         """ Keep only the files that pass _.check_file().
 
         Args:
-            files: :obj:`File` objects to be filtered.
-            key: Aggregate results from several filter runs under this dictionary key.
+          files: :obj:`File` objects to be filtered.
+          key: Aggregate results from several filter runs under this dictionary key.
 
         Returns:
 

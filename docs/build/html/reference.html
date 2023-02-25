@@ -670,8 +670,11 @@ Pass False to attach them to the chord layer instead.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Number of scores in which labels have changed.
-Number of scores in which no label has chnged.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Number of scores in which labels have changed.</dt><dd><p>Number of scores in which no label has chnged.</p>
+</dd>
+</dl>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -691,13 +694,12 @@ otherwise the counts are summed up in one Counter.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a> – By default, the function returns a Counter of file extensions (Counters are converted to dicts).
+<dd class="field-even"><p>By default, the function returns a Counter of file extensions (Counters are converted to dicts).
 If <code class="docutils literal notranslate"><span class="pre">per_key</span></code> is set to True, a dictionary {key: Counter} is returned, separating the counts.
-If <code class="docutils literal notranslate"><span class="pre">per_subdir</span></code> is set to True, a dictionary {key: {subdir: Counter} } is returned.</p></li>
-<li><p><em>Args</em> – view_name:</p></li>
-</ul>
-</p>
+If <code class="docutils literal notranslate"><span class="pre">per_subdir</span></code> is set to True, a dictionary {key: {subdir: Counter} } is returned.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -962,27 +964,22 @@ all scores regardless.</p>
 <p>root_dir: Directory where to re-build the sub-directory tree of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">Corpus</span></code> in question.
 folder:</p>
 <blockquote>
-<div><p>Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-files that have identical fnames but are located in different subdirectories of the same corpus.</p>
-<ul class="simple">
+<div><ul class="simple">
+<li><p>Different behaviours are available. Note that only the third option ensures that file paths are distinct for
+files that have identical fnames but are located in different subdirectories of the same corpus.</p></li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is None (default), the files’ type will be appended to the <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p></li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is an absolute path, <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> will be ignored.</p></li>
-<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path starting with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code> the relative path is appended to the file’s subdir.
-For example, <a href="#id1"><span class="problematic" id="id2">``</span></a>..</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path that does not begin with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code>, it will be appended to the <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path starting with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code> the relative path is appended to the file’s subdir. For example, <a href="#id1"><span class="problematic" id="id2">``</span></a>..</p></li>
 </ul>
 </div></blockquote>
 </dd>
 </dl>
 </div></blockquote>
-<dl>
-<dt>otes`` will resolve to a sibling directory of the one where the <code class="docutils literal notranslate"><span class="pre">file</span></code> is located.</dt><dd><blockquote>
+<p>otes`` will resolve to a sibling directory of the one where the <code class="docutils literal notranslate"><span class="pre">file</span></code> is located.</p>
+<blockquote>
 <div><blockquote>
-<div><ul class="simple">
-<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path that does not begin with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code>, it will be appended to the
-<code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p></li>
-</ul>
-</div></blockquote>
-<p>suffix: Suffix to append to the original file name.
+<div><p>suffix: Suffix to append to the original file name.
 overwrite: Pass True to overwrite existing files.
 simulate: Set to True if no files are to be written.</p>
 </div></blockquote>
@@ -990,8 +987,7 @@ simulate: Set to True if no files are to be written.</p>
 <dt>Returns:</dt><dd><p>Paths of the stored files.</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</div></blockquote>
 </dd></dl>
 
 <dl class="py method">
@@ -2055,7 +2051,7 @@ Number of scores in which no label has chnged.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>include_empty</strong> – By default, facets without files are not included in the dict. Pass True to include zero counts.</p></li>
 <li><p><strong>view_name</strong> – </p></li>
-<li><p><strong>prefix</strong> – Pass True if you want the facets prefixed with ‘<a href="#id19"><span class="problematic" id="id20">detected_</span></a>’.</p></li>
+<li><p><strong>prefix</strong> – Pass True if you want the facets prefixed with ‘<a href="#id15"><span class="problematic" id="id16">detected_</span></a>’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3713,13 +3709,17 @@ Pass True in order to retrieve only StaffText form labels.</p></li>
 <dt class="sig sig-object py" id="ms3.bs4_parser._MSCX_bs4.fl">
 <span class="sig-name descname"><span class="pre">fl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detection_regex</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_harmony_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.5.3)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.fl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.fl" title="Permalink to this definition">#</a></dt>
 <dd><p>Get the raw <a class="reference internal" href="manual/index.html#form-labels"><span class="std std-ref">Form labels</span></a> (or other) that match the <code class="docutils literal notranslate"><span class="pre">detection_regex</span></code>, but without adding quarterbeat columns.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>detection_regex</strong> – By default, detects all labels starting with one or two digits followed by a column
+<dl class="simple">
+<dt>{ref}`$1`</dt><dd><dl class="simple">
+<dt>detection_regex:</dt><dd><p>By default, detects all labels starting with one or two digits followed by a column
 (see <code class="xref py py-const docutils literal notranslate"><span class="pre">the</span> <span class="pre">regex</span></code>). Pass another regex to retrieve only StaffTexts matching this one.</p>
 </dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>DataFrame containing all StaffTexts matching the <code class="docutils literal notranslate"><span class="pre">detection_regex</span></code> or None</p>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>DataFrame containing all StaffTexts matching the <code class="docutils literal notranslate"><span class="pre">detection_regex</span></code> or None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5606,21 +5606,10 @@ equal values. There are several options of how to deal with NA values.</p>
 subsequent value will be based on the preceding value.</div>
 </div>
 </p></li>
-<li><p><strong>prevent_merge</strong> – By default, if you use the <cite>na_values</cite> argument to fill NA values, they might lead to two groups merging.</p></li>
-<li><p><strong>example</strong> (<em>Pass True to prevent this. For</em>) – By default,</p></li>
-<li><p><strong>[</strong><strong>'a'</strong> (<em>take the sequence</em>) – By default,</p></li>
-<li><p><strong>NA</strong> – By default,</p></li>
-<li><p><strong>na_values='ffill'</strong> (<em>'a'</em><em>] </em><em>with</em>) – By default,</p></li>
-<li><p><strong>``</strong><strong>[</strong><strong>1</strong> (<em>result in</em>) – </p></li>
-<li><p><strong>1</strong> – </p></li>
-<li><p><strong>1</strong><strong>]</strong> – </p></li>
-<li><p><strong>{1</strong> – ‘a’}``. However:</p></li>
-<li><p><strong>will</strong> (<em>passing prevent_merge=True</em>) – </p></li>
-<li><p><strong>``</strong><strong>[</strong><strong>1</strong> – </p></li>
-<li><p><strong>1</strong> – </p></li>
-<li><p><strong>2</strong><strong>]</strong> – </p></li>
-<li><p><strong>{1</strong> – ‘a’:</p></li>
-<li><p><strong>2</strong> – ‘a’}``.:</p></li>
+<li><p><strong>prevent_merge</strong> – By default, if you use the <cite>na_values</cite> argument to fill NA values, they might lead to two groups merging.
+Pass True to prevent this. For example, take the sequence [‘a’, NA, ‘a’] with <code class="docutils literal notranslate"><span class="pre">na_values='ffill'</span></code>: By default,
+it will be merged to one single group <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">1,</span> <span class="pre">1],</span> <span class="pre">{1:</span> <span class="pre">'a'}</span></code>. However, passing <code class="docutils literal notranslate"><span class="pre">prevent_merge=True</span></code> will
+result in <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">1,</span> <span class="pre">2],</span> <span class="pre">{1:</span> <span class="pre">'a',</span> <span class="pre">2:</span> <span class="pre">'a'}</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -5761,9 +5750,9 @@ interpreted within a global major or minor key.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="go">&#39;bvi&#39;       # F minor expressed with respect to A major</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="go">&#39;vi&#39;        # F minor expressed with respect to A minor</span>
+<span class="go">&#39;vi&#39;      # F minor expressed with respect to A minor</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="go">&#39;vi&#39;        # F minor expressed with respect to Ab major</span>
+<span class="go">&#39;vi&#39;      # F minor expressed with respect to Ab major</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="go">&#39;#vi&#39;       # F minor expressed with respect to Ab minor</span>
 </pre></div>
@@ -5803,9 +5792,9 @@ The comments express the examples in relation to global C major or C minor.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="go">&#39;#iv&#39;       # vi of A major = F# minor</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="go">&#39;iv&#39;        # vi of A minor = F minor</span>
+<span class="go">&#39;iv&#39;      # vi of A minor = F minor</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="go">&#39;iv&#39;        # vi of Ab major = F minor</span>
+<span class="go">&#39;iv&#39;      # vi of Ab major = F minor</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="go">&#39;biv&#39;       # vi of Ab minor = Fb minor</span>
 </pre></div>
@@ -6007,7 +5996,7 @@ annotation standard is used.</p></li>
 <dt class="sig sig-object py" id="ms3.utils.parse_ignored_warnings_file">
 <span class="sig-prename descclassname"><span class="pre">ms3.utils.</span></span><span class="sig-name descname"><span class="pre">parse_ignored_warnings_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Tuple" title="(in Python v3.10)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Tuple" title="(in Python v3.10)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/ms3/utils.html#parse_ignored_warnings_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ms3.utils.parse_ignored_warnings_file" title="Permalink to this definition">#</a></dt>
 <dd><p>Parse file with log messages that have to be ignored to the dict.
-The expected structure of message: warning_type (warning_type_id, <a href="#id13"><span class="problematic" id="id14">*</span></a>integers) file
+The expected structure of message: warning_type (warning_type_id, <a href="#id9"><span class="problematic" id="id10">*</span></a>integers) file
 Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -6260,7 +6249,7 @@ Pass a directory to construct the path relative to it instead. If <code class="d
 <li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is None (default), the files’ type will be appended to the <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p></li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is an absolute path, <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> will be ignored.</p></li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path starting with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code> the relative path is appended to the file’s subdir.
-For example, <a href="#id15"><span class="problematic" id="id16">``</span></a>..</p></li>
+For example, <a href="#id11"><span class="problematic" id="id12">``</span></a>..</p></li>
 </ul>
 </dd>
 </dl>
@@ -6296,15 +6285,15 @@ root_dir:</p>
 Pass a directory to construct the path relative to it instead. If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is an absolute path,
 <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> is ignored.</p>
 </div></blockquote>
-<dl class="simple">
+<dl>
 <dt>folder:</dt><dd><p>Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-files that have identical fnames but are located in different subdirectories of the same corpus.</p>
-<ul class="simple">
-<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is None (default), the files’ type will be appended to the <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p></li>
-<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is an absolute path, <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> will be ignored.</p></li>
-<li><p>If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path starting with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code> the relative path is appended to the file’s subdir.
-For example, <a href="#id17"><span class="problematic" id="id18">``</span></a>..</p></li>
-</ul>
+files that have identical fnames but are located in different subdirectories of the same corpus.
+* If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is None (default), the files’ type will be appended to the <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.
+* If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is an absolute path, <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> will be ignored.
+* If <code class="docutils literal notranslate"><span class="pre">folder</span></code> is a relative path starting with a dot <code class="docutils literal notranslate"><span class="pre">.</span></code> the relative path is appended to the file’s subdir.</p>
+<blockquote>
+<div><p>For example, <a href="#id13"><span class="problematic" id="id14">``</span></a>..</p>
+</div></blockquote>
 </dd>
 </dl>
 </dd>

@@ -625,14 +625,14 @@
 <span class="sd">        It inherits all :class:`Views &lt;.view.View&gt;` from the Parse object.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: Directory to scan for files.</span>
-<span class="sd">            corpus_name:</span>
-<span class="sd">                By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to</span>
-<span class="sd">                use a different identifier.</span>
-<span class="sd">            **logger_cfg:</span>
-<span class="sd">                Keyword arguments for configuring the logger of the new Corpus object. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
-<span class="sd">                Note that the logger is a child logger of this Parse object&#39;s logger and propagates, so it might filter debug messages.</span>
-<span class="sd">                You can use _.change_logger_cfg(level=&#39;d&#39;) to change the level post hoc.</span>
+<span class="sd">          directory: Directory to scan for files.</span>
+<span class="sd">          corpus_name:</span>
+<span class="sd">              By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to</span>
+<span class="sd">              use a different identifier.</span>
+<span class="sd">          **logger_cfg:</span>
+<span class="sd">              Keyword arguments for configuring the logger of the new Corpus object. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
+<span class="sd">              Note that the logger is a child logger of this Parse object&#39;s logger and propagates, so it might filter debug messages.</span>
+<span class="sd">              You can use _.change_logger_cfg(level=&#39;d&#39;) to change the level post hoc.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
@@ -697,15 +697,15 @@
 <span class="sd">        itself, and calls :meth:`add_corpus` for each corpus.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: Directory to scan for corpora.</span>
-<span class="sd">            recursive:</span>
-<span class="sd">                By default, if any of the first-level subdirectories contains a &#39;metadata.tsv&#39; or is a git, all first-level</span>
-<span class="sd">                subdirectories of ``directory`` are treated as corpora, i.e. one :class:`~.corpus.Corpus` object per folder is created.</span>
-<span class="sd">                Pass False to prevent this, which is equivalent to calling :meth:`add_corpus(directory) &lt;add_corpus&gt;`</span>
-<span class="sd">            **logger_cfg:</span>
-<span class="sd">                Keyword arguments for configuring the logger of the new Corpus objects. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
-<span class="sd">                Note that the loggers are child loggers of this Parse object&#39;s logger and propagate, so it might filter debug messages.</span>
-<span class="sd">                You can use _.change_logger_cfg(level=&#39;d&#39;) to change the level post hoc.</span>
+<span class="sd">          directory: Directory to scan for corpora.</span>
+<span class="sd">          recursive:</span>
+<span class="sd">              By default, if any of the first-level subdirectories contains a &#39;metadata.tsv&#39; or is a git, all first-level</span>
+<span class="sd">              subdirectories of ``directory`` are treated as corpora, i.e. one :class:`~.corpus.Corpus` object per folder is created.</span>
+<span class="sd">              Pass False to prevent this, which is equivalent to calling :meth:`add_corpus(directory) &lt;add_corpus&gt;`</span>
+<span class="sd">          **logger_cfg:</span>
+<span class="sd">              Keyword arguments for configuring the logger of the new Corpus objects. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
+<span class="sd">              Note that the loggers are child loggers of this Parse object&#39;s logger and propagate, so it might filter debug messages.</span>
+<span class="sd">              You can use _.change_logger_cfg(level=&#39;d&#39;) to change the level post hoc.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
@@ -744,18 +744,18 @@
 <span class="sd">        on some higher level or in folders for which :class:`~.corpus.Corpus` objects have already been created.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            file_paths: Collection of file paths. Only existing files can be added.</span>
-<span class="sd">            corpus_name:</span>
+<span class="sd">          file_paths: Collection of file paths. Only existing files can be added.</span>
+<span class="sd">          corpus_name:</span>
 
-<span class="sd">                * By default, I will try to attribute the files to existing :class:`~.corpus.Corpus` objects based on their paths. This makes sense only when new files have</span>
-<span class="sd">                  been created after the directories were scanned.</span>
-<span class="sd">                * For paths that do no not contain an existing corpus_path, I will try to detect the parent directory that is a corpus (based on it being a git or containing a ``metadata.tsv``).</span>
-<span class="sd">                  If this is without success for the first path, I will raise an error. Otherwise, all subsequent paths will be considered to be part of that same corpus (watch out</span>
-<span class="sd">                  meaningless relative paths!).</span>
-<span class="sd">                * You can pass a folder name contained in the first path to create a new corpus, assuming that all other paths are contained in it (watch out meaningless relative paths!).</span>
-<span class="sd">                * Pass an existing corpus_name to add the files to a particular corpus. Note that all parseable files under the corpus_path are detected anyway, and if you add files</span>
-<span class="sd">                  from other directories, it will lead to invalid relative paths that work only on your system. If you&#39;re adding files that have been created after the Corpus object</span>
-<span class="sd">                  has, you can leave this parameter empty; paths will be attributed to the existing corpora automatically.</span>
+<span class="sd">              * By default, I will try to attribute the files to existing :class:`~.corpus.Corpus` objects based on their paths. This makes sense only when new files have</span>
+<span class="sd">                been created after the directories were scanned.</span>
+<span class="sd">              * For paths that do no not contain an existing corpus_path, I will try to detect the parent directory that is a corpus (based on it being a git or containing a ``metadata.tsv``).</span>
+<span class="sd">                If this is without success for the first path, I will raise an error. Otherwise, all subsequent paths will be considered to be part of that same corpus (watch out</span>
+<span class="sd">                meaningless relative paths!).</span>
+<span class="sd">              * You can pass a folder name contained in the first path to create a new corpus, assuming that all other paths are contained in it (watch out meaningless relative paths!).</span>
+<span class="sd">              * Pass an existing corpus_name to add the files to a particular corpus. Note that all parseable files under the corpus_path are detected anyway, and if you add files</span>
+<span class="sd">                from other directories, it will lead to invalid relative paths that work only on your system. If you&#39;re adding files that have been created after the Corpus object</span>
+<span class="sd">                has, you can leave this parameter empty; paths will be attributed to the existing corpora automatically.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">resolved_paths</span> <span class="o">=</span> <span class="n">resolve_paths_argument</span><span class="p">(</span><span class="n">file_paths</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -856,19 +856,19 @@
 <span class="sd">        attached to the Score in red, just like any deleted label.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            key: Key of the detached labels you want to compare to the ones in the score.</span>
-<span class="sd">            new_color, old_color:</span>
-<span class="sd">                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
-<span class="sd">                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
-<span class="sd">            detached_is_newer:</span>
-<span class="sd">                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
-<span class="sd">                will turn ``old_color``, as opposed to the default.</span>
-<span class="sd">            add_to_rna:</span>
-<span class="sd">                By default, new labels are attached to the Roman Numeral layer.</span>
-<span class="sd">                Pass False to attach them to the chord layer instead.</span>
+<span class="sd">          key: Key of the detached labels you want to compare to the ones in the score.</span>
+<span class="sd">          new_color, old_color:</span>
+<span class="sd">              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
+<span class="sd">              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
+<span class="sd">          detached_is_newer:</span>
+<span class="sd">              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
+<span class="sd">              will turn ``old_color``, as opposed to the default.</span>
+<span class="sd">          add_to_rna:</span>
+<span class="sd">              By default, new labels are attached to the Roman Numeral layer.</span>
+<span class="sd">              Pass False to attach them to the chord layer instead.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Number of scores in which labels have changed.</span>
+<span class="sd">          Number of scores in which labels have changed.</span>
 <span class="sd">            Number of scores in which no label has chnged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">changed</span><span class="p">,</span> <span class="n">unchanged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
@@ -912,9 +912,6 @@
 <span class="sd">            By default, the function returns a Counter of file extensions (Counters are converted to dicts).</span>
 <span class="sd">            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.</span>
 <span class="sd">            If ``per_subdir`` is set to True, a dictionary {key: {subdir: Counter} } is returned.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">extension_counters</span> <span class="o">=</span> <span class="p">{</span><span class="n">corpus_name</span><span class="p">:</span> <span class="n">corpus</span><span class="o">.</span><span class="n">count_extensions</span><span class="p">(</span><span class="n">view_name</span><span class="p">,</span> <span class="n">include_metadata</span><span class="o">=</span><span class="n">include_metadata</span><span class="p">)</span> <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">)}</span>
         <span class="k">if</span> <span class="n">per_piece</span><span class="p">:</span>
@@ -1280,7 +1277,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Adds a filters to all loggers included in a IGNORED_WARNINGS file.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            path: Path of the IGNORED_WARNINGS file.</span>
+<span class="sd">          path: Path of the IGNORED_WARNINGS file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">load_ignored_warnings</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
@@ -1337,20 +1334,20 @@
 <span class="sd">        Gathers the metadata from parsed and currently selected scores and updates &#39;metadata.tsv&#39; with the information.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.</span>
-<span class="sd">            suffix:</span>
-<span class="sd">                Added to the filename: &#39;metadata{suffix}.tsv&#39;. Defaults to &#39;&#39;. Metadata files with suffix may be</span>
-<span class="sd">                used to store views with particular subselections of pieces.</span>
-<span class="sd">            markdown_file:</span>
-<span class="sd">                By default, a subset of metadata columns will be written to &#39;README.md&#39; in the same folder as the TSV file.</span>
-<span class="sd">                If the file exists, it will be scanned for a line containing the string &#39;# Overview&#39; and overwritten</span>
-<span class="sd">                from that line onwards.</span>
-<span class="sd">            view_name:</span>
-<span class="sd">                The view under which you want to update metadata from the selected parsed files. Defaults to None,</span>
-<span class="sd">                i.e. the active view.</span>
+<span class="sd">          root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.</span>
+<span class="sd">          suffix:</span>
+<span class="sd">              Added to the filename: &#39;metadata{suffix}.tsv&#39;. Defaults to &#39;&#39;. Metadata files with suffix may be</span>
+<span class="sd">              used to store views with particular subselections of pieces.</span>
+<span class="sd">          markdown_file:</span>
+<span class="sd">              By default, a subset of metadata columns will be written to &#39;README.md&#39; in the same folder as the TSV file.</span>
+<span class="sd">              If the file exists, it will be scanned for a line containing the string &#39;# Overview&#39; and overwritten</span>
+<span class="sd">              from that line onwards.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">              The view under which you want to update metadata from the selected parsed files. Defaults to None,</span>
+<span class="sd">              i.e. the active view.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            The file paths to which metadata was written.</span>
+<span class="sd">          The file paths to which metadata was written.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">metadata_paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">():</span>
@@ -1372,20 +1369,20 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            write_empty_values:</span>
-<span class="sd">                If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
-<span class="sd">                will be set to &#39;&#39;.</span>
-<span class="sd">            remove_unused_fields:</span>
-<span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
-<span class="sd">            write_text_fields:</span>
-<span class="sd">                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
-<span class="sd">                ``lyricist_text``, and ``part_name_text`` into the score headers.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          write_empty_values:</span>
+<span class="sd">              If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
+<span class="sd">              will be set to &#39;&#39;.</span>
+<span class="sd">          remove_unused_fields:</span>
+<span class="sd">              If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+<span class="sd">          write_text_fields:</span>
+<span class="sd">              If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
+<span class="sd">              ``lyricist_text``, and ``part_name_text`` into the score headers.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
+<span class="sd">          List of File objects of those scores of which the XML structure has been modified.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">updated_scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
@@ -1405,25 +1402,25 @@
                       <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update scores created with an older MuseScore version to the latest MuseScore 3 version.</span>
 
-<span class="sd">                Args:</span>
-<span class="sd">                    root_dir:</span>
-<span class="sd">                        In case you want to create output paths for the updated MuseScore files based on a folder different</span>
-<span class="sd">                        from :attr:`corpus_path`.</span>
-<span class="sd">                    folder:</span>
-<span class="sd">                        * The default &#39;.&#39; has the updated scores written to the same directory as the old ones, effectively</span>
-<span class="sd">                          overwriting them if ``root_dir`` is None.</span>
-<span class="sd">                        * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.</span>
-<span class="sd">                        * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">                        * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">                          For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">                        * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">                          ``root_dir``.</span>
-<span class="sd">                    suffix: String to append to the file names of the updated files, e.g. &#39;_updated&#39;.</span>
-<span class="sd">                    overwrite: By default, existing files are not overwritten. Pass True to allow this.</span>
+<span class="sd">        Args:</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">              In case you want to create output paths for the updated MuseScore files based on a folder different</span>
+<span class="sd">              from :attr:`corpus_path`.</span>
+<span class="sd">          folder:</span>
+<span class="sd">              * The default &#39;.&#39; has the updated scores written to the same directory as the old ones, effectively</span>
+<span class="sd">                overwriting them if ``root_dir`` is None.</span>
+<span class="sd">              * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.</span>
+<span class="sd">              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">                For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">                ``root_dir``.</span>
+<span class="sd">          suffix: String to append to the file names of the updated files, e.g. &#39;_updated&#39;.</span>
+<span class="sd">          overwrite: By default, existing files are not overwritten. Pass True to allow this.</span>
 
-<span class="sd">                Returns:</span>
-<span class="sd">                    A list of all up-to-date paths, whether they had to be converted or were already in the latest version.</span>
-<span class="sd">                &quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          A list of all up-to-date paths, whether they had to be converted or were already in the latest version.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">up2date_paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">():</span>
             <span class="n">paths</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">update_scores</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span>
@@ -1447,15 +1444,15 @@
 <span class="sd">        (for instance with respect to column order) making sure that the content doesn&#39;t change.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">                By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
-<span class="sd">                force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
-<span class="sd">            choose:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">              By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
+<span class="sd">              force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
+<span class="sd">          choose:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of paths that have been overwritten.</span>
+<span class="sd">          List of paths that have been overwritten.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">):</span>
@@ -1676,26 +1673,26 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;  Store facets extracted from parsed scores as TSV files.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            root_dir:</span>
-<span class="sd">                (&#39;measures&#39;, &#39;notes&#39;, &#39;rests&#39;, &#39;notes_and_rests&#39;, &#39;labels&#39;, &#39;expanded&#39;, &#39;form_labels&#39;, &#39;cadences&#39;, &#39;events&#39;, &#39;chords&#39;)</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">              (&#39;measures&#39;, &#39;notes&#39;, &#39;rests&#39;, &#39;notes_and_rests&#39;, &#39;labels&#39;, &#39;expanded&#39;, &#39;form_labels&#39;, &#39;cadences&#39;, &#39;events&#39;, &#39;chords&#39;)</span>
 
-<span class="sd">            measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:</span>
-<span class="sd">                Specify directory where to store the corresponding TSV files.</span>
-<span class="sd">            measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:</span>
-<span class="sd">                Optionally specify suffixes appended to the TSVs&#39; file names. If ``unfold=True`` the suffixes default to ``_unfolded``.</span>
-<span class="sd">            metadata_suffix:</span>
-<span class="sd">                Specify a suffix to update the &#39;metadata{suffix}.tsv&#39; file for each corpus. For the main file, pass &#39;&#39;</span>
-<span class="sd">            markdown:</span>
-<span class="sd">                By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing</span>
-<span class="sd">                the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,</span>
-<span class="sd">                this table will be appended or overwritten after the heading ``# Overview``.</span>
-<span class="sd">            simulate:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">                By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full</span>
-<span class="sd">                playthrough, including correct positioning of first and second endings.</span>
-<span class="sd">            interval_index:</span>
-<span class="sd">            silence_label_warnings:</span>
+<span class="sd">          measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:</span>
+<span class="sd">              Specify directory where to store the corresponding TSV files.</span>
+<span class="sd">          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:</span>
+<span class="sd">              Optionally specify suffixes appended to the TSVs&#39; file names. If ``unfold=True`` the suffixes default to ``_unfolded``.</span>
+<span class="sd">          metadata_suffix:</span>
+<span class="sd">              Specify a suffix to update the &#39;metadata{suffix}.tsv&#39; file for each corpus. For the main file, pass &#39;&#39;</span>
+<span class="sd">          markdown:</span>
+<span class="sd">              By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing</span>
+<span class="sd">              the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,</span>
+<span class="sd">              this table will be appended or overwritten after the heading ``# Overview``.</span>
+<span class="sd">          simulate:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">              By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full</span>
+<span class="sd">              playthrough, including correct positioning of first and second endings.</span>
+<span class="sd">          interval_index:</span>
+<span class="sd">          silence_label_warnings:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -1720,27 +1717,26 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Stores all parsed scores under this view as MuseScore 3 files.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name: Name of another view if another than the current one is to be used.</span>
-<span class="sd">            only_changed:</span>
-<span class="sd">                By default, only scores that have been modified since parsing are written. Set to False to store</span>
-<span class="sd">                all scores regardless.</span>
-<span class="sd">            root_dir: Directory where to re-build the sub-directory tree of the :obj:`Corpus` in question.</span>
-<span class="sd">            folder:</span>
-<span class="sd">                Different behaviours are available. Note that only the third option ensures that file paths are distinct for</span>
-<span class="sd">                files that have identical fnames but are located in different subdirectories of the same corpus.</span>
+<span class="sd">          view_name: Name of another view if another than the current one is to be used.</span>
+<span class="sd">          only_changed:</span>
+<span class="sd">              By default, only scores that have been modified since parsing are written. Set to False to store</span>
+<span class="sd">              all scores regardless.</span>
+<span class="sd">          root_dir: Directory where to re-build the sub-directory tree of the :obj:`Corpus` in question.</span>
+<span class="sd">          folder:</span>
 
-<span class="sd">                * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
-<span class="sd">                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">                  ``root_dir``.</span>
-<span class="sd">            suffix: Suffix to append to the original file name.</span>
-<span class="sd">            overwrite: Pass True to overwrite existing files.</span>
-<span class="sd">            simulate: Set to True if no files are to be written.</span>
+<span class="sd">              * Different behaviours are available. Note that only the third option ensures that file paths are distinct for</span>
+<span class="sd">                files that have identical fnames but are located in different subdirectories of the same corpus.</span>
+<span class="sd">              * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
+<span class="sd">              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the ``root_dir``.</span>
+<span class="sd">              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir. For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+
+<span class="sd">          suffix: Suffix to append to the original file name.</span>
+<span class="sd">          overwrite: Pass True to overwrite existing files.</span>
+<span class="sd">          simulate: Set to True if no files are to be written.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Paths of the stored files.</span>
+<span class="sd">          Paths of the stored files.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">paths</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
@@ -1756,7 +1752,7 @@
 <div class="viewcode-block" id="Parse.parse"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">cols</span><span class="o">=</span><span class="p">{},</span> <span class="n">infer_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Shorthand for executing parse_scores and parse_tsv at a time.</span>
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
+<span class="sd">          view_name:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_scores</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_tsv</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="n">infer_types</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
@@ -1841,8 +1837,8 @@
 <span class="sd">        None</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            only_new:</span>
-<span class="sd">            view_name:</span>
+<span class="sd">          only_new:</span>
+<span class="sd">          view_name:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">change_logger_cfg</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>

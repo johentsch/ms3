@@ -83,13 +83,13 @@ class Piece(LoggedClass):
         """ Checks if parsed TSV files have been detected for all selected facets under the active or indicated view.
 
         Args:
-            view_name: Name of the view to check.
-            selected_facets: If passed, needs to be a subset of the facets selected by the view, otherwise the
-                result will be False. If no ``selected_facets`` are passed, check for those selected by the
-                active or indicated view.
+          view_name: Name of the view to check.
+          selected_facets: If passed, needs to be a subset of the facets selected by the view, otherwise the
+              result will be False. If no ``selected_facets`` are passed, check for those selected by the
+              active or indicated view.
 
         Returns:
-            True if for each selected facet at least one file has been registered.
+          True if for each selected facet at least one file has been registered.
         """
         view = self.get_view(view_name)
         view_facets = view.selected_facets
@@ -149,8 +149,8 @@ class Piece(LoggedClass):
         """
 
         Args:
-            choose:
-            as_dict: Set to True to change the return type from :obj:`pandas.Series` to :obj:`dict`.
+          choose:
+          as_dict: Set to True to change the return type from :obj:`pandas.Series` to :obj:`dict`.
 
         Returns:
 
@@ -481,20 +481,20 @@ class Piece(LoggedClass):
         attached to the Score in red, just like any deleted label.
 
         Args:
-            key: Key of the detached labels you want to compare to the ones in the score.
-            new_color, old_color:
-                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
-                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-            detached_is_newer:
-                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-                will turn ``old_color``, as opposed to the default.
-            add_to_rna:
-                By default, new labels are attached to the Roman Numeral layer.
-                Pass False to attach them to the chord layer instead.
+          key: Key of the detached labels you want to compare to the ones in the score.
+          new_color, old_color:
+              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+          detached_is_newer:
+              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+              will turn ``old_color``, as opposed to the default.
+          add_to_rna:
+              By default, new labels are attached to the Roman Numeral layer.
+              Pass False to attach them to the chord layer instead.
 
         Returns:
-            Number of scores in which labels have changed.
-            Number of scores in which no label has chnged.
+          Number of scores in which labels have changed.
+          Number of scores in which no label has chnged.
         """
         changed, unchanged = 0, 0
         for file, score in self.get_parsed_scores(view_name=view_name):
@@ -528,13 +528,13 @@ class Piece(LoggedClass):
         """ Count how many files per facet have been detected.
 
         Args:
-            include_empty:
-                By default, facets without files are not included in the dict. Pass True to include zero counts.
-            view_name:
-            prefix: Pass True if you want the facets prefixed with 'detected_'.
+          include_empty:
+              By default, facets without files are not included in the dict. Pass True to include zero counts.
+          view_name:
+          prefix: Pass True if you want the facets prefixed with 'detected_'.
 
         Returns:
-            {facet -> count of detected files}
+          {facet -> count of detected files}
         """
         result = {}
         for facet, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
@@ -627,16 +627,16 @@ class Piece(LoggedClass):
 
 
         Args:
-            facets:
-            view_name:
-            force:
-                Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
-                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
-                under the given view.
-            choose:
-            unfold:
-            interval_index:
-            flat:
+          facets:
+          view_name:
+          force:
+              Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
+              parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
+              under the given view.
+          choose:
+          unfold:
+          interval_index:
+          flat:
 
         Returns:
 
@@ -766,11 +766,11 @@ class Piece(LoggedClass):
         """
 
         Args:
-            facet:
-            choose:
+          facet:
+          choose:
 
         Returns:
-            A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
+          A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
         facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {Facet.__args__}"
@@ -805,10 +805,10 @@ class Piece(LoggedClass):
         """
 
         Args:
-            facets:
+          facets:
 
         Returns:
-            A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
+          A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         selected_facets = resolve_facets_param(facets, logger=self.logger)
@@ -890,10 +890,10 @@ class Piece(LoggedClass):
         """ Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.
 
         Args:
-            facet:
-            view_name:
-            choose:
-            git_revision:
+          facet:
+          view_name:
+          choose:
+          git_revision:
 
         Returns:
 
@@ -1309,19 +1309,19 @@ class Piece(LoggedClass):
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
         Args:
-            ix: Either pass the index of a TSV file containing annotations, or
-            df: A DataFrame containing annotations.
-            key:
-                Specify a new key for accessing the set of annotations. The string needs to be usable
-                as an identifier, e.g. not start with a number, not contain special characters etc. In return you
-                may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
-                ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
-            infer:
-                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
-                Pass False to not add and not change any label types.
-            **cols:
-                If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
-                pass them as standard_name='custom name' keywords.
+          ix: Either pass the index of a TSV file containing annotations, or
+          df: A DataFrame containing annotations.
+          key:
+              Specify a new key for accessing the set of annotations. The string needs to be usable
+              as an identifier, e.g. not start with a number, not contain special characters etc. In return you
+              may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
+              ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
+          infer:
+              By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
+              Pass False to not add and not change any label types.
+          **cols:
+              If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
+              pass them as standard_name='custom name' keywords.
         """
         assert (ix is None) + (df is None) == 1, "Pass either the index of a TSV file or a DataFrame with annotations."
         if ix is not None:
@@ -1396,24 +1396,24 @@ class Piece(LoggedClass):
         are computed from the respective score's location.
 
         Args:
-            facet:
-            root_dir:
-                Defaults to None, meaning that the path is constructed based on the corpus_path.
-                Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
-                ``root_dir`` is ignored.
-            folder:
-                * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
-                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
-                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
-                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
-                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
-                  ``root_dir``.
-            suffix: String to append to the file's fname.
-            view_name:
-            force:
-            choose:
-            unfold:
-            interval_index:
+          facet:
+          root_dir:
+              Defaults to None, meaning that the path is constructed based on the corpus_path.
+              Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+              ``root_dir`` is ignored.
+          folder:
+              * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                ``root_dir``.
+          suffix: String to append to the file's fname.
+          view_name:
+          force:
+          choose:
+          unfold:
+          interval_index:
 
         Returns:
 
@@ -1466,15 +1466,15 @@ class Piece(LoggedClass):
         Creates a MuseScore 3 file from the Score object at the given index.
 
         Args:
-            ix:
-            folder:
-            suffix: Suffix to append to the original file name.
-            root_dir:
-            overwrite: Pass True to overwrite existing files.
-            simulate: Set to True if no files are to be written.
+          ix:
+          folder:
+          suffix: Suffix to append to the original file name.
+          root_dir:
+          overwrite: Pass True to overwrite existing files.
+          simulate: Set to True if no files are to be written.
 
         Returns:
-            Path of the stored file.
+          Path of the stored file.
         """
         if ix not in self.ix2parsed_score:
             self.logger.error(f"No Score object found. Call parse_scores() first.")
@@ -1529,20 +1529,20 @@ class Piece(LoggedClass):
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
         Args:
-            view_name:
-            force:
-            choose:
-            write_empty_values:
-                If set to True, existing values are overwritten even if the new value is empty, in which case the field
-                will be set to ''.
-            remove_unused_fields:
-                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
-            write_text_fields:
-                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
-                ``lyricist_text``, and ``part_name_text`` into the score header.
+          view_name:
+          force:
+          choose:
+          write_empty_values:
+              If set to True, existing values are overwritten even if the new value is empty, in which case the field
+              will be set to ''.
+          remove_unused_fields:
+              If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+          write_text_fields:
+              If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
+              ``lyricist_text``, and ``part_name_text`` into the score header.
 
         Returns:
-            List of File objects of those scores of which the XML structure has been modified.
+          List of File objects of those scores of which the XML structure has been modified.
         """
         row_dict = self.tsv_metadata
         if row_dict is None:
@@ -1610,15 +1610,15 @@ class Piece(LoggedClass):
         (for instance with respect to column order) making sure that the content doesn't change.
 
         Args:
-            facets:
-            view_name:
-            force:
-                By default, only TSV files that have already been parsed are updated. Set to True in order to
-                force-parse for each facet one of the TSV files included in the given view, if necessary.
-            choose:
+          facets:
+          view_name:
+          force:
+              By default, only TSV files that have already been parsed are updated. Set to True in order to
+              force-parse for each facet one of the TSV files included in the given view, if necessary.
+          choose:
 
         Returns:
-            List of paths that have been overwritten.
+          List of paths that have been overwritten.
         """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"

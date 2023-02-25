@@ -831,16 +831,16 @@
 <span class="sd">        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            mode:</span>
-<span class="sd">                Defaults to &#39;auto&#39;, meaning that additional performance markers available in the score are to be included,</span>
-<span class="sd">                namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners</span>
-<span class="sd">                (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column &#39;chord_id&#39; for those</span>
-<span class="sd">                markers that are not part of a &lt;Chord&gt; tag, e.g. &lt;Dynamic&gt;, &lt;StaffText&gt;, or &lt;Tempo&gt;. To prevent that, pass</span>
-<span class="sd">                &#39;strict&#39;, meaning that only &lt;Chords&gt; are included, i.e. the column &#39;chord_id&#39; will have no empty values.</span>
-<span class="sd">            interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          mode:</span>
+<span class="sd">              Defaults to &#39;auto&#39;, meaning that additional performance markers available in the score are to be included,</span>
+<span class="sd">              namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners</span>
+<span class="sd">              (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column &#39;chord_id&#39; for those</span>
+<span class="sd">              markers that are not part of a &lt;Chord&gt; tag, e.g. &lt;Dynamic&gt;, &lt;StaffText&gt;, or &lt;Tempo&gt;. To prevent that, pass</span>
+<span class="sd">              &#39;strict&#39;, meaning that only &lt;Chords&gt; are included, i.e. the column &#39;chord_id&#39; will have no empty values.</span>
+<span class="sd">          interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame of :ref:`chords` representing all &lt;Chord&gt; tags contained in the MuseScore file.</span>
+<span class="sd">          DataFrame of :ref:`chords` representing all &lt;Chord&gt; tags contained in the MuseScore file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;strict&#39;</span><span class="p">:</span>
             <span class="n">chords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cl</span><span class="p">()</span>
@@ -869,10 +869,10 @@
 <span class="sd">        all other tables, except ``measures`` are generated.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.</span>
+<span class="sd">          DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">events</span> <span class="o">=</span> <span class="n">column_order</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_standard_cols</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
@@ -892,16 +892,16 @@
 <span class="sd">        This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            detection_regex:</span>
-<span class="sd">                By default, detects all labels starting with one or two digits followed by a column</span>
-<span class="sd">                (see :const:`the regex &lt;~.utils.FORM_DETECTION_REGEX&gt;`). Pass another regex to retrieve only StaffTexts matching this one.</span>
-<span class="sd">            exclude_harmony_layer:</span>
-<span class="sd">                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).</span>
-<span class="sd">                Pass True in order to retrieve only StaffText form labels.</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          detection_regex:</span>
+<span class="sd">              By default, detects all labels starting with one or two digits followed by a column</span>
+<span class="sd">              (see :const:`the regex &lt;~.utils.FORM_DETECTION_REGEX&gt;`). Pass another regex to retrieve only StaffTexts matching this one.</span>
+<span class="sd">          exclude_harmony_layer:</span>
+<span class="sd">              By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).</span>
+<span class="sd">              Pass True in order to retrieve only StaffText form labels.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame containing all StaffTexts matching the ``detection_regex``</span>
+<span class="sd">          DataFrame containing all StaffTexts matching the ``detection_regex``</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">form</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">(</span><span class="n">detection_regex</span><span class="o">=</span><span class="n">detection_regex</span><span class="p">,</span> <span class="n">exclude_harmony_layer</span><span class="o">=</span><span class="n">exclude_harmony_layer</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">form</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -916,7 +916,7 @@
 <div class="viewcode-block" id="_MSCX_bs4.fl"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.fl">[docs]</a>    <span class="k">def</span> <span class="nf">fl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_regex</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exclude_harmony_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the raw :ref:`form_labels` (or other) that match the ``detection_regex``, but without adding quarterbeat columns.</span>
 
-<span class="sd">        Args:</span>
+<span class="sd">        {ref}`$1`</span>
 <span class="sd">            detection_regex:</span>
 <span class="sd">                By default, detects all labels starting with one or two digits followed by a column</span>
 <span class="sd">                (see :const:`the regex &lt;~.utils.FORM_DETECTION_REGEX&gt;`). Pass another regex to retrieve only StaffTexts matching this one.</span>
@@ -969,10 +969,10 @@
 <span class="sd">        |repeats|, |next|</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame representing the :ref:`measures &lt;measures&gt;` of the MuseScore file (which can be incomplete measures).</span>
+<span class="sd">          DataFrame representing the :ref:`measures &lt;measures&gt;` of the MuseScore file (which can be incomplete measures).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">()</span>
         <span class="n">duration_qb</span> <span class="o">=</span> <span class="p">(</span><span class="n">measures</span><span class="o">.</span><span class="n">act_dur</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
@@ -1029,7 +1029,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the raw :ref:`measures` without adding quarterbeat columns.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            recompute: By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">          recompute: By default, the measures are cached. Pass True to enforce recomputing anew.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_measure_list</span><span class="p">()</span>
@@ -1044,10 +1044,10 @@
 
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame representing the :ref:`notes` of the MuseScore file.</span>
+<span class="sd">          DataFrame representing the :ref:`notes` of the MuseScore file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">notes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
@@ -1061,7 +1061,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the raw :ref:`notes` without adding quarterbeat columns.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">          recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_notelist</span><span class="p">()</span>
@@ -1075,10 +1075,10 @@
 <span class="sd">        |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.</span>
+<span class="sd">          DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">nrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrl</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
@@ -1092,7 +1092,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the raw :ref:`notes_and_rests` without adding quarterbeat columns.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">          recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">nr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">rl</span><span class="p">()])</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tied&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]})</span>
@@ -1108,12 +1108,12 @@
 <span class="sd">        Used for computing quarterbeats for other facets.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            all_endings: Uses the column &#39;quarterbeats_all_endings&#39; of the measures table if it has one, otherwise</span>
-<span class="sd">                falls back to the default &#39;quarterbeats&#39;.</span>
+<span class="sd">          all_endings: Uses the column &#39;quarterbeats_all_endings&#39; of the measures table if it has one, otherwise</span>
+<span class="sd">              falls back to the default &#39;quarterbeats&#39;.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            {MC -&gt; quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,</span>
-<span class="sd">            values for MCs that are part of a first ending (or third or larger) are NA.</span>
+<span class="sd">          {MC -&gt; quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,</span>
+<span class="sd">          values for MCs that are part of a first ending (or third or larger) are NA.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">measures</span><span class="p">(</span><span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
@@ -1130,10 +1130,10 @@
 <span class="sd">        |nominal_duration|, |scalar|, |volta|</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+<span class="sd">          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame representing the :ref:`rests` of the MuseScore file.</span>
+<span class="sd">          DataFrame representing the :ref:`rests` of the MuseScore file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rests</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rl</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
@@ -1147,7 +1147,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the raw :ref:`rests` without adding quarterbeat columns.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">          recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_restlist</span><span class="p">()</span>
@@ -1251,25 +1251,25 @@
 <span class="sd">        unprocessed ones.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            staff: Get information from a particular staff only (1 = upper staff)</span>
-<span class="sd">            voice: Get information from a particular voice only (1 = only the first layer of every staff)</span>
-<span class="sd">            mode:</span>
-<span class="sd">                | Defaults to &#39;auto&#39;, meaning that those aspects are automatically included that occur in the score; the resulting</span>
-<span class="sd">                  DataFrame has no empty columns except for those parameters that are set to True.</span>
-<span class="sd">                | &#39;strict&#39;: Create columns for exactly those parameters that are set to True, regardless whether they occur in the score</span>
-<span class="sd">                  or not (in which case the column will be empty).</span>
-<span class="sd">            lyrics: Include lyrics.</span>
-<span class="sd">            dynamics: Include dynamic markings such as f or p.</span>
-<span class="sd">            articulation: Include articulation such as arpeggios.</span>
-<span class="sd">            staff_text: Include expression text such as &#39;dolce&#39; and free-hand staff text such as &#39;div.&#39;.</span>
-<span class="sd">            system_text: Include system text such as movement titles.</span>
-<span class="sd">            tempo: Include tempo markings.</span>
-<span class="sd">            spanners: Include spanners such as slurs, 8va lines, pedal lines etc.</span>
-<span class="sd">            thoroughbass: Include thoroughbass figures&#39; levels and durations.</span>
-<span class="sd">            **kwargs:</span>
+<span class="sd">          staff: Get information from a particular staff only (1 = upper staff)</span>
+<span class="sd">          voice: Get information from a particular voice only (1 = only the first layer of every staff)</span>
+<span class="sd">          mode:</span>
+<span class="sd">              | Defaults to &#39;auto&#39;, meaning that those aspects are automatically included that occur in the score; the resulting</span>
+<span class="sd">                DataFrame has no empty columns except for those parameters that are set to True.</span>
+<span class="sd">              | &#39;strict&#39;: Create columns for exactly those parameters that are set to True, regardless whether they occur in the score</span>
+<span class="sd">                or not (in which case the column will be empty).</span>
+<span class="sd">          lyrics: Include lyrics.</span>
+<span class="sd">          dynamics: Include dynamic markings such as f or p.</span>
+<span class="sd">          articulation: Include articulation such as arpeggios.</span>
+<span class="sd">          staff_text: Include expression text such as &#39;dolce&#39; and free-hand staff text such as &#39;div.&#39;.</span>
+<span class="sd">          system_text: Include system text such as movement titles.</span>
+<span class="sd">          tempo: Include tempo markings.</span>
+<span class="sd">          spanners: Include spanners such as slurs, 8va lines, pedal lines etc.</span>
+<span class="sd">          thoroughbass: Include thoroughbass figures&#39; levels and durations.</span>
+<span class="sd">          **kwargs:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            DataFrame representing all &lt;Chord&gt; tags in the score with the selected features.</span>
+<span class="sd">          DataFrame representing all &lt;Chord&gt; tags in the score with the selected features.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cols</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;nominal_duration&#39;</span><span class="p">:</span> <span class="s1">&#39;Chord/durationType&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;lyrics&#39;</span><span class="p">:</span> <span class="s1">&#39;Chord/Lyrics/text&#39;</span><span class="p">,</span>
@@ -2259,29 +2259,29 @@
 <span class="sd">        only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            from_mc: MC in which the score segment starts.</span>
-<span class="sd">            from_mc_onset: mc_onset where the score segment starts.</span>
-<span class="sd">            to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.</span>
-<span class="sd">            to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.</span>
-<span class="sd">            midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).</span>
-<span class="sd">            tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).</span>
-<span class="sd">            inverse:</span>
-<span class="sd">                By default, only notes where all specified filters (midi and/or tpc) apply are colored.</span>
-<span class="sd">                Set to True to color only those notes where none of the specified filters match.</span>
-<span class="sd">            color_name:</span>
-<span class="sd">                Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or</span>
-<span class="sd">                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).</span>
-<span class="sd">            color_html:</span>
-<span class="sd">                Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color</span>
-<span class="sd">                needs to be string of length 6.</span>
-<span class="sd">            color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.</span>
-<span class="sd">            color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.</span>
-<span class="sd">            color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.</span>
-<span class="sd">            color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.</span>
+<span class="sd">          from_mc: MC in which the score segment starts.</span>
+<span class="sd">          from_mc_onset: mc_onset where the score segment starts.</span>
+<span class="sd">          to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.</span>
+<span class="sd">          to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.</span>
+<span class="sd">          midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).</span>
+<span class="sd">          tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).</span>
+<span class="sd">          inverse:</span>
+<span class="sd">              By default, only notes where all specified filters (midi and/or tpc) apply are colored.</span>
+<span class="sd">              Set to True to color only those notes where none of the specified filters match.</span>
+<span class="sd">          color_name:</span>
+<span class="sd">              Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or</span>
+<span class="sd">              a MuseScore color (see :py:attr:`utils.MS3_COLORS`).</span>
+<span class="sd">          color_html:</span>
+<span class="sd">              Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color</span>
+<span class="sd">              needs to be string of length 6.</span>
+<span class="sd">          color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.</span>
+<span class="sd">          color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.</span>
+<span class="sd">          color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.</span>
+<span class="sd">          color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of durations (in fractions) of all notes that have been colored.</span>
-<span class="sd">            List of durations (in fractions) of all notes that have not been colored.</span>
+<span class="sd">          List of durations (in fractions) of all notes that have been colored.</span>
+<span class="sd">          List of durations (in fractions) of all notes that have not been colored.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_only</span><span class="p">:</span>
@@ -2620,15 +2620,15 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            spanner_type: Create one or several columns expressing all &lt;Spanner type=``spanner_type``&gt; tags.</span>
-<span class="sd">            subtype:</span>
-<span class="sd">                Defaults to None. If at least one spanner includes a &lt;subtype&gt; tag, the function will call itself</span>
-<span class="sd">                for every subtype and create column names of the form spanner_type:subtype</span>
+<span class="sd">          spanner_type: Create one or several columns expressing all &lt;Spanner type=``spanner_type``&gt; tags.</span>
+<span class="sd">          subtype:</span>
+<span class="sd">              Defaults to None. If at least one spanner includes a &lt;subtype&gt; tag, the function will call itself</span>
+<span class="sd">              for every subtype and create column names of the form spanner_type:subtype</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            {column_name -&gt; [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective</span>
-<span class="sd">            spanner&#39;s span. In the case of Slurs, however, this is true only for rows with events occurring in the</span>
-<span class="sd">            same voice as the spanner.</span>
+<span class="sd">          {column_name -&gt; [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective</span>
+<span class="sd">          spanner&#39;s span. In the case of Slurs, however, this is true only for rows with events occurring in the</span>
+<span class="sd">          same voice as the spanner.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">nonlocal</span> <span class="n">df</span>
         <span class="k">if</span> <span class="n">spanner_type</span> <span class="o">==</span> <span class="s1">&#39;Slur&#39;</span><span class="p">:</span>

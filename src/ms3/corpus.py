@@ -283,21 +283,21 @@ class Corpus(LoggedClass):
         corpora in a :obj:`Parse` object.
 
         Args:
-            directory:
-                Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus's
-                fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
-            filter_other_fnames:
-                Set to True if you want to filter out all fnames that were not matched up with one of the added files.
-                This can be useful if you're loading TSV files with labels and want to parse only the scores for which
-                you have added labels.
-            file_re, folder_re:
-                Regular expressions for filtering certain file names or folder names.
-                The regEx are checked with search(), not match(), allowing for fuzzy search.
-            exclude_re:
-                Exclude files and folders containing this regular expression.
+          directory:
+              Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus's
+              fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
+          filter_other_fnames:
+              Set to True if you want to filter out all fnames that were not matched up with one of the added files.
+              This can be useful if you're loading TSV files with labels and want to parse only the scores for which
+              you have added labels.
+          file_re, folder_re:
+              Regular expressions for filtering certain file names or folder names.
+              The regEx are checked with search(), not match(), allowing for fuzzy search.
+          exclude_re:
+              Exclude files and folders containing this regular expression.
 
         Returns:
-            List of :obj:`File` objects pertaining to the matched, newly added paths.
+          List of :obj:`File` objects pertaining to the matched, newly added paths.
         """
         directory = resolve_dir(directory)
         all_file_paths = list(scan_directory(directory,
@@ -525,10 +525,10 @@ class Corpus(LoggedClass):
         (trying to infer their type from the path), and appends those to :attr:`files`.
 
         Args:
-            paths: File paths that are to be registered with this Corpus object.
+          paths: File paths that are to be registered with this Corpus object.
 
         Returns:
-            A list of :obj:`File` objects corresponding to parseable files (based on their extensions).
+          A list of :obj:`File` objects corresponding to parseable files (based on their extensions).
         """
         resolved_paths = resolve_paths_argument(paths, logger=self.logger)
         if len(resolved_paths) == 0:
@@ -682,10 +682,10 @@ class Corpus(LoggedClass):
         has more than one file, the user will be asked which ones to use. The others will be excluded from the view.
 
         Args:
-            facet: Which facet to disambiguate.
-            ask_for_input:
-                By default, if there is anything to disambiguate, the user is asked to select a group of files.
-                Pass False to see only the questions and choices without actually disambiguating.
+          facet: Which facet to disambiguate.
+          ask_for_input:
+              By default, if there is anything to disambiguate, the user is asked to select a group of files.
+              Pass False to see only the questions and choices without actually disambiguating.
         """
         assert isinstance(facet, str), f"Let's disambiguate one facet at a time. Received invalid argument {facet}"
         assert facet in Facet.__args__, f"'{facet}' is not a valid facet. Choose one of {Facet.__args__}."
@@ -978,17 +978,17 @@ class Corpus(LoggedClass):
         """
 
         Args:
-            facets:
-            view_name:
-            force:
-                Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
-                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
-                under the given view.
-            choose:
-            unfold:
-            interval_index:
-            flat:
-            include_empty:
+          facets:
+          view_name:
+          force:
+              Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
+              parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
+              under the given view.
+          choose:
+          unfold:
+          interval_index:
+          flat:
+          include_empty:
 
         Returns:
 
@@ -1102,11 +1102,11 @@ class Corpus(LoggedClass):
         this function to retrieve the comprehensive list, ignoring views.
 
         Args:
-            fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus, if present
-            fnames_not_in_metadata: fnames that are not listed in the 'metadata.tsv' file for this corpus
+          fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus, if present
+          fnames_not_in_metadata: fnames that are not listed in the 'metadata.tsv' file for this corpus
 
         Returns:
-            The file names included in 'metadata.tsv' and/or those of all other scores.
+          The file names included in 'metadata.tsv' and/or those of all other scores.
         """
         result = []
         if fnames_in_metadata:
@@ -1263,15 +1263,15 @@ class Corpus(LoggedClass):
         """ Iterate through (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet.
 
         Args:
-            facets:
-            view_name:
-            choose:
-            unfold:
-            interval_index:
-            include_files:
+          facets:
+          view_name:
+          choose:
+          unfold:
+          interval_index:
+          include_files:
 
         Returns:
-            (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).
+          (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).
         """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         if choose == 'ask':
@@ -1511,7 +1511,7 @@ class Corpus(LoggedClass):
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
         """ Shorthand for executing parse_scores and parse_tsv at a time.
         Args:
-            view_name:
+          view_name:
         """
         self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
@@ -1706,8 +1706,8 @@ class Corpus(LoggedClass):
         :attr:`ix2orphan_file`.
 
         Args:
-            files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.
-            fnames: Fnames of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
+          files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.
+          fnames: Fnames of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
         """
         if fnames is None:
             fnames = self.fnames
@@ -1901,23 +1901,23 @@ class Corpus(LoggedClass):
         """ Update scores created with an older MuseScore version to the latest MuseScore 3 version.
 
         Args:
-            root_dir:
-                In case you want to create output paths for the updated MuseScore files based on a folder different
-                from :attr:`corpus_path`.
-            folder:
-                * The default '.' has the updated scores written to the same directory as the old ones, effectively
-                  overwriting them if ``root_dir`` is None.
-                * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.
-                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
-                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
-                  For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.
-                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
-                  ``root_dir``.
-            suffix: String to append to the file names of the updated files, e.g. '_updated'.
-            overwrite: By default, existing files are not overwritten. Pass True to allow this.
+          root_dir:
+              In case you want to create output paths for the updated MuseScore files based on a folder different
+              from :attr:`corpus_path`.
+          folder:
+              * The default '.' has the updated scores written to the same directory as the old ones, effectively
+                overwriting them if ``root_dir`` is None.
+              * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.
+              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.
+              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                ``root_dir``.
+          suffix: String to append to the file names of the updated files, e.g. '_updated'.
+          overwrite: By default, existing files are not overwritten. Pass True to allow this.
 
         Returns:
-            A list of all up-to-date paths, whether they had to be converted or were already in the latest version.
+          A list of all up-to-date paths, whether they had to be converted or were already in the latest version.
         """
         assert self.ms is not None, "Set the attribute 'ms' to your MuseScore 3 executable to update scores."
         up2date_paths = []
@@ -1964,15 +1964,15 @@ class Corpus(LoggedClass):
         (for instance with respect to column order) making sure that the content doesn't change.
 
         Args:
-            facets:
-            view_name:
-            force:
-                By default, only TSV files that have already been parsed are updated. Set to True in order to
-                force-parse for each facet one of the TSV files included in the given view, if necessary.
-            choose:
+          facets:
+          view_name:
+          force:
+              By default, only TSV files that have already been parsed are updated. Set to True in order to
+              force-parse for each facet one of the TSV files included in the given view, if necessary.
+          choose:
 
         Returns:
-            List of paths that have been overwritten.
+          List of paths that have been overwritten.
         """
         paths = []
         for fname, piece in self.iter_pieces(view_name=view_name):
@@ -2203,20 +2203,20 @@ class Corpus(LoggedClass):
         attached to the Score in red, just like any deleted label.
 
         Args:
-            key: Key of the detached labels you want to compare to the ones in the score.
-            new_color, old_color:
-                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
-                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-            detached_is_newer:
-                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-                will turn ``old_color``, as opposed to the default.
-            add_to_rna:
-                By default, new labels are attached to the Roman Numeral layer.
-                Pass False to attach them to the chord layer instead.
+          key: Key of the detached labels you want to compare to the ones in the score.
+          new_color, old_color:
+              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+          detached_is_newer:
+              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+              will turn ``old_color``, as opposed to the default.
+          add_to_rna:
+              By default, new labels are attached to the Roman Numeral layer.
+              Pass False to attach them to the chord layer instead.
 
         Returns:
-            Number of scores in which labels have changed.
-            Number of scores in which no label has chnged.
+          Number of scores in which labels have changed.
+          Number of scores in which no label has chnged.
         """
         changed, unchanged = 0, 0
         for fname, piece in self.iter_pieces(view_name=view_name):
@@ -2597,24 +2597,24 @@ class Corpus(LoggedClass):
         """  Store facets extracted from parsed scores as TSV files.
 
         Args:
-            view_name:
-            root_dir:
-            measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
-                Specify directory where to store the corresponding TSV files.
-            measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
-                Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
-            metadata_suffix:
-                Specify a suffix to update the 'metadata{suffix}.tsv' file for this corpus. For the main file, pass ''
-            markdown:
-                By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
-                the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
-                this table will be appended or overwritten after the heading ``# Overview``.
-            simulate:
-            unfold:
-                By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
-                playthrough, including correct positioning of first and second endings.
-            interval_index:
-            silence_label_warnings:
+          view_name:
+          root_dir:
+          measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
+              Specify directory where to store the corresponding TSV files.
+          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
+              Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
+          metadata_suffix:
+              Specify a suffix to update the 'metadata{suffix}.tsv' file for this corpus. For the main file, pass ''
+          markdown:
+              By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+              the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
+              this table will be appended or overwritten after the heading ``# Overview``.
+          simulate:
+          unfold:
+              By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
+              playthrough, including correct positioning of first and second endings.
+          interval_index:
+          silence_label_warnings:
 
         Returns:
 
@@ -2703,20 +2703,20 @@ class Corpus(LoggedClass):
         Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
 
         Args:
-            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.
-            suffix:
-                Added to the filename: 'metadata{suffix}.tsv'. Defaults to ''. Metadata files with suffix may be
-                used to store views with particular subselections of pieces.
-            markdown_file:
-                By default, a subset of metadata columns will be written to 'README.md' in the same folder as the TSV file.
-                If the file exists, it will be scanned for a line containing the string '# Overview' and overwritten
-                from that line onwards.
-            view_name:
-                The view under which you want to update metadata from the selected parsed files. Defaults to None,
-                i.e. the active view.
+          root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.
+          suffix:
+              Added to the filename: 'metadata{suffix}.tsv'. Defaults to ''. Metadata files with suffix may be
+              used to store views with particular subselections of pieces.
+          markdown_file:
+              By default, a subset of metadata columns will be written to 'README.md' in the same folder as the TSV file.
+              If the file exists, it will be scanned for a line containing the string '# Overview' and overwritten
+              from that line onwards.
+          view_name:
+              The view under which you want to update metadata from the selected parsed files. Defaults to None,
+              i.e. the active view.
 
         Returns:
-            The file paths to which metadata was written.
+          The file paths to which metadata was written.
         """
         md = self.score_metadata(view_name=view_name)
         if len(md.index) == 0:
@@ -2760,20 +2760,20 @@ class Corpus(LoggedClass):
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
         Args:
-            view_name:
-            force:
-            choose:
-            write_empty_values:
-                If set to True, existing values are overwritten even if the new value is empty, in which case the field
-                will be set to ''.
-            remove_unused_fields:
-                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
-            write_text_fields:
-                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
-                ``lyricist_text``, and ``part_name_text`` into the score headers.
+          view_name:
+          force:
+          choose:
+          write_empty_values:
+              If set to True, existing values are overwritten even if the new value is empty, in which case the field
+              will be set to ''.
+          remove_unused_fields:
+              If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+          write_text_fields:
+              If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
+              ``lyricist_text``, and ``part_name_text`` into the score headers.
 
         Returns:
-            List of File objects of those scores of which the XML structure has been modified.
+          List of File objects of those scores of which the XML structure has been modified.
         """
         updated_scores = []
         for fname, piece in self.iter_pieces(view_name):
@@ -2818,18 +2818,18 @@ class Corpus(LoggedClass):
         """ Stores all parsed scores under this view as MuseScore 3 files.
 
         Args:
-            view_name:
-            only_changed:
-                By default, only scores that have been modified since parsing are written. Set to False to store
-                all scores regardless.
-            root_dir:
-            folder:
-            suffix: Suffix to append to the original file name.
-            overwrite: Pass True to overwrite existing files.
-            simulate: Set to True if no files are to be written.
+          view_name:
+          only_changed:
+              By default, only scores that have been modified since parsing are written. Set to False to store
+              all scores regardless.
+          root_dir:
+          folder:
+          suffix: Suffix to append to the original file name.
+          overwrite: Pass True to overwrite existing files.
+          simulate: Set to True if no files are to be written.
 
         Returns:
-            Paths of the stored files.
+          Paths of the stored files.
         """
         file_paths = []
         for fname, piece in self.iter_pieces(view_name):
@@ -2998,16 +2998,16 @@ def parse_musescore_file(file: File,
     """Performs a single parse and returns the resulting Score object or None.
 
     Args:
-        file: File object with path information of a score that can be opened (or converted) with MuseScore 3.
-        logger: Logger to be used within this function (not for the parsing itself).
-        logger_cfg: Logger config for the new Score object (and therefore for the parsing itself).
-        read_only:
-            Pass True to return smaller objects that do not keep a copy of the original XML structure in memory.
-            In order to make changes to the score after parsing, this needs to be False (default).
-        ms: MuseScore executable in case the file needs to be converted.
+      file: File object with path information of a score that can be opened (or converted) with MuseScore 3.
+      logger: Logger to be used within this function (not for the parsing itself).
+      logger_cfg: Logger config for the new Score object (and therefore for the parsing itself).
+      read_only:
+          Pass True to return smaller objects that do not keep a copy of the original XML structure in memory.
+          In order to make changes to the score after parsing, this needs to be False (default).
+      ms: MuseScore executable in case the file needs to be converted.
 
     Returns:
-        The parsed score.
+      The parsed score.
     """
     path = file.full_path
     file = file.file

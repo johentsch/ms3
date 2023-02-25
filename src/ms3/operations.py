@@ -18,35 +18,35 @@ def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
     """ Write labels into the <Harmony> tags of the corresponding MuseScore files.
 
     Args:
-        ms3_object: A Corpus or Parse object including the corresponding files.
-        facet: Which kind of labels to pick ('labels', 'expanded', or 'unknown').
-        ask_for_input:
-            What to do if more than one TSV or MuseScore file is detected for a particular fname. By default, the user is asked for input.
-            Pass False to prevent that and pick the files with the shortest relative paths instead.
-        replace: By default, any existing labels are removed from the scores. Pass False to leave them in, which may lead to clashes.
-        staff
-            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
-            By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
-            will be used, or, if such a column is not present, labels will be inserted under the lowest staff -1.
-        voice
-            If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),
-            the labels will be attached to that one.
-            By default, the notational layers indicated in the 'voice' column of
-            :obj:`ms3.annotations.Annotations.df` will be used, 
-            or, if such a column is not present, labels will be inserted for voice 1.
-        harmony_layer
-            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
-            | Pass an integer to select a particular layer:
-            | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
-            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
-            | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
-            | * 2 to have MuseScore interpret them as Nashville Numbers
-        check_for_clashes
-            By default, warnings are thrown when there already exists a label at a position (and in a notational
-            layer) where a new one is attached. Pass False to deactivate these warnings.
-        print_info:
-            By default, the ms3_object is displayed before and after parsing. Pass False to prevent this,
-            for example when the object has many, many files.
+      ms3_object: A Corpus or Parse object including the corresponding files.
+      facet: Which kind of labels to pick ('labels', 'expanded', or 'unknown').
+      ask_for_input:
+          What to do if more than one TSV or MuseScore file is detected for a particular fname. By default, the user is asked for input.
+          Pass False to prevent that and pick the files with the shortest relative paths instead.
+      replace: By default, any existing labels are removed from the scores. Pass False to leave them in, which may lead to clashes.
+      staff
+          If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
+          By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
+          will be used, or, if such a column is not present, labels will be inserted under the lowest staff -1.
+      voice
+          If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),
+          the labels will be attached to that one.
+          By default, the notational layers indicated in the 'voice' column of
+          :obj:`ms3.annotations.Annotations.df` will be used,
+          or, if such a column is not present, labels will be inserted for voice 1.
+      harmony_layer
+          | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
+          | Pass an integer to select a particular layer:
+          | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
+          |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
+          | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
+          | * 2 to have MuseScore interpret them as Nashville Numbers
+      check_for_clashes
+          By default, warnings are thrown when there already exists a label at a position (and in a notational
+          layer) where a new one is attached. Pass False to deactivate these warnings.
+      print_info:
+          By default, the ms3_object is displayed before and after parsing. Pass False to prevent this,
+          for example when the object has many, many files.
     """
     logger = get_logger('ms3.add')
     facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=logger)
@@ -154,14 +154,14 @@ def compare(parse_obj: Parse,
     """
 
     Args:
-        parse_obj:
-        facet:
-        ask:
-        revision_specifier:
-            If None, no comparison is undertaken. Passing an empty string will result in a comparison with the parsed
-            TSV files included in the current view (if any). Specifying a git revision will result in a comparison
-            with the TSV files at that commit.
-        flip:
+      parse_obj:
+      facet:
+      ask:
+      revision_specifier:
+          If None, no comparison is undertaken. Passing an empty string will result in a comparison with the parsed
+          TSV files included in the current view (if any). Specifying a git revision will result in a comparison
+          with the TSV files at that commit.
+      flip:
 
     Returns:
 

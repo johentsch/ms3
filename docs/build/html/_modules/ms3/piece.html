@@ -462,13 +462,13 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Checks if parsed TSV files have been detected for all selected facets under the active or indicated view.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name: Name of the view to check.</span>
-<span class="sd">            selected_facets: If passed, needs to be a subset of the facets selected by the view, otherwise the</span>
-<span class="sd">                result will be False. If no ``selected_facets`` are passed, check for those selected by the</span>
-<span class="sd">                active or indicated view.</span>
+<span class="sd">          view_name: Name of the view to check.</span>
+<span class="sd">          selected_facets: If passed, needs to be a subset of the facets selected by the view, otherwise the</span>
+<span class="sd">              result will be False. If no ``selected_facets`` are passed, check for those selected by the</span>
+<span class="sd">              active or indicated view.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            True if for each selected facet at least one file has been registered.</span>
+<span class="sd">          True if for each selected facet at least one file has been registered.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">(</span><span class="n">view_name</span><span class="p">)</span>
         <span class="n">view_facets</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">selected_facets</span>
@@ -528,8 +528,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            as_dict: Set to True to change the return type from :obj:`pandas.Series` to :obj:`dict`.</span>
+<span class="sd">          choose:</span>
+<span class="sd">          as_dict: Set to True to change the return type from :obj:`pandas.Series` to :obj:`dict`.</span>
 
 <span class="sd">        Returns:</span>
 
@@ -860,20 +860,20 @@
 <span class="sd">        attached to the Score in red, just like any deleted label.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            key: Key of the detached labels you want to compare to the ones in the score.</span>
-<span class="sd">            new_color, old_color:</span>
-<span class="sd">                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
-<span class="sd">                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
-<span class="sd">            detached_is_newer:</span>
-<span class="sd">                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
-<span class="sd">                will turn ``old_color``, as opposed to the default.</span>
-<span class="sd">            add_to_rna:</span>
-<span class="sd">                By default, new labels are attached to the Roman Numeral layer.</span>
-<span class="sd">                Pass False to attach them to the chord layer instead.</span>
+<span class="sd">          key: Key of the detached labels you want to compare to the ones in the score.</span>
+<span class="sd">          new_color, old_color:</span>
+<span class="sd">              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be</span>
+<span class="sd">              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).</span>
+<span class="sd">          detached_is_newer:</span>
+<span class="sd">              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
+<span class="sd">              will turn ``old_color``, as opposed to the default.</span>
+<span class="sd">          add_to_rna:</span>
+<span class="sd">              By default, new labels are attached to the Roman Numeral layer.</span>
+<span class="sd">              Pass False to attach them to the chord layer instead.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Number of scores in which labels have changed.</span>
-<span class="sd">            Number of scores in which no label has chnged.</span>
+<span class="sd">          Number of scores in which labels have changed.</span>
+<span class="sd">          Number of scores in which no label has chnged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">changed</span><span class="p">,</span> <span class="n">unchanged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">file</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parsed_scores</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">):</span>
@@ -907,13 +907,13 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Count how many files per facet have been detected.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            include_empty:</span>
-<span class="sd">                By default, facets without files are not included in the dict. Pass True to include zero counts.</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            prefix: Pass True if you want the facets prefixed with &#39;detected_&#39;.</span>
+<span class="sd">          include_empty:</span>
+<span class="sd">              By default, facets without files are not included in the dict. Pass True to include zero counts.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          prefix: Pass True if you want the facets prefixed with &#39;detected_&#39;.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            {facet -&gt; count of detected files}</span>
+<span class="sd">          {facet -&gt; count of detected files}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">facet</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_facet2files</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">):</span>
@@ -1006,16 +1006,16 @@
 
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">                Only relevant when ``choose=&#39;all&#39;``. By default, only scores and TSV files that have already been</span>
-<span class="sd">                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected</span>
-<span class="sd">                under the given view.</span>
-<span class="sd">            choose:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">            interval_index:</span>
-<span class="sd">            flat:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">              Only relevant when ``choose=&#39;all&#39;``. By default, only scores and TSV files that have already been</span>
+<span class="sd">              parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected</span>
+<span class="sd">              under the given view.</span>
+<span class="sd">          choose:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">          interval_index:</span>
+<span class="sd">          flat:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -1145,11 +1145,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facet:</span>
-<span class="sd">            choose:</span>
+<span class="sd">          facet:</span>
+<span class="sd">          choose:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A {file_type -&gt; [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.</span>
+<span class="sd">          A {file_type -&gt; [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">facet</span> <span class="o">=</span> <span class="n">check_argument_against_literal_type</span><span class="p">(</span><span class="n">facet</span><span class="p">,</span> <span class="n">Facet</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">facet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pass a valid facet </span><span class="si">{</span><span class="n">Facet</span><span class="o">.</span><span class="n">__args__</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -1184,10 +1184,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
+<span class="sd">          facets:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A {file_type -&gt; [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.</span>
+<span class="sd">          A {file_type -&gt; [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">parsed</span> <span class="o">+</span> <span class="n">unparsed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;At least one of &#39;parsed&#39; and &#39;unparsed&#39; needs to be True.&quot;</span>
         <span class="n">selected_facets</span> <span class="o">=</span> <span class="n">resolve_facets_param</span><span class="p">(</span><span class="n">facets</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
@@ -1269,10 +1269,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facet:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            git_revision:</span>
+<span class="sd">          facet:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          git_revision:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -1688,19 +1688,19 @@
 <span class="sd">        It can be an existing object or one newly created from the TSV file ``tsv_path``.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            ix: Either pass the index of a TSV file containing annotations, or</span>
-<span class="sd">            df: A DataFrame containing annotations.</span>
-<span class="sd">            key:</span>
-<span class="sd">                Specify a new key for accessing the set of annotations. The string needs to be usable</span>
-<span class="sd">                as an identifier, e.g. not start with a number, not contain special characters etc. In return you</span>
-<span class="sd">                may use it as a property: For example, passing ``&#39;chords&#39;`` lets you access the :py:class:`~.annotations.Annotations` as</span>
-<span class="sd">                ``Score.chords``. The key &#39;annotations&#39; is reserved for all annotations attached to the score.</span>
-<span class="sd">            infer:</span>
-<span class="sd">                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).</span>
-<span class="sd">                Pass False to not add and not change any label types.</span>
-<span class="sd">            **cols:</span>
-<span class="sd">                If the columns in the specified TSV file diverge from the :ref:`standard column names&lt;column_names&gt;`,</span>
-<span class="sd">                pass them as standard_name=&#39;custom name&#39; keywords.</span>
+<span class="sd">          ix: Either pass the index of a TSV file containing annotations, or</span>
+<span class="sd">          df: A DataFrame containing annotations.</span>
+<span class="sd">          key:</span>
+<span class="sd">              Specify a new key for accessing the set of annotations. The string needs to be usable</span>
+<span class="sd">              as an identifier, e.g. not start with a number, not contain special characters etc. In return you</span>
+<span class="sd">              may use it as a property: For example, passing ``&#39;chords&#39;`` lets you access the :py:class:`~.annotations.Annotations` as</span>
+<span class="sd">              ``Score.chords``. The key &#39;annotations&#39; is reserved for all annotations attached to the score.</span>
+<span class="sd">          infer:</span>
+<span class="sd">              By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).</span>
+<span class="sd">              Pass False to not add and not change any label types.</span>
+<span class="sd">          **cols:</span>
+<span class="sd">              If the columns in the specified TSV file diverge from the :ref:`standard column names&lt;column_names&gt;`,</span>
+<span class="sd">              pass them as standard_name=&#39;custom name&#39; keywords.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="p">(</span><span class="n">ix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Pass either the index of a TSV file or a DataFrame with annotations.&quot;</span>
         <span class="k">if</span> <span class="n">ix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1775,24 +1775,24 @@
 <span class="sd">        are computed from the respective score&#39;s location.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facet:</span>
-<span class="sd">            root_dir:</span>
-<span class="sd">                Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
-<span class="sd">                Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
-<span class="sd">                ``root_dir`` is ignored.</span>
-<span class="sd">            folder:</span>
-<span class="sd">                * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
-<span class="sd">                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
-<span class="sd">                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
-<span class="sd">                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
-<span class="sd">                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
-<span class="sd">                  ``root_dir``.</span>
-<span class="sd">            suffix: String to append to the file&#39;s fname.</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            unfold:</span>
-<span class="sd">            interval_index:</span>
+<span class="sd">          facet:</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">              Defaults to None, meaning that the path is constructed based on the corpus_path.</span>
+<span class="sd">              Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,</span>
+<span class="sd">              ``root_dir`` is ignored.</span>
+<span class="sd">          folder:</span>
+<span class="sd">              * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
+<span class="sd">              * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">              * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">                For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">              * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">                ``root_dir``.</span>
+<span class="sd">          suffix: String to append to the file&#39;s fname.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          unfold:</span>
+<span class="sd">          interval_index:</span>
 
 <span class="sd">        Returns:</span>
 
@@ -1845,15 +1845,15 @@
 <span class="sd">        Creates a MuseScore 3 file from the Score object at the given index.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            ix:</span>
-<span class="sd">            folder:</span>
-<span class="sd">            suffix: Suffix to append to the original file name.</span>
-<span class="sd">            root_dir:</span>
-<span class="sd">            overwrite: Pass True to overwrite existing files.</span>
-<span class="sd">            simulate: Set to True if no files are to be written.</span>
+<span class="sd">          ix:</span>
+<span class="sd">          folder:</span>
+<span class="sd">          suffix: Suffix to append to the original file name.</span>
+<span class="sd">          root_dir:</span>
+<span class="sd">          overwrite: Pass True to overwrite existing files.</span>
+<span class="sd">          simulate: Set to True if no files are to be written.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Path of the stored file.</span>
+<span class="sd">          Path of the stored file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">ix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix2parsed_score</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No Score object found. Call parse_scores() first.&quot;</span><span class="p">)</span>
@@ -1908,20 +1908,20 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">            choose:</span>
-<span class="sd">            write_empty_values:</span>
-<span class="sd">                If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
-<span class="sd">                will be set to &#39;&#39;.</span>
-<span class="sd">            remove_unused_fields:</span>
-<span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
-<span class="sd">            write_text_fields:</span>
-<span class="sd">                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
-<span class="sd">                ``lyricist_text``, and ``part_name_text`` into the score header.</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">          choose:</span>
+<span class="sd">          write_empty_values:</span>
+<span class="sd">              If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
+<span class="sd">              will be set to &#39;&#39;.</span>
+<span class="sd">          remove_unused_fields:</span>
+<span class="sd">              If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+<span class="sd">          write_text_fields:</span>
+<span class="sd">              If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
+<span class="sd">              ``lyricist_text``, and ``part_name_text`` into the score header.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
+<span class="sd">          List of File objects of those scores of which the XML structure has been modified.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">row_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsv_metadata</span>
         <span class="k">if</span> <span class="n">row_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1989,15 +1989,15 @@
 <span class="sd">        (for instance with respect to column order) making sure that the content doesn&#39;t change.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            facets:</span>
-<span class="sd">            view_name:</span>
-<span class="sd">            force:</span>
-<span class="sd">                By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
-<span class="sd">                force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
-<span class="sd">            choose:</span>
+<span class="sd">          facets:</span>
+<span class="sd">          view_name:</span>
+<span class="sd">          force:</span>
+<span class="sd">              By default, only TSV files that have already been parsed are updated. Set to True in order to</span>
+<span class="sd">              force-parse for each facet one of the TSV files included in the given view, if necessary.</span>
+<span class="sd">          choose:</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of paths that have been overwritten.</span>
+<span class="sd">          List of paths that have been overwritten.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">selected_facets</span> <span class="o">=</span> <span class="n">resolve_facets_param</span><span class="p">(</span><span class="n">facets</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">selected_facets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pass a valid facet </span><span class="si">{</span><span class="n">ScoreFacet</span><span class="o">.</span><span class="n">__args__</span><span class="si">}</span><span class="s2">&quot;</span>

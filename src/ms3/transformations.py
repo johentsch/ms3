@@ -321,14 +321,14 @@ def dfs2quarterbeats(dfs: Union[pd.DataFrame, List[pd.DataFrame]],
     """ Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.
 
     Args:
-        dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.
-        measures:
-        unfold:
-        quarterbeats:
-        interval_index:
+      dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.
+      measures:
+      unfold:
+      quarterbeats:
+      interval_index:
 
     Returns:
-        Altered copies of `dfs`.
+      Altered copies of `dfs`.
     """
     assert sum((unfold, quarterbeats, interval_index)) >= 1, "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
     assert measures is not None, "measures cannot be None"
@@ -988,13 +988,13 @@ def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.arr
     """ Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb' accordingly.
 
     Args:
-        df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.
-        boolean_mask: Boolean mask where every True value starts a new segment.
-        warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.
-            Set warn_na to True if you want the logger to throw a warning in this case.
+      df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.
+      boolean_mask: Boolean mask where every True value starts a new segment.
+      warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.
+          Set warn_na to True if you want the logger to throw a warning in this case.
 
     Returns:
-        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level.
+      Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level.
     """
     if 'quarterbeats' not in df.columns:
         raise TypeError("DataFrame is missing the column 'quarterbeats'")

@@ -597,7 +597,7 @@ def compute_mn(measures: pd.DataFrame) -> pd.Series:
 
 
     Args:
-        measures: Measures table with columns ['mc', 'dont_count', 'numbering_offset'].
+      measures: Measures table with columns ['mc', 'dont_count', 'numbering_offset'].
 
     Returns:
 
@@ -621,11 +621,11 @@ def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
     the incomplete MN 32).
 
     Args:
-        measures: Measures table with columns ['mc', 'mn', 'dont_count']
+      measures: Measures table with columns ['mc', 'mn', 'dont_count']
 
     Returns:
-        'mn_playthrough' Series of disambiguated measure number strings. If no measure repeats, the result will be
-        equivalent to converting column 'mn' to strings and appending 'a' to all of them.
+      'mn_playthrough' Series of disambiguated measure number strings. If no measure repeats, the result will be
+      equivalent to converting column 'mn' to strings and appending 'a' to all of them.
     """
     previous_occurrences = defaultdict(lambda: 0)
 
@@ -942,10 +942,10 @@ def resolve_form_abbreviations(token: str,
     it with the corresponding long name. Trailing numbers are separated by a space in this case.
     
     Args:
-        token: Individual token after splitting alternative readings.
-        abbreviations: {abbreviation -> long name} dict for string replacement.
-        fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,
-            again in lowercase. Pass False to use only the original string.
+      token: Individual token after splitting alternative readings.
+      abbreviations: {abbreviation -> long name} dict for string replacement.
+      fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,
+          again in lowercase. Pass False to use only the original string.
 
     Returns:
 
@@ -993,14 +993,14 @@ def distribute_tokens_over_levels(levels: Collection[str],
     tokens.
 
     Args:
-        levels: Collection of strings indicating analytical layers.
-        tokens: Collection of tokens coming along, same size as levels.
-        mc: Pass the label's label's MC to display it in error messages.
-        abbreviations: {abbrevation -> long name} mapping abbreviations to what they are to be replaced with
+      levels: Collection of strings indicating analytical layers.
+      tokens: Collection of tokens coming along, same size as levels.
+      mc: Pass the label's label's MC to display it in error messages.
+      abbreviations: {abbrevation -> long name} mapping abbreviations to what they are to be replaced with
 
     Returns:
-        A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
-        several trees annotated in parallel.
+      A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
+      several trees annotated in parallel.
     """
     column2value = {}
     reading_regex = r"^((?:[ivx]+\&?)+):"
@@ -1084,13 +1084,13 @@ def expand_single_form_label(label: str, default_abbreviations=True, **kwargs) -
     """ Splits a form label and applies distribute_tokens_over_levels()
 
     Args:
-        label: Complete form label including indications of analytical layer(s).
-        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
-            long names. Pass False to prevent that.
-        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
+      label: Complete form label including indications of analytical layer(s).
+      default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+          long names. Pass False to prevent that.
+      **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
 
     Returns:
-        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+      A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
     """
     extracted_levels = re.findall(FORM_LEVEL_CAPTURE_REGEX, label)
     extracted_tokens = re.split(FORM_LEVEL_SPLIT_REGEX, label)[1:]
@@ -1104,17 +1104,17 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
     """ Expands form labels into a hierarchical view of levels in a table.
 
     Args:
-        fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.
-        fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,
-            even if it doesn't come with a form label. This may be desired for increased intuition of proportions,
-            rather than seeing all form labels right below each other. In order to add the empty rows, even without
-            knowing the number of measures, pass -1.
-        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
-            long names. Pass False to prevent that.
-        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
+      fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.
+      fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,
+          even if it doesn't come with a form label. This may be desired for increased intuition of proportions,
+          rather than seeing all form labels right below each other. In order to add the empty rows, even without
+          knowing the number of measures, pass -1.
+      default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+          long names. Pass False to prevent that.
+      **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
 
     Returns:
-        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+      A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
     """
     form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(r"\s", " ", regex=True)
     extracted_levels = form_labels.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
@@ -1275,16 +1275,16 @@ def fifths2iv(fifths: int,
 
 
     Args:
-        fifths: Number of fifths representing the inveral
-        smallest: Pass True if you want to wrap intervals of a fifths and larger to the downward counterpart.
-        perfect: String representing the perfect interval quality, defaults to 'P'.
-        major: String representing the major interval quality, defaults to 'M'.
-        minor: String representing the minor interval quality, defaults to 'm'.
-        augmented: String representing the augmented interval quality, defaults to 'a'.
-        diminished: String representing the diminished interval quality, defaults to 'd'.
+      fifths: Number of fifths representing the inveral
+      smallest: Pass True if you want to wrap intervals of a fifths and larger to the downward counterpart.
+      perfect: String representing the perfect interval quality, defaults to 'P'.
+      major: String representing the major interval quality, defaults to 'M'.
+      minor: String representing the minor interval quality, defaults to 'm'.
+      augmented: String representing the augmented interval quality, defaults to 'a'.
+      diminished: String representing the diminished interval quality, defaults to 'd'.
 
     Returns:
-        Name of the interval as a string.
+      Name of the interval as a string.
     """
     fifths_plus_one = fifths + 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
     int_num = ["4", "1", "5", "2", "6", "3", "7"][fifths_plus_one % 7]
@@ -1326,9 +1326,9 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     """ Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
 
     Args:
-        tpc: Tonal pitch class(es) to turn into a note name.
-        ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14
-        minor: Pass True if the string is to be returned as lowercase.
+      tpc: Tonal pitch class(es) to turn into a note name.
+      ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14
+      minor: Pass True if the string is to be returned as lowercase.
 
     Returns:
 
@@ -1376,10 +1376,10 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
        ``midi`` which allows for adding octave information.
 
     Args:
-        fifths: Tonal pitch class(es) to turn into a note name.
-        midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).
-        ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
-        minor: Pass True if the string is to be returned as lowercase.
+      fifths: Tonal pitch class(es) to turn into a note name.
+      midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).
+      ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
+      minor: Pass True if the string is to be returned as lowercase.
     """
     try:
         if pd.isnull(fifths):
@@ -1463,12 +1463,12 @@ def _fifths2str(fifths: int,
     """ Boiler plate used by fifths2-functions.
 
     Args:
-        fifths: Stack of fifths
-        steps: Collection of seven names, scale degrees, intervals, etc.
-        inverted: By default, return accidental + step. Pass True to get step + accidental instead.
+      fifths: Stack of fifths
+      steps: Collection of seven names, scale degrees, intervals, etc.
+      inverted: By default, return accidental + step. Pass True to get step + accidental instead.
 
     Returns:
-        Accidentals + step from ``steps`` or, if inverted, step + accidentals.
+      Accidentals + step from ``steps`` or, if inverted, step + accidentals.
     """
     acc = fifths2acc(fifths)
     fifths += 1
@@ -1497,10 +1497,10 @@ def get_musescore(MS: Union[str, Literal['auto', 'win', 'mac']] = 'auto') -> Opt
 
 
     Args:
-        MS: A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
+      MS: A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
 
     Returns:
-        Path to the executable if found or None.
+      Path to the executable if found or None.
     """
     if MS is None:
         return MS
@@ -2219,13 +2219,13 @@ def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = F
     :func:`make_continuous_offset_series` instead.
 
     Args:
-        measures: Measures table containing a 'quarterbeats' column.
-        all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
-            falls back to the default 'quarterbeats'.
+      measures: Measures table containing a 'quarterbeats' column.
+      all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+          falls back to the default 'quarterbeats'.
 
     Returns:
-        {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
-        values for MCs that are part of a first ending (or third or larger) are NA.
+      {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+      values for MCs that are part of a first ending (or third or larger) are NA.
     """
     measures = measures.set_index('mc')
     if all_endings and 'quarterbeats_all_endings' in measures.columns:
@@ -2412,11 +2412,11 @@ def merge_chords_and_notes(chords_table: pd.DataFrame,
     i.e., only for notes in the same staff and voice.
 
     Args:
-        chords_table:
-        notes_table:
+      chords_table:
+      notes_table:
 
     Returns:
-        Merged DataFrame.
+      Merged DataFrame.
     """
     notes_columns = ['tied', 'tpc', 'midi', 'name', 'octave', 'chord_id'] # 'gracenote', 'tremolo' would be contained in chords already
     present_columns = [col for col in notes_columns if col in notes_table]
@@ -2951,22 +2951,22 @@ def scan_directory(directory: str,
     """ Generator of filtered file paths in ``directory``.
 
     Args:
-        directory: Directory to be scanned for files.
-        file_re, folder_re:
-            Regular expressions for filtering certain file names or folder names.
-            The regEx are checked with search(), not match(), allowing for fuzzy search.
-        exclude_re:
-            Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.
-        recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-        subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.
-        progress: Pass True to display the progress (useful for large directories).
-        exclude_files_only:
-            By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
-        return_metadata:
-            If set to True, 'metadata.tsv' are always yielded regardless of ``file_re``.
+      directory: Directory to be scanned for files.
+      file_re, folder_re:
+          Regular expressions for filtering certain file names or folder names.
+          The regEx are checked with search(), not match(), allowing for fuzzy search.
+      exclude_re:
+          Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.
+      recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+      subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.
+      progress: Pass True to display the progress (useful for large directories).
+      exclude_files_only:
+          By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
+      return_metadata:
+          If set to True, 'metadata.tsv' are always yielded regardless of ``file_re``.
 
     Yields:
-        Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.
+      Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.
     """
     if file_re is None:
         file_re = r".*"
@@ -3325,23 +3325,23 @@ def adjacency_groups(S: pd.Series,
     equal values. There are several options of how to deal with NA values.
 
     Args:
-        S: Series in which to group identical adjacent values with each other.
-        na_values:
-            | 'group' creates individual groups for NA values (default).
-            | 'backfill' or 'bfill' groups NA values with the subsequent group
-            | 'pad', 'ffill' groups NA values with the preceding group
-            | Any other string works like 'group', with the difference that the groups will be named with this value.
-            | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and the
-              subsequent value will be based on the preceding value.
-        prevent_merge:
-            By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
-        Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,
-        it will be merged to one single group ``[1, 1, 1], {1: 'a'}``. However, passing ``prevent_merge=True`` will
-        result in ``[1, 1, 2], {1: 'a', 2: 'a'}``.
+      S: Series in which to group identical adjacent values with each other.
+      na_values:
+          | 'group' creates individual groups for NA values (default).
+          | 'backfill' or 'bfill' groups NA values with the subsequent group
+          | 'pad', 'ffill' groups NA values with the preceding group
+          | Any other string works like 'group', with the difference that the groups will be named with this value.
+          | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and the
+            subsequent value will be based on the preceding value.
+      prevent_merge:
+          By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
+          Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,
+          it will be merged to one single group ``[1, 1, 1], {1: 'a'}``. However, passing ``prevent_merge=True`` will
+          result in ``[1, 1, 2], {1: 'a', 2: 'a'}``.
 
     Returns:
-        A series with increasing integers that can be used for grouping.
-        A dictionary mapping the integers to the grouped values.
+      A series with increasing integers that can be used for grouping.
+      A dictionary mapping the integers to the grouped values.
 
     """
     reindex_flag = False
@@ -3396,7 +3396,7 @@ def unfold_measures_table(measures: pd.DataFrame) -> Optional[pd.DataFrame]:
     'mn_playthrough' which contains the values of 'mn' as string with letters {'a', 'b', ...} appended.
 
     Args:
-        measures: Measures table with columns ['mc', 'next', 'dont_count']
+      measures: Measures table with columns ['mc', 'next', 'dont_count']
 
     Returns:
 
@@ -3427,13 +3427,13 @@ def unfold_repeats(df: pd.DataFrame,
     """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
     Args:
-        df: DataFrame needs to have the columns 'mc'. If 'mn' is present, the column 'mn' will be added, too.
-        playthrough2mc:
-            A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
-            to continuous MC
+      df: DataFrame needs to have the columns 'mc'. If 'mn' is present, the column 'mn' will be added, too.
+      playthrough2mc:
+          A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
+          to continuous MC
 
     Returns:
-        A copy of the dataframe with the columns 'mc_playthrough' and 'mn_playthrough' (if 'mn' is present) inserted.
+      A copy of the dataframe with the columns 'mc_playthrough' and 'mn_playthrough' (if 'mn' is present) inserted.
     """
     n_occurrences = df.mc.value_counts()
     result_df = df.set_index('mc')
@@ -3522,17 +3522,17 @@ def write_metadata(metadata_df: pd.DataFrame,
     Write the DataFrame ``metadata_df`` to ``path``, updating an existing file rather than overwriting it.
 
     Args:
-        metadata_df:
-            DataFrame with one row per piece and an index of strings identifying pieces. The index is used for
-            updating a potentially pre-existent file, from which the first column ∈ ('fname', 'fnames', 'name', 'names')
-            will be used as index.
-        path:
-            If folder path, the filename 'metadata.tsv' will be appended; file_path will be used as is but a
-            warning is thrown if the extension is not .tsv
-        index: Pass True if you want the first column of the output to be a RangeIndex starting from 0.
+      metadata_df:
+          DataFrame with one row per piece and an index of strings identifying pieces. The index is used for
+          updating a potentially pre-existent file, from which the first column ∈ ('fname', 'fnames', 'name', 'names')
+          will be used as index.
+      path:
+          If folder path, the filename 'metadata.tsv' will be appended; file_path will be used as is but a
+          warning is thrown if the extension is not .tsv
+      index: Pass True if you want the first column of the output to be a RangeIndex starting from 0.
 
     Returns:
-        True if the metadata were successfully written, False otherwise.
+      True if the metadata were successfully written, False otherwise.
     """
     metadata_df = metadata_df.astype('string')
     metadata_df = enforce_fname_index_for_metadata(metadata_df)
@@ -3598,8 +3598,8 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     scanned for a line containing the string '# Overview' and overwritten from that line onwards.
 
     Args:
-        metadata_df: DataFrame containing metadata.
-        file_path: Path of the markdown file.
+      metadata_df: DataFrame containing metadata.
+      file_path: Path of the markdown file.
     """
     rename4markdown = {
         'fname': 'file_name',
@@ -3726,30 +3726,30 @@ def abs2rel_key(absolute: str,
 
 
     Args:
-        absolute: Absolute key expressed as Roman scale degree of the local key.
-        localkey: The local key in terms of which ``absolute`` will be expressed.
-        global_minor: Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.
+      absolute: Absolute key expressed as Roman scale degree of the local key.
+      localkey: The local key in terms of which ``absolute`` will be expressed.
+      global_minor: Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.
 
     Examples:
-        In a minor context, the key of II would appear within the key of vii as #III.
+      In a minor context, the key of II would appear within the key of vii as #III.
 
-            >>> abs2rel_key('iv', 'VI', global_minor=False)
-            'bvi'       # F minor expressed with respect to A major
-            >>> abs2rel_key('iv', 'vi', global_minor=False)
-            'vi'        # F minor expressed with respect to A minor
-            >>> abs2rel_key('iv', 'VI', global_minor=True)
-            'vi'        # F minor expressed with respect to Ab major
-            >>> abs2rel_key('iv', 'vi', global_minor=True)
-            '#vi'       # F minor expressed with respect to Ab minor
+          >>> abs2rel_key('iv', 'VI', global_minor=False)
+          'bvi'       # F minor expressed with respect to A major
+          >>> abs2rel_key('iv', 'vi', global_minor=False)
+          'vi'      # F minor expressed with respect to A minor
+          >>> abs2rel_key('iv', 'VI', global_minor=True)
+          'vi'      # F minor expressed with respect to Ab major
+          >>> abs2rel_key('iv', 'vi', global_minor=True)
+          '#vi'       # F minor expressed with respect to Ab minor
 
-            >>> abs2rel_key('VI', 'IV', global_minor=False)
-            'III'       # A major expressed with respect to F major
-            >>> abs2rel_key('VI', 'iv', global_minor=False)
-            '#III'       # A major expressed with respect to F minor
-            >>> abs2rel_key('VI', 'IV', global_minor=True)
-            'bIII'       # Ab major expressed with respect to F major
-            >>> abs2rel_key('VI', 'iv', global_minor=False)
-            'III'       # Ab major expressed with respect to F minor
+          >>> abs2rel_key('VI', 'IV', global_minor=False)
+          'III'       # A major expressed with respect to F major
+          >>> abs2rel_key('VI', 'iv', global_minor=False)
+          '#III'       # A major expressed with respect to F minor
+          >>> abs2rel_key('VI', 'IV', global_minor=True)
+          'bIII'       # Ab major expressed with respect to F major
+          >>> abs2rel_key('VI', 'iv', global_minor=False)
+          'III'       # Ab major expressed with respect to F minor
     """
     if pd.isnull(absolute) or pd.isnull(localkey):
         return absolute
@@ -3792,26 +3792,26 @@ def rel2abs_key(relative: str,
 
 
     Args:
-        relative: Relative key or chord expressed as Roman scale degree of the local key.
-        localkey: The local key to which `rel` is relative.
-        global_minor: Has to be set to True if `localkey` is a scale degree of a global minor key.
+      relative: Relative key or chord expressed as Roman scale degree of the local key.
+      localkey: The local key to which `rel` is relative.
+      global_minor: Has to be set to True if `localkey` is a scale degree of a global minor key.
 
     Examples:
-        If the label viio6/VI appears in the context of the local key VI or vi,
-        the absolute key to which viio6 applies depends on the global key.
-        The comments express the examples in relation to global C major or C minor.
+      If the label viio6/VI appears in the context of the local key VI or vi,
+      the absolute key to which viio6 applies depends on the global key.
+      The comments express the examples in relation to global C major or C minor.
 
-            >>> rel2abs_key('vi', 'VI', global_minor=False)
-            '#iv'       # vi of A major = F# minor
-            >>> rel2abs_key('vi', 'vi', global_minor=False)
-            'iv'        # vi of A minor = F minor
-            >>> rel2abs_key('vi', 'VI', global_minor=True)
-            'iv'        # vi of Ab major = F minor
-            >>> rel2abs_key('vi', 'vi', global_minor=True)
-            'biv'       # vi of Ab minor = Fb minor
+          >>> rel2abs_key('vi', 'VI', global_minor=False)
+          '#iv'       # vi of A major = F# minor
+          >>> rel2abs_key('vi', 'vi', global_minor=False)
+          'iv'      # vi of A minor = F minor
+          >>> rel2abs_key('vi', 'VI', global_minor=True)
+          'iv'      # vi of Ab major = F minor
+          >>> rel2abs_key('vi', 'vi', global_minor=True)
+          'biv'       # vi of Ab minor = Fb minor
 
-        The same examples hold if you're expressing in terms of the global key
-        the root of a VI-chord within the local keys VI or vi.
+      The same examples hold if you're expressing in terms of the global key
+      the root of a VI-chord within the local keys VI or vi.
     """
     if pd.isnull(relative) or pd.isnull(localkey):
         return relative
@@ -4400,10 +4400,10 @@ def ignored_warnings2dict(messages: Collection[str]) -> Dict[str, List[Tuple[int
     """
 
     Args:
-        messages:
+      messages:
 
     Returns:
-        {logger_name -> [ignored_warnings]} dict.
+      {logger_name -> [ignored_warnings]} dict.
     """
     ignored_warnings = defaultdict(list)
     for logger_name, info in parse_ignored_warnings(messages):
@@ -4513,11 +4513,11 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
     """ Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.
 
     Args:
-        df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to
-            reflect the whole duration.
+      df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to
+          reflect the whole duration.
 
     Returns:
-        DataFrame with one row.
+      DataFrame with one row.
     """
     if len(df) == 1:
         return df
@@ -4686,12 +4686,12 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
     suffixes.
 
     Args:
-        files:
-        choose: If 'auto' (default), the file with the shortest disambiguation string is chosen. Set to True
-            if you want to be asked to manually choose a file.
+      files:
+      choose: If 'auto' (default), the file with the shortest disambiguation string is chosen. Set to True
+          if you want to be asked to manually choose a file.
 
     Returns:
-        The selected file.
+      The selected file.
     """
     n_files = len(files)
     if n_files == 0:
@@ -4804,19 +4804,19 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     the type's expected literal values (strings).
 
     Args:
-        argument:
-            If string, wrapped in a list, otherwise expected to be a tuple of strings (passing a list will fail).
-            If None, a list of all possible values according to the type is returned if none_means_all.
-        typ:
-            A typing.Literal declaration or a TypeVar where the first component is one, or a tuple of allowed values.
-            All allowed values should be strings.
-        none_means_all:
-            By default, None values are replaced with all allowed values, if specified.
-            Pass False to return None in this case.
+      argument:
+          If string, wrapped in a list, otherwise expected to be a tuple of strings (passing a list will fail).
+          If None, a list of all possible values according to the type is returned if none_means_all.
+      typ:
+          A typing.Literal declaration or a TypeVar where the first component is one, or a tuple of allowed values.
+          All allowed values should be strings.
+      none_means_all:
+          By default, None values are replaced with all allowed values, if specified.
+          Pass False to return None in this case.
 
     Returns:
-        The list of accepted strings.
-        The list of rejected strings.
+      The list of accepted strings.
+      The list of rejected strings.
     """
     if typ is None:
         allowed = None
@@ -4920,8 +4920,8 @@ def resolve_paths_argument(paths: Union[str, Collection[str]],
     """ Makes sure that the given path(s) exists(s) and filters out those that don't.
 
     Args:
-        paths: One or several paths given as strings.
-        files: By default, only file paths are returned. Set to False to return only folders.
+      paths: One or several paths given as strings.
+      files: By default, only file paths are returned. Set to False to return only folders.
 
     Returns:
 
@@ -4957,22 +4957,22 @@ def compute_path_from_file(file: File,
     Constructs a path based on the arguments.
 
     Args:
-        file: This function uses the fields corpus_path, subdir, and type.
-        root_dir:
-            Defaults to None, meaning that the path is constructed based on the corpus_path.
-            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        folder:
-            * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
-            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
-            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
-              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
-            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
-              ``root_dir``.
-            * If ``folder`` == '' (empty string), the result will be `root_dir`.
+      file: This function uses the fields corpus_path, subdir, and type.
+      root_dir:
+          Defaults to None, meaning that the path is constructed based on the corpus_path.
+          Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+          ``root_dir`` is ignored.
+      folder:
+          * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+          * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+          * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+            For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+          * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+            ``root_dir``.
+          * If ``folder`` == '' (empty string), the result will be `root_dir`.
 
     Returns:
-        The constructed directory path.
+      The constructed directory path.
     """
     if folder is not None and (os.path.isabs(folder) or '~' in folder):
         folder = resolve_dir(folder)
@@ -4997,26 +4997,25 @@ def make_file_path(file: File,
     """ Constructs a file path based on the arguments.
 
     Args:
-        file: This function uses the fields fname, corpus_path, subdir, and type.
-        root_dir:
-            Defaults to None, meaning that the path is constructed based on the corpus_path.
-            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        folder:
-            Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-            files that have identical fnames but are located in different subdirectories of the same corpus.
-
-            * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
-            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
-            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
-              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
-            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
-              ``root_dir``.
-        suffix: String to append to the file's fname.
-        fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.
+      file: This function uses the fields fname, corpus_path, subdir, and type.
+      root_dir:
+        Defaults to None, meaning that the path is constructed based on the corpus_path.
+        Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+        ``root_dir`` is ignored.
+      folder:
+        Different behaviours are available. Note that only the third option ensures that file paths are distinct for
+        files that have identical fnames but are located in different subdirectories of the same corpus.
+        * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+        * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+        * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+          For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+        * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+          ``root_dir``.
+      suffix: String to append to the file's fname.
+      fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.
 
     Returns:
-        The constructed file path.
+      The constructed file path.
     """
     assert fext is not None, ""
     path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
@@ -5061,9 +5060,9 @@ def parse_tsv_file_at_git_revision(file: File,
     The file needs to have existed at the revision in question.
 
     Args:
-        file:
-        git_revision:
-        repo_path:
+      file:
+      git_revision:
+      repo_path:
 
     Returns:
 

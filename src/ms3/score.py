@@ -212,16 +212,16 @@ class MSCX(LoggedClass):
         |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
 
         Args:
-            mode:
-                Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
-                namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
-                (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
-                markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
-                'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-            interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          mode:
+              Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
+              namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
+              (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
+              markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
+              'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
+          interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
+          DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
         """
         return self.parsed.chords(mode=mode, interval_index=interval_index, unfold=unfold)
 
@@ -233,10 +233,10 @@ class MSCX(LoggedClass):
         all other tables, except ``measures`` are generated.
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
+          DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
         return self.parsed.events(interval_index=interval_index, unfold=unfold)
 
@@ -253,10 +253,10 @@ class MSCX(LoggedClass):
         |chord_type|, |globalkey_is_minor|, |localkey_is_minor|, |chord_tones|, |added_tones|, |root|, |bass_note|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+          DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
         """
         # TODO: Retrieving expanded labels for custom regEx (registered with _.new_type())
         if self._annotations is None:
@@ -327,16 +327,16 @@ class MSCX(LoggedClass):
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
         Args:
-            detection_regex:
-                By default, detects all labels starting with one or two digits followed by a column
-                (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
-            exclude_harmony_layer:
-                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
-                Pass True in order to retrieve only StaffText form labels.
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          detection_regex:
+              By default, detects all labels starting with one or two digits followed by a column
+              (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+          exclude_harmony_layer:
+              By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
+              Pass True in order to retrieve only StaffText form labels.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame containing all StaffTexts matching the ``detection_regex``
+          DataFrame containing all StaffTexts matching the ``detection_regex``
         """
         form = self.parsed.form_labels(detection_regex=detection_regex,
                                        exclude_harmony_layer=exclude_harmony_layer,
@@ -364,10 +364,10 @@ class MSCX(LoggedClass):
 
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+          DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
         """
         if self._annotations is None:
             self.logger.info("The score does not contain any annotations.")
@@ -388,10 +388,10 @@ class MSCX(LoggedClass):
         |repeats|, |next|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
+          DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
         return self.parsed.measures(interval_index=interval_index,
                                     unfold=unfold)
@@ -419,10 +419,10 @@ class MSCX(LoggedClass):
 
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`notes` of the MuseScore file.
+          DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         return self.parsed.notes(interval_index=interval_index, unfold=unfold)
 
@@ -434,10 +434,10 @@ class MSCX(LoggedClass):
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
+          DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         return self.parsed.notes_and_rests(interval_index=interval_index, unfold=unfold)
 
@@ -459,10 +459,10 @@ class MSCX(LoggedClass):
         |nominal_duration|, |scalar|, |volta|
 
         Args:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing the :ref:`rests` of the MuseScore file.
+          DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         return self.parsed.rests(interval_index=interval_index, unfold=unfold)
 
@@ -594,21 +594,21 @@ class MSCX(LoggedClass):
         into a segment are not taken into account.
 
         Args:
-            df: A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
-            color_name:
-                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
-                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
-            chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
-            color_nan:
-                By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
-                will be colored. Pass False to add the segment to the previous one instead.
+          df: A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+          color_name:
+              Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+              a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+          chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
+          color_nan:
+              By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
+              will be colored. Pass False to add the segment to the previous one instead.
 
         Returns:
-            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
-            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
-            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
-            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
-            segment.
+          A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+          'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+          colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+          notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+          segment.
         """
         if self.read_only:
             self.parsed.make_writeable()
@@ -1332,16 +1332,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
         and stores a report under :py:attr:`review_report`.
 
         Args:
-            color_name:
-                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
-                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+          color_name:
+              Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+              a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
 
         Returns:
-            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
-            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
-            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
-            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
-            segment.
+          A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+          'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+          colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+          notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+          segment.
         """
         if not self.mscx.has_annotations:
             self.mscx.logger.debug("Score contains no harmony labels.")
@@ -1368,20 +1368,20 @@ Use one of the existing keys or load a new set with the method load_annotations(
         attached to the Score in red, just like any deleted label.
 
         Args:
-            key: Key of the detached labels you want to compare to the ones in the score.
-            new_color, old_color:
-                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
-                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-            detached_is_newer:
-                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-                will turn ``old_color``, as opposed to the default.
-            add_to_rna:
-                By default, new labels are attached to the Roman Numeral layer.
-                Pass False to attach them to the chord layer instead.
+          key: Key of the detached labels you want to compare to the ones in the score.
+          new_color, old_color:
+              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+              CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+          detached_is_newer:
+              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+              will turn ``old_color``, as opposed to the default.
+          add_to_rna:
+              By default, new labels are attached to the Roman Numeral layer.
+              Pass False to attach them to the chord layer instead.
 
         Returns:
-            Number of attached labels that were not present in the old version and whose color has been changed.
-            Number of added labels that are not present in the current version any more and which have been added as a consequence.
+          Number of attached labels that were not present in the old version and whose color has been changed.
+          Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
         assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
@@ -1519,11 +1519,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
         Args:
-            key:
-            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          key:
+          interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
-            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+          DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
         """
         detached_annotations = list(self._detached_annotations.keys())
         if key is None:
@@ -1628,20 +1628,20 @@ Use one of the existing keys or load a new set with the method load_annotations(
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
         Args:
-            tsv_path: If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
-            anno_obj: Instead, you can pass an existing object.
-            df: Or you can automatically create one from a given DataFrame.
-            key:
-                Specify a new key for accessing the set of annotations. The string needs to be usable
-                as an identifier, e.g. not start with a number, not contain special characters etc. In return you
-                may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
-                ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
-            infer:
-                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
-                Pass False to not add and not change any label types.
-            **cols:
-                If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
-                pass them as standard_name='custom name' keywords.
+          tsv_path: If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
+          anno_obj: Instead, you can pass an existing object.
+          df: Or you can automatically create one from a given DataFrame.
+          key:
+              Specify a new key for accessing the set of annotations. The string needs to be usable
+              as an identifier, e.g. not start with a number, not contain special characters etc. In return you
+              may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
+              ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
+          infer:
+              By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
+              Pass False to not add and not change any label types.
+          **cols:
+              If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
+              pass them as standard_name='custom name' keywords.
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         assert key is not None, "Key cannot be None."
