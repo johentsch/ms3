@@ -42,7 +42,7 @@ The library's main command, `ms3 extract`, creates this folder-based structure b
 Consider this fresh `corpus_before` containing only the folder `MS3` with
 7 uncompressed MuseScore files in `.mscx` format:
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 #%cd manual
@@ -53,7 +53,7 @@ The default command that is used on all [DCML corpora](https://github.com/DCMLab
 `ms3 extract -M -N -X -D -a` extracts three TSV files (measures, notes and "eXpanded" harmonies) 
 from each score and places them in a separate folder, plus an additional `metadata.tsv` file:
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 !tree --fromfile corpus_after
@@ -76,7 +76,7 @@ Users who need their outputs in the same directory, say `out`, can specify the f
 to add suffixes to the file names. For example, using 
 `ms3 extract -M out -N out -X out -s` you would get:
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 !tree --fromfile out
@@ -176,12 +176,12 @@ the variable `c`, typing `c.all` will activate the view that shows everything.
 
 ms3 recognizes and disambiguates different types of labels, depending on
 how they are encoded in MuseScore, see
-{ref}`harmony-layer`.
+{ref}`harmony_layer`.
 
 Independent of the type, ms3 will also try to infer whether a label
 conforms to the DCML syntax and/or other regular expressions registered
 via {py:meth}`~.Score.new_type`. The column
-{ref}`regex_match <regex_match>` contains for
+{ref}`regex_match` contains for
 each label the name of the first regEx that matched. information will
 appear with a subtype, e.g. `0 (dcml)`.
 
@@ -268,6 +268,8 @@ tonic.
 
 +++
 
+(voltas)=
+
 ### Voltas
 
 \"Prima/Seconda volta\" is the Italian designation for \"First/Second
@@ -324,6 +326,8 @@ following two tables:
 For each of the available tables you will see an example and you can
 click on the columns to learn about their meanings.
 
+(measures)=
+
 ### Measures
 
 DataFrame representing the measures in the MuseScore file (which can be
@@ -337,7 +341,7 @@ together with their respective features. Required for unfolding repeats.
 >>> p.get_facet('measures')      # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 import ms3
@@ -345,6 +349,8 @@ c = ms3.Corpus("../../old_tests", level='c')
 c.parse_scores()
 c.measures()
 ```
+
+(notes)=
 
 ### Notes
 
@@ -357,11 +363,13 @@ DataFrame representing the notes in the MuseScore file.
 >>> p.get_facet('notes')      # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.notes()
 ```
+
+(rests)=
 
 ### Rests
 
@@ -374,13 +382,14 @@ DataFrame representing the rests in the MuseScore file.
 >>> p.get_facet('rests')      # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.rests()
 ```
 
 (notes_and_rests)=
+
 ### Notes and Rests 
 
 DataFrame combining {ref}`notes` and
@@ -393,11 +402,13 @@ DataFrame combining {ref}`notes` and
 >>> p.get_facet('notes_and_rests')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.notes_and_rests()
 ```
+
+(chords)=
 
 ### Chords
 
@@ -405,7 +416,7 @@ c.notes_and_rests()
 The word "chords", here, is used in a very specific way and is misleading. 
 It has been adopted from the MuseScore XML source code but is better 
 understood as "note tuple with unique onset position". If you are interested
-in chord labels, please refer to {ref}`labels_manual` or {ref}`expanded_manual`.
+in chord labels, please refer to {ref}`labels` or {ref}`expanded`.
 ```
 
 In a MuseScore file, every note is enclosed by a \<Chord\> tag. One
@@ -458,7 +469,7 @@ purposes:
 >>> p.get_facet('chords')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.chords()
@@ -466,7 +477,7 @@ c.chords()
 
 +++ {"tags": []}
 
-(labels_manual)=
+(labels)=
 ### Labels
 
 DataFrame representing the annotation labels contained in the score. The
@@ -479,13 +490,13 @@ output can be controlled by changing the `labels_cfg` configuration.
 >>> p.get_facet('labels')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.labels()
 ```
 
-(expanded_manual)=
+(expanded)=
 ### Expanded
 
 If the score contains [DCML harmony
@@ -500,11 +511,13 @@ into scale degrees.
 >>> p.get_facet('expanded')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.expanded()
 ```
+
+(cadences)=
 
 ### Cadences
 
@@ -519,7 +532,7 @@ include a cadence label. Just for convenience\...
 >>> p.get_facet('cadences')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.cadences()
@@ -535,7 +548,7 @@ c.cadences()
 >>> p.get_facet('form_labels')    # from a Parse object
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-input]
 
 c.form_labels()
@@ -580,68 +593,61 @@ This chapter explains how to
 
 ### Parsing a single score
 
-```{eval-rst}
-.. rst-class:: bignums
-```
 
-1. Import the library.
+Import the library.
+: To parse a single score, we will use the class {py:class}`~.score.Score`. We could import the whole library:
 
-   > To parse a single score, we will use the class {py:class}`~.score.Score`. We could import the whole library:
-   >
-   > ```python
-   > >>> import ms3
-   > >>> s = ms3.Score()
-   > ```
-   >
-   > or simply import the class:
-   >
-   > ```python
-   > >>> from ms3 import Score
-   > >>> s = Score()
-   > ```
+  ```python
+  >>> import ms3
+  >>> s = ms3.Score()
+  ```
 
-2. Locate the [MuseScore 3](https://musescore.org/en/download) score you want to parse.
+  or simply import the class:
 
-   > :::{tip}
-   > MSCZ files are ZIP files containing the uncompressed MSCX. In order to trace the score's version history,
-   > it is recommended to always work with MSCX files.
-   > :::
-   >
-   > In the examples, we parse the annotated first page of Giovanni
-   > Battista Pergolesi's influential *Stabat Mater*. The file is called `stabat.mscx` and can be downloaded from
-   > [here](https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx) (open link and key `Ctrl + S` to save the file
-   > or right-click on the link to `Save link as...`).
+  ```python
+  >>> from ms3 import Score
+  >>> s = Score()
+  ```
 
-3. Create a {py:class}`~.score.Score` object.
+Locate the [MuseScore 3](https://musescore.org/en/download) score you want to parse.
+: :::{tip}
+  MSCZ files are ZIP files containing the uncompressed MSCX. In order to trace the score's version history,
+  it is recommended to always work with MSCX files.
+  :::
 
-   > In the example, the MuseScore 3 file is located at `~/ms3/docs/stabat.mscx` so we can simply create the object
-   > and bind it to the variable `s` like so:
-   >
-   > ```python
-   > >>> from ms3 import Score
-   > >>> s = Score('~/ms3/docs/stabat.mscx')
-   > ```
+  In the examples, we parse the annotated first page of Giovanni
+  Battista Pergolesi's influential *Stabat Mater*. The file is called `stabat.mscx` and can be downloaded from
+  [here](https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx) (open link and key `Ctrl + S` to save the file
+  or right-click on the link to `Save link as...`).
 
-4. Inspect the object.
+Create a {py:class}`~.score.Score` object.
+: In the example, the MuseScore 3 file is located at `~/ms3/docs/stabat.mscx` so we can simply create the object
+  and bind it to the variable `s` like so:
 
-   > To have a look at the created object we can simply evoke its variable:
-   >
-   > ```python
-   > >>> s
-   > MuseScore file
-   > --------------
-   >
-   > ~/ms3/docs/stabat.mscx
-   >
-   > Attached annotations
-   > --------------------
-   >
-   > 48 labels:
-   > staff  voice  label_type  color_name
-   > 3      2      0 (dcml)    default       48
-   > ```
-   >
-   > % .. program-output:: python examples/parse_single_score.py
+  ```python
+  >>> from ms3 import Score
+  >>> s = Score('~/ms3/docs/stabat.mscx')
+  ```
+
+Inspect the object.
+: To have a look at the created object we can simply evoke its variable:
+
+  ```python
+  >>> s
+  MuseScore file
+  --------------
+
+  ~/ms3/docs/stabat.mscx
+
+  Attached annotations
+  --------------------
+
+  48 labels:
+  staff  voice  label_type  color_name
+  3      2      0 (dcml)    default       48
+  ```
+
+  % .. program-output:: python examples/parse_single_score.py
 
 #### Parsing options
 
@@ -652,118 +658,111 @@ This chapter explains how to
 
 ### Parsing multiple scores
 
-```{eval-rst}
-.. rst-class:: bignums
-```
 
-1. Import the library.
+Import the library.
+: To parse multiple scores, we will use the class {py:class}`ms3.Parse <.parse.Parse>`. We could import the whole library:
 
-   > To parse multiple scores, we will use the class {py:class}`ms3.Parse <.parse.Parse>`. We could import the whole library:
-   >
-   > ```python
-   > >>> import ms3
-   > >>> p = ms3.Parse()
-   > ```
-   >
-   > or simply import the class:
-   >
-   > ```python
-   > >>> from ms3 import Parse
-   > >>> p = Parse()
-   > ```
+  ```python
+  >>> import ms3
+  >>> p = ms3.Parse()
+  ```
 
-2. Locate the folder containing MuseScore files.
+  or simply import the class:
 
-   > In this example, we are going to parse all files included in the [ms3 repository](https://github.com/johentsch/ms3) which has been
-   > [cloned](https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone)
-   > into the home directory and therefore has the path `~/ms3`.
+  ```python
+  >>> from ms3 import Parse
+  >>> p = Parse()
+  ```
 
-3. Create a {py:class}`~.parse.Parse` object
+Locate the folder containing MuseScore files.
+: In this example, we are going to parse all files included in the [ms3 repository](https://github.com/johentsch/ms3) which has been
+  [cloned](https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone)
+  into the home directory and therefore has the path `~/ms3`.
 
-   > The object is created by calling it with the directory to scan, and bound to the typical variable `p`.
-   > ms3 scans the subdirectories for corpora (see {ref}`corpus_structure`) and assigns keys automatically based on
-   > folder names (here 'docs', and 'tests'):
-   >
-   > ```python
-   > >>> from ms3 import Parse
-   > >>> p = Parse('~/ms3')
-   > >>> p
-   > ```
-   >
-   > ```{eval-rst}
-   > .. program-output:: python examples/parse_directory.py
-   > ```
-   >
-   > Without any further parameters, ms3 detects only file types that it can potentially parse, i.e. MSCX, MSCZ, and TSV.
-   > In the following example, we infer the location of our local MuseScore 3 installation (if 'auto' fails,
-   > indicate the path to your executable). As a result, ms3 also shows formats that MuseScore can convert, such as
-   > XML, MIDI, or CAP.
-   >
-   > ```python
-   > >>> from ms3 import Parse
-   > >>> p = Parse('~/ms3', ms='auto')
-   > >>> p
-   > ```
-   >
-   > ```{eval-rst}
-   > .. program-output:: python examples/parse_directory_xml.py
-   > ```
-   >
-   > By default, present TSV files are detected and can be parsed as well, allowing one to access already extracted
-   > information without parsing the scores anew. In order to select only particular files, a regular expression
-   > can be passed to the parameter `file_re`. In the following example, only files ending on `mscx` are collected
-   > in the object (`$` stands for the end of the filename, without it, files including the string 'mscx' anywhere
-   > in their names would be selected, too):
-   >
-   > :::{caution}
-   > The parameter `key` will be deprecated from version 0.6.0 onwards. See {ref}`keys_and_ids`.
-   > :::
-   >
-   > ```python
-   > >>> from ms3 import Parse
-   > >>> p = Parse('~/ms3', file_re='mscx$', key='ms3')
-   > >>> p
-   > ```
-   >
-   > ```{eval-rst}
-   > .. program-output:: python examples/parse_directory_mscx.py
-   > ```
-   >
-   > In this example, we assigned the key `'ms3'`. Note that the same MSCX files that were distributed over several keys
-   > in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
-   > selected files. For example, we could add MSCX files from another folder using the method
-   > {py:meth}`~.parse.Parse.add_dir`:
-   >
-   > ```python
-   > >>> p.add_dir('~/other_folder', file_re='mscx$')
-   > >>> p
-   > ```
-   >
-   > ```{eval-rst}
-   > .. program-output:: python examples/parse_other_directory.py
-   >
-   > ```
+Create a {py:class}`~.parse.Parse` object
+: The object is created by calling it with the directory to scan, and bound to the typical variable `p`.
+  ms3 scans the subdirectories for corpora (see {ref}`corpus_structure`) and assigns keys automatically based on
+  folder names (here 'docs', and 'tests'):
 
-4. Parse the scores.
+  ```python
+  >>> from ms3 import Parse
+  >>> p = Parse('~/ms3')
+  >>> p
+  ```
 
-   > In order to simply parse all registered MuseScore files, call the method {py:meth}`~.parse.Parse.parse_mscx`.
-   > Instead, you can pass the argument `keys` to parse only one (or several)
-   > selected group(s) to save time. The argument `level` controls how many
-   > log messages you see; here, it is set to 'critical' or 'c' to suppress all
-   > warnings:
-   >
-   > ```python
-   > >>> p.parse_mscx(keys='ms3', level='c')
-   > >>> p
-   > ```
-   >
-   > ```{eval-rst}
-   > .. program-output:: python examples/parse_key.py
-   > ```
-   >
-   > As we can see, only the files with the key 'ms3' were parsed and the
-   > table shows an overview of the counts of the included label types in the
-   > different notational layers (i.e. staff & voice), grouped by their colours.
+  ```{eval-rst}
+  .. program-output:: python examples/parse_directory.py
+  ```
+
+  Without any further parameters, ms3 detects only file types that it can potentially parse, i.e. MSCX, MSCZ, and TSV.
+  In the following example, we infer the location of our local MuseScore 3 installation (if 'auto' fails,
+  indicate the path to your executable). As a result, ms3 also shows formats that MuseScore can convert, such as
+  XML, MIDI, or CAP.
+
+  ```python
+  >>> from ms3 import Parse
+  >>> p = Parse('~/ms3', ms='auto')
+  >>> p
+  ```
+
+  ```{eval-rst}
+  .. program-output:: python examples/parse_directory_xml.py
+  ```
+
+  By default, present TSV files are detected and can be parsed as well, allowing one to access already extracted
+  information without parsing the scores anew. In order to select only particular files, a regular expression
+  can be passed to the parameter `file_re`. In the following example, only files ending on `mscx` are collected
+  in the object (`$` stands for the end of the filename, without it, files including the string 'mscx' anywhere
+  in their names would be selected, too):
+
+  :::{caution}
+  The parameter `key` will be deprecated from version 0.6.0 onwards. See {ref}`keys_and_ids`.
+  :::
+
+  ```python
+  >>> from ms3 import Parse
+  >>> p = Parse('~/ms3', file_re='mscx$', key='ms3')
+  >>> p
+  ```
+
+  ```{eval-rst}
+  .. program-output:: python examples/parse_directory_mscx.py
+  ```
+
+  In this example, we assigned the key `'ms3'`. Note that the same MSCX files that were distributed over several keys
+  in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
+  selected files. For example, we could add MSCX files from another folder using the method
+  {py:meth}`~.parse.Parse.add_dir`:
+
+  ```python
+  >>> p.add_dir('~/other_folder', file_re='mscx$')
+  >>> p
+  ```
+
+  ```{eval-rst}
+  .. program-output:: python examples/parse_other_directory.py
+
+  ```
+
+Parse the scores.
+: In order to simply parse all registered MuseScore files, call the method {py:meth}`~.parse.Parse.parse_mscx`.
+  Instead, you can pass the argument `keys` to parse only one (or several)
+  selected group(s) to save time. The argument `level` controls how many
+  log messages you see; here, it is set to 'critical' or 'c' to suppress all
+  warnings:
+
+  ```python
+  >>> p.parse_mscx(keys='ms3', level='c')
+  >>> p
+  ```
+
+  ```{eval-rst}
+  .. program-output:: python examples/parse_key.py
+  ```
+
+  As we can see, only the files with the key 'ms3' were parsed and the
+  table shows an overview of the counts of the included label types in the
+  different notational layers (i.e. staff & voice), grouped by their colours.
 
 #### Parsing options
 
@@ -785,21 +784,25 @@ the available tables:
 
 ```console
 -M [folder], --measures [folder]
-                      Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.
+                    Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.
 -N [folder], --notes [folder]
-                      Folder where to store TSV files with information on all notes.
+                    Folder where to store TSV files with information on all notes.
 -R [folder], --rests [folder]
-                      Folder where to store TSV files with information on all rests.
+                    Folder where to store TSV files with information on all rests.
 -L [folder], --labels [folder]
-                      Folder where to store TSV files with information on all annotation labels.
+                    Folder where to store TSV files with information on all annotation labels.
 -X [folder], --expanded [folder]
-                      Folder where to store TSV files with expanded DCML labels.
+                    Folder where to store TSV files with expanded DCML labels.
+-F [folder], --form_labels [folder]
+                    Folder where to store TSV files with all form labels.
 -E [folder], --events [folder]
-                      Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.
+                    Folder where to store TSV files with all events (chords, rests, articulation, etc.) without further processing.
 -C [folder], --chords [folder]
-                      Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.
--D [path], --metadata [path]
-                      Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv
+                    Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables
+                    include lyrics, dynamics, articulation, staff- and system texts, tempo marking, spanners, and thoroughbass figures.
+-D [suffix], --metadata [suffix]
+                    Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. Add a suffix if you want to update
+                    'metadata{suffix}.tsv' instead.
 ```
 
 The typical way to use this command for a corpus of scores is to keep the MuseScore files in a subfolder (called,
@@ -947,7 +950,7 @@ Briefly, the rules for specifying the folders are as follows:
 
 To see examples for the three possibilities, see the following section.
 
-(specifying-folders)=
+(specifying_folders)=
 
 #### Specifying folders
 
@@ -1200,7 +1203,7 @@ same four files but this time from the perspective of `~/ms3`:
  '~/labels/stabat_exp.tsv']
 ```
 
-(column-names)=
+(column_names)=
 
 ## Column Names
 
@@ -1219,7 +1222,7 @@ Duration of an event expressed in fractions of a whole note. Note that in note l
 into account if notes are {ref}`tied <tied>` together; in other words, the column expresses no durations that
 surpass the final bar line.
 
-(duration-qb)=
+(duration_qb)=
 
 #### **duration_qb**
 
@@ -1259,7 +1262,7 @@ Measure number, continuous count of complete measures as used in printed edition
 Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. MNs are identical for first and
 second endings! For more detailed information, please refer to {ref}`mc_vs_mn`.
 
-(mc-onset)=
+(mc_onset)=
 
 #### **mc_onset**
 
@@ -1269,7 +1272,7 @@ The value for `mc_onset` represents, expressed as fraction of a whole note, a po
 corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
 refer to {ref}`onsets`.
 
-(mn-onset)=
+(mn_onset)=
 
 #### **mn_onset**
 
@@ -1341,7 +1344,7 @@ In which notational layer an event occurs. Each {ref}`staff` has (can have) up t
 
 ### Measures
 
-(act-dur)=
+(act_dur)=
 
 #### **act_dur** Actual duration of a measure
 
@@ -1371,7 +1374,7 @@ The column `barline` encodes information about the measure's final bar line.
 The column `breaks` may include three different values: `{'line', 'page', 'section'}` which represent the different
 breaks types. In the case of section breaks, MuseScore
 
-(dont-count)=
+(dont_count)=
 
 #### **dont_count** Measures excluded from bar count
 
@@ -1381,7 +1384,7 @@ This is a binary value that corresponds to MuseScore's setting `Exclude from bar
 The value is `1` for pickup bars, second {ref}`MCs <mc>` of divided {ref}`MNs <mn>` and some volta measures,
 and `NaN` otherwise.
 
-(mc-offset)=
+(mc_offset)=
 
 #### **mc_offset** Offset of a MC
 
@@ -1407,7 +1410,7 @@ In the case of repetitions, measures can have more than one subsequent MCs, in w
 The column is used for checking whether {ref}`irregular measure lengths <act_dur>` even themselves out because otherwise
 the inferred MNs might be wrong. Also, it is needed for MS3's unfold repetitions functionality.
 
-(numbering-offset)=
+(numbering_offset)=
 
 #### **numbering_offset** Offsetting MNs
 
@@ -1421,7 +1424,7 @@ Scores which include several pieces (e.g. in variations or a suite),
 sometimes, instead of using section {ref}`breaks <breaks>`, use `numbering_offset` to simulate a restart for counting
 {ref}`MNs <mn>` at every new section. This leads to ambiguous MNs.
 
-(quarterbeats-all-endings)=
+(quarterbeats_all_endings)=
 
 #### **quarterbeats_all_endings**
 
@@ -1452,7 +1455,7 @@ column which, in return, is required for MS3's unfolding repetitions functionali
 
 ### Notes and Rests
 
-(chord-id)=
+(chord_id)=
 
 #### **chord_id**
 
@@ -1480,7 +1483,7 @@ For grace notes, type of the grace note as encoded in the MuseScore source code.
 MIDI pitch with `60` = C4, `61` = C#4/Db4/B##3 etc. For the actual note name, refer to the
 {ref}`tpc <tpc>` column.
 
-(nominal-duration)=
+(nominal_duration)=
 
 #### **nominal_duration**
 
@@ -1568,7 +1571,7 @@ Dynamic signs such as `p`, `ff` etc. Other dynamic markings such as `dolce` are 
 `other-dynamics`. Velocity values are currently not extracted. These features can easily be implemented
 [upon request](https://github.com/johentsch/ms3/issues/).
 
-(lyrics-1)=
+(lyrics_1)=
 
 #### **lyrics:1**
 
@@ -1588,7 +1591,7 @@ syllable of a word, a leading `-` if it's the last syllable of a word, and both 
 Defined for every {{ tempo }} mark. Normalizes the metronome value to quarter notes. For example, `𝅘𝅥. = 112` gets the
 value `qbm = 112 * 1.5 = 168`.
 
-(staff-text)=
+(staff_text)=
 
 #### **staff_text**
 
@@ -1598,7 +1601,7 @@ Free-form text such as `dolce` or `div.`. Depending on the encoding standard, th
 such as `cresc.`, articulation such as `stacc.`, movement titles, and many more. Staff texts are added in MuseScore
 via `[C] + T`.
 
-(system-text)=
+(system_text)=
 
 #### **system_text**
 
@@ -1643,7 +1646,7 @@ Slurs expressing legato and/or phrasing. These {ref}`spanners <spanners>` always
 `crescendo_hairpin` is a `<` {ref}`spanner <spanners>`, `decrescendo_hairpin` a `>` {ref}`spanner <spanners>`.
 These always pertain to an entire {{ staff }}.
 
-(cresc-lines)=
+(cresc_lines)=
 
 ##### **crescendo_line**, **diminuendo_line**
 
@@ -1688,7 +1691,7 @@ They always pertain to a particular {{ voice }}.
 
 ### Labels
 
-(harmony-layer)=
+(harmony_layer)=
 
 #### **harmony_layer**
 
@@ -1713,7 +1716,7 @@ It is an integer within \[0, 3\] that indicates how it is encoded in MuseScore.
 Annotation labels from MuseScores \<Harmony> tags. Depending on the {{ label_type }} the column can include complete
 strings (decoded) or partial strings (encoded).
 
-(regex-match)=
+(regex_match)=
 
 #### **regex_match**
 
@@ -1721,7 +1724,7 @@ strings (decoded) or partial strings (encoded).
 
 Name of the first regular expression that matched a label, e.g. 'dcml'.
 
-(label-type)=
+(label_type)=
 
 #### **label_type**
 
@@ -1744,13 +1747,13 @@ the exact same position.
 
 ### Expanded
 
-(alt-label)=
+(alt_label)=
 
 {obj}`str`
 
 Alternative reading to the {{ label }}. Generally considered "second choice" compared to the "main label" that has been expanded.
 
-(bass-note)=
+(bass_note)=
 
 #### **bass_note**
 
@@ -1786,7 +1789,7 @@ of the original labels that includes only the actual chord label, i.e. excluding
 pedal tones, phrases, and cadences. In other words, it comprises the features {{ numeral }}, {{ form }}, {{ figbass }}, {{ changes }},
 and {{ relativeroot }}.
 
-(chord-tones)=
+(chord_tones)=
 
 #### **chord_tones**, **added_tones**
 
@@ -1798,7 +1801,7 @@ replacement expressed through intervals \<= 8 within parentheses, without leadin
 `added_tones` reflects only those non-chord tones that were added using, again within parentheses,
 intervals preceded by + or/and greater than 8.
 
-(chord-type)=
+(chord_type)=
 
 #### **chord_type**
 
@@ -1839,7 +1842,7 @@ This column conveys part of the information what {{ chord_type }} a label expres
 
 Tonality of the piece, expressed as absolute note name, e.g. `Ab` for A flat major, or `g#` for G sharp minor.
 
-(globalkey-is-minor)=
+(globalkey_is_minor)=
 
 #### **globalkey_is_minor**
 
@@ -1856,7 +1859,7 @@ Auxiliary column which is True if the {{ globalkey }} is a minor key, False othe
 Local key expressed as Roman numeral relative to the {{ globalkey }}, e.g. `IV` for the major key on the 4th scale degree
 or `#iv` for the minor scale on the raised 4th scale degree.
 
-(localkey-is-minor)=
+(localkey_is_minor)=
 
 #### **localkey_is_minor**
 
@@ -1918,7 +1921,7 @@ different suffixes and file extensions. It follows that only files will be detec
 file names are at least as long. In other words, the main score file that is to be considered as the most up-to-date
 version of the data should ideally not come with a suffix.
 
-(rel-path)=
+(rel_path)=
 
 #### **rel_path**
 
@@ -2109,7 +2112,7 @@ Custom metadata field in MuseScore's *Score Properties*. Can be updated using th
 
 URL to the wiki page within the International Music Score Library Project (IMSLP) that identifies this score.
 
-(composed-start)=
+(composed_start)=
 
 #### **composed_start**
 
@@ -2126,7 +2129,7 @@ four integers so that it can be converted to a number.
 Collecting `(composed_start, composed_end)` year values was a conscious decision against more elaborate indications
 such as the [Extended Date/Time Format (EDTF)](https://www.loc.gov/standards/datetime/), based on a trade-off.
 
-(composed-end)=
+(composed_end)=
 
 #### **composed_end**
 
@@ -2144,7 +2147,7 @@ four integers so that it can be converted to a number.
 Collecting `(composed_start, composed_end)` year values was a conscious decision against more elaborate indications
 such as the [Extended Date/Time Format (EDTF)](https://www.loc.gov/standards/datetime/), based on a trade-off.
 
-(last-mn)=
+(last_mn)=
 
 #### **last_mn**
 
@@ -2156,7 +2159,7 @@ Computed by ms3.
 
 Last {ref}`measure number <mn>` (i.e., the length of the score as number of complete measures).
 
-(last-mn-unfolded)=
+(last_mn_unfolded)=
 
 #### **last_mn_unfolded**
 
@@ -2168,7 +2171,7 @@ Computed by ms3.
 
 Number of measures when playing all repeats.
 
-(length-qb)=
+(length_qb)=
 
 #### **length_qb**
 
@@ -2180,7 +2183,7 @@ Computed by ms3.
 
 Length of the piece, measured in quarter notes.
 
-(length-qb-unfolded)=
+(length_qb_unfolded)=
 
 #### **length_qb_unfolded**
 
@@ -2192,7 +2195,7 @@ Computed by ms3.
 
 Length of the piece when playing all repeats, measured in quarter notes.
 
-(volta-mcs)=
+(volta_mcs)=
 
 #### **volta_mcs**
 
@@ -2208,7 +2211,7 @@ and 16b) and the second one for two endings of length 2, starting in MC 75.
 
 The name comes from Italian "prima/seconda volta" for "first/second time".
 
-(all-notes-qb)=
+(all_notes_qb)=
 
 #### **all_notes_qb**
 
@@ -2220,7 +2223,7 @@ Computed by ms3.
 
 Summed up duration of all notes, measured in quarter notes.
 
-(n-onsets)=
+(n_onsets)=
 
 #### **n_onsets**
 
@@ -2233,7 +2236,7 @@ Computed by ms3.
 Number of all note onsets. This number is at most the number of rows in the corresponding notes table which, in return,
 is the number of all note *heads*. `n_onsets` does not count tied-to note heads (which do not represent onsets).
 
-(n-onset-positions)=
+(n_onset_positions)=
 
 #### **n_onset_positions**
 
@@ -2245,7 +2248,7 @@ Computed by ms3.
 
 Number of unique note onsets ("slices").
 
-(guitar-chord-count)=
+(guitar_chord_count)=
 
 #### **guitar_chord_count**
 
@@ -2258,7 +2261,7 @@ Computed by ms3.
 Number of all \<Harmony> labels that do not match the [DCML harmony annotation standard](https://github.com/DCMLab/standards).
 In most cases, they will be so-called guitar or Jazz chords ("changes") as used in lead sheets, pop and folk songs, etc.
 
-(label-count)=
+(label_count)=
 
 #### **label_count**
 
@@ -2273,7 +2276,7 @@ Number of chord labels that match the [DCML harmony annotation standard](https:/
 For metadata extracted with older versions of ms3 (\<1.0.0) this value would represent the number of all \<Harmony>
 labels including {ref}`guitar/Jazz chords <guitar_chord_count>`.
 
-(key-signatures)=
+(key_signatures)=
 
 #### **KeySig** Key signatures
 
@@ -2290,7 +2293,7 @@ other words, the values are like dictionaries without curly braces.
 
 The column name is in CamelCase, other than the {ref}`keysig` column found in {ref}`measures` tables.
 
-(time-signatures)=
+(time_signatures)=
 
 #### **TimeSig** Time Signatures
 

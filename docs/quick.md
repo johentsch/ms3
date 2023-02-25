@@ -55,7 +55,7 @@ corpus = ms3.Corpus(tchaikovsky_path)
 corpus
 ```
 
-When inspecting this object, 
+When inspecting this object,
 
 ```{code-cell} ipython3
 corpora_path = '~/corelli'

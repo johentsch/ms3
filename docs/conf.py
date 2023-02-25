@@ -68,7 +68,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.napoleon', 'sphinxarg.ext', 'sphinxcontrib.programoutput', 'myst_nb', 'jupyter_sphinx']
 # pip install -r requirements.txt
 
-myst_enable_extensions = ["colon_fence"]
+myst_enable_extensions = ["colon_fence", "deflist"]
 myst_heading_anchors = 5
 nb_execution_timeout = 120
 nb_execution_excludepatterns = ['*.ipynb']
