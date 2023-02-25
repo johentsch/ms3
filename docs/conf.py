@@ -68,11 +68,13 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.napoleon', 'sphinxarg.ext', 'sphinxcontrib.programoutput', 'myst_nb', 'jupyter_sphinx']
 # pip install -r requirements.txt
 
+myst_enable_extensions = ["colon_fence"]
+myst_heading_anchors = 5
 nb_execution_timeout = 120
 nb_execution_excludepatterns = ['*.ipynb']
 
 # Napoleon settings
-napoleon_use_admonition_for_examples = True
+#napoleon_use_admonition_for_examples = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -114,7 +116,7 @@ release = ''  # Is set by calling `setup.py docs`
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', 'build']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 # default_role = None

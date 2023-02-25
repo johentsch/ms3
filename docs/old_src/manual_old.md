@@ -1,257 +1,200 @@
 ---
-jupytext:
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.14.4
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
+substitutions:
+  Ottava:15mb: '{ref}`Ottava:15mb <ottava>`'
+  Ottava:8va: '{ref}`Ottava:8va <ottava>`'
+  Ottava:8vb: '{ref}`Ottava:8vb <ottava>`'
+  TextLine: '{ref}`TextLine <textline>`'
+  act_dur: '{ref}`act_dur <act_dur>`'
+  added_tones: '{ref}`added_tones <chord_tones>`'
+  alt_label: '{ref}`alt_label <alt_label>`'
+  articulation: '{ref}`articulation <articulation>`'
+  barline: '{ref}`barline <barline>`'
+  bass_note: '{ref}`bass_note <bass_note>`'
+  breaks: '{ref}`breaks <breaks>`'
+  cadence: '{ref}`cadence <cadence>`'
+  changes: '{ref}`changes <changes>`'
+  chord: '{ref}`chord <chord>`'
+  chord_id: '{ref}`chord_id <chord_id>`'
+  chord_tones: '{ref}`chord_tones <chord_tones>`'
+  chord_type: '{ref}`chord_type <chord_type>`'
+  crescendo_hairpin: '{ref}`crescendo_hairpin <hairpins>`'
+  crescendo_line: '{ref}`crescendo_line <cresc_lines>`'
+  decrescendo_hairpin: '{ref}`decrescendo_hairpin <hairpins>`'
+  diminuendo_line: '{ref}`diminuendo_line <cresc_lines>`'
+  dont_count: '{ref}`dont_count <dont_count>`'
+  duration: '{ref}`duration <duration>`'
+  duration_qb: '{ref}`duration_qb <duration_qb>`'
+  dynamics: '{ref}`dynamics <dynamics>`'
+  figbass: '{ref}`figbass <figbass>`'
+  form: '{ref}`form <form>`'
+  globalkey: '{ref}`globalkey <globalkey>`'
+  globalkey_is_minor: '{ref}`globalkey_is_minor <globalkey_is_minor>`'
+  gracenote: '{ref}`gracenote <gracenote>`'
+  harmony_layer: '{ref}`harmony_layer <harmony_layer>`'
+  keysig: '{ref}`keysig <keysig>`'
+  label: '{ref}`label <label>`'
+  label_type: '{ref}`label_type <label_type>`'
+  localkey: '{ref}`localkey <localkey>`'
+  localkey_is_minor: '{ref}`localkey_is_minor <localkey_is_minor>`'
+  lyrics:1: '{ref}`lyrics:1 <lyrics_1>`'
+  mc: '{ref}`mc <mc>`'
+  mc_offset: '{ref}`mc_offset <mc_offset>`'
+  mc_onset: '{ref}`mc_onset <mc_onset>`'
+  midi: '{ref}`midi <midi>`'
+  mn: '{ref}`mn <mn>`'
+  mn_onset: '{ref}`mn_onset <mn_onset>`'
+  next: '{ref}`next <next>`'
+  nominal_duration: '{ref}`nominal_duration <nominal_duration>`'
+  numbering_offset: '{ref}`numbering_offset <numbering_offset>`'
+  numeral: '{ref}`numeral <numeral>`'
+  offset_x: '{ref}`offset_x <offset>`'
+  offset_y: '{ref}`offset_y <offset>`'
+  pedal: '{ref}`pedal <pedal>`'
+  phraseend: '{ref}`phraseend <phraseend>`'
+  qpm: '{ref}`qpm <qpm>`'
+  quarterbeats: '{ref}`quarterbeats <quarterbeats>`'
+  quarterbeats_all_endings: '{ref}`quarterbeats_all_endings <quarterbeats_all_endings>`'
+  regex_match: '{ref}`regex_match <regex_match>`'
+  relativeroot: '{ref}`relativeroot <relativeroot>`'
+  repeats: '{ref}`repeats <repeats>`'
+  root: '{ref}`root <root>`'
+  scalar: '{ref}`scalar <scalar>`'
+  slur: '{ref}`slur <slur>`'
+  staff: '{ref}`staff <staff>`'
+  staff_text: '{ref}`staff_text <staff_text>`'
+  system_text: '{ref}`system_text <system_text>`'
+  tempo: '{ref}`tempo <tempo>`'
+  tied: '{ref}`tied <tied>`'
+  timesig: '{ref}`timesig <timesig>`'
+  tpc: '{ref}`tpc <tpc>`'
+  tremolo: '{ref}`tremolo <tremolo>`'
+  voice: '{ref}`voice <voice>`'
+  volta: '{ref}`volta <volta>`'
 ---
 
-# Manual
+# Old Manual
 
-This page is a detailed guide for using ms3 for different tasks. The code examples
-suppose you are working in an interactive Python interpreter such as
-IPython, Jupyter, Google Colab, or simply in the Python console. The manual itself
-is written as a [MyST markdown Notebook](https://myst-nb.readthedocs.io/) which can be run 
-in Jupyter if the [Jupytext](https://jupytext.readthedocs.io) extension is installed.
+:::{figure} ms3_architecture.png
+:alt: The archicture of ms3
+:::
 
-+++
+This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
+interpreter such as IPython, Jupyter, Google Colab, or just the console.
+{ref}`corpss` [Corpss structure] {ref}`Corpss structure`
 
 ## Good to know
 
-The principal *raison d'être* of `ms3` is for extracting different types of information, 
-"facets", from MuseScore files and to store them in the form of tabular `.tsv` files, 
-[Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values), for further processing.
-Over the years, however, it has gained additional functionality related to corpus curation.
-Therefore, the package operates on a couple of principles that have co-evolved together
-with the [DCML corpus initiative](https://www.epfl.ch/labs/dcml/projects/corpus-project/).
+### Corpus structure
 
-(corpus_structure)=
+ms3 extracts various aspects (e.g. notes, chord labels, dynamics) from a single MuseScore file and stores them in
+separate TSV files. In order to jointly evaluate this information (e.g. to combine harmony labels with the corresponding
+notes in the score), ms3 associates files by their names. Therefore it is important to not rename files at a later
+point and it is recommended to stick to one organizational principle for all corpora in use. The two main principles
+are suffixes and subfolders.
 
-### Corpus structure 
+[DCML corpora](https://github.com/DCMLab/dcml_corpora) use the same subfolder structure: MuseScore files are stored
+in the `MS3` folder of a corpus and all other aspects are stored with identical filenames (but different extension)
+in sibling folders. This structure results naturally when using default parameters such as
+`ms3 extract -N -M -X`:
 
-`ms3` follows a one-folder-per-feature approach (rather than a one-folder-per-file approach).
-
-#### The default
-
-The library's main command, `ms3 extract`, creates this folder-based structure by default.
-Consider this fresh `corpus_before` containing only the folder `MS3` with
-7 uncompressed MuseScore files in `.mscx` format:
-
-```{code-cell}
-:tags: [remove-input]
-
-#%cd manual
-!tree --fromfile corpus_before
+```console
+corpus1
+├── harmonies
+├── measures
+├── MS3
+└── notes
+corpus2
+├── harmonies
+├── measures
+├── MS3
+└── notes
 ```
 
-The default command that is used on all [DCML corpora](https://github.com/DCMLab/dcml_corpora),
-`ms3 extract -M -N -X -D -a` extracts three TSV files (measures, notes and "eXpanded" harmonies) 
-from each score and places them in a separate folder, plus an additional `metadata.tsv` file:
+When loading corpora, ms3 looks for the standard folder names (and suffixes) to indentify individual corpora and
+assign them keys automatically (e.g. in the example above, 'corpus1' and 'corpus2').
+Using the default names will therefore facilitate the use of the library considerably.
 
-```{code-cell}
-:tags: [remove-input]
+(keys-and-ids)=
 
-!tree --fromfile corpus_after
-```
-
-`ms3` operates on the fundamental principle that files that belong together need to
-have the same name (but not necessarily the same extension). For example, each of the
-folders has a file called `BWV_0815` but the folder `harmonies` contains only four files
-because the other three did not contain harmony labels.
-
-The folder structure results from the command's default arguments which are equivalent to
-`ms3 extract -M ../measures -N ../notes -X ../harmonies`. While there are multiple
-ways of specifying output folders (see [below](specifying_folders)), there is an 
-additional mechanism for cases in which outputs are to be placed within the same 
-folder (which is probematic when they have the same name):
-
-#### Using suffixes
-
-Users who need their outputs in the same directory, say `out`, can specify the flag `-s`
-to add suffixes to the file names. For example, using 
-`ms3 extract -M out -N out -X out -s` you would get:
-
-```{code-cell}
-:tags: [remove-input]
-
-!tree --fromfile out
-```
-
-Based on these two principles, default folder and suffix names, 
-`ms3` is able to recognize which facet of which piece the files 
-represent and to relate them to each other.
-
-+++
-
-(keys_and_ids)=
 ### Keys and IDs
 
-```{note} ms3 version 1.0.0 and successors widely replace the mechanisms related to 
-the parameter `key`. Newer versions, instead, use IDs such as
-`corpus_name` and `(corpus_name, piece_name)`. If you come across a method
-where the first parameter is called `key`, you are likely dealing with an
-older version, or with a [ms3.Score](Score) object.
-```
+ms3 uses keys for grouping files. The way how these keys are being used is transitioning in the 0.5.x versions:
 
-IDs are tuples that are used to identify corpora, pieces and files:
+- **\< 0.5** keys were arbitrary and used by some methods to bring groups of files together. For example, `Parse.attach_labels()`
+  would take a key with a group of scores and, as the parameter `annotation_key`, the key with a group of annotations and
+  then use `Parse.match_files()` to match the files from the given keys.
+- **>= 0.6.x** keys are used to address sub-corpora that are assumed to have a particular {ref}`corpus_structure`.
+  The method `Parse.attach_labels()` then takes only one key and uses the key's {py:class}`~.parse.View` object
+  for matching files. The parameter `annotation_key` is replaced by `use` that can be used in the case that the View
+  object has detected several annotation files for one or several pieces.
+- **0.5x** transitioning from the old to the new behaviour.
 
-* `'corpus_name'` identifies a corpus, a collection of pieces.
-  * `ms3.Parse[corpus_name] -> Corpus`.
-* `'fname'` identifies a piece by its file name without any suffixes.
-  * `ms3.Corpus[fname] -> Piece`
-  * `ms3.Parse[(corpus_name, fname)] -> Piece`
-* Integers identify individual files and are unique within a Corpus.
-  * `ms3.Piece[i] -> File`
-  * `ms3.Corpus[(fname, i)] -> File`
-  * `ms3.Parse[(corpus_name, fname, i)] -> File`
-  
-#### The importance of the `fname` ID
-  
-The piece IDs `fname` relate to the file names in this way: `fname[suffix].ext`.
-In order to correctly match files together that belong together, without doing
-complicated string matching, `ms3` relies on a list of fnames that it will
-expect to be present in a column called `fname` in a file called `metadata.tsv`
-(see below). Generally, this should be the first column in these files, 
-used as index.
+#### IDs
 
-```{hint} 
-If you find yourself stuck with `ms3` producing no output,
-it is likely because no `metadata.tsv` is present. In this case, use the option
-`-a` to parse everything regardless, and `-D` to create a `metadata.tsv`.
-```
+IDs are `(key, i)` pairs that identify one particular file (not piece) found by a Parse object. They are used as
+dictionary keys except for storing the information on file paths such as {py:attr}`~.parse.full_paths` or
+{py:attr}`~.parse.fnames` which are dictionaries containing lists where only keys are dictionary keys, whereas `i`
+is simply the list index of the respective file.
 
-+++
+(label-types)=
 
-(metadata_tsv)=
-### The important role of metadata
+### Label types
 
-As mentioned above, `ms3` relies on the `fname` as ID of a piece and uses
-it to identify the various files belonging to it although they may come 
-with additional suffixes (e.g. `_reviewed`) and be scattered all over the
-corpus. Importantly, it uses and expects a file called `metadata.tsv` that
-lists all piece IDs of the corpus in a column called `fname`. Scores and
-other files whose names do not begin with any of strings in that column 
-are excluded. Files, on the other hand, that begin with any of the strings
-are recognized to belong to this piece and to have a suffix, if they do.
+ms3 recognizes and disambiguates different types of labels, depending on how they are encoded in MuseScore, see {{ harmony_layer }}.
 
-Therefore, creating a `metadata.tsv` is an important first step before 
-using `ms3` to its full potential. This is done by nagivating to the corpus
-directory and calling `ms3 extract -a -D`, where `-D` stands for "metadata"
-and `-a` for "all", i.e. the directive to process all detected scores, 
-including those not listed in a `metadata.tsv` file.
+Independent of the type, ms3 will also try to infer whether a label conforms to the DCML syntax and/or other regular expressions registered
+via {meth}`ms3.Score.new_type`. The column {{ regex_match }} contains for each label the name of the first regEx that matched.
+information will appear with a subtype, e.g. `0 (dcml)`.
 
-Relying on a particular control file in that manner makes it
-easy to systematically exclude particular scores from processing (by 
-dropping them from the table) or to mark alternative versions of a score by
-adding a suffix and not listing them individually. `ms3` will recognize 
-them as alternatives and, based on the current [View](views_manual), include them
-or not. As an additional feature, you may pre-configure multiple views of
-the corpus by storing their selection of piece IDs in additional 
-`metadata[_suffix].tsv` files. This example file would lead `ms3` to make
-available an additional view called `suffix`. View the chapter on views
-below to learn more.
+See also {attr}`~.score.Score.infer_label_types`.
 
-+++
+(mc-vs-mn)=
 
-(views_manual)=
-### Views
+### Measure counts (MC) vs. measure numbers (MN)
 
-This chapter still needs to be written. In short:
+Measure counts are strictly increasing numbers for all \<measure> nodes in the score, regardless of their length. This
+information is crucial for correctly addressing positions in a MuseScore file and are shown in the software's status
+bar. The first measure is always counted as 1 (following MuseScore's convention), even if it is an anacrusis.
 
-You can access the view of [Piece](Piece), [Corpus](Corpus), and [Parse](Parse) objects,
-using the accessor `.view`. The two main methods of a [View](View) object are `.include(category, *strings_to_include)` and 
-`.exclude(category, *strings_to_exclude)`. Every view has a name which you can use as an accessor to change the relevant
-object's view. For example, new objects come with the views "default" and "all", so if you have a Corpus object stored under
-the variable `c`, typing `c.all` will activate the view that shows everything.
-
-+++
-
-(label_types)=
-### Label types 
-
-ms3 recognizes and disambiguates different types of labels, depending on
-how they are encoded in MuseScore, see
-{ref}`harmony-layer`.
-
-Independent of the type, ms3 will also try to infer whether a label
-conforms to the DCML syntax and/or other regular expressions registered
-via {py:meth}`~.Score.new_type`. The column
-{ref}`regex_match <regex_match>` contains for
-each label the name of the first regEx that matched. information will
-appear with a subtype, e.g. `0 (dcml)`.
-
-See also {py:meth}`~.Score.infer_label_types`.
-
-+++
-
-(mc_vs_mn)=
-### Measure counts (MC) vs. measure numbers (MN) 
-
-Measure counts are strictly increasing numbers for all \<measure\> nodes
-in the score, regardless of their length. This information is crucial
-for correctly addressing positions in a MuseScore file and are shown in
-the software\'s status bar. The first measure is always counted as 1
-(following MuseScore\'s convention), even if it is an anacrusis.
-
-Measure numbers are the traditional way by which humans refer to
-positions in a score. They follow a couple of conventions which can be
-summarised as counting complete bars. Quite often, a complete bar (MN)
-can be made up of two \<measure\> nodes (MC). In the context of this
-library, score addressability needs to be maintained for humans and
-computers, therefore a mapping MC -\> MN is preserved in the score
-information DataFrames.
-
-+++
+Measure numbers are the traditional way by which humans refer to positions in a score. They follow a couple of
+conventions which can be summarised as counting complete bars. Quite often, a complete bar (MN) can be made up of
+two \<measure> nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
+computers, therefore a mapping MC -> MN is preserved in the score information DataFrames.
 
 (onsets)=
-### Onset positions 
 
-Onsets express positions of events in a score as their distance from the
-beginning of the corresponding {ref}`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note.
-In other words, beat 1 has onset `0`, an event on beat 2 of a 4/4 meter
-has onset `1/4` and so on.
+### Onset positions
 
-Since there are two ways of referencing measures (MC and MN), there are
-also two ways of expressing onsets:
+Onsets express positions of events in a score as their distance from the beginning of the corresponding
+{ref}`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note. In other words, beat 1 has
+onset `0`, an event on beat 2 of a 4/4 meter has onset `1/4` and so on.
 
--   `mc_onset` expresses the distance from the corresponding MC
--   `mn_onset` expresses the distance from the corresponding MN
+Since there are two ways of referencing measures (MC and MN), there are also two ways of expressing onsets:
 
-In most cases, the two values value will be identical, but take as an
-example the case where a 4/4 measure with MN 8 is divided into MC 9 of
-length 3/4 and MC 10 of length 1/4 because of a repeat sign or a double
-bar line. Since MC 9 corresponds to the first part of MN 8, the two
-onset values are identical. But for the anacrusis on beat 4, the values
-differ: `mc_onset` is `0` but `mn_onset` is `3/4` because this is the
-distance from MN 8.
+- `mc_onset` expresses the distance from the corresponding MC
+- `mn_onset` expresses the distance from the corresponding MN
 
-+++
+In most cases, the two values value will be identical, but take as an example the case where a 4/4 measure with MN 8
+is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat sign or a double bar line. Since MC 9
+corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
+differ: `mc_onset` is `0` but `mn_onset` is `3/4` because this is the distance from MN 8.
 
-(read_only)=
-### Read-only mode 
+(read-only)=
 
-For parsing faster using less memory. Scores parsed in read-only mode
-cannot be changed because the original XML structure is not kept in
-memory.
+### Read-only mode
 
-+++
+For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.
 
 (fifths)=
-### Stacks-of-fifths intervals 
 
-In order to express note names (tonal pitch classes,
-{ref}`tpc <tpc>`), and scale degrees, ms3 uses
-stacks of fifths (the only way to express these as a single integer).
-For note names, `0` corresponds to C, for scale degrees to the local
-tonic.
+### Stacks-of-fifths intervals
+
+In order to express note names (tonal pitch classes, {{ tpc }}), and scale degrees, ms3 uses stacks of fifths (the only
+way to express these as a single integer). For note names, `0` corresponds to C, for scale degrees to the local tonic.
 
 | fifths | note name | interval | scale degree    |
-|--------|-----------|----------|-----------------|
+| ------ | --------- | -------- | --------------- |
 | -6     | Gb        | d5       | b5              |
 | -5     | Db        | m2       | b2              |
 | -4     | Ab        | m6       | b6 (6 in minor) |
@@ -266,292 +209,257 @@ tonic.
 | 5      | B         | M7       | 7 (#7 in minor) |
 | 6      | F#        | A4       | #4              |
 
-+++
+(voltas)=
 
 ### Voltas
 
-\"Prima/Seconda volta\" is the Italian designation for \"First/Second
-time\". Therefore, in the context of ms3, we refer to \'a volta\' as one
-of several endings. By convention, all endings should have the same
-measure numbers (MN), which are often differentiated by lowercase
-letters, e.g. `8a` for the first ending and `8b` for the second ending.
-In MuseScore, correct bar numbers can be achieved by excluding `8b` from
-the count or, if the endings have more than one bar, by subtracting the
-corresponding number from the second ending\'s count. For example, in
-order to achieve the correct MNs `[7a 8a][7b 8b]`, you would add `-2` to
-7b\'s count which otherwise would come out as 9.
+"Prima/Seconda volta" is the Italian designation for "First/Second time". Therefore, in the context of ms3, we refer
+to 'a volta' as one of several endings. By convention, all endings should have the same measure numbers (MN), which are
+often differentiated by lowercase letters, e.g. `8a` for the first ending and `8b` for the second ending. In
+MuseScore, correct bar numbers can be achieved by excluding `8b` from the count or, if the endings have more than
+one bar, by subtracting the corresponding number from the second ending's count. For example, in order to achieve
+the correct MNs `[7a 8a][7b 8b]`, you would add `-2` to 7b's count which otherwise would come out as 9.
 
-ms3 checks for incorrect MNs and warns you if the score needs
-correction. It will also ask you to make all voltas the same length. If
-this is not possible for editorial reasons (although often the length of
-the second volta is arbitrary), ignore the warning and check in the
-{ref}`measures <measures>` table if the MN are
-correct for your purposes.
+ms3 checks for incorrect MNs and warns you if the score needs correction. It will also ask you to make all voltas the
+same length. If this is not possible for editorial reasons (although often the length of the second volta is arbitrary),
+ignore the warning and check in the {ref}`measures <measures>` table if the MN are correct for your purposes.
 
-+++
+(score-information)=
 
-(facets_manual)=
-## Facets
+## Tables with score information
 
-This section gives an overview of the various tables that ms3 exposes
-after parsing a MuseScore file. Their names, e.g. `measures`, correspond
-to the properties of {any}`Score`
-and the methods of {any}`Parse`
-with which they can be retrieved. They come as
-{any}`pandas.DataFrame` objects. The available
-tables are:
+This section gives an overview of the various tables that ms3 exposes after parsing a MuseScore file. Their names, e.g.
+`measures`, correspond to the properties of {py:class}`~.score.Score` and the methods of {py:class}`~.parse.Parse`
+with which they can be retrieved. They come as {obj}`pandas.DataFrame` objects. The available tables are:
 
-All score information, except the metadata, is contained in the
-following two tables:
+All score information, except the metadata, is contained in the following two tables:
 
--   {ref}`measures <measures>`
--   {ref}`notes <notes>`
--   {ref}`rests <rests>`
--   {ref}`notes_and_rests <notes_and_rests>`
--   {ref}`chords <chords>`: **Not to be
-    confounded with labels or chord annotations**, a chord is a
-    notational unit in which all included notes are part of the same
-    notational layer and have the same onset and duration. Every chord
-    has a `chord_id` and every note is part of a chord. These tables are
-    used to convey score information that is not attached to a
-    particular note, such as lyrics, staff text, dynamics and other
-    markup.
--   {ref}`labels <labels>`
--   {ref}`expanded <expanded>`
--   {ref}`cadences <cadences>`
--   {ref}`events <events>`
+- {ref}`measures <measures>`
+- {ref}`notes <notes>`
+- {ref}`rests <rests>`
+- {ref}`notes_and_rests <notes_and_rests>`
+- {ref}`chords <chords>`: **Not to be confounded with labels or chord annotations**, a chord is a notational unit in which all included
+  notes are part of the same notational layer and have the same onset and duration. Every chord has a `chord_id` and every note
+  is part of a chord. These tables are used to convey score information that is not attached to a particular note,
+  such as lyrics, staff text, dynamics and other markup.
+- {ref}`labels <labels>`
+- {ref}`expanded <expanded>`
+- {ref}`cadences <cadences>`
+- {ref}`events <events>`
 
-For each of the available tables you will see an example and you can
-click on the columns to learn about their meanings.
+For each of the available tables you will see an example and you can click on the columns to learn about their meanings.
+
+(measures)=
 
 ### Measures
 
-DataFrame representing the measures in the MuseScore file (which can be
-incomplete measures, see {ref}`mc_vs_mn`)
+DataFrame representing the measures in the MuseScore file (which can be incomplete measures, see {ref}`mc_vs_mn`)
 together with their respective features. Required for unfolding repeats.
 
 ```python
->>> s.mscx.measures()            # from a Score object
->>> P.measures()                 # from a Piece object
->>> c.measures()                 # from a Corpus object
->>> p.get_facet('measures')      # from a Parse object
+>>> s.mscx.measures()   # access through a Score object
+>>> p.measures()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ mc }} | {{ mn }} | {{ keysig }} | {{ timesig }} | {{ act_dur }} | {{ mc_offset }} | {{ volta }} | {{ numbering_offset }} | {{ dont_count }} | {{ barline }} | {{ breaks }} | {{ repeats }} | {{ next }} |
+| -------- | -------- | ------------ | ------------- | ------------- | --------------- | ----------- | ---------------------- | ---------------- | ------------- | ------------ | ------------- | ---------- |
+| 1        | 1        | -4           | 4/4           | 1             | 0               | \<NA>       | \<NA>                  | \<NA>            | NaN           | NaN          | firstMeasure  | (2,)       |
+| 2        | 2        | -4           | 4/4           | 1             | 0               | \<NA>       | \<NA>                  | \<NA>            | NaN           | NaN          | nan           | (3,)       |
 
-import ms3
-c = ms3.Corpus("../../old_tests", level='c')
-c.parse_scores()
-c.measures()
-```
+(notes)=
 
 ### Notes
 
 DataFrame representing the notes in the MuseScore file.
 
 ```python
->>> s.mscx.notes()            # from a Score object
->>> P.notes()                 # from a Piece object
->>> c.notes()                 # from a Corpus object
->>> p.get_facet('notes')      # from a Parse object
+>>> s.mscx.notes() # access through a Score object
+>>> p.notes()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ duration }} | {{ gracenote }} | {{ nominal_duration }} | {{ scalar }} | {{ tied }} | {{ tpc }} | {{ midi }} | {{ volta }} | {{ chord_id }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | -------------- | --------------- | ---------------------- | ------------ | ---------- | --------- | ---------- | ----------- | -------------- |
+| 1        | 1        | 0              | 0              | 4/4           | 4           | 2           | 1/8            | NaN             | 1/8                    | 1            | \<NA>      | -1        | 53         | \<NA>       | 4              |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 2           | 3/4            | NaN             | 1/2                    | 3/2          | \<NA>      | -1        | 77         | \<NA>       | 1              |
 
-c.notes()
-```
+(rests)=
 
 ### Rests
 
 DataFrame representing the rests in the MuseScore file.
 
-``` python
->>> s.mscx.rests()            # from a Score object
->>> P.rests()                 # from a Piece object
->>> c.rests()                 # from a Corpus object
->>> p.get_facet('rests')      # from a Parse object
+```python
+>>> s.mscx.rests() # access through a Score object
+>>> p.rests()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ duration }} | {{ nominal_duration }} | {{ scalar }} | {{ volta }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | -------------- | ---------------------- | ------------ | ----------- |
+| 1        | 1        | 0              | 0              | 4/4           | 1           | 1           | 1              | 1                      | 1            | \<NA>       |
+| 1        | 1        | 0              | 0              | 4/4           | 2           | 1           | 1              | 1                      | 1            | \<NA>       |
 
-c.rests()
+(notes-and-rests)=
+
+### Notes and Rests
+
+DataFrame combining {ref}`notes` and {ref}`rests`.
+
+```python
+>>> s.mscx.notes_and_rests() # access through a Score object
+>>> p.notes_and_rests()      # access through a Parse object
 ```
 
-(notes_and_rests)=
-### Notes and Rests 
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ duration }} | {{ gracenote }} | {{ nominal_duration }} | {{ scalar }} | {{ tied }} | {{ tpc }} | {{ midi }} | {{ volta }} | {{ chord_id }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | -------------- | --------------- | ---------------------- | ------------ | ---------- | --------- | ---------- | ----------- | -------------- |
+| 1        | 1        | 0              | 0              | 4/4           | 4           | 2           | 1/8            | NaN             | 1/8                    | 1            | \<NA>      | -1        | 53         | \<NA>       | 4              |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 2           | 3/4            | NaN             | 1/2                    | 3/2          | \<NA>      | -1        | 77         | \<NA>       | 1              |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 1           | 1/2            | NaN             | 1/2                    | 1            | \<NA>      | \<NA>     | \<NA>      | \<NA>       | \<NA>          |
+| 1        | 1        | 0              | 0              | 4/4           | 4           | 1           | 1/2            | NaN             | 1/2                    | 1            | \<NA>      | \<NA>     | \<NA>      | \<NA>       | \<NA>          |
 
-DataFrame combining {ref}`notes` and
-{ref}`rests`.
-
-``` python
->>> s.mscx.notes_and_rests()          # from a Score object
->>> P.notes_and_rests()               # from a Piece object
->>> c.notes_and_rests()               # from a Corpus object
->>> p.get_facet('notes_and_rests')    # from a Parse object
-```
-
-```{code-cell}
-:tags: [remove-input]
-
-c.notes_and_rests()
-```
+(chords)=
 
 ### Chords
 
-```{note}
-The word "chords", here, is used in a very specific way and is misleading. 
-It has been adopted from the MuseScore XML source code but is better 
-understood as "note tuple with unique onset position". If you are interested
-in chord labels, please refer to {ref}`labels_manual` or {ref}`expanded_manual`.
-```
+:::{note}
+The use of the word chords, here, is very specific because its meaning stems entirely from the MuseScore XML source code.
+If you are interested in chord labels, please refer to {ref}`labels` or {ref}`expanded`.
+:::
 
-In a MuseScore file, every note is enclosed by a \<Chord\> tag. One
-\<Chord\> tag can enclose several notes, as long as they occur in the
-same {ref}`staff <staff>` and
-{ref}`voice <voice>` (notational layer). As a
-consequence, notes belonging to the same \<Chord\> have the same onset
-and the same duration.
+In a MuseScore file, every note is enclosed by a \<Chord> tag. One \<Chord> tag can enclose several notes, as long
+as they occur in the same {{ staff }} and {{ voice }} (notational layer). As a consequence, notes
+belonging to the same \<Chord> have the same onset and the same duration.
 
-**Why chord lists?** Most of the markup (such as articulation, lyrics
-etc.) in a MuseScore file is attached not to individual notes but
-instead to \<Chord\> tags. It might be a matter of interpretation to
-what notes exactly the symbols pertain, which is why it is left for the
-interested user to link the chord list with the corresponding note list
-by joining on the {ref}`chord_id <chord_id>`
-column of each.
+**Why chord lists?** Most of the markup (such as articulation, lyrics etc.) in a MuseScore file is attached
+not to individual notes but instead to \<Chord> tags. It might be a matter of interpretation to what notes exactly
+the symbols pertain, which is why it is left for the interested user to link the chord list with the corresponding
+note list by joining on the {{ chord_id }} column of each.
 
 #### Standard columns
 
-The output of the analogous commands depends on what markup is available
-in the score ({ref}`see below <chords_dynamic>`). The columns that are always present in a chord list are
-exactly the same as (and correspond to) those of a
-{ref}`note list <notes>` except for
-{ref}`tied <tied>`,
-{ref}`tpc <tpc>`, and
-{ref}`midi <midi>`.
+The output of the analogous commands depends on what markup is available in the score ({ref}`see below <chords_dynamic>`).
+The columns that are always present in a chord list are exactly the same as (and correspond to) those of a
+{ref}`note list <notes>` except for {{ tied }}, {{ tpc }}, and {{ midi }}.
 
-Such a reduced table -- or one with precisely selected features to extract -- 
-can be retrieved using
-[Score.mscx.parsed.get_chords(mode='strict')](bs4_parser._MSCX_bs4.get_chords)
-{any}`bs4_parser._MSCX_bs4.get_chords`.
-However, most of the time users will be interested to automatically retrieve
-all markup present in the score (as far as `ms3` goes), see below.
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ duration }} | {{ gracenote }} | {{ nominal_duration }} | {{ scalar }} | {{ volta }} | {{ chord_id }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | -------------- | --------------- | ---------------------- | ------------ | ----------- | -------------- |
+| 1        | 1        | 1/2            | 1/2            | 4/4           | 3           | 1           | 1/2            | NaN             | 1/2                    | 1            | \<NA>       | 0              |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 2           | 3/4            | NaN             | 1/2                    | 3/2          | \<NA>       | 1              |
 
-(chords_dynamic)=
-#### Dynamic columns 
+Such a reduced table can be retrieved using {py:meth}`Score.mscx.parsed.get_chords(mode='strict') <.bs4_parser._MSCX_bs4.get_chords()>`
 
-Leaving the standard columns aside, the normal interface for accessing
-chord lists calls
-{any}`Score.mscx.parsed.get_chords(mode='auto') <bs4_parser._MSCX_bs4.get_chords>` meaning that only columns are included that have at least
-one non empty value. The following table shows the first two non-empty
-values for each column when parsing all scores included in the [ms3
-repository](https://github.com/johentsch/ms3) for demonstration
-purposes:
+(chords-dynamic)=
 
-``` python
->>> s.mscx.chords()          # from a Score object
->>> P.chords()               # from a Piece object
->>> c.chords()               # from a Corpus object
->>> p.get_facet('chords')    # from a Parse object
+#### Dynamic columns
+
+Leaving the standard columns aside, the normal interface for accessing chord lists calls
+{py:meth}`Score.mscx.parsed.get_chords(mode='auto') <.bs4_parser._MSCX_bs4.get_chords()>` meaning that only columns
+are included that have at least one non empty value. The following table shows the first two non-empty values
+for each column when parsing all scores included in the [ms3 repository](https://github.com/johentsch/ms3)
+for demonstration purposes:
+
+```python
+>>> s.mscx.chords()   # access through a Score object
+>>> p.chords()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ lyrics:1 }} | {{ dynamics }} | {{ articulation }} | {{ staff_text }} | {{ tempo }}     | {{ qpm }} | {{ slur }} | {{ decrescendo_hairpin }} | {{ diminuendo_line }} | {{ crescendo_hairpin }} | {{ crescendo_line }} | {{ Ottava:15mb }} | {{ Ottava:8va }} | {{ pedal }} | {{ system_text }} |
+| -------------- | -------------- | ------------------ | ---------------- | --------------- | --------- | ---------- | ------------------------- | --------------------- | ----------------------- | -------------------- | ----------------- | ---------------- | ----------- | ----------------- |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | Grave           | 45        | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | 0          | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | 0          | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | p              | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | articStaccatoBelow | \<NA>            | \<NA>           | \<NA>     | 2          | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | articStaccatoBelow | \<NA>            | \<NA>           | \<NA>     | 2          | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | simile           | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | espr.            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | other-dynamics | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | 0                         | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | 0, 1                      | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | 0                     | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | 0                     | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| Sta            | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| bat            | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | Andante amoroso | 55        | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | 0                       | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | 0                       | \<NA>                | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | 0                    | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | 0                    | \<NA>             | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | 0           | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | 0           | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | 0                | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | 0                | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | 0                 | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | 0                 | \<NA>            | \<NA>       | \<NA>             |
+| \<NA>          | \<NA>          | \<NA>              | \<NA>            | \<NA>           | \<NA>     | \<NA>      | \<NA>                     | \<NA>                 | \<NA>                   | \<NA>                | \<NA>             | \<NA>            | \<NA>       | Swing             |
 
-c.chords()
-```
+(labels)=
 
-+++ {"tags": []}
-
-(labels_manual)=
 ### Labels
 
-DataFrame representing the annotation labels contained in the score. The
-output can be controlled by changing the `labels_cfg` configuration.
+DataFrame representing the annotation labels contained in the score. The output can be controlled by changing
+the `labels_cfg` configuration.
 
-``` python
->>> s.mscx.labels()          # from a Score object
->>> P.labels()               # from a Piece object
->>> c.labels()               # from a Corpus object
->>> p.get_facet('labels')    # from a Parse object
+```python
+>>> s.mscx.labels()   # access through a Score object
+>>> p.labels()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ volta }} | {{ label }} | {{ label_type }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | ----------- | ----------- | ---------------- |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 2           | \<NA>       | .f.i        | 0 (dcml)         |
+| 1        | 1        | 1/4            | 1/4            | 4/4           | 3           | 2           | \<NA>       | i6          | 0 (dcml)         |
 
-c.labels()
-```
+(expanded)=
 
-(expanded_manual)=
 ### Expanded
 
-If the score contains [DCML harmony
-labels](https://github.com/DCMLab/standards), this DataFrames represents
-them after splitting them into the encoded features and translating them
-into scale degrees.
+If the score contains [DCML harmony labels](https://github.com/DCMLab/standards),
+this DataFrames represents them after splitting them into the encoded features and translating
+them into scale degrees.
 
-``` python
->>> s.mscx.expanded()          # from a Score object
->>> P.expanded()               # from a Piece object
->>> c.expanded()               # from a Corpus object
->>> p.get_facet('expanded')    # from a Parse object
+```python
+>>> s.mscx.expanded()   # access through a Score object
+>>> p.expanded()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+| {{ mc }} | {{ mn }} | {{ mc_onset }} | {{ mn_onset }} | {{ timesig }} | {{ staff }} | {{ voice }} | {{ volta }} | {{ label }} | {{ globalkey }} | {{ localkey }} | {{ pedal }} | {{ chord }} | {{ numeral }} | {{ form }} | {{ figbass }} | {{ changes }} | {{ relativeroot }} | {{ cadence }} | {{ phraseend }} | {{ chord_type }} | {{ globalkey_is_minor }} | {{ localkey_is_minor }} | {{ chord_tones }} | {{ added_tones }} | {{ root }} | {{ bass_note }} |
+| -------- | -------- | -------------- | -------------- | ------------- | ----------- | ----------- | ----------- | ----------- | --------------- | -------------- | ----------- | ----------- | ------------- | ---------- | ------------- | ------------- | ------------------ | ------------- | --------------- | ---------------- | ------------------------ | ----------------------- | ----------------- | ----------------- | ---------- | --------------- |
+| 1        | 1        | 0              | 0              | 4/4           | 3           | 2           | \<NA>       | .f.i        | f               | i              | NaN         | i           | i             | NaN        | NaN           | NaN           | NaN                | NaN           | NaN             | m                | True                     | True                    | (0, -3, 1)        | ()                | 0          | 0               |
+| 1        | 1        | 1/4            | 1/4            | 4/4           | 3           | 2           | \<NA>       | i6          | f               | i              | NaN         | i6          | i             | NaN        | 6             | NaN           | NaN                | NaN           | NaN             | m                | True                     | True                    | (-3, 1, 0)        | ()                | 0          | -3              |
 
-c.expanded()
-```
+(cadences)=
 
 ### Cadences
 
-If DCML harmony labels include cadence labels, return only those. This
-table is simply a filter on {ref}`expanded <expanded>`. The table has the same columns and contains only rows that
-include a cadence label. Just for convenience\...
+If DCML harmony labels include cadence labels, return only those.
+This table is simply a filter on {ref}`expanded <expanded>`. The table has the same columns and contains only rows
+that include a cadence label. Just for convenience...
 
-``` python
->>> s.mscx.cadences()          # from a Score object
->>> P.cadences()               # from a Piece object
->>> c.cadences()               # from a Corpus object
->>> p.get_facet('cadences')    # from a Parse object
+```python
+>>> s.mscx.cadences   # access through a Score object
+>>> p.cadences()      # access through a Parse object
 ```
 
-```{code-cell}
-:tags: [remove-input]
+(form-labels)=
 
-c.cadences()
+### Form labels
+
+```python
+>>> s.mscx.form_labels()  # access through a Score object
+>>> p.form_labels()       # access through a Parse object
 ```
 
-(form_labels)=
-### Form labels 
-
-``` python
->>> s.mscx.form_labels()          # from a Score object
->>> P.form_labels()               # from a Piece object
->>> c.form_labels()               # from a Corpus object
->>> p.get_facet('form_labels')    # from a Parse object
-```
-
-```{code-cell}
-:tags: [remove-input]
-
-c.form_labels()
-```
+(events)=
 
 ### Events
 
-This DataFrame is the original tabular representation of the MuseScore
-file\'s source code from which all other tables, except `measures` are
-generated. The nested XML tags are transformed into column names.
+This DataFrame is the original tabular representation of the MuseScore file's source code from which all other tables,
+except `measures` are generated. The nested XML tags are transformed into column names.
 
-The value `'∅'` is used for empty tags. For example, in the column
-`Chord/Spanner/Slur` it would correspond to the tag structure
-(formatting as in an MSCX file):
+The value `'∅'` is used for empty tags. For example, in the column `Chord/Spanner/Slur` it would correspond to
+the tag structure (formatting as in an MSCX file):
 
-``` xml
+```xml
 <Chord>
   <Spanner type="Slur">
     <Slur>
@@ -560,16 +468,14 @@ The value `'∅'` is used for empty tags. For example, in the column
   </Chord>
 ```
 
-The value `'/'` on the other hand represents a shortcut empty tag. For
-example, in the column `Chord/grace16` it would correspond to the tag
-structure (formatting as in an MSCX file):
+The value `'/'` on the other hand represents a shortcut empty tag. For example, in the column `Chord/grace16`
+it would correspond to the tag structure (formatting as in an MSCX file):
 
-``` xml
+```xml
 <Chord>
   <grace16/>
   </Chord>
 ```
-
 
 ## Parsing
 
