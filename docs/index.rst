@@ -9,7 +9,7 @@ Table of Contents
 
    Installation <install>
    Quick Reference <quick>
-   Manual <manual>
+   manual/index
    Developers' Reference <reference>
    License <license>
    Authors <authors>

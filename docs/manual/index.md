@@ -1,6 +1,5 @@
 ---
 jupytext:
-  formats: ipynb,md:myst
   text_representation:
     extension: .md
     format_name: myst
@@ -14,84 +13,99 @@ kernelspec:
 
 # Manual
 
-![](ms3_architecture.png)
-
-This page is a detailed guide for using ms3 for different tasks. It
-supposes you are working in an interactive Python interpreter such as
-IPython, Jupyter, Google Colab, or just the console.
+This page is a detailed guide for using ms3 for different tasks. The code examples
+suppose you are working in an interactive Python interpreter such as
+IPython, Jupyter, Google Colab, or simply in the Python console. The manual itself
+is written as a [MyST markdown Notebook](https://myst-nb.readthedocs.io/) which can be run 
+in Jupyter if the [Jupytext](https://jupytext.readthedocs.io) extension is installed. 
 
 +++
 
 ## Good to know
 
-(corpss)=
-### Corpss structure 
+The principal *raison d'être* of `ms3` is for extracting different types of information, 
+"facets", from MuseScore files and to store them in the form of tabular `.tsv` files, 
+[Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values), for further processing.
+Over the years, however, it has gained additional functionality related to corpus curation.
+Therefore, the package operates on a couple of principles that have co-evolved together
+with the [DCML corpus initiative](https://www.epfl.ch/labs/dcml/projects/corpus-project/).
 
-ms3 extracts various aspects (e.g. notes, chord labels, dynamics) from a
-single MuseScore file and stores them in separate TSV files. In order to
-jointly evaluate this information (e.g. to combine harmony labels with
-the corresponding notes in the score), ms3 associates files by their
-names. Therefore it is important to not rename files at a later point
-and it is recommended to stick to one organizational principle for all
-corpora in use. The two main principles are suffixes and subfolders.
+### Corpus structure 
 
-[DCML corpora](https://github.com/DCMLab/dcml_corpora) use the same
-subfolder structure: MuseScore files are stored in the `MS3` folder of a
-corpus and all other aspects are stored with identical filenames (but
-different extension) in sibling folders. This structure results
-naturally when using default parameters such as `ms3 extract -N -M -X`:
+`ms3` follows a one-folder-per-feature approach (rather than a one-folder-per-file approach).
 
-``` console
-corpus1
-├── harmonies
-├── measures
-├── MS3
-└── notes
-corpus2
-├── harmonies
-├── measures
-├── MS3
-└── notes
+#### The default
+
+The library's main command, `ms3 extract`, creates this folder-based structure by default.
+Consider this fresh `corpus_before` containing only the folder `MS3` with
+7 uncompressed MuseScore files in `.mscx` format:
+
+```{code-cell}
+:tags: [remove-input]
+
+#%cd manual
+!tree --fromfile corpus_before
 ```
 
-When loading corpora, ms3 looks for the standard folder names (and
-suffixes) to indentify individual corpora and assign them keys
-automatically (e.g. in the example above, \'corpus1\' and \'corpus2\').
-Using the default names will therefore facilitate the use of the library
-considerably.
+The default command that is used on all [DCML corpora](https://github.com/DCMLab/dcml_corpora),
+`ms3 extract -M -N -X -D -a` extracts three TSV files (measures, notes and "eXpanded" harmonies) 
+from each score and places them in a separate folder, plus an additional `metadata.tsv` file:
+
+```{code-cell}
+:tags: [remove-input]
+
+!tree --fromfile corpus_after
+```
+
+`ms3` operates on the fundamental principle that files that belong together need to
+have the same name (but not necessarily the same extension). For example, each of the
+folders has a file called `BWV_0815` but the folder `harmonies` contains only four files
+because the other three did not contain harmony labels.
+
+The folder structure results from the command's default arguments which are equivalent to
+`ms3 extract -M ../measures -N ../notes -X ../harmonies`. While there are multiple
+ways of specifying output folders (see [below](specifying_folders)), there is an 
+additional mechanism for cases in which outputs are to be placed within the same 
+folder (which is probematic when they have the same name):
+
+#### Using suffixes
+
+Users who need their outputs in the same directory, say `out`, can specify the flag `-s`
+to add suffixes to the file names. For example, using 
+`ms3 extract -M out -N out -X out -s` you would get:
+
+```{code-cell}
+:tags: [remove-input]
+
+!tree --fromfile out
+```
+
+Based on these two principles, default folder and suffix names, 
+`ms3` is able to recognize which facets the files represent and to relate them to each other.
 
 +++
 
 (key_and_id)=
 ### Keys and IDs
 
-ms3 uses keys for grouping files. The way how these keys are being used
-is transitioning in the 0.5.x versions:
+```{note} ms3 version 1.0.0 and successors widely replace the mechanisms related to 
+the parameter `key`. Newer versions, instead, use IDs such as
+`corpus_name` and `(corpus_name, piece_name)`. If you come across a method
+where the first parameter is called `key`, you are likely dealing with an
+older version, or with a [ms3.Score](ms3.score.Score) object.
+```
 
--   **\< 0.5** keys were arbitrary and used by some methods to bring
-    groups of files together. For example, `Parse.attach_labels()` would
-    take a key with a group of scores and, as the parameter
-    `annotation_key`, the key with a group of annotations and then use
-    `Parse.match_files()` to match the files from the given keys.
--   **\>= 0.6.x** keys are used to address sub-corpora that are assumed
-    to have a particular `corpus_structure`{.interpreted-text
-    role="ref"}. The method `Parse.attach_labels()` then takes only one
-    key and uses the key\'s :py`~.parse.View`{.interpreted-text
-    role="class"} object for matching files. The parameter
-    `annotation_key` is replaced by `use` that can be used in the case
-    that the View object has detected several annotation files for one
-    or several pieces.
--   **0.5x** transitioning from the old to the new behaviour.
+IDs are tuples that are used to identify corpora, pieces and files:
 
-#### IDs
-
-IDs are `(key, i)` pairs that identify one particular file (not piece)
-found by a Parse object. They are used as dictionary keys except for
-storing the information on file paths such as
-:py`~.parse.full_paths`{.interpreted-text role="attr"} or
-:py`~.parse.fnames`{.interpreted-text role="attr"} which are
-dictionaries containing lists where only keys are dictionary keys,
-whereas `i` is simply the list index of the respective file.
+* `'corpus_name'` identifies a corpus, a collection of pieces.
+  * `ms3.Parse[corpus_name] -> Corpus`.
+* `'fname'` identifies a piece by its file name without any suffixes.
+  * `ms3.Corpus[fname] -> Piece`
+  * `ms3.Parse[(corpus_name, fname)] -> Piece`
+* Integers identify individual files and are unique within a Corpus.
+  * `ms3.Piece[i] -> File`
+  * `ms3.Corpus[(fname, i)] -> File`
+  * `ms3.Parse[(corpus_name, fname, i)] -> File`
 
 +++
 
@@ -176,35 +190,21 @@ stacks of fifths (the only way to express these as a single integer).
 For note names, `0` corresponds to C, for scale degrees to the local
 tonic.
 
-  -------------------------------------------------
-  fifths   note name   interval   scale degree
-  -------- ----------- ---------- -----------------
-  -6       Gb          d5         b5
-
-  -5       Db          m2         b2
-
-  -4       Ab          m6         b6 (6 in minor)
-
-  -3       Eb          m3         b3 (3 in minor)
-
-  -2       Bb          m7         b7 (7 in minor)
-
-  -1       F           P4         4
-
-  0        C           P1         1
-
-  1        G           P5         5
-
-  2        D           M2         2
-
-  3        A           M6         6 (#6 in minor)
-
-  4        E           M3         3 (#3 in minor)
-
-  5        B           M7         7 (#7 in minor)
-
-  6        F#          A4         #4
-  -------------------------------------------------
+| fifths | note name | interval | scale degree    |
+|--------|-----------|----------|-----------------|
+| -6     | Gb        | d5       | b5              |
+| -5     | Db        | m2       | b2              |
+| -4     | Ab        | m6       | b6 (6 in minor) |
+| -3     | Eb        | m3       | b3 (3 in minor) |
+| -2     | Bb        | m7       | b7 (7 in minor) |
+| -1     | F         | P4       | 4               |
+| 0      | C         | P1       | 1               |
+| 1      | G         | P5       | 5               |
+| 2      | D         | M2       | 2               |
+| 3      | A         | M6       | 6 (#6 in minor) |
+| 4      | E         | M3       | 3 (#3 in minor) |
+| 5      | B         | M7       | 7 (#7 in minor) |
+| 6      | F#        | A4       | #4              |
 
 ### Voltas
 
@@ -268,20 +268,23 @@ DataFrame representing the measures in the MuseScore file (which can be
 incomplete measures, see `mc_vs_mn`{.interpreted-text role="ref"})
 together with their respective features. Required for unfolding repeats.
 
-```{code-cell} ipython3
+```{code-cell}
 :tags: [remove-input]
+
 import ms3
-s = ms3.Score("~/ms3/old_tests/MS3/05_symph_fant.mscx", level='c')
+s = ms3.Score("../../old_tests/MS3/05_symph_fant.mscx", level='c')
 ```
 
-```{code-cell} ipython3
+```{code-cell}
 :tags: [remove-output]
+
 s.mscx.measures()   # access through a Score object
 p.measures()      # access through a Parse object
 ```
 
-```{code-cell} ipython3
+```{code-cell}
 :tags: [remove-input]
+
 s.mscx.measures()
 ```
 
