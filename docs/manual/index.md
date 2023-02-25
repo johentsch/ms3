@@ -174,12 +174,12 @@ the variable `c`, typing `c.all` will activate the view that shows everything.
 
 ms3 recognizes and disambiguates different types of labels, depending on
 how they are encoded in MuseScore, see
-`harmony_layer <harmony_layer>`{.interpreted-text role="ref"}.
+{ref}`harmony_layer <harmony_layer>`.
 
 Independent of the type, ms3 will also try to infer whether a label
 conforms to the DCML syntax and/or other regular expressions registered
 via `ms3.Score.new_type`{.interpreted-text role="meth"}. The column
-`regex_match <regex_match>`{.interpreted-text role="ref"} contains for
+{ref}`regex_match <regex_match>` contains for
 each label the name of the first regEx that matched. information will
 appear with a subtype, e.g. `0 (dcml)`.
 
@@ -245,7 +245,7 @@ memory.
 ### Stacks-of-fifths intervals 
 
 In order to express note names (tonal pitch classes,
-`tpc <tpc>`{.interpreted-text role="ref"}), and scale degrees, ms3 uses
+{ref}`tpc <tpc>`), and scale degrees, ms3 uses
 stacks of fifths (the only way to express these as a single integer).
 For note names, `0` corresponds to C, for scale degrees to the local
 tonic.
@@ -285,7 +285,7 @@ ms3 checks for incorrect MNs and warns you if the score needs
 correction. It will also ask you to make all voltas the same length. If
 this is not possible for editorial reasons (although often the length of
 the second volta is arbitrary), ignore the warning and check in the
-`measures <measures>`{.interpreted-text role="ref"} table if the MN are
+{ref}`measures <measures>` table if the MN are
 correct for your purposes.
 
 +++
@@ -304,11 +304,11 @@ tables are:
 All score information, except the metadata, is contained in the
 following two tables:
 
--   `measures <measures>`{.interpreted-text role="ref"}
--   `notes <notes>`{.interpreted-text role="ref"}
--   `rests <rests>`{.interpreted-text role="ref"}
--   `notes_and_rests <notes_and_rests>`{.interpreted-text role="ref"}
--   `chords <chords>`{.interpreted-text role="ref"}: **Not to be
+-   {ref}`measures <measures>`
+-   {ref}`notes <notes>`
+-   {ref}`rests <rests>`
+-   {ref}`notes_and_rests <notes_and_rests>`
+-   {ref}`chords <chords>`: **Not to be
     confounded with labels or chord annotations**, a chord is a
     notational unit in which all included notes are part of the same
     notational layer and have the same onset and duration. Every chord
@@ -316,10 +316,10 @@ following two tables:
     used to convey score information that is not attached to a
     particular note, such as lyrics, staff text, dynamics and other
     markup.
--   `labels <labels>`{.interpreted-text role="ref"}
--   `expanded <expanded>`{.interpreted-text role="ref"}
--   `cadences <cadences>`{.interpreted-text role="ref"}
--   `events <events>`{.interpreted-text role="ref"}
+-   {ref}`labels <labels>`
+-   {ref}`expanded <expanded>`
+-   {ref}`cadences <cadences>`
+-   {ref}`events <events>`
 
 For each of the available tables you will see an example and you can
 click on the columns to learn about their meanings.
@@ -327,7 +327,7 @@ click on the columns to learn about their meanings.
 ### Measures
 
 DataFrame representing the measures in the MuseScore file (which can be
-incomplete measures, see `mc_vs_mn`{.interpreted-text role="ref"})
+incomplete measures, see {ref}`mc_vs_mn`)
 together with their respective features. Required for unfolding repeats.
 
 ```python
@@ -383,8 +383,8 @@ c.rests()
 (notes_and_rests)=
 ### Notes and Rests 
 
-DataFrame combining `notes`{.interpreted-text role="ref"} and
-`rests`{.interpreted-text role="ref"}.
+DataFrame combining {ref}`notes` and
+{ref}`rests`.
 
 ``` python
 >>> s.mscx.notes_and_rests()          # from a Score object
@@ -410,8 +410,8 @@ in chord labels, please refer to [](labels) or {ref}`expanded`.
 
 In a MuseScore file, every note is enclosed by a \<Chord\> tag. One
 \<Chord\> tag can enclose several notes, as long as they occur in the
-same `staff <staff>`{.interpreted-text role="ref"} and
-`voice <voice>`{.interpreted-text role="ref"} (notational layer). As a
+same {ref}`staff <staff>` and
+{ref}`voice <voice>` (notational layer). As a
 consequence, notes belonging to the same \<Chord\> have the same onset
 and the same duration.
 
@@ -420,7 +420,7 @@ etc.) in a MuseScore file is attached not to individual notes but
 instead to \<Chord\> tags. It might be a matter of interpretation to
 what notes exactly the symbols pertain, which is why it is left for the
 interested user to link the chord list with the corresponding note list
-by joining on the `chord_id <chord_id>`{.interpreted-text role="ref"}
+by joining on the {ref}`chord_id <chord_id>`
 column of each.
 
 #### Standard columns
@@ -429,14 +429,15 @@ The output of the analogous commands depends on what markup is available
 in the score (`see below <chords_dynamic>`{.interpreted-text
 role="ref"}). The columns that are always present in a chord list are
 exactly the same as (and correspond to) those of a
-`note list <notes>`{.interpreted-text role="ref"} except for
-`tied <tied>`{.interpreted-text role="ref"},
-`tpc <tpc>`{.interpreted-text role="ref"}, and
-`midi <midi>`{.interpreted-text role="ref"}.
+{ref}`note list <notes>` except for
+{ref}`tied <tied>`,
+{ref}`tpc <tpc>`, and
+{ref}`midi <midi>`.
 
 Such a reduced table -- or one with precisely selected features to extract -- 
 can be retrieved using
-[Score.mscx.parsed.get_chords(mode='strict')](bs4_parser._MSCX_bs4.get_chords).
+[Score.mscx.parsed.get_chords(mode='strict')](bs4_parser._MSCX_bs4.get_chords)
+{ref}`bs4_parser._MSCX_bs4.get_chords`.
 However, most of the time users will be interested to automatically retrieve
 all markup present in the score (as far as `ms3` goes), see below.
 
@@ -699,7 +700,7 @@ bignums
     > The object is created by calling it with the directory to scan,
     > and bound to the typical variable `p`. ms3 scans the
     > subdirectories for corpora (see
-    > `corpus_structure`{.interpreted-text role="ref"}) and assigns keys
+    > {ref}`corpus_structure`) and assigns keys
     > automatically based on folder names (here \'docs\', and
     > \'tests\'):
     >
@@ -745,7 +746,7 @@ bignums
     > :::
     >
     > The parameter `key` will be deprecated from version 0.6.0 onwards.
-    > See `keys_and_ids`{.interpreted-text role="ref"}.
+    > See {ref}`keys_and_ids`.
     > :::
     >
     > ``` python
@@ -1203,7 +1204,7 @@ Caution
 :::
 
 The parameter `key` will be deprecated from version 0.6.0 onwards. See
-`keys_and_ids`{.interpreted-text role="ref"}.
+{ref}`keys_and_ids`.
 :::
 
 ``` python
@@ -1282,7 +1283,7 @@ the function :py`~.utils.load_tsv`{.interpreted-text role="func"}.
 
 Duration of an event expressed in fractions of a whole note. Note that
 in note lists, the duration does not take into account if notes are
-`tied <tied>`{.interpreted-text role="ref"} together; in other words,
+{ref}`tied <tied>` together; in other words,
 the column expresses no durations that surpass the final bar line.
 
 #### **duration_qb**
@@ -1290,7 +1291,7 @@ the column expresses no durations that surpass the final bar line.
 `float`{.interpreted-text role="obj"}
 
 Duration expressed in quarter notes. If the column
-`duration <duration>`{.interpreted-text role="ref"} is present it
+{ref}`duration <duration>` is present it
 corresponds to that column times four. Otherwise (e.g. for labels) it is
 computed from an `~pandas.IntervalIndex`{.interpreted-text role="obj"}
 created from the `quarterbeats <quarterbeats>`{.interpreted-text
@@ -1331,7 +1332,7 @@ Measure number, continuous count of complete measures as used in printed
 editions. Starts with 1 except for pieces beginning with a pickup
 measure, numbered as 0. MNs are identical for first and second endings!
 For more detailed information, please refer to
-`mc_vs_mn`{.interpreted-text role="ref"}.
+{ref}`mc_vs_mn`.
 
 #### **mc_onset**
 
@@ -1340,7 +1341,7 @@ For more detailed information, please refer to
 The value for `mc_onset` represents, expressed as fraction of a whole
 note, a position in a measure where `0` corresponds to the earliest
 possible position (in most cases beat 1). For more detailed information,
-please refer to `onsets`{.interpreted-text role="ref"}.
+please refer to {ref}`onsets`.
 
 #### **mn_onset**
 
@@ -1371,8 +1372,8 @@ endings, please refer to
 role="ref"}.
 
 Computation of quarterbeats requires an offset_dict that is computed
-from the column `act_dur <act_dur>`{.interpreted-text role="ref"}
-contained in every `measures`{.interpreted-text role="ref"} table.
+from the column {ref}`act_dur <act_dur>`
+contained in every {ref}`measures` table.
 Quarterbeats are based on the cumulative sum of that column, meaning
 that they take the length of irregular measures into account.
 
@@ -1404,14 +1405,14 @@ In the case of first and second (third etc.) endings, this column holds
 the number of every \"bracket\", \"house\", or \_[volta](#volta), which
 should increase from 1. This is required for MS3\'s unfold repeats
 function to work. For more information,
-`see here <voltas>`{.interpreted-text role="ref"}.
+{ref}`see here <voltas>`.
 
 #### **voice**
 
 `int`{.interpreted-text role="obj"}
 
 In which notational layer an event occurs. Each
-`staff`{.interpreted-text role="ref"} has (can have) up to four layers:
+{ref}`staff` has (can have) up to four layers:
 
 -   `1` = upper, default layer (blue)
 -   `2` = second layer, downward stems (green)
@@ -1433,10 +1434,10 @@ in 6/8 has `act_dur = 3/4`. If the measure has an irregular length, for
 example a pickup measure of length 1/8, would have `act_dur = 1/8`.
 
 The value of `act_dur` plays an important part in inferring
-`MNs <mn>`{.interpreted-text role="ref"} from
-`MCs <mc>`{.interpreted-text role="ref"}. See also the columns
-`dont_count <dont_count>`{.interpreted-text role="ref"} and
-`numbering_offset <numbering_offset>`{.interpreted-text role="ref"}.
+{ref}`MNs <mn>` from
+{ref}`MCs <mc>`. See also the columns
+{ref}`dont_count <dont_count>` and
+{ref}`numbering_offset <numbering_offset>`.
 
 #### **barline**
 
@@ -1462,8 +1463,8 @@ types. In the case of section breaks, MuseScore
 
 This is a binary value that corresponds to MuseScore\'s setting
 `Exclude from bar count` from the `Bar Properties` menu. The value is
-`1` for pickup bars, second `MCs <mc>`{.interpreted-text role="ref"} of
-divided `MNs <mn>`{.interpreted-text role="ref"} and some volta
+{ref}`1` for pickup bars, second `MCs <mc>` of
+divided {ref}`MNs <mn>` and some volta
 measures, and `NaN` otherwise.
 
 +++
@@ -1482,7 +1483,7 @@ MC\'s offset in terms of the duration of all (usually 1) preceding MCs
 which are also part of the corresponding MN. In the standard case that
 one MN would be split in two MCs, the first MC would have mc_offset =
 `0` , and the second one mc_offset = `the previous MC's`
-`act_dur <act_dur>`{.interpreted-text role="ref"} .
+{ref}`act_dur <act_dur>` .
 
 #### **next**
 
@@ -1494,7 +1495,7 @@ repetitions, measures can have more than one subsequent MCs, in which
 case the integers are separated by `', '` .
 
 The column is used for checking whether
-`irregular measure lengths <act_dur>`{.interpreted-text role="ref"} even
+{ref}`irregular measure lengths <act_dur>` even
 themselves out because otherwise the inferred MNs might be wrong. Also,
 it is needed for MS3\'s unfold repetitions functionality.
 
@@ -1513,7 +1514,7 @@ and all subsequent MNs are inferred accordingly.
 Scores which include several pieces (e.g. in variations or a suite),
 sometimes, instead of using section `breaks <breaks>`{.interpreted-text
 role="ref"}, use `numbering_offset` to simulate a restart for counting
-`MNs <mn>`{.interpreted-text role="ref"} at every new section. This
+{ref}`MNs <mn>` at every new section. This
 leads to ambiguous MNs.
 
 #### **quarterbeats_all_endings**
@@ -1522,7 +1523,7 @@ leads to ambiguous MNs.
 
 Since the computation of `quarterbeats <quarterbeats>`{.interpreted-text
 role="ref"} for pieces including alternative endings
-(`voltas <volta>`{.interpreted-text role="ref"}) excludes all but the
+({ref}`voltas <volta>`) excludes all but the
 second endings, the measures of such pieces get this additional column,
 allowing to create an offset_dict for users who need continuous
 quarterbeats including all endings. In that case one would call
@@ -1544,7 +1545,7 @@ performs a test on the repeat signs\' plausibility and throws warnings
 when some inference is required for this.
 
 The `repeats` column needs to have the correct repeat sign structure in
-order to have a correct `next <next>`{.interpreted-text role="ref"}
+order to have a correct {ref}`next <next>`
 column which, in return, is required for MS3\'s unfolding repetitions
 functionality.
 
@@ -1557,7 +1558,7 @@ functionality.
 Every note keeps the ID of the `<Chord>` tag to which it belongs in the
 score. This is necessary because in MuseScore XML, most markup (e.g.
 articulation, lyrics etc.) are attached to
-`chords <chords>`{.interpreted-text role="ref"} rather than to
+{ref}`chords <chords>` rather than to
 individual notes. This column allows for relating markup to notes at a
 later point.
 
@@ -1577,15 +1578,15 @@ role="ref"} of 0.
 `int`{.interpreted-text role="obj"}
 
 MIDI pitch with `60` = C4, `61` = C#4/Db4/B##3 etc. For the actual note
-name, refer to the `tpc <tpc>`{.interpreted-text role="ref"} column.
+name, refer to the {ref}`tpc <tpc>` column.
 
 #### **nominal_duration**
 
 `fractions.Fraction`{.interpreted-text role="obj"}
 
 Note\'s or rest\'s duration without taking into account dots or tuplets.
-Multiplying by `scalar <scalar>`{.interpreted-text role="ref"} results
-in the actual `duration <duration>`{.interpreted-text role="ref"}.
+Multiplying by {ref}`scalar <scalar>` results
+in the actual {ref}`duration <duration>`.
 
 #### **scalar**
 
@@ -1618,7 +1619,7 @@ Encodes ties on the note\'s left (`-1`), on its right (`1`) or both
 
 Encodes note names by their position on the line of fifth with `0` = C,
 `1` = G, `2` = D, `-1` = F, `-2` = Bb etc. The octave is defined by
-`midi <midi>`{.interpreted-text role="ref"} DIV 12 - 1
+{ref}`midi <midi>` DIV 12 - 1
 
 #### **tremolo**
 
@@ -1633,7 +1634,7 @@ second \<Chord\>.
 Explanation: MuseScore 3 encodes the two components of a tremolo as two
 separate \<Chord\> tags with half the duration of the tremolo. This
 column serves to keep the information of the two components although
-onsets and durations in the `notes`{.interpreted-text role="ref"} are
+onsets and durations in the {ref}`notes` are
 corrected to represent the fact that all notes are sounding through the
 duration of the tremolo.
 
@@ -1648,21 +1649,21 @@ for the second.
 
 The various \<Chord\> tags are identified by increasing integer counts
 in the column `chord_id`. Within a note list, a
-`column of the same name <chord_id>`{.interpreted-text role="ref"}
+{ref}`column of the same name <chord_id>`
 specifies which note belongs to which \<Chord\> tag. A chord and all the
 notes belonging to it have identical values in the columns
-`mc <mc>`{.interpreted-text role="ref"}, `mn <mn>`{.interpreted-text
-role="ref"}, `mc_onset <mc_onset>`{.interpreted-text role="ref"},
-`mn_onset <mn_onset>`{.interpreted-text role="ref"},
-`timesig <timesig>`{.interpreted-text role="ref"},
-`staff <staff>`{.interpreted-text role="ref"},
-`voice <voice>`{.interpreted-text role="ref"},
-`duration <duration>`{.interpreted-text role="ref"},
-`gracenote <gracenote>`{.interpreted-text role="ref"},
-`nominal_duration <nominal_duration>`{.interpreted-text role="ref"},
-`scalar <scalar>`{.interpreted-text role="ref"},
-`volta <volta>`{.interpreted-text role="ref"}, and of course
-`chord_id <chord_id>`{.interpreted-text role="ref"}.
+{ref}`mc <mc>`, `mn <mn>`{.interpreted-text
+role="ref"}, {ref}`mc_onset <mc_onset>`,
+{ref}`mn_onset <mn_onset>`,
+{ref}`timesig <timesig>`,
+{ref}`staff <staff>`,
+{ref}`voice <voice>`,
+{ref}`duration <duration>`,
+{ref}`gracenote <gracenote>`,
+{ref}`nominal_duration <nominal_duration>`,
+{ref}`scalar <scalar>`,
+{ref}`volta <volta>`, and of course
+{ref}`chord_id <chord_id>`.
 
 #### **articulation**
 
@@ -1702,7 +1703,7 @@ and both if it\'s in the middle of a word.
 
 `int`{.interpreted-text role="obj"}
 
-Defined for every `tempo <tempo>`{.interpreted-text role="ref"} mark.
+Defined for every {ref}`tempo <tempo>` mark.
 Normalizes the metronome value to quarter notes. For example, `𝅘𝅥. = 112`
 gets the value `qbm = 112 * 1.5 = 168`.
 
@@ -1740,11 +1741,11 @@ spanner. Each cell can have more than one ID, separated by commas. For
 evaluating spanner columns, the values should be turned into tuples.
 
 Spanners span all chords belonging to the same
-`staff <staff>`{.interpreted-text role="ref"}, except for slurs and
+{ref}`staff <staff>`, except for slurs and
 trills which span only chords in the same
-`voice <voice>`{.interpreted-text role="ref"}. In other words, won\'t
+{ref}`voice <voice>`. In other words, won\'t
 find the ending of a slur that goes from one
-`voice <voice>`{.interpreted-text role="ref"} to another.
+{ref}`voice <voice>` to another.
 
 ##### **slur**
 
@@ -1752,8 +1753,8 @@ find the ending of a slur that goes from one
 role="obj"})
 
 Slurs expressing legato and/or phrasing. These
-`spanners <spanners>`{.interpreted-text role="ref"} always pertain to a
-particular `voice <voice>`{.interpreted-text role="ref"}.
+{ref}`spanners <spanners>` always pertain to a
+particular {ref}`voice <voice>`.
 
 +++
 
@@ -1765,8 +1766,8 @@ role="obj"})
 
 `crescendo_hairpin` is a `<` `spanner <spanners>`{.interpreted-text
 role="ref"}, `decrescendo_hairpin` a `>`
-`spanner <spanners>`{.interpreted-text role="ref"}. These always pertain
-to an entire `staff <staff>`{.interpreted-text role="ref"}.
+{ref}`spanner <spanners>`. These always pertain
+to an entire {ref}`staff <staff>`.
 
 +++
 
@@ -1776,7 +1777,7 @@ to an entire `staff <staff>`{.interpreted-text role="ref"}.
 `str`{.interpreted-text role="obj"} (-\> `tuple`{.interpreted-text
 role="obj"})
 
-These are `spanners <spanners>`{.interpreted-text role="ref"} starting
+These are {ref}`spanners <spanners>` starting
 with a word, by default `cresc.` or `dim.`, followed by a dotted line.
 These always pertain to an entire `staff <staff>`{.interpreted-text
 role="ref"}.
@@ -1786,7 +1787,7 @@ role="ref"}.
 `str`{.interpreted-text role="obj"} (-\> `tuple`{.interpreted-text
 role="obj"})
 
-These `spanners <spanners>`{.interpreted-text role="ref"} are always
+These {ref}`spanners <spanners>` are always
 specified with a subtype such as `Ottava:8va` or `Ottava:15mb`. They
 always pertain to an entire `staff <staff>`{.interpreted-text
 role="ref"}
@@ -1796,8 +1797,8 @@ role="ref"}
 `str`{.interpreted-text role="obj"} (-\> `tuple`{.interpreted-text
 role="obj"})
 
-Pedal line `spanners <spanners>`{.interpreted-text role="ref"} always
-pertain to an entire `staff <staff>`{.interpreted-text role="ref"}.
+Pedal line {ref}`spanners <spanners>` always
+pertain to an entire {ref}`staff <staff>`.
 
 #### **TextLine**
 
@@ -1810,7 +1811,7 @@ Custom staff text with a line that can be prolonged at will.
 
 `str`{.interpreted-text role="obj"}
 
-Trills `spanners <spanners>`{.interpreted-text role="ref"} can have
+Trills {ref}`spanners <spanners>` can have
 different subtypes specified after a colon, e.g. `'Trill:trill'`. They
 always pertain to a particular `voice <voice>`{.interpreted-text
 role="ref"}.
@@ -1837,7 +1838,7 @@ how it is encoded in MuseScore.
 `str`{.interpreted-text role="obj"}
 
 Annotation labels from MuseScores \<Harmony\> tags. Depending on the
-`label_type <label_type>`{.interpreted-text role="ref"} the column can
+{ref}`label_type <label_type>` the column can
 include complete strings (decoded) or partial strings (encoded).
 
 #### **regex_match**
@@ -1855,13 +1856,13 @@ Warning
 :::
 
 Deprecated since 0.6.0 where this column has been split and replaced by
-`harmony_layer <harmony_layer>`{.interpreted-text role="ref"} and
-`regex_match <regex_match>`{.interpreted-text role="ref"}
+{ref}`harmony_layer <harmony_layer>` and
+{ref}`regex_match <regex_match>`
 :::
 
 `str`{.interpreted-text role="obj"}
 
-See `label types <label_types>`{.interpreted-text role="ref"} above.
+See {ref}`label types <label_types>` above.
 
 +++
 
@@ -1889,7 +1890,7 @@ role="ref"}. Generally considered \"second choice\" compared to the
 `int`{.interpreted-text role="obj"}
 
 The bass note designated by the label, expressed as
-`scale degree <fifths>`{.interpreted-text role="ref"}.
+{ref}`scale degree <fifths>`.
 
 #### **cadence**
 
@@ -1911,15 +1912,15 @@ Currently allows for the values
 `str`{.interpreted-text role="obj"}
 
 This column stands in no relation to the \<Chord\> tags
-`discussed above <chords>`{.interpreted-text role="ref"}. Instead, it
+{ref}`discussed above <chords>`. Instead, it
 holds the substring of the original labels that includes only the actual
 chord label, i.e. excluding information about modulations, pedal tones,
 phrases, and cadences. In other words, it comprises the features
-`numeral <numeral>`{.interpreted-text role="ref"},
-`form <form>`{.interpreted-text role="ref"},
-`figbass <figbass>`{.interpreted-text role="ref"},
-`changes <changes>`{.interpreted-text role="ref"}, and
-`relativeroot <relativeroot>`{.interpreted-text role="ref"}.
+{ref}`numeral <numeral>`,
+{ref}`form <form>`,
+{ref}`figbass <figbass>`,
+{ref}`changes <changes>`, and
+{ref}`relativeroot <relativeroot>`.
 
 +++
 
@@ -1930,7 +1931,7 @@ phrases, and cadences. In other words, it comprises the features
 role="obj"})
 
 Chord tones designated by the label, expressed as
-`scale degrees <fifths>`{.interpreted-text role="ref"}. Includes 3 scale
+{ref}`scale degrees <fifths>`. Includes 3 scale
 degrees for triads, 4 for tetrads, ordered according to the inversion
 (i.e. the first value is the `bass_note <bass_note>`{.interpreted-text
 role="ref"}). Accounts for chord tone replacement expressed through
@@ -1943,9 +1944,9 @@ parentheses, intervals preceded by + or/and greater than 8.
 `str`{.interpreted-text role="obj"}
 
 A summary of information that otherwise depends on the three columns
-`numeral <numeral>`{.interpreted-text role="ref"},
-`form <form>`{.interpreted-text role="ref"},
-`figbass <figbass>`{.interpreted-text role="ref"}. It can be one of the
+{ref}`numeral <numeral>`,
+{ref}`form <form>`,
+{ref}`figbass <figbass>`. It can be one of the
 wide-spread abbreviations for triads: `M, m, o, +` or for seventh
 chords: `o7, %7, +7, +M7` (for diminished, half-diminished and augmented
 chords with minor/major seventh), or `Mm7, mm7, MM7, mM7` for all
@@ -1959,7 +1960,7 @@ combinations of a major/minor triad with a minor/major seventh.
 Figured bass notation of the chord inversion. For triads, this feature
 can be `<NA>, '6', '64'`, for seventh chords `'7', '65', '43', '2'`.
 This column plays into computing the
-`chord_type <chord_type>`{.interpreted-text role="ref"}. This feature is
+{ref}`chord_type <chord_type>`. This feature is
 decisive for
 `which chord tone is in the bass <bass_note>`{.interpreted-text
 role="ref"}.
@@ -1969,24 +1970,24 @@ role="ref"}.
 `str`{.interpreted-text role="obj"}
 
 This column conveys part of the information what
-`chord_type <chord_type>`{.interpreted-text role="ref"} a label
+{ref}`chord_type <chord_type>` a label
 expresses.
 
   -------------------------------------------------------------------------
   value    chord type
   -------- ----------------------------------------------------------------
-  \<NA\>   If `figbass <figbass>`{.interpreted-text role="ref"} is one of
+  \<NA\>   If {ref}`figbass <figbass>` is one of
            `<NA>, '6', '64'`, the chord is either a major or minor triad.
            Otherwise, it is either a major or a minor chord with a minor
            seventh.
 
   o, +     Diminished or augmented chord. Again, it depends on
-           `figbass <figbass>`{.interpreted-text role="ref"} whether it is
+           {ref}`figbass <figbass>` whether it is
            a triad or a seventh chord.
 
   %, M, +M Half diminished or major seventh chord. For the latter, the
            chord form (MM7 or mM7) depends on the
-           `numeral <numeral>`{.interpreted-text role="ref"}.
+           {ref}`numeral <numeral>`.
   -------------------------------------------------------------------------
 
 #### **globalkey**
@@ -2001,7 +2002,7 @@ flat major, or `g#` for G sharp minor.
 `bool`{.interpreted-text role="obj"}
 
 Auxiliary column which is True if the
-`globalkey <globalkey>`{.interpreted-text role="ref"} is a minor key,
+{ref}`globalkey <globalkey>` is a minor key,
 False otherwise.
 
 #### **localkey**
@@ -2009,7 +2010,7 @@ False otherwise.
 `str`{.interpreted-text role="obj"}
 
 Local key expressed as Roman numeral relative to the
-`globalkey <globalkey>`{.interpreted-text role="ref"}, e.g. `IV` for the
+{ref}`globalkey <globalkey>`, e.g. `IV` for the
 major key on the 4th scale degree or `#iv` for the minor scale on the
 raised 4th scale degree.
 
@@ -2018,7 +2019,7 @@ raised 4th scale degree.
 `bool`{.interpreted-text role="obj"}
 
 Auxiliary column which is True if the
-`localkey <localkey>`{.interpreted-text role="ref"} is a minor key,
+{ref}`localkey <localkey>` is a minor key,
 False otherwise.
 
 #### **numeral**
@@ -2027,9 +2028,9 @@ False otherwise.
 
 Roman numeral defining the chordal root relative to the local key. An
 uppercase numeral stands for a major chordal third, lowercase for a
-minor third. The column `root <root>`{.interpreted-text role="ref"}
+minor third. The column {ref}`root <root>`
 expresses the same information as
-`scale degree <fifths>`{.interpreted-text role="ref"}.
+{ref}`scale degree <fifths>`.
 
 +++
 
@@ -2051,7 +2052,7 @@ strong end point.
 
 This feature designates a lower-level key to which the current chord
 relates. It is expressed relative to the local key. For example, if the
-current `numeral <numeral>`{.interpreted-text role="ref"} is a `V` and
+current {ref}`numeral <numeral>` is a `V` and
 it is a secondary dominant, relativeroot is the Roman numeral of the key
 that is being tonicized.
 
@@ -2059,8 +2060,8 @@ that is being tonicized.
 
 `int`{.interpreted-text role="obj"}
 
-The `numeral <numeral>`{.interpreted-text role="ref"} expressed as
-`scale degree <fifths>`{.interpreted-text role="ref"}.
+The {ref}`numeral <numeral>` expressed as
+{ref}`scale degree <fifths>`.
 
 (metadata_facet)=
 ### Metadata
@@ -2100,7 +2101,7 @@ Relative file path of the score, including extension.
 Metadata extracted with older versions of ms3 (\<1.0.0) would come
 instead with the column `rel_paths` which would include the relative
 folder path without the file itself. This value can now be found in the
-column `subdirectory`{.interpreted-text role="ref"}.
+column {ref}`subdirectory`.
 
 #### **subdirectory**
 
@@ -2113,7 +2114,7 @@ File information about the score described by this set of metadata.
 :::
 
 Folder where the score is located, relative to the corpus_path.
-Equivalent to `rel_path`{.interpreted-text role="ref"} but without the
+Equivalent to {ref}`rel_path` but without the
 file.
 
 #### **composer**
@@ -2146,11 +2147,11 @@ updated using the command `ms3 metadata`.
 
 Title of the whole composition (cycle), even if the score holds only a
 part of it. It should not contain opus or other catalogue numbers, which
-go into the `workNumber`{.interpreted-text role="ref"} column/field.
+go into the {ref}`workNumber` column/field.
 
 The title of the part included in this score, be it a movement or, for
 instance, a song within a song cycle, goes into the
-`movementTitle`{.interpreted-text role="ref"} column/field.
+{ref}`movementTitle` column/field.
 
 +++
 
@@ -2329,7 +2330,7 @@ using the command `ms3 metadata`.
 
 Year in which the composing began. If there is evidence that composing
 the piece took more than one year but only the
-`composed_end`{.interpreted-text role="ref"} of the time span is known,
+{ref}`composed_end` of the time span is known,
 this value should be `..`. In all other cases the string should be
 composed of four integers so that it can be converted to a number.
 
@@ -2371,7 +2372,7 @@ Metadata category
 Computed by ms3.
 :::
 
-Last `measure number <mn>`{.interpreted-text role="ref"} (i.e., the
+Last {ref}`measure number <mn>` (i.e., the
 length of the score as number of complete measures).
 
 #### **last_mn_unfolded**
@@ -2420,7 +2421,7 @@ Metadata category
 Computed by ms3.
 :::
 
-`Measure counts <mc>`{.interpreted-text role="ref"} of first and second
+{ref}`Measure counts <mc>` of first and second
 (and further) endings. For example,
 `(((16,), (17,)), ((75, 76), (77, 78)))` would stand for two sets of two
 brackets, the first one with two endings of length 1 (probably measure
@@ -2499,7 +2500,7 @@ standard](https://github.com/DCMLab/standards).
 
 For metadata extracted with older versions of ms3 (\<1.0.0) this value
 would represent the number of all \<Harmony\> labels including
-`guitar/Jazz chords <guitar_chord_count>`{.interpreted-text role="ref"}.
+{ref}`guitar/Jazz chords <guitar_chord_count>`.
 
 +++
 
@@ -2516,15 +2517,15 @@ Computed by ms3.
 
 Key signature(s) (negative = flats, positive = sharps) and their
 position(s) in the score. A score in C major would have the value
-`1: 0`, i.e. zero accidentals in `MC <mc>`{.interpreted-text role="ref"}
+{ref}`1: 0`, i.e. zero accidentals in `MC <mc>`
 1, the first \<Measure\> tag. A score with the key signatures of C minor
 (3 flats), G minor (1 flat) and G major (1 sharp) could have, for
 example, `1: -3, 39: -1, 67: 1`. In other words, the values are like
 dictionaries without curly braces.
 
 The column name is in CamelCase, other than the
-`keysig`{.interpreted-text role="ref"} column found in
-`measures`{.interpreted-text role="ref"} tables.m
+{ref}`keysig` column found in
+{ref}`measures` tables.m
 
 +++
 
@@ -2541,14 +2542,14 @@ Computed by ms3.
 
 Time signature(s) and their position(s) in the score. A score entirely
 in 4/4 would have the value `1: 4/4`, where 1 is the
-`MC <mc>`{.interpreted-text role="ref"} of the first \<Measure\> tag. A
+{ref}`MC <mc>` of the first \<Measure\> tag. A
 score with time signature changes could have, for example,
 `1: 4/4, 39: 6/8, 67: 4/4`. In other words, the values are like
 dictionaries without curly braces.
 
 The column name is in CamelCase, other than the
-`timesig`{.interpreted-text role="ref"} column found in
-`measures`{.interpreted-text role="ref"} tables.
+{ref}`timesig` column found in
+{ref}`measures` tables.
 
 #### **musescore**
 
