@@ -17,7 +17,7 @@ This page is a detailed guide for using ms3 for different tasks. The code exampl
 suppose you are working in an interactive Python interpreter such as
 IPython, Jupyter, Google Colab, or simply in the Python console. The manual itself
 is written as a [MyST markdown Notebook](https://myst-nb.readthedocs.io/) which can be run 
-in Jupyter if the [Jupytext](https://jupytext.readthedocs.io) extension is installed. 
+in Jupyter if the [Jupytext](https://jupytext.readthedocs.io) extension is installed.
 
 +++
 
@@ -81,18 +81,19 @@ to add suffixes to the file names. For example, using
 ```
 
 Based on these two principles, default folder and suffix names, 
-`ms3` is able to recognize which facets the files represent and to relate them to each other.
+`ms3` is able to recognize which facet of which piece the files 
+represent and to relate them to each other.
 
 +++
 
-(key_and_id)=
+(keys_and_ids)=
 ### Keys and IDs
 
 ```{note} ms3 version 1.0.0 and successors widely replace the mechanisms related to 
 the parameter `key`. Newer versions, instead, use IDs such as
 `corpus_name` and `(corpus_name, piece_name)`. If you come across a method
 where the first parameter is called `key`, you are likely dealing with an
-older version, or with a [ms3.Score](ms3.score.Score) object.
+older version, or with a [ms3.Score](Score) object.
 ```
 
 IDs are tuples that are used to identify corpora, pieces and files:
@@ -106,6 +107,65 @@ IDs are tuples that are used to identify corpora, pieces and files:
   * `ms3.Piece[i] -> File`
   * `ms3.Corpus[(fname, i)] -> File`
   * `ms3.Parse[(corpus_name, fname, i)] -> File`
+  
+#### The importance of the `fname` ID
+  
+The piece IDs `fname` relate to the file names in this way: `fname[suffix].ext`.
+In order to correctly match files together that belong together, without doing
+complicated string matching, `ms3` relies on a list of fnames that it will
+expect to be present in a column called `fname` in a file called `metadata.tsv`
+(see below). Generally, this should be the first column in these files, 
+used as index.
+
+```{hint} 
+If you find yourself stuck with `ms3` producing no output,
+it is likely because no `metadata.tsv` is present. In this case, use the option
+`-a` to parse everything regardless, and `-D` to create a `metadata.tsv`.
+```
+
++++
+
+(metadata_tsv)=
+### The important role of metadata
+
+As mentioned above, `ms3` relies on the `fname` as ID of a piece and uses
+it to identify the various files belonging to it although they may come 
+with additional suffixes (e.g. `_reviewed`) and be scattered all over the
+corpus. Importantly, it uses and expects a file called `metadata.tsv` that
+lists all piece IDs of the corpus in a column called `fname`. Scores and
+other files whose names do not begin with any of strings in that column 
+are excluded. Files, on the other hand, that begin with any of the strings
+are recognized to belong to this piece and to have a suffix, if they do.
+
+Therefore, creating a `metadata.tsv` is an important first step before 
+using `ms3` to its full potential. This is done by nagivating to the corpus
+directory and calling `ms3 extract -a -D`, where `-D` stands for "metadata"
+and `-a` for "all", i.e. the directive to process all detected scores, 
+including those not listed in a `metadata.tsv` file.
+
+Relying on a particular control file in that manner makes it
+easy to systematically exclude particular scores from processing (by 
+dropping them from the table) or to mark alternative versions of a score by
+adding a suffix and not listing them individually. `ms3` will recognize 
+them as alternatives and, based on the current [View](views), include them
+or not. As an additional feature, you may pre-configure multiple views of
+the corpus by storing their selection of piece IDs in additional 
+`metadata[_suffix].tsv` files. This example file would lead `ms3` to make
+available an additional view called `suffix`. View the chapter on views
+below to learn more.
+
++++
+
+(views)=
+### Views
+
+This chapter still needs to be written. In short:
+
+You can access the view of [Piece](Piece), [Corpus](Corpus), and [Parse](Parse) objects,
+using the accessor `.view`. The two main methods of a [View](View) object are `.include(category, *strings_to_include)` and 
+`.exclude(category, *strings_to_exclude)`. Every view has a name which you can use as an accessor to change the relevant
+object's view. For example, new objects come with the views "default" and "all", so if you have a Corpus object stored under
+the variable `c`, typing `c.all` will activate the view that shows everything.
 
 +++
 
@@ -206,6 +266,8 @@ tonic.
 | 5      | B         | M7       | 7 (#7 in minor) |
 | 6      | F#        | A4       | #4              |
 
++++
+
 ### Voltas
 
 \"Prima/Seconda volta\" is the Italian designation for \"First/Second
@@ -228,8 +290,8 @@ correct for your purposes.
 
 +++
 
-(score_information)=
-## Tables with score information 
+(facets_manual)=
+## Facets
 
 This section gives an overview of the various tables that ms3 exposes
 after parsing a MuseScore file. Their names, e.g. `measures`, correspond
@@ -268,280 +330,55 @@ DataFrame representing the measures in the MuseScore file (which can be
 incomplete measures, see `mc_vs_mn`{.interpreted-text role="ref"})
 together with their respective features. Required for unfolding repeats.
 
+```python
+>>> s.mscx.measures()            # from a Score object
+>>> P.measures()                 # from a Piece object
+>>> c.measures()                 # from a Corpus object
+>>> p.get_facet('measures')      # from a Parse object
+```
+
 ```{code-cell}
 :tags: [remove-input]
 
 import ms3
-s = ms3.Score("../../old_tests/MS3/05_symph_fant.mscx", level='c')
-```
-
-```{code-cell}
-:tags: [remove-output]
-
-s.mscx.measures()   # access through a Score object
-p.measures()      # access through a Parse object
-```
-
-```{code-cell}
-:tags: [remove-input]
-
-s.mscx.measures()
+c = ms3.Corpus("../../old_tests", level='c')
+c.parse_scores()
+c.measures()
 ```
 
 ### Notes
 
 DataFrame representing the notes in the MuseScore file.
 
-``` python
->>> s.mscx.notes() # access through a Score object
->>> p.notes()      # access through a Parse object
+```python
+>>> s.mscx.notes()            # from a Score object
+>>> P.notes()                 # from a Piece object
+>>> c.notes()                 # from a Corpus object
+>>> p.get_facet('notes')      # from a Parse object
 ```
 
-<table style="width:91%;">
-<colgroup>
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 6%" />
-<col style="width: 7%" />
-<col style="width: 11%" />
-<col style="width: 5%" />
-<col style="width: 4%" />
-<col style="width: 3%" />
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 6%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">duration &lt;duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">gracenote &lt;gracenote&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">nominal_duration &lt;nominal_duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">scalar &lt;scalar&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">tied &lt;tied&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">tpc &lt;tpc&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">midi &lt;midi&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord_id &lt;chord_id&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>4</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>1/8</td>
-<td>NaN</td>
-<td>1/8</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>-1</p>
-</blockquote></td>
-<td><blockquote>
-<p>53</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>4</p>
-</blockquote></td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>3/4</td>
-<td>NaN</td>
-<td>1/2</td>
-<td>3/2</td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>-1</p>
-</blockquote></td>
-<td><blockquote>
-<p>77</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
+
+c.notes()
+```
 
 ### Rests
 
 DataFrame representing the rests in the MuseScore file.
 
 ``` python
->>> s.mscx.rests() # access through a Score object
->>> p.rests()      # access through a Parse object
+>>> s.mscx.rests()            # from a Score object
+>>> P.rests()                 # from a Piece object
+>>> c.rests()                 # from a Corpus object
+>>> p.get_facet('rests')      # from a Parse object
 ```
 
-<table style="width:92%;">
-<colgroup>
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 9%" />
-<col style="width: 9%" />
-<col style="width: 8%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
-<col style="width: 9%" />
-<col style="width: 16%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">duration &lt;duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">nominal_duration &lt;nominal_duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">scalar &lt;scalar&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
 
-+++
+c.rests()
+```
 
 (notes_and_rests)=
 ### Notes and Rests 
@@ -550,217 +387,26 @@ DataFrame combining `notes`{.interpreted-text role="ref"} and
 `rests`{.interpreted-text role="ref"}.
 
 ``` python
->>> s.mscx.notes_and_rests() # access through a Score object
->>> p.notes_and_rests()      # access through a Parse object
+>>> s.mscx.notes_and_rests()          # from a Score object
+>>> P.notes_and_rests()               # from a Piece object
+>>> c.notes_and_rests()               # from a Corpus object
+>>> p.get_facet('notes_and_rests')    # from a Parse object
 ```
 
-<table style="width:91%;">
-<colgroup>
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 6%" />
-<col style="width: 7%" />
-<col style="width: 11%" />
-<col style="width: 5%" />
-<col style="width: 4%" />
-<col style="width: 3%" />
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 6%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">duration &lt;duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">gracenote &lt;gracenote&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">nominal_duration &lt;nominal_duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">scalar &lt;scalar&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">tied &lt;tied&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">tpc &lt;tpc&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">midi &lt;midi&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord_id &lt;chord_id&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>4</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>1/8</td>
-<td>NaN</td>
-<td>1/8</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>-1</p>
-</blockquote></td>
-<td><blockquote>
-<p>53</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>4</p>
-</blockquote></td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>3/4</td>
-<td>NaN</td>
-<td>1/2</td>
-<td>3/2</td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>-1</p>
-</blockquote></td>
-<td><blockquote>
-<p>77</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-</tr>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/2</td>
-<td>NaN</td>
-<td>1/2</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>4</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/2</td>
-<td>NaN</td>
-<td>1/2</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
+
+c.notes_and_rests()
+```
 
 ### Chords
 
-::: note
-::: title
-Note
-:::
-
-The use of the word chords, here, is very specific because its meaning
-stems entirely from the MuseScore XML source code. If you are interested
-in chord labels, please refer to `labels`{.interpreted-text role="ref"}
-or `expanded`{.interpreted-text role="ref"}.
-:::
+```{note}
+The word "chords", here, is used in a very specific way and is misleading. 
+It has been adopted from the MuseScore XML source code but is better 
+understood as "note tuple with unique onset position". If you are interested
+in chord labels, please refer to [](labels) or {ref}`expanded`.
+```
 
 In a MuseScore file, every note is enclosed by a \<Chord\> tag. One
 \<Chord\> tag can enclose several notes, as long as they occur in the
@@ -788,111 +434,11 @@ exactly the same as (and correspond to) those of a
 `tpc <tpc>`{.interpreted-text role="ref"}, and
 `midi <midi>`{.interpreted-text role="ref"}.
 
-<table style="width:92%;">
-<colgroup>
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
-<col style="width: 5%" />
-<col style="width: 5%" />
-<col style="width: 7%" />
-<col style="width: 8%" />
-<col style="width: 13%" />
-<col style="width: 6%" />
-<col style="width: 5%" />
-<col style="width: 7%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">duration &lt;duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">gracenote &lt;gracenote&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">nominal_duration &lt;nominal_duration&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">scalar &lt;scalar&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord_id &lt;chord_id&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/2</td>
-<td>1/2</td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/2</td>
-<td>NaN</td>
-<td>1/2</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>0</td>
-<td>0</td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>3/4</td>
-<td>NaN</td>
-<td>1/2</td>
-<td>3/2</td>
-<td>&lt;NA&gt;</td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-</tr>
-</tbody>
-</table>
-
-Such a reduced table can be retrieved using
-:py`Score.mscx.parsed.get_chords(mode='strict') <.bs4_parser._MSCX_bs4.get_chords()>`{.interpreted-text
-role="meth"}
-
-+++
+Such a reduced table -- or one with precisely selected features to extract -- 
+can be retrieved using
+[Score.mscx.parsed.get_chords(mode='strict')](bs4_parser._MSCX_bs4.get_chords).
+However, most of the time users will be interested to automatically retrieve
+all markup present in the score (as far as `ms3` goes), see below.
 
 (chords_dynamic)=
 #### Dynamic columns 
@@ -907,625 +453,38 @@ repository](https://github.com/johentsch/ms3) for demonstration
 purposes:
 
 ``` python
->>> s.mscx.chords()   # access through a Score object
->>> p.chords()      # access through a Parse object
+>>> s.mscx.chords()          # from a Score object
+>>> P.chords()               # from a Piece object
+>>> c.chords()               # from a Corpus object
+>>> p.get_facet('chords')    # from a Parse object
 ```
 
-<table style="width:94%;">
-<colgroup>
-<col style="width: 4%" />
-<col style="width: 6%" />
-<col style="width: 8%" />
-<col style="width: 5%" />
-<col style="width: 7%" />
-<col style="width: 2%" />
-<col style="width: 3%" />
-<col style="width: 9%" />
-<col style="width: 7%" />
-<col style="width: 8%" />
-<col style="width: 7%" />
-<col style="width: 6%" />
-<col style="width: 5%" />
-<col style="width: 3%" />
-<col style="width: 6%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text"
-role="ref">lyrics:1 &lt;lyrics_1&gt;</code></th>
-<th><blockquote>
-<p><code class="interpreted-text"
-role="ref">dynamics &lt;dynamics&gt;</code></p>
-</blockquote></th>
-<th><blockquote>
-<p><code class="interpreted-text"
-role="ref">articulation &lt;articulation&gt;</code></p>
-</blockquote></th>
-<th><code class="interpreted-text"
-role="ref">staff_text &lt;staff_text&gt;</code></th>
-<th><blockquote>
-<p><code class="interpreted-text"
-role="ref">tempo &lt;tempo&gt;</code></p>
-</blockquote></th>
-<th><code class="interpreted-text"
-role="ref">qpm &lt;qpm&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">slur &lt;slur&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">decrescendo_hairpin &lt;hairpins&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">diminuendo_line &lt;cresc_lines&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">crescendo_hairpin &lt;hairpins&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">crescendo_line &lt;cresc_lines&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">Ottava:15mb &lt;ottava&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">Ottava:8va &lt;ottava&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">pedal &lt;pedal&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">system_text &lt;system_text&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>Grave</td>
-<td><blockquote>
-<p>45</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>p</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>articStaccatoBelow</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>2</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>articStaccatoBelow</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>2</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>simile</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>espr.</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>other-dynamics</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0, 1</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>Sta</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>bat</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>Andante amoroso</td>
-<td>55</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>0</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>&lt;NA&gt;</td>
-<td>Swing</td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
 
+c.chords()
+```
+
++++ {"tags": []}
+
+(labels)=
 ### Labels
 
 DataFrame representing the annotation labels contained in the score. The
 output can be controlled by changing the `labels_cfg` configuration.
 
 ``` python
->>> s.mscx.labels()   # access through a Score object
->>> p.labels()      # access through a Parse object
+>>> s.mscx.labels()          # from a Score object
+>>> P.labels()               # from a Piece object
+>>> c.labels()               # from a Corpus object
+>>> p.get_facet('labels')    # from a Parse object
 ```
 
-<table style="width:92%;">
-<colgroup>
-<col style="width: 5%" />
-<col style="width: 5%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 10%" />
-<col style="width: 8%" />
-<col style="width: 8%" />
-<col style="width: 8%" />
-<col style="width: 8%" />
-<col style="width: 13%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">label &lt;label&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">label_type &lt;label_type&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>.f.i</td>
-<td>0 (dcml)</td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/4</td>
-<td>1/4</td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>i6</td>
-<td>0 (dcml)</td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
+
+c.labels()
+```
 
 ### Expanded
 
@@ -1535,189 +494,17 @@ them after splitting them into the encoded features and translating them
 into scale degrees.
 
 ``` python
->>> s.mscx.expanded()   # access through a Score object
->>> p.expanded()      # access through a Parse object
+>>> s.mscx.expanded()          # from a Score object
+>>> P.expanded()               # from a Piece object
+>>> c.expanded()               # from a Corpus object
+>>> p.get_facet('expanded')    # from a Parse object
 ```
 
-<table style="width:92%;">
-<colgroup>
-<col style="width: 1%" />
-<col style="width: 1%" />
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 2%" />
-<col style="width: 2%" />
-<col style="width: 2%" />
-<col style="width: 2%" />
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 2%" />
-<col style="width: 2%" />
-<col style="width: 3%" />
-<col style="width: 2%" />
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 4%" />
-<col style="width: 3%" />
-<col style="width: 3%" />
-<col style="width: 4%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 4%" />
-<col style="width: 4%" />
-<col style="width: 2%" />
-<col style="width: 3%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><code class="interpreted-text" role="ref">mc &lt;mc&gt;</code></th>
-<th><code class="interpreted-text" role="ref">mn &lt;mn&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mc_onset &lt;mc_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">mn_onset &lt;mn_onset&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">timesig &lt;timesig&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">staff &lt;staff&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">voice &lt;voice&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">volta &lt;volta&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">label &lt;label&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">globalkey &lt;globalkey&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">localkey &lt;localkey&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">pedal &lt;pedal&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord &lt;chord&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">numeral &lt;numeral&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">form &lt;form&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">figbass &lt;figbass&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">changes &lt;changes&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">relativeroot &lt;relativeroot&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">cadence &lt;cadence&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">phraseend &lt;phraseend&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord_type &lt;chord_type&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">globalkey_is_minor &lt;globalkey_is_minor&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">localkey_is_minor &lt;localkey_is_minor&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">chord_tones &lt;chord_tones&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">added_tones &lt;chord_tones&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">root &lt;root&gt;</code></th>
-<th><code class="interpreted-text"
-role="ref">bass_note &lt;bass_note&gt;</code></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>.f.i</td>
-<td>f</td>
-<td>i</td>
-<td>NaN</td>
-<td>i</td>
-<td>i</td>
-<td>NaN</td>
-<td><blockquote>
-<p>NaN</p>
-</blockquote></td>
-<td>NaN</td>
-<td>NaN</td>
-<td>NaN</td>
-<td>NaN</td>
-<td>m</td>
-<td>True</td>
-<td>True</td>
-<td>(0, -3, 1)</td>
-<td>()</td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-</tr>
-<tr class="even">
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td><blockquote>
-<p>1</p>
-</blockquote></td>
-<td>1/4</td>
-<td>1/4</td>
-<td>4/4</td>
-<td><blockquote>
-<p>3</p>
-</blockquote></td>
-<td><blockquote>
-<p>2</p>
-</blockquote></td>
-<td>&lt;NA&gt;</td>
-<td>i6</td>
-<td>f</td>
-<td>i</td>
-<td>NaN</td>
-<td>i6</td>
-<td>i</td>
-<td>NaN</td>
-<td><blockquote>
-<p>6</p>
-</blockquote></td>
-<td>NaN</td>
-<td>NaN</td>
-<td>NaN</td>
-<td>NaN</td>
-<td>m</td>
-<td>True</td>
-<td>True</td>
-<td>(-3, 1, 0)</td>
-<td>()</td>
-<td><blockquote>
-<p>0</p>
-</blockquote></td>
-<td><blockquote>
-<p>-3</p>
-</blockquote></td>
-</tr>
-</tbody>
-</table>
+```{code-cell}
+:tags: [remove-input]
+
+c.expanded()
+```
 
 ### Cadences
 
@@ -1727,18 +514,32 @@ role="ref"}. The table has the same columns and contains only rows that
 include a cadence label. Just for convenience\...
 
 ``` python
->>> s.mscx.cadences   # access through a Score object
->>> p.cadences()      # access through a Parse object
+>>> s.mscx.cadences()          # from a Score object
+>>> P.cadences()               # from a Piece object
+>>> c.cadences()               # from a Corpus object
+>>> p.get_facet('cadences')    # from a Parse object
 ```
 
-+++
+```{code-cell}
+:tags: [remove-input]
+
+c.cadences()
+```
 
 (form_labels)=
 ### Form labels 
 
 ``` python
->>> s.mscx.form_labels()  # access through a Score object
->>> p.form_labels()       # access through a Parse object
+>>> s.mscx.form_labels()          # from a Score object
+>>> P.form_labels()               # from a Piece object
+>>> c.form_labels()               # from a Corpus object
+>>> p.get_facet('form_labels')    # from a Parse object
+```
+
+```{code-cell}
+:tags: [remove-input]
+
+c.form_labels()
 ```
 
 ### Events
@@ -2801,22 +1602,12 @@ role="ref"}.
 Encodes ties on the note\'s left (`-1`), on its right (`1`) or both
 (`0`). A tie merges a note with an adjacent one having the same pitch.
 
-  --------------------------------------------------------------------------
-  value    explanation
-  -------- -----------------------------------------------------------------
-  \<NA\>   No ties. This note represents an onset and ends after the given
-           duration.
-
-  1        This note is tied to the next one. It represents an onset but not
-           a note ending.
-
-  0        This note is being tied to and tied to the next one. It
-           represents neither an onset nor a note ending.
-
-  -1       This note is being tied to. That is, it does not represent an
-           onset, instead it adds to the duration of a previous note on the
-           same pitch and ends it.
-  --------------------------------------------------------------------------
+| value | explanation                                                                                                                                            |
+|-------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| <NA>  | No ties. This note represents an onset and ends after the given duration.                                                                              |
+| 1     | This note is tied to the next one. It represents an onset but not a note ending.                                                                       |
+| 0     | This note is being tied to and tied to the next one. It represents neither an onset nor a note ending.                                                 |
+| -1    | This note is being tied to. That is, it does not represent an onset, instead it adds to the duration of a previous note on the same pitch and ends it. |
 
 +++
 
@@ -3034,23 +1825,12 @@ This column indicates the harmony layer, or label type, in/as which a
 label has been stored. It is an integer within \[0, 3\] that indicates
 how it is encoded in MuseScore.
 
-  -------------------------------------------------------------------------------
-  harmony_layer   explanation
-  --------------- ---------------------------------------------------------------
-  0               Label encoded in MuseScore\'s chord layer (Add-\>Text-\>Chord
-                  Symbol, or \[C\]+K) that does not start with a note name, i.e.
-                  MuseScore did not recognize it as an absolute chord and encoded
-                  it as plain text (compare type 3).
-
-  1               Roman Numeral (Add-\>Text-\>Roman Numeral Analysis).
-
-  2               Nashville number (Add-\>Text-\>Nashville Number).
-
-  3               Label encoded in MuseScore\'s chord layer (Add-\>Text-\>Chord
-                  Symbol, or \[C\]+K) that does start with a note name, i.e.
-                  MuseScore did recognize it as an absolute chord and encoded its
-                  root (and bass note) as numerical values.
-  -------------------------------------------------------------------------------
+| harmony_layer | explanation                                                                                                                                                                                                                   |
+|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name,  i.e. MuseScore did not recognize it as an absolute chord and encoded it as plain text (compare type 3).   |
+| 1             | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                                                                                                            |
+| 2             | Nashville number (Add->Text->Nashville Number).                                                                                                                                                                               |
+| 3             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did recognize it as an absolute chord and encoded its root (and bass note) as numerical values. |
 
 #### **label**
 
@@ -3117,21 +1897,14 @@ The bass note designated by the label, expressed as
 
 Currently allows for the values
 
-  -----------------------------
-  value   cadence
-  ------- ---------------------
-  PAC     perfect authentic
-
-  IAC     imperfect authentic
-
-  HC      half
-
-  DC      deceptive
-
-  EC      evaded
-
-  PC      plagal
-  -----------------------------
+| value | cadence             |
+|-------|---------------------|
+| PAC   | perfect authentic   |
+| IAC   | imperfect authentic |
+| HC    | half                |
+| DC    | deceptive           |
+| EC    | evaded              |
+| PC    | plagal              |
 
 #### **chord**
 
@@ -3289,6 +2062,7 @@ that is being tonicized.
 The `numeral <numeral>`{.interpreted-text role="ref"} expressed as
 `scale degree <fifths>`{.interpreted-text role="ref"}.
 
+(metadata_facet)=
 ### Metadata
 
 If not otherwise specified, metadata fields are of type

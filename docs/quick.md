@@ -1,6 +1,5 @@
 ---
 jupytext:
-  formats: ipynb,md:myst
   text_representation:
     extension: .md
     format_name: myst
@@ -19,7 +18,7 @@ kernelspec:
 * install ms3 (`pip install ms3`)
 * set the `DATA_PATH` to where you want the folder `dcml_corpora` to be created that contains the data
 
-Read about {ref}`key_and_id` {ref}`Keys and IDs <keys_and_ids>` 
+Read about {ref}`Keys and IDs <keys_and_ids>`
 
 ```{code-cell} ipython3
 :tags: []
