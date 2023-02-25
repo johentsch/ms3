@@ -27,6 +27,8 @@
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
@@ -38,6 +40,9 @@
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/ms3/utils';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -128,7 +133,7 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../manual.html">
+                      <a class="nav-link nav-internal" href="../../manual/index.html">
                         Manual
                       </a>
                     </li>
@@ -254,7 +259,7 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../manual.html">
+                      <a class="nav-link nav-internal" href="../../manual/index.html">
                         Manual
                       </a>
                     </li>
@@ -330,7 +335,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual/index.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
@@ -2135,7 +2140,10 @@
         <span class="k">return</span>
     <span class="n">subpaths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span> <span class="k">for</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">first_level_subdirs</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">subdir</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;.&#39;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">subpath</span> <span class="ow">in</span> <span class="n">subpaths</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">contains_metadata</span><span class="p">(</span><span class="n">subpath</span><span class="p">)</span> <span class="ow">or</span> <span class="n">contains_corpus_indicator</span><span class="p">(</span><span class="n">subpath</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">contains_metadata</span><span class="p">(</span><span class="n">subpath</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">subpath</span><span class="si">}</span><span class="s2"> recognized as corpus directory because it contains metadata.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">subpaths</span>
+        <span class="k">if</span> <span class="n">contains_corpus_indicator</span><span class="p">(</span><span class="n">subpath</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">subpaths</span>
     <span class="k">return</span> <span class="p">[]</span></div>
 
@@ -3690,36 +3698,33 @@
 
 <div class="viewcode-block" id="adjacency_groups"><a class="viewcode-back" href="../../reference.html#ms3.utils.adjacency_groups">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">adjacency_groups</span><span class="p">(</span><span class="n">S</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
-                     <span class="n">na_values</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="n">na_values</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;group&#39;</span><span class="p">,</span>
                      <span class="n">prevent_merge</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Turns a Series into a Series of ascending integers starting from 0 that reflect groups of successive</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Turns a Series into a Series of ascending integers starting from 1 that reflect groups of successive</span>
 <span class="sd">    equal values. There are several options of how to deal with NA values.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    S : :obj:`pandas.Series`</span>
-<span class="sd">        Series in which to group identical adjacent values with each other.</span>
-<span class="sd">    na_values : :obj:`str`, optional</span>
-<span class="sd">        | How to treat (groups of) NA values. By default, NA values are being ignored.</span>
-<span class="sd">        | &#39;group&#39; creates individual groups for NA values</span>
-<span class="sd">        | &#39;backfill&#39; or &#39;bfill&#39; groups NA values with the subsequent group</span>
-<span class="sd">        | &#39;pad&#39;, &#39;ffill&#39; groups NA values with the preceding group</span>
-<span class="sd">        | Any other string works like &#39;group&#39;, with the difference that the groups will be named with this value.</span>
-<span class="sd">    prevent_merge : :obj:`bool`, optional</span>
-<span class="sd">        By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        S: Series in which to group identical adjacent values with each other.</span>
+<span class="sd">        na_values:</span>
+<span class="sd">            | &#39;group&#39; creates individual groups for NA values (default).</span>
+<span class="sd">            | &#39;backfill&#39; or &#39;bfill&#39; groups NA values with the subsequent group</span>
+<span class="sd">            | &#39;pad&#39;, &#39;ffill&#39; groups NA values with the preceding group</span>
+<span class="sd">            | Any other string works like &#39;group&#39;, with the difference that the groups will be named with this value.</span>
+<span class="sd">            | Passing None means NA values &amp; ranges are being ignored, i.e. they will also be present in the output and the</span>
+<span class="sd">              subsequent value will be based on the preceding value.</span>
+<span class="sd">        prevent_merge:</span>
+<span class="sd">            By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.</span>
 <span class="sd">        Pass True to prevent this. For example, take the sequence [&#39;a&#39;, NA, &#39;a&#39;] with ``na_values=&#39;ffill&#39;``: By default,</span>
 <span class="sd">        it will be merged to one single group ``[1, 1, 1], {1: &#39;a&#39;}``. However, passing ``prevent_merge=True`` will</span>
 <span class="sd">        result in ``[1, 1, 2], {1: &#39;a&#39;, 2: &#39;a&#39;}``.</span>
 
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    :obj:`pandas.Series`</span>
+<span class="sd">    Returns:</span>
 <span class="sd">        A series with increasing integers that can be used for grouping.</span>
-<span class="sd">    :obj:`dict`</span>
 <span class="sd">        A dictionary mapping the integers to the grouped values.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">reindex_flag</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># reindex is set to True in cases where NA values are being excluded from the operation and restored afterwards</span>
     <span class="k">if</span> <span class="n">prevent_merge</span><span class="p">:</span>
         <span class="n">forced_beginnings</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">S</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">na_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

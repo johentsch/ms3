@@ -27,6 +27,8 @@
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
@@ -38,6 +40,9 @@
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/ms3/parse';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -128,7 +133,7 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../manual.html">
+                      <a class="nav-link nav-internal" href="../../manual/index.html">
                         Manual
                       </a>
                     </li>
@@ -254,7 +259,7 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../manual.html">
+                      <a class="nav-link nav-internal" href="../../manual/index.html">
                         Manual
                       </a>
                     </li>
@@ -330,7 +335,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual/index.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
@@ -425,33 +430,33 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize a Parse object and try to create corpora if directories and/or file paths are specified.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: Path to scan for corpora.</span>
-<span class="sd">            recursive: Pass False if you don&#39;t want to scan ``directory`` for subcorpora, but force making it a corpus instead.</span>
-<span class="sd">            only_metadata_fnames:</span>
-<span class="sd">                The default view excludes piece names that are not listed in the corpus&#39; metadata.tsv file (e.g. when none was found).</span>
-<span class="sd">                Pass False to include all pieces regardless. This might be needed when setting ``recursive`` to False.</span>
-<span class="sd">            include_convertible:</span>
-<span class="sd">                The default view excludes scores that would need conversion to MuseScore format prior to parsing.</span>
-<span class="sd">                Pass True to include convertible scores in .musicxml, .midi, .cap or any other format that MuseScore 3 can open.</span>
-<span class="sd">                For on-the-fly conversion, however, the parameter ``ms`` needs to be set.</span>
-<span class="sd">            include_tsv: The default view includes TSV files. Pass False to disregard them and parse only scores.</span>
-<span class="sd">            exclude_review:</span>
-<span class="sd">                The default view excludes files and folders whose name contains &#39;review&#39;.</span>
-<span class="sd">                Pass False to include these as well.</span>
-<span class="sd">            file_re: Pass a regular expression if you want to create a view filtering out all files that do not contain it.</span>
-<span class="sd">            folder_re: Pass a regular expression if you want to create a view filtering out all folders that do not contain it.</span>
-<span class="sd">            exclude_re: Pass a regular expression if you want to create a view filtering out all files or folders that contain it.</span>
-<span class="sd">            file_paths:</span>
-<span class="sd">                If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.</span>
-<span class="sd">                Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that</span>
-<span class="sd">                either contains a &#39;metadata.tsv&#39; file or is a git. This parameter is deprecated and ``file_re`` should be used instead.</span>
-<span class="sd">            labels_cfg: Pass a configuration dict to detect only certain labels or change their output format.</span>
-<span class="sd">            ms:</span>
-<span class="sd">                If you pass the path to your local MuseScore 3 installation, ms3 will attempt to parse musicXML, MuseScore 2,</span>
-<span class="sd">                and other formats by temporarily converting them. If you&#39;re using the standard path, you may try &#39;auto&#39;, or &#39;win&#39; for</span>
-<span class="sd">                Windows, &#39;mac&#39; for MacOS, or &#39;mscore&#39; for Linux. In case you do not pass the &#39;file_re&#39; and the MuseScore executable is</span>
-<span class="sd">                detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.</span>
-<span class="sd">            **logger_cfg: Keyword arguments for changing the logger configuration. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
+<span class="sd">          directory: Path to scan for corpora.</span>
+<span class="sd">          recursive: Pass False if you don&#39;t want to scan ``directory`` for subcorpora, but force making it a corpus instead.</span>
+<span class="sd">          only_metadata_fnames:</span>
+<span class="sd">              The default view excludes piece names that are not listed in the corpus&#39; metadata.tsv file (e.g. when none was found).</span>
+<span class="sd">              Pass False to include all pieces regardless. This might be needed when setting ``recursive`` to False.</span>
+<span class="sd">          include_convertible:</span>
+<span class="sd">              The default view excludes scores that would need conversion to MuseScore format prior to parsing.</span>
+<span class="sd">              Pass True to include convertible scores in .musicxml, .midi, .cap or any other format that MuseScore 3 can open.</span>
+<span class="sd">              For on-the-fly conversion, however, the parameter ``ms`` needs to be set.</span>
+<span class="sd">          include_tsv: The default view includes TSV files. Pass False to disregard them and parse only scores.</span>
+<span class="sd">          exclude_review:</span>
+<span class="sd">              The default view excludes files and folders whose name contains &#39;review&#39;.</span>
+<span class="sd">              Pass False to include these as well.</span>
+<span class="sd">          file_re: Pass a regular expression if you want to create a view filtering out all files that do not contain it.</span>
+<span class="sd">          folder_re: Pass a regular expression if you want to create a view filtering out all folders that do not contain it.</span>
+<span class="sd">          exclude_re: Pass a regular expression if you want to create a view filtering out all files or folders that contain it.</span>
+<span class="sd">          file_paths:</span>
+<span class="sd">              If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.</span>
+<span class="sd">              Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that</span>
+<span class="sd">              either contains a &#39;metadata.tsv&#39; file or is a git. This parameter is deprecated and ``file_re`` should be used instead.</span>
+<span class="sd">          labels_cfg: Pass a configuration dict to detect only certain labels or change their output format.</span>
+<span class="sd">          ms:</span>
+<span class="sd">              If you pass the path to your local MuseScore 3 installation, ms3 will attempt to parse musicXML, MuseScore 2,</span>
+<span class="sd">              and other formats by temporarily converting them. If you&#39;re using the standard path, you may try &#39;auto&#39;, or &#39;win&#39; for</span>
+<span class="sd">              Windows, &#39;mac&#39; for MacOS, or &#39;mscore&#39; for Linux. In case you do not pass the &#39;file_re&#39; and the MuseScore executable is</span>
+<span class="sd">              detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.</span>
+<span class="sd">          **logger_cfg: Keyword arguments for changing the logger configuration. E.g. ``level=&#39;d&#39;`` to see all debug messages.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s1">&#39;level&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">logger_cfg</span> <span class="ow">or</span> <span class="p">(</span><span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
             <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span>
