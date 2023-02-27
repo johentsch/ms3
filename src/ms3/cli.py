@@ -437,12 +437,14 @@ Parse('{args.dir}',
                       ms=ms,
                       **logger_cfg)
     if facets is not None:
-        parse_obj.view.include('facets', *facets)
+        facets = [f for f in facets if f != 'metadata']
+        if len(facets) > 0:
+            parse_obj.view.include('facets', *facets)
     if parse_scores:
         mode = "ONE AFTER THE OTHER" if args.iterative else "IN PARALLEL"
         print(f"PARSING SCORES {mode}...")
         parse_obj.parse_scores(parallel=not args.iterative)
-    if parse_tsv:
+    if parse_tsv and facets != []:
         print(f"PARSING TSV FILES...")
         parse_obj.parse_tsv()
     info_str = parse_obj.info(show_discarded=args.verbose, return_str=True).replace('\n', '\n\t')
