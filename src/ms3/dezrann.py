@@ -133,15 +133,38 @@ class DcmlLabel(TypedDict):
     quarterbeats: float
     duration: float
     label: str
-    harmony: str
-    key: str
-    phrase: str
-    cadence: str
 
+
+def get_volta_groups(mc2volta: pd.Series) -> List[List[int]]:
+    """Takes a Series where the index has measure counts and values are NA for 'normal' measures and 1, 2... for
+    measures belonging to a first, second... ending. Returns for each group a list of MCs each of which pertains
+    to the first measure of an alternative ending. For example, two alternative two-bar endings in MC [15, 16][17, 18]
+    would figure as [15, 17] in the result list.
+    """
+    volta_groups = []
+    filled_volta_col = mc2volta.fillna(-1).astype(int)
+    volta_segmentation = (filled_volta_col != filled_volta_col.shift()).fillna(True).cumsum()
+    current_groups_first_mcs = []
+    for i, segment in filled_volta_col.groupby(volta_segmentation):
+        volta_number = segment.iloc[0]
+        if volta_number == -1:
+            # current group ends, if there is one
+            if i == 1:
+                continue
+            elif len(current_groups_first_mcs) == 0:
+                raise RuntimeError(f"Mistake in the algorithm when processing column {filled_volta_col.volta}")
+            else:
+                volta_groups.append(current_groups_first_mcs)
+                current_groups_first_mcs = []
+        else:
+            first_mc = segment.index[0]
+            current_groups_first_mcs.append(first_mc)
+    return volta_groups
 
 def transform_df(labels: pd.DataFrame,
-                measures: Optional[pd.DataFrame],
-                label_column: str = 'label') -> List[DcmlLabel]:
+                 measures: pd.DataFrame,
+                 label_column: str = 'label',
+                 ) -> List[DcmlLabel]:
     """
 
     Parameters
@@ -154,39 +177,80 @@ def transform_df(labels: pd.DataFrame,
                             'quarterbeats': fraction.Fraction,
                             'label': str,
                             'chord': str,
+                            'localkey': str,
                             'cadence': str,
                             'phraseend': str}
         and no missing values.
     measures:
         (optional) Dataframe as found in the 'measures' folder of a DCML corpus for computing quarterbeats for pieces with
         voltas. Requires the columns {'mc': int, 'quarterbeats_all_endings': fractions.Fraction} (ms3 >= 1.0.0).
-    label_column: str, optional
+    label_column: {'label', 'chord', 'cadence', 'phraseend'}
         The column that is to be used as label string. Defaults to 'label'.
 
     Returns
     -------
         List of dictionaries where each represents one row of the input labels.
     """
-
-    if measures is None or "quarterbeats_all_endings" not in measures.columns:
-        assert "quarterbeats" in labels.columns, f"Labels are lacking 'quarterbeats': {labels.columns}"
+    score_has_voltas = "quarterbeats_all_endings" in measures.columns
+    last_mc_row = measures.iloc[-1]
+    end_of_score = float(last_mc_row.act_dur) * 4.0
+    if not score_has_voltas:
+        assert "quarterbeats" in labels.columns, f"Labels are lacking 'quarterbeats' column: {labels.columns}"
         quarterbeats = labels["quarterbeats"]
+        end_of_score += float(last_mc_row.quarterbeats)
     else:
-        offset_dict = measures.set_index("mc")["quarterbeats_all_endings"]
+        # the column 'quarterbeats_all_endings' is present, meaning the piece has first and second endings and the
+        # quarterbeats, which normally leave out first endings, need to be recomputed
+        end_of_score += float(last_mc_row.quarterbeats_all_endings)
+        M = measures.set_index("mc")
+        offset_dict = M["quarterbeats_all_endings"]
         quarterbeats = labels['mc'].map(offset_dict)
-        quarterbeats = quarterbeats.astype('float') + (labels.mc_onset * 4.0)
+        quarterbeats = quarterbeats + (labels.mc_onset * 4.0)
         quarterbeats.rename('quarterbeats', inplace=True)
-    transformed_df = pd.concat([quarterbeats, labels.duration_qb.rename('duration'), labels[label_column].rename('label')], axis=1)
+        # also, the first beat of each volta needs to have a label for computing correct durations
+        volta_groups = get_volta_groups(M.volta)
+    label_and_qb = pd.concat([labels[label_column].rename('label'), quarterbeats.astype(float)], axis=1)
+    n_before = len(labels.index)
+    if label_column == 'phraseend':
+        label_and_qb = label_and_qb[label_and_qb.label == '{']
+    if label_column == 'localkey':
+        label_and_qb = label_and_qb[label_and_qb.label != label_and_qb.label.shift().fillna(True)]
+    else: # {'chord', 'cadence', 'label'}
+        label_and_qb = label_and_qb[label_and_qb.label.notna()]
+    n_after = len(label_and_qb.index)
+    print(f"Creating labels for {n_after} {label_column} labels out of {n_before} rows.")
+    if label_column == 'cadence':
+        duration = pd.Series(0.0, dtype=float, index=label_and_qb.index, name='duration')
+    else:
+        if score_has_voltas:
+            for group in volta_groups:
+                volta_beginnings_quarterbeats = [M.loc[mc, 'quarterbeats_all_endings'] for mc in group]
+                labels_before_group = label_and_qb.loc[label_and_qb.quarterbeats < volta_beginnings_quarterbeats[0], 'label']
+                for volta_beginning_qb in volta_beginnings_quarterbeats:
+                    if volta_beginning_qb in label_and_qb.quarterbeats.values:
+                        continue
+                    repeated_label = pd.DataFrame([[labels_before_group.iloc[-1], float(volta_beginning_qb)]],
+                                                  columns=['label', 'quarterbeats'])
+                    label_and_qb = pd.concat([label_and_qb, repeated_label], ignore_index=True)
+            label_and_qb = label_and_qb.sort_values('quarterbeats')
+        qb_column = label_and_qb.quarterbeats
+        duration = qb_column.shift(-1).fillna(end_of_score) - qb_column
+        duration = duration.rename('duration').astype(float)
+    transformed_df = pd.concat([label_and_qb, duration], axis=1)
     return transformed_df.to_dict(orient='records')
-    
+
 def make_dezrann_label(
-            quarterbeats: float, duration: float, label: str, origin: Union[str, Tuple[str]]) -> DezrannLabel:
+            label_type: str,
+            quarterbeats: float,
+            duration: float,
+            label: str,
+            origin: Union[str, Tuple[str]]) -> DezrannLabel:
     if isinstance(origin, str):
         layers = [origin]
     else:
         layers = list(origin)
     return DezrannLabel(
-        type="Harmony", #TODO: adapt type to current label 
+        type=label_type,
         start=quarterbeats,
         duration=duration,
         tag=label,
@@ -194,37 +258,45 @@ def make_dezrann_label(
     )
 
 def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
-                                      cadences: bool = False,
-                                      harmony_line: Optional[str] = None,
-                                      keys_line: Optional[str] = None,
-                                      phrases_line: Optional[str] = None,
-                                      raw_line: Optional[str] = None,
+                                      label_type: str,
                                       origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
-    label_list = []
+    dezrann_label_list = []
     for e in values_dict:
-        label_list.append(
+        dezrann_label_list.append(
             make_dezrann_label(
+                label_type=label_type,
                 quarterbeats=e["quarterbeats"],
                 duration=e["duration"],
                 label=e["label"],
                 origin=origin
             )
         )
+
+    return dezrann_label_list
+
+def make_layout(
+               cadences: bool = False,
+               harmonies: Optional[str] = None,
+               keys: Optional[str] = None,
+               phrases: Optional[str] = None,
+               raw: Optional[str] = None):
+    """
+    Compile the line positions for target labels into Dezrann layout parameter.
+    """
     layout = []
     if cadences:
         layout.append({"filter": {"type": "Cadence"}, "style": {"line": "all"}})
-    if harmony_line:
-        layout.append({"filter": {"type": "Harmony"}, "style": {"line": harmony_line}})
-    if keys_line:
-        layout.append({"filter": {"type": "Localkey"}, "style": {"line": keys_line}})
-    if phrases_line:
-        layout.append({"filter": {"type": "Phrase"}, "style": {"line": phrases_line}})
-    if raw_line:
-        layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw_line}})
+    if harmonies:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": harmonies}})
+    if keys:
+        layout.append({"filter": {"type": "Local Key"}, "style": {"line": keys}})
+    if phrases:
+        layout.append({"filter": {"type": "Phrase"}, "style": {"line": phrases}})
+    if raw:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw}})
 
-    return DezrannDict(labels=label_list, meta={"layout": layout})
+    return layout
     
-
 def generate_dez(path_measures: str,
                  path_labels: str,
                  output_path: str = "labels.dez",
@@ -246,42 +318,46 @@ def generate_dez(path_measures: str,
     """
     harmonies_df = pd.read_csv(
         path_labels, sep='\t',
-        usecols=['mc', 'mc_onset', 'duration_qb', 'quarterbeats', 'label', 'chord', 'cadence', 'phraseend'],
-        converters={'mc_onset': safe_frac}
+        converters={'mc': int,
+                    'mc_onset': safe_frac,
+                    'quarterbeats': safe_frac,
+                    }
     )
     try:
         measures_df = pd.read_csv(
             path_measures, sep='\t',
-            usecols=['mc', 'quarterbeats_all_endings'],
-            converters={'quarterbeats_all_endings': safe_frac}
+            dtype={'mc': int, 'volta': 'Int64'},
+            converters={'quarterbeats_all_endings': safe_frac,
+                        'quarterbeats': safe_frac,
+                        'act_dur': safe_frac}
         )
     except (ValueError, AssertionError) as e:
-        measures_df = None
-        # raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
-    try:
-        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df)
-    except Exception as e:
-        raise ValueError(f"Converting {path_labels} failed with the exception '{e}'.")
-    dezrann_content = convert_dcml_list_to_dezrann_list(
-        dcml_labels,
-        cadences=cadences,
-        harmony_line=harmonies,
-        keys_line=keys,
-        phrases_line=phrases,
-        raw_line=raw,
-        origin=origin
-    )
+        raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
+
+    dezrann_labels = []
+    if cadences:
+        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column='cadence')
+        dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
+    for arg, label_column, label_type in ((harmonies, "chord", "Harmony"), #Third argument
+                                          (keys, "localkey", "Local Key"),
+                                          (phrases, "phraseend", "Phrase"),
+                                          (raw, "label", "Harmony")):
+        if arg is not None:
+            dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column=label_column)
+            dezrann_labels += convert_dcml_list_to_dezrann_list(
+                dcml_labels,
+                label_type=label_type,
+                origin=origin
+            )
     
-    # Manual post-processing  #TODO: improve these cases
-    # 1) Avoid NaN values in "duration" (happens in second endings)
-    # optional : in the transform_df : transformed_df = transformed_df.replace('NaN', 0) ?
-    for label in dezrann_content['labels']:
-        if pd.isnull(label['duration']):
-            print(f"WARNING: NaN duration detected in label {label}.")
-            label['duration'] = 0
-    # 2) Remove "start" value in the first label ?
-    if dezrann_content['labels'][0]['start'] == 0.:
-        del dezrann_content['labels'][0]['start']
+    layout = make_layout(
+        cadences=cadences,
+        harmonies=harmonies,
+        keys=keys,
+        phrases=phrases,
+        raw=raw
+    )
+    dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
 
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(dezrann_content, f, indent=2)
@@ -345,14 +421,14 @@ def main(input_dir: str,
             output_file_path = os.path.join(output_dir, dez_file)
         try:
             generate_dez(
-            path_labels=input_file,
-            path_measures=measure_file,
-            output_path=output_file_path,
-            cadences=cadences,
-            harmonies=harmonies,
-            keys=keys,
-            phrases=phrases,
-            raw=raw
+                path_labels=input_file,
+                path_measures=measure_file,
+                output_path=output_file_path,
+                cadences=cadences,
+                harmonies=harmonies,
+                keys=keys,
+                phrases=phrases,
+                raw=raw
             )
             print(f"{output_file_path} successfully written.")
         except Exception as e:
@@ -510,7 +586,6 @@ if __name__ == "__main__":
     # measures = ms3.load_tsv('K283-2_measures.tsv')
     # harmonies = ms3.load_tsv('K283-2_harmonies.tsv')
     # transformed = transform_df(labels=harmonies, measures=measures)
-    # print(transformed)
 
-    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
+    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv', cadences=True, harmonies="bot.4", keys="bot.5", phrases="bot.6", raw="top.3")
     #generate_all_dez()
