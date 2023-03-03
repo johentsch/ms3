@@ -2652,31 +2652,57 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     except Exception:
         logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
         return df
-    if len(cc) > 0:
-        df = df.copy()
-        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
-        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
-    bc = [c for c in bool_cols if c in df.columns]
-    if len(bc) > 0:
-        if df[bc].isna().any().any():
-            # need to convert to nullable boolean first
-            conv = {c: 'boolean' for c in bc}
-            df = df.astype(conv)
-        conv = {c: 'Int64' for c in bc}
-        df = df.astype(conv)
+    df = df.copy()
+    for c in cc:
+        null_vals = df[c].isna()
+        if null_vals.all():
+            continue
+        df.loc[null_vals, c] = pd.NA
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, c] = transform(df[c], iterable2str)
+        logger.debug(f"Transformed iterables in the column {c} to strings.")
+    #df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
+    boolean_columns = [c for c in bool_cols if c in df.columns]
+    for bc in boolean_columns:
+        null_vals = df[bc].isna()
+        if null_vals.all():
+            continue
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, bc] = df[bc].astype('boolean').astype('Int64')
+        logger.debug(f"Transformed booleans in the column {bc} to integers.")
     return df
 
 
 def ordinal_suffix(n):
     suffixes = {
-        1: 'st',
-        2: 'nd',
-        3: 'rd'
+        "1": 'st',
+        "2": 'nd',
+        "3": 'rd'
     }
-    n = str(n)
-    if n[-1] in suffixes:
-        return suffixes[n[-1]]
-    return 'th'
+    last_digit = str(n)[-1]
+    return suffixes.get(last_digit, 'th')
 
 
 def parts_info(d):
