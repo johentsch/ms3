@@ -92,13 +92,18 @@ def compare_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    n_changed, n_unchanged = compare(p,
+    revision = None if args.compare == '' else args.compare
+    try:
+        n_changed, n_unchanged = compare(p,
                                  facet=args.use,
                                  ask=args.ask,
-                                 revision_specifier=args.compare,
+                                 revision_specifier=revision,
                                  flip=args.flip,
                                  logger=p.logger
                                  )
+    except TypeError:
+        logger.error(f"No files to compare. Try adding the flag -a to parse files even if they are not included in a metdata.tsv file.")
+        return
     logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
     if output:
         corpus2paths = store_scores(p,

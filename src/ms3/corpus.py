@@ -1384,7 +1384,7 @@ class Corpus(LoggedClass):
         facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {AnnotationsFacet.__args__}"
         assert choose != 'all', "Only one set of annotations can be added under a given key."
-        if git_revision is None:
+        if not git_revision:
             fname2tuples = self.get_all_parsed(facets=facet,
                                 view_name=view_name,
                                 force=force,
