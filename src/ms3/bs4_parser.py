@@ -159,8 +159,9 @@ class _MSCX_bs4(LoggedClass):
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
-        self._prelims = None
-        self._style = None
+        self._instrumentation: Instrumentation = None
+        self._prelims: Prelims = None
+        self._style: Style = None
         self.staff2drum_map: Dict[int, pd.DataFrame] = {}
         """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
         note and instrument features. The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut']. 
@@ -583,6 +584,15 @@ class _MSCX_bs4(LoggedClass):
         """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
         measures = self.ml()
         return measures.volta.notna().any()
+
+    @property
+    def instrumentation(self):
+        if self._instrumentation is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._instrumentation = Instrumentation(self.soup, name=self.logger.name)
+        return self._instrumentation
+
 
 
     def measures(self,
@@ -1994,6 +2004,15 @@ and {loc_after} before the subsequent {nxt_name}.""")
 #######################################################################
 ####################### END OF CLASS DEFINITION #######################
 #######################################################################
+
+class Instrumentation(LoggedClass):
+    """Easy way to read and write the instrumentation of a score, that is
+    'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
+
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Instrumentation', logger_cfg)
+        self.soup = soup
+
 
 class Metatags:
     """Easy way to read and write any style information in a parsed MSCX score."""
