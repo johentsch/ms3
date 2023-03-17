@@ -2153,6 +2153,15 @@ class Instrumentation(LoggedClass):
 
 
 
+class Instrumentation(LoggedClass):
+    """Easy way to read and write the instrumentation of a score, that is
+    'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
+
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Instrumentation', logger_cfg)
+        self.soup = soup
+
+
 class Metatags:
     """Easy way to read and write any style information in a parsed MSCX score."""
 
