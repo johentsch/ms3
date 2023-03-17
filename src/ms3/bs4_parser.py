@@ -2011,6 +2011,7 @@ class Instrumentation(LoggedClass):
         self.soup = soup
         self.fields_names = ['instrument', 'longName', 'shortName', 'trackName', 'instrumentId']
         self.parts = {f"part_{i}": part for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        self.text_tags = self.text_tags()  # store references to XML tags
 
     def map_staff2part(self) -> dict[list, str]:
         """Returns the dict in the format {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
@@ -2020,7 +2021,6 @@ class Instrumentation(LoggedClass):
             staff2part.update(dict.fromkeys(staves, key_part))
         return staff2part
 
-    @property
     def text_tags(self) -> dict[int, dict[str, bs4.Tag]]:
         tag_dict = {}
         for key_part, part in self.parts.items():
