@@ -2015,7 +2015,6 @@ class Instrumentation(LoggedClass):
         self.fields_names = ['instrument', 'longName', 'shortName', 'trackName', 'instrumentId']
         self.parts = {f"part_{i}": part for i, part in enumerate(self.soup.find_all('Part'), 1)}
         self.staff2part = {}
-        self.field_to_change = "longName"
 
     @property
     def text_tags(self) -> dict[str, bs4.Tag]:
@@ -2054,23 +2053,23 @@ class Instrumentation(LoggedClass):
             return fields_data[key]
         return
 
-    def change_instrument_id(self, key, value):
+    def change_instrument_id(self, key, value, field_to_change):
         if key not in self.fields.keys():
             raise KeyError(f"Don't recognize key '{key}'")
-        existing_value = self[key][self.field_to_change]
+        existing_value = self.get_instrument_data(key)
         new_value = str(value)
         if existing_value is not None and existing_value == new_value:
             self.logger.debug(f"The {key} was already '{existing_value}' and doesn't need changing.")
             return
 
-        if self.text_tags[key][self.field_to_change] is not None:
-            if self.field_to_change != "instrumentId_text":
-                self.text_tags[key][self.field_to_change].string = value
+        if self.text_tags[key][field_to_change] is not None:
+            if field_to_change != "instrumentId":
+                self.text_tags[key][field_to_change].string = value
             else:
                 self.parts[self.staff2part[key]].Instrument['id'] = value
         else:
-            self.text_tags[key][self.field_to_change] = value
-            new_tag = self.soup.new_tag(self.field_to_change)
+            self.text_tags[key][field_to_change] = value
+            new_tag = self.soup.new_tag(field_to_change)
             if value is not None:
                 new_tag.string = value
             else:
