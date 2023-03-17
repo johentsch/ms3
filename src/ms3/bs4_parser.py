@@ -2014,6 +2014,7 @@ class Instrumentation(LoggedClass):
         self.soup = soup
         self.fields_names = ['instrument', 'longName', 'shortName', 'trackName', 'instrumentId']
         self.parts = {f"part_{i}": part for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        self.staff2part = self.map_staff2part()
         self.text_tags = self.text_tags()  # store references to XML tags
 
     def map_staff2part(self) -> dict[list, str]:
@@ -2025,6 +2026,7 @@ class Instrumentation(LoggedClass):
         return staff2part
 
     def text_tags(self) -> dict[int, dict[str, bs4.Tag]]:
+        """Returns the dict of self.fields_names info for every part  {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
         tag_dict = {}
         for key_part, part in self.parts.items():
             instrument_info = part.Instrument
@@ -2053,16 +2055,16 @@ class Instrumentation(LoggedClass):
 
     def get_instrument_data(self, key):
         fields_data = self.fields
-        if key not in fields_data.keys():
+        if key not in self.staff2part.keys():
             raise KeyError(f"Don't recognize key '{key}'")
         if key in fields_data:
             return fields_data[key]
         return
 
     def change_instrument_id(self, key, value, field_to_change):
-        if key not in self.fields.keys():
-            raise KeyError(f"Don't recognize key '{key}'")
-        existing_value = self.get_instrument_data(key)
+        if field_to_change not in self.fields_names or key not in self.staff2part.keys():
+            raise KeyError(f"Don't recognize key '{key}' or field '{field_to_change}'")
+        existing_value = self.get_instrument_data(key)[field_to_change]
         new_value = str(value)
         if existing_value is not None and existing_value == new_value:
             self.logger.debug(f"The {key} was already '{existing_value}' and doesn't need changing.")
