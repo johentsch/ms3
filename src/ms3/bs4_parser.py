@@ -2009,6 +2009,71 @@ class Instrumentation(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Instrumentation', logger_cfg)
         self.soup = soup
+        self.fields_names = ['instrument', 'longName', 'shortName', 'trackName', 'instrumentId']
+        self.parts = {f"part_{i}": part for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        self.staff2part = {}
+        self.field_to_change = "longName"
+
+    @property
+    def text_tags(self) -> dict[str, bs4.Tag]:
+        tag_dict = {}
+        for key_part, part in self.parts.items():
+            instrument_info = part.Instrument
+            staves = [int(staff['id']) for staff in part.find_all('Staff')]
+            self.staff2part.update(dict.fromkeys(staves, key_part))
+            cur_dict = {"instrumentId": instrument_info["id"]}
+            for name in self.fields_names:
+                if name != "instrumentId":
+                    tag = instrument_info.find(name)
+                    if tag is not None:
+                        cur_dict[name] = tag
+            tag_dict.update(dict.fromkeys(staves, cur_dict))
+        return tag_dict
+
+    @property
+    def fields(self):
+        result = {}
+        for key, instr_data in self.text_tags.items():
+            result[key] = {}
+            for key_instr_data, tag in instr_data.items():
+                if type(tag) == bs4.element.Tag and tag is not None:
+                    value = tag.get_text()
+                else:
+                    value = tag
+                result[key][key_instr_data] = value
+        return result
+
+    def __getitem__(self, key):
+        fields_data = self.fields
+        if key not in fields_data.keys():
+            raise KeyError(f"Don't recognize key '{key}'")
+        if key in fields_data:
+            return fields_data[key]
+        return
+
+    def __setitem__(self, key, value):
+        if key not in self.fields.keys():
+            raise KeyError(f"Don't recognize key '{key}'")
+        existing_value = self[key][self.field_to_change]
+        new_value = str(value)
+        if existing_value is not None and existing_value == new_value:
+            self.logger.debug(f"The {key} was already '{existing_value}' and doesn't need changing.")
+            return
+
+        if self.text_tags[key][self.field_to_change] is not None:
+            if self.field_to_change != "instrumentId_text":
+                self.text_tags[key][self.field_to_change].string = value
+            else:
+                self.parts[self.staff2part[key]].Instrument['id'] = value
+        else:
+            self.text_tags[key][self.field_to_change] = value
+            new_tag = self.soup.new_tag(self.field_to_change)
+            if value is not None:
+                new_tag.string = value
+            else:
+                self.logger.debug(f"The value is None.")
+            self.parts[self.staff2part[key]].Instrument.append(new_tag)
+
 
 
 class Metatags:
