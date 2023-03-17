@@ -2043,7 +2043,7 @@ class Instrumentation(LoggedClass):
                 result[key][key_instr_data] = value
         return result
 
-    def __getitem__(self, key):
+    def get_instrument_data(self, key):
         fields_data = self.fields
         if key not in fields_data.keys():
             raise KeyError(f"Don't recognize key '{key}'")
@@ -2051,7 +2051,7 @@ class Instrumentation(LoggedClass):
             return fields_data[key]
         return
 
-    def __setitem__(self, key, value):
+    def change_instrument_id(self, key, value):
         if key not in self.fields.keys():
             raise KeyError(f"Don't recognize key '{key}'")
         existing_value = self[key][self.field_to_change]
