@@ -33,9 +33,7 @@ Statement of need
 
 Here comes a list of functionalities to help you decide if this library could be useful for you.
 
-``ms3``
-
-* parses MuseScore 3 and 4 files, i.e.
+* parses MuseScore 3 and 4 files, dispensing with lossy conversion to musicXML. The file formats in question are
 
   * uncompressed ``*.mscx`` files,
   * compressed ``*.mscz`` files,

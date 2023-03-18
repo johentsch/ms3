@@ -47,10 +47,13 @@ encoding of the musical relations themselves.
 For example, the Free and Open Source Software [MuseScore](https://musescore.org/) provides a full-featured yet
 intuitive interface for engraving music, but its native XML format does not explicitly encode the temporal positions of
 events such as notes and rests. Hence the need for a parser that extracts the implicit information and stores it in an
-interoperable format.
+interoperable format. 
 
-The Python library `ms3` loads the XML tree of a MuseScore file into working memory, computes the temporal positions of
-all encoded elements, and transforms those requested by the user
+Despite being one of the most wide-spread score encoding formats, current score parsers 
+[e.g., @Cancino-Chacon2022_PartituraPythonPackage; @Cuthbert2010_Music21ToolkitComputerAided; @Pugin2014_VerovioLibraryEngraving], 
+do not handle it without first performing a lossy conversion to the musicXML format.
+The Python library `ms3` fills this gap. It loads the XML tree of a MuseScore file into working memory, 
+computes the temporal positions of all encoded elements, and transforms those requested by the user
 into [DataFrames](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe), i.e., feature
 matrices. The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to
 enable version control and processing with other software. The most typical aspects that users extract from a score are
