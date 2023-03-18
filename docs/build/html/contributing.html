@@ -1,0 +1,819 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Contributing &#8212; ms3 1.2.4.post0.dev2+gf30d960 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="_static/styles/bootstrap.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'contributing';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Developers’ Reference" href="reference.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+    </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fa-solid fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="index.html">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">ms3 1.2.4.post0.dev2+gf30d960 documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="manual/index.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        Contributions & Help
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+        <div class="navbar-end-item navbar-persistent--container">
+          
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+        </div>
+      
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  
+    <div class="navbar-persistent--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+    </div>
+  
+
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="manual/index.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        Contributions & Help
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <div class="sidebar-start-items sidebar-primary__section">
+    <div class="sidebar-start-items__item">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual/index.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributions &amp; Help</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#issue-reports">Issue Reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#documentation-improvements">Documentation Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#code-contributions">Code Contributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maintainer-tasks">Maintainer tasks</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+    <div class="sidebar-start-items__item">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="reference.html"
+                          title="previous chapter">Developers’ Reference</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="license.html"
+                          title="next chapter">License</a></p>
+  </div>
+    </div>
+    <div class="sidebar-start-items__item">
+<div class="tocsection sourcelink">
+    <a href="_sources/contributing.rst.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+    </div>
+    <div class="sidebar-start-items__item">
+<div id="searchbox"></div>
+    </div>
+  </div>
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+  
+  <div id="rtd-footer-container"></div>
+
+      </div>
+      <main id="main-content" class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
+  <section id="contributing">
+<span id="id1"></span><h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading">#</a></h1>
+<p>Welcome to <code class="docutils literal notranslate"><span class="pre">ms3</span></code> contributor’s guide.</p>
+<p>This document focuses on getting any potential contributor familiarized
+with the development processes, but <a class="reference external" href="https://opensource.guide/how-to-contribute">other kinds of contributions</a> are also
+appreciated.</p>
+<p>If you are new to using <a class="reference external" href="https://git-scm.com">git</a> or have never collaborated in a project previously,
+please have a look at <a class="reference external" href="https://www.contribution-guide.org/">contribution-guide.org</a>. Other resources are also
+listed in the excellent <a class="reference external" href="https://github.com/FreeCodeCamp/how-to-contribute-to-open-source">guide created by FreeCodeCamp</a> <a class="footnote-reference brackets" href="#contrib1" id="id2">1</a>.</p>
+<p>Please notice, all users and contributors are expected to be <strong>open,
+considerate, reasonable, and respectful</strong>. When in doubt, <a class="reference external" href="https://www.python.org/psf/conduct/">Python Software
+Foundation’s Code of Conduct</a> is a good reference in terms of behavior
+guidelines.</p>
+<section id="issue-reports">
+<h2>Issue Reports<a class="headerlink" href="#issue-reports" title="Permalink to this heading">#</a></h2>
+<p>If you experience bugs or general issues with <code class="docutils literal notranslate"><span class="pre">ms3</span></code>, please have a look
+on the <a class="reference external" href="https://github.com/DCMLab/ms3/issues">issue tracker</a>. If you don’t see anything useful there, please feel
+free to fire an issue report.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Please don’t forget to include the closed issues in your search.
+Sometimes a solution was already reported, and the problem is considered
+<strong>solved</strong>.</p>
+</div>
+<p>New issue reports should include information about your programming environment
+(e.g., operating system, Python version) and steps to reproduce the problem.
+Please try also to simplify the reproduction steps to a very minimal example
+that still illustrates the problem you are facing. By removing other factors,
+you help us to identify the root cause of the issue.</p>
+</section>
+<section id="documentation-improvements">
+<h2>Documentation Improvements<a class="headerlink" href="#documentation-improvements" title="Permalink to this heading">#</a></h2>
+<p>You can help improve <code class="docutils literal notranslate"><span class="pre">ms3</span></code> docs by making them more readable and coherent, or
+by adding missing information and correcting mistakes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ms3</span></code> documentation uses <a class="reference external" href="https://www.sphinx-doc.org/en/master/">Sphinx</a> as its main documentation compiler.
+This means that the docs are kept in the same repository as the project code, and
+that any documentation update is done in the same way was a code contribution.
+The documentation is written in <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/">reStructuredText</a> and includes the <a class="reference external" href="https://myst-nb.readthedocs.io/en/latest/">myst-nb</a> extension.</p>
+<p>When working on documentation changes in your local machine, you can
+compile them using <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tox</span> <span class="o">-</span><span class="n">e</span> <span class="n">docs</span>
+</pre></div>
+</div>
+<p>and use Python’s built-in web server for a preview in your web browser
+(<code class="docutils literal notranslate"><span class="pre">http://localhost:8000</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="o">--</span><span class="n">directory</span> <span class="s1">&#39;docs/_build/html&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="code-contributions">
+<h2>Code Contributions<a class="headerlink" href="#code-contributions" title="Permalink to this heading">#</a></h2>
+<section id="submit-an-issue">
+<h3>Submit an issue<a class="headerlink" href="#submit-an-issue" title="Permalink to this heading">#</a></h3>
+<p>Before you work on any non-trivial code contribution it’s best to first create
+a report in the <a class="reference external" href="https://github.com/DCMLab/ms3/issues">issue tracker</a> to start a discussion on the subject.
+This often provides additional considerations and avoids unnecessary work.</p>
+</section>
+<section id="create-an-environment">
+<h3>Create an environment<a class="headerlink" href="#create-an-environment" title="Permalink to this heading">#</a></h3>
+<p>Before you start coding, we recommend creating an isolated <a class="reference external" href="https://realpython.com/python-virtual-environments-a-primer/">virtual
+environment</a> to avoid any problems with your installed Python packages.
+This can easily be done via either <a class="reference external" href="https://virtualenv.pypa.io/en/stable/"><code class="docutils literal notranslate"><span class="pre">virtualenv</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtualenv</span> <span class="o">&lt;</span><span class="n">PATH</span> <span class="n">TO</span> <span class="n">VENV</span><span class="o">&gt;</span>
+<span class="n">source</span> <span class="o">&lt;</span><span class="n">PATH</span> <span class="n">TO</span> <span class="n">VENV</span><span class="o">&gt;/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+</pre></div>
+</div>
+<p>or <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">ms3</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.10</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">ms3</span>
+</pre></div>
+</div>
+</section>
+<section id="clone-the-repository">
+<h3>Clone the repository<a class="headerlink" href="#clone-the-repository" title="Permalink to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>Create an user account on GitHub if you do not already have one.</p></li>
+<li><p>Fork the project <a class="reference external" href="https://github.com/DCMLab/ms3">repository</a>: click on the <em>Fork</em> button near the top of the
+page. This creates a copy of the code under your account on GitHub.</p></li>
+<li><p>Clone this copy to your local disk:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">johentsch</span><span class="o">/</span><span class="n">ms3</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+</li>
+<li><p>You should run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">ms3</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">pip</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+</pre></div>
+</div>
+<p>to be able to import the package under development in the Python REPL.</p>
+</li>
+</ol>
+</section>
+<section id="implement-your-changes">
+<h3>Implement your changes<a class="headerlink" href="#implement-your-changes" title="Permalink to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>Create a branch to hold your changes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">checkout</span> <span class="o">-</span><span class="n">b</span> <span class="n">my</span><span class="o">-</span><span class="n">feature</span>
+</pre></div>
+</div>
+<p>and start making changes. Never work on the main branch!</p>
+</li>
+<li><p>Start your work on this branch. Don’t forget to add <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html">docstrings</a> to new
+functions, modules and classes, especially if they are part of public APIs.</p></li>
+<li><p>Add yourself to the list of contributors in <code class="docutils literal notranslate"><span class="pre">AUTHORS.rst</span></code>.</p></li>
+<li><p>When you’re done editing, do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">add</span> <span class="o">&lt;</span><span class="n">MODIFIED</span> <span class="n">FILES</span><span class="o">&gt;</span>
+<span class="n">git</span> <span class="n">commit</span>
+</pre></div>
+</div>
+<p>to record your changes in <a class="reference external" href="https://git-scm.com">git</a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Don’t forget to add unit tests and documentation in case your
+contribution adds an additional feature and is not just a bugfix.</p>
+<p>Moreover, writing a <a class="reference external" href="https://chris.beams.io/posts/git-commit">descriptive commit message</a> is highly recommended.
+In case of doubt, you can check the commit history with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">log</span> <span class="o">--</span><span class="n">graph</span> <span class="o">--</span><span class="n">decorate</span> <span class="o">--</span><span class="n">pretty</span><span class="o">=</span><span class="n">oneline</span> <span class="o">--</span><span class="n">abbrev</span><span class="o">-</span><span class="n">commit</span> <span class="o">--</span><span class="nb">all</span>
+</pre></div>
+</div>
+<p>to look for recurring communication patterns.</p>
+</div>
+</li>
+<li><p>Please check that your changes don’t break any unit tests with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tox</span>
+</pre></div>
+</div>
+<p>(after having installed <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a> with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tox</span></code> or <code class="docutils literal notranslate"><span class="pre">pipx</span></code>).</p>
+<p>You can also use <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a> to run several other pre-configured tasks in the
+repository. Try <code class="docutils literal notranslate"><span class="pre">tox</span> <span class="pre">-av</span></code> to see a list of the available checks.</p>
+</li>
+</ol>
+</section>
+<section id="submit-your-contribution">
+<h3>Submit your contribution<a class="headerlink" href="#submit-your-contribution" title="Permalink to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>If everything works fine, push your local branch to GitHub with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">push</span> <span class="o">-</span><span class="n">u</span> <span class="n">origin</span> <span class="n">my</span><span class="o">-</span><span class="n">feature</span>
+</pre></div>
+</div>
+</li>
+<li><p>Go to the web page of your fork and click “Create pull request”
+to send your changes for review.</p>
+</li>
+</ol>
+</section>
+<section id="troubleshooting">
+<h3>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading">#</a></h3>
+<p>The following tips can be used when facing problems to build or test the
+package:</p>
+<ol class="arabic">
+<li><p>Make sure to fetch all the tags from the upstream <a class="reference external" href="https://github.com/DCMLab/ms3">repository</a>.
+The command <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">describe</span> <span class="pre">--abbrev=0</span> <span class="pre">--tags</span></code> should return the version you
+are expecting. If you are trying to run CI scripts in a fork repository,
+make sure to push all the tags.
+You can also try to remove all the egg files or the complete egg folder, i.e.,
+<code class="docutils literal notranslate"><span class="pre">.eggs</span></code>, as well as the <code class="docutils literal notranslate"><span class="pre">*.egg-info</span></code> folders in the <code class="docutils literal notranslate"><span class="pre">src</span></code> folder or
+potentially in the root of your project.</p></li>
+<li><p>Sometimes <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a> misses out when new dependencies are added, especially to
+<code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> and <code class="docutils literal notranslate"><span class="pre">docs/requirements.txt</span></code>. If you find any problems with
+missing dependencies when running a command with <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a>, try to recreate the
+<code class="docutils literal notranslate"><span class="pre">tox</span></code> environment using the <code class="docutils literal notranslate"><span class="pre">-r</span></code> flag. For example, instead of:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tox</span> <span class="o">-</span><span class="n">e</span> <span class="n">docs</span>
+</pre></div>
+</div>
+<p>Try running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tox</span> <span class="o">-</span><span class="n">r</span> <span class="o">-</span><span class="n">e</span> <span class="n">docs</span>
+</pre></div>
+</div>
+</li>
+<li><p>Make sure to have a reliable <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a> installation that uses the correct
+Python version (e.g., 3.7+). When in doubt you can run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tox</span> <span class="o">--</span><span class="n">version</span>
+<span class="c1"># OR</span>
+<span class="n">which</span> <span class="n">tox</span>
+</pre></div>
+</div>
+<p>If you have trouble and are seeing weird errors upon running <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a>, you can
+also try to create a dedicated <a class="reference external" href="https://realpython.com/python-virtual-environments-a-primer/">virtual environment</a> with a <a class="reference external" href="https://tox.wiki/en/stable/"><code class="docutils literal notranslate"><span class="pre">tox</span></code></a> binary
+freshly installed. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtualenv</span> <span class="o">.</span><span class="n">venv</span>
+<span class="n">source</span> <span class="o">.</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="o">.</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">pip</span> <span class="n">install</span> <span class="n">tox</span>
+<span class="o">.</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">tox</span> <span class="o">-</span><span class="n">e</span> <span class="nb">all</span>
+</pre></div>
+</div>
+</li>
+<li><p><a class="reference external" href="https://docs.pytest.org/en/stable/how-to/failures.html#using-python-library-pdb-with-pytest">Pytest can drop you</a> in an interactive session in the case an error occurs.
+In order to do that you need to pass a <code class="docutils literal notranslate"><span class="pre">--pdb</span></code> option (for example by
+running <code class="docutils literal notranslate"><span class="pre">tox</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">&lt;NAME</span> <span class="pre">OF</span> <span class="pre">THE</span> <span class="pre">FALLING</span> <span class="pre">TEST&gt;</span> <span class="pre">--pdb</span></code>).
+You can also setup breakpoints manually instead of using the <code class="docutils literal notranslate"><span class="pre">--pdb</span></code> option.</p></li>
+</ol>
+</section>
+</section>
+<section id="maintainer-tasks">
+<h2>Maintainer tasks<a class="headerlink" href="#maintainer-tasks" title="Permalink to this heading">#</a></h2>
+<section id="releases">
+<h3>Releases<a class="headerlink" href="#releases" title="Permalink to this heading">#</a></h3>
+<p>If you are part of the group of maintainers and have correct user permissions
+on <a class="reference external" href="https://pypi.org/">PyPI</a>, the following steps can be used to release a new version for
+<code class="docutils literal notranslate"><span class="pre">ms3</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Make sure all unit tests are successful.</p></li>
+<li><p>Tag the current commit on the main branch with a release tag, e.g., <code class="docutils literal notranslate"><span class="pre">v1.2.3</span></code>.</p></li>
+<li><p>Push the new tag to the upstream <a class="reference external" href="https://github.com/DCMLab/ms3">repository</a>, e.g., <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">upstream</span> <span class="pre">v1.2.3</span></code></p></li>
+<li><p>Clean up the <code class="docutils literal notranslate"><span class="pre">dist</span></code> and <code class="docutils literal notranslate"><span class="pre">build</span></code> folders with <code class="docutils literal notranslate"><span class="pre">tox</span> <span class="pre">-e</span> <span class="pre">clean</span></code>
+(or <code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">dist</span> <span class="pre">build</span></code>)
+to avoid confusion with old builds and Sphinx docs.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">tox</span> <span class="pre">-e</span> <span class="pre">build</span></code> and check that the files in <code class="docutils literal notranslate"><span class="pre">dist</span></code> have
+the correct version (no <code class="docutils literal notranslate"><span class="pre">.dirty</span></code> or <a class="reference external" href="https://git-scm.com">git</a> hash) according to the <a class="reference external" href="https://git-scm.com">git</a> tag.
+Also check the sizes of the distributions, if they are too big (e.g., &gt;
+500KB), unwanted clutter may have been accidentally included.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">tox</span> <span class="pre">-e</span> <span class="pre">publish</span> <span class="pre">--</span> <span class="pre">--repository</span> <span class="pre">pypi</span></code> and check that everything was
+uploaded to <a class="reference external" href="https://pypi.org/">PyPI</a> correctly.</p></li>
+</ol>
+<dl class="footnote brackets">
+<dt class="label" id="contrib1"><span class="brackets"><a class="fn-backref" href="#id2">1</a></span></dt>
+<dd><p>Even though, these resources focus on open source projects and
+communities, the general ideas behind collaborating with other developers
+to collectively create software are general and can be applied to all sorts
+of environments, including private companies and proprietary code bases.</p>
+</dd>
+</dl>
+</section>
+</section>
+</section>
+
+
+            </article>
+            
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="reference.html" title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">Developers’ Reference</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="license.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">License</p>
+  </div>
+  <i class="fa-solid fa-angle-right"></i>
+  </a>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div class="tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+</div>
+<nav id="bd-toc-nav" class="page-toc">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#issue-reports">
+   Issue Reports
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#documentation-improvements">
+   Documentation Improvements
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#code-contributions">
+   Code Contributions
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#submit-an-issue">
+     Submit an issue
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#create-an-environment">
+     Create an environment
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#clone-the-repository">
+     Clone the repository
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#implement-your-changes">
+     Implement your changes
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#submit-your-contribution">
+     Submit your contribution
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#troubleshooting">
+     Troubleshooting
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#maintainer-tasks">
+   Maintainer tasks
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#releases">
+     Releases
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+</nav>
+</div>
+
+<div class="toc-item">
+  
+<div id="searchbox"></div>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+<div class="tocsection sourcelink">
+    <a href="_sources/contributing.rst.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+</div>
+
+            </div>
+          
+          
+        </div>
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
+        
+      </main>
+    </div>
+  </div>
+
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94"></script>
+
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2020, johentsch.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="theme-version">
+    Built with the
+    <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">
+        PyData Sphinx Theme
+    </a>
+    0.12.0.
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
+  </body>
+</html>
