@@ -408,12 +408,15 @@
 <section id="ms3-parsing-musescore-3-and-4">
 <h1>ms3 - Parsing MuseScore 3 and 4<a class="headerlink" href="#ms3-parsing-musescore-3-and-4" title="Permalink to this heading">#</a></h1>
 <p>Welcome to <strong>ms3</strong>, a Python library for parsing <a class="reference external" href="https://musescore.org/en/download">MuseScore</a> files.</p>
-<section id="statement-of-need">
-<h2>Statement of need<a class="headerlink" href="#statement-of-need" title="Permalink to this heading">#</a></h2>
-<p>Here comes a list of functionalities to help you decide if this library could be useful for you.</p>
-<p><code class="docutils literal notranslate"><span class="pre">ms3</span></code></p>
+<section id="what-is-it">
+<h2>What is it?<a class="headerlink" href="#what-is-it" title="Permalink to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ms3</span></code> is a parser for MuseScore files, serving as data factory for annotated music corpora.</p>
+</section>
+<section id="what-does-it-do">
+<h2>What does it do?<a class="headerlink" href="#what-does-it-do" title="Permalink to this heading">#</a></h2>
+<p>Here comes a list of functionalities to help you decide if this library could be useful for you. It</p>
 <ul class="simple">
-<li><p>parses MuseScore 3 and 4 files, i.e.</p>
+<li><p>parses MuseScore 3 and 4 files, dispensing with lossy conversion to musicXML. The file formats in question are</p>
 <ul>
 <li><p>uncompressed <code class="docutils literal notranslate"><span class="pre">*.mscx</span></code> files,</p></li>
 <li><p>compressed <code class="docutils literal notranslate"><span class="pre">*.mscz</span></code> files,</p></li>
@@ -457,6 +460,12 @@
 <p>View the <a class="reference external" href="https://johentsch.github.io/ms3/">full documentation here</a>.</p>
 <p>For a demo video (using an old, pre-1.0.0 version) on YouTube, <a class="reference external" href="https://youtu.be/UBY3wuIS4wc">click here</a></p>
 </section>
+<section id="who-is-it-for">
+<h2>Who is it for?<a class="headerlink" href="#who-is-it-for" title="Permalink to this heading">#</a></h2>
+<p>The library is mainly targeted at music researchers and Music Information Retrieval applications. However,
+it also serves a wider public of practicing musicians, composers, and music enthusiasts who need to extract or
+manipulate score information.</p>
+</section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
 <p>ms3 requires Python &gt;= 3.10 (type <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">--version</span></code> to check). Once you have switched to a virtual environment
@@ -465,7 +474,7 @@ that has Python 3.10 installed you can pip-install the library via one of the tw
 <span class="n">pip</span> <span class="n">install</span> <span class="n">ms3</span>
 </pre></div>
 </div>
-<p>If successful, the installation will make the <code class="docutils literal notranslate"><span class="pre">ms3</span></code> commands available in your PATH (try by typing <code class="docutils literal notranslate"><span class="pre">ms3</span></code>).</p>
+<p>If successful, the installation will make the <code class="docutils literal notranslate"><span class="pre">ms3</span></code> commands available in your PATH (test by typing <code class="docutils literal notranslate"><span class="pre">ms3</span></code>).</p>
 </section>
 <section id="quick-demo">
 <h2>Quick demo<a class="headerlink" href="#quick-demo" title="Permalink to this heading">#</a></h2>
@@ -625,8 +634,18 @@ conducted at the Latour Chair in Digital and Cognitive Musicology, generously fu
 <nav id="bd-toc-nav" class="page-toc">
     <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#statement-of-need">
-   Statement of need
+  <a class="reference internal nav-link" href="#what-is-it">
+   What is it?
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#what-does-it-do">
+   What does it do?
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#who-is-it-for">
+   Who is it for?
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">

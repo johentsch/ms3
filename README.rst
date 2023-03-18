@@ -28,10 +28,15 @@ ms3 - Parsing MuseScore 3 and 4
 
 Welcome to **ms3**, a Python library for parsing `MuseScore <https://musescore.org/en/download>`__ files.
 
-Statement of need
-=================
+What is it?
+===========
 
-Here comes a list of functionalities to help you decide if this library could be useful for you.
+``ms3`` is a parser for MuseScore files, serving as data factory for annotated music corpora.
+
+What does it do?
+================
+
+Here comes a list of functionalities to help you decide if this library could be useful for you. It
 
 * parses MuseScore 3 and 4 files, dispensing with lossy conversion to musicXML. The file formats in question are
 
@@ -73,6 +78,13 @@ View the `full documentation here <https://johentsch.github.io/ms3/>`__.
 
 For a demo video (using an old, pre-1.0.0 version) on YouTube, `click here <https://youtu.be/UBY3wuIS4wc>`__
 
+Who is it for?
+==============
+
+The library is mainly targeted at music researchers and Music Information Retrieval applications. However,
+it also serves a wider public of practicing musicians, composers, and music enthusiasts who need to extract or
+manipulate score information.
+
 Installation
 ============
 
@@ -82,7 +94,7 @@ that has Python 3.10 installed you can pip-install the library via one of the tw
     python3 -m pip install ms3
     pip install ms3
 
-If successful, the installation will make the ``ms3`` commands available in your PATH (try by typing ``ms3``).
+If successful, the installation will make the ``ms3`` commands available in your PATH (test by typing ``ms3``).
 
 Quick demo
 ==========
