@@ -568,6 +568,10 @@ class Parse(LoggedClass):
     def count_unparsed_tsvs(self, view_name: Optional[str] = None) -> int:
         return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
 
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(corpus.count_pieces(view_name=view_name) for _, corpus in self.iter_corpora(view_name=view_name))
+
     def create_missing_metadata_tsv(self,
                                     view_name: Optional[str] = None) -> None:
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):

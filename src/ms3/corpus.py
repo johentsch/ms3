@@ -2305,6 +2305,9 @@ class Corpus(LoggedClass):
             result['metadata'] = Counter(file.fext for file in self.ix2metadata_file.values())
         return result
 
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(1 for _ in self.iter_pieces(view_name=view_name))
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
         file_dict = self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
