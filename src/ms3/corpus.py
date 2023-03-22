@@ -1343,9 +1343,11 @@ class Corpus(LoggedClass):
                 selected_fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
             filter_incomplete_facets = not view.fnames_with_incomplete_facets
             if filter_incomplete_facets:
-                selected_facets = set(self.get_present_facets(view_name))
-                selected_facets = selected_facets.intersection(set(view.selected_facets))
-                selected_facets = tuple(selected_facets)
+                selected_facets = view.selected_facets
+                if len(selected_facets) == len(View.available_facets):
+                    # No facets have been excluded from the view, therefore the completeness criterion is based
+                    # on which facets the corpus has rather than which ones have been selected
+                    selected_facets = self.get_present_facets(view_name)
             for fname, piece in view.filter_by_token('fnames', self):
                 if len(piece.count_detected()) == 0:
                     # no facets to show, probably due to other filters; do not include in 'fnames' filter counts
