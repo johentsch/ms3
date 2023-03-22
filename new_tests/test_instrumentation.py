@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Unittests for changing the instrumentation within MuseScore files.
+
+Instrumentation is encoded in <Part> tags. Each <Part> includes exactly one <Instrument> tag and
+one or several <Staff> tags which are assigned the same instrument. The relevant tags can be seen
+in the TypedDict PartInfo.
+"""
 import os
 from pprint import pprint
 from typing import Dict, Tuple, Optional, List, TypedDict
@@ -92,7 +102,7 @@ def get_instrumentation(soup: bs4.BeautifulSoup) -> List[PartInfo]:
         parts.append(part_info)
     return parts
 
-def get_instrumentation_from_path(source_path) -> List[PartInfo]:
+def get_instrumentation_from_path(source_path: str) -> List[PartInfo]:
     """Get the full instrumentation info from a path to a MSCX file."""
     soup = get_soup(source_path)
     try:
@@ -155,6 +165,7 @@ def test_accessing_source_instrument_names(source_path):
         for staff_name in part['staves']:
             assert staff_name not in staff2groundtruth, f"Competing instrument information for {staff_name} in {file_name}"
             if part['trackName'] is not None:
+                # this if-clause corresponds to the current behaviour of bs4_parser.get_part_info
                 staff2groundtruth[staff_name] = part['trackName']
             else:
                 staff2groundtruth[staff_name] = part['part_trackName']
@@ -183,6 +194,10 @@ TEST_CASES = {
 
 
 def test_instrumentation_after_instrument_change(source_path):
+    """For each file for which test cases have been defined in TEST_CASES, this test iterates through the
+    cases, changes one instrument change (the one in the dictionary key), and tests if the resulting
+    instrumentation corresponds to the dictionary value.
+    """
     file_name = os.path.basename(source_path)
     if file_name not in TEST_CASES:
         return
