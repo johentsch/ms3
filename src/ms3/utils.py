@@ -4956,23 +4956,23 @@ def resolve_paths_argument(paths: Union[str, Collection[str]],
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
     if files:
-        not_a_file = [p for p in paths if not os.path.isfile(p)]
+        not_a_file = [p for p in resolved_paths if not os.path.isfile(p)]
         if len(not_a_file) > 0:
             if len(not_a_file) == 1:
                 msg = f"No existing file at {not_a_file[0]}."
             else:
                 msg = f"These are not paths of existing files: {not_a_file}"
             logger.warning(msg)
-            resolved_paths = [p for p in paths if os.path.isfile(p)]
+            resolved_paths = [p for p in resolved_paths if os.path.isfile(p)]
     else:
-        not_a_folder = [p for p in paths if not os.path.isdir(p)]
+        not_a_folder = [p for p in resolved_paths if not os.path.isdir(p)]
         if len(not_a_folder) > 0:
             if len(not_a_folder) == 1:
                 msg = f"{not_a_folder[0]} is not a path to an existing folder."
             else:
                 msg = f"These are not paths of existing folders: {not_a_folder}"
             logger.warning(msg)
-            resolved_paths = [p for p in paths if os.path.isdir(p)]
+            resolved_paths = [p for p in resolved_paths if os.path.isdir(p)]
     return resolved_paths
 
 @function_logger
