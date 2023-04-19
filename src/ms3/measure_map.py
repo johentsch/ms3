@@ -54,6 +54,7 @@ See also:
 #import argparse
 import json
 import os
+import re
 from typing import Dict, List, TypedDict, Union, Tuple, Optional
 
 from fractions import Fraction
@@ -67,3 +68,86 @@ def safe_frac(s: str) -> Union[Fraction, str]:
     except Exception:
         return s
 
+def get_int(mn: str) -> int:
+    """
+    Return the integer part of a measure number.
+    For example, `get_int("7a")` returns 7.
+    """
+    if type(mn) == int:
+        return mn
+    regex_mn = "(\d+)([a-z]?)"
+    regex_match = re.match(regex_mn, str(mn))
+    if not regex_match:
+        raise ValueError(f"'{mn}' is not a valid measure number.")
+    return int(regex_match.group(1))
+
+
+
+def generate_measure_map(file: str) -> List[dict]:
+    """
+    file: :obj:`str`
+        Path to a '_measures.tsv' file in the 'measure' folder of a DCML corpus.
+        Requires the columns {'mc': int, 'quarterbeats_all_endings': fractions.Fraction} (ms3 >= 1.0.0).
+    """
+    try:
+        measures_df = pd.read_csv(
+            file, sep='\t',
+            dtype={'mc': int, 'volta': 'Int64'},
+            converters={'quarterbeats_all_endings': safe_frac,
+                        'quarterbeats': safe_frac,
+                        'act_dur': safe_frac}
+        )
+    except (ValueError, AssertionError) as e:
+        raise ValueError(f"{file} could not be loaded because of the following error:\n'{e}'")
+    score_has_voltas = "quarterbeats_all_endings" in measures_df.columns
+
+    measure_map = [] # Measure map, list
+
+    previous_measure_dict = {"bar-number": "0"}
+    current_time_sig = None
+    for i_measure, measure in measures_df.iterrows():
+        measure_mn = str(measure.mn)
+        measure_dict = {}
+        display_measure = False
+
+        # Time signature, time signature upbeat
+        if Fraction(measure.timesig) != Fraction(measure.act_dur):
+            # Partial measure
+            display_measure = True
+            measure_dict["actual-duration"] = str(measure.act_dur)
+        if measure.timesig != current_time_sig:
+            # New time signature
+            # (always the case for first measures: always displayed)
+            display_measure = True
+            measure_dict["time-signature"] = measure.timesig
+            current_time_sig = measure.timesig
+
+        # Measure number
+        have_same_number = (get_int(previous_measure_dict["bar-number"]) == get_int(measure_mn))
+        if i_measure > 0 and have_same_number:
+            # Not the next numbered measure
+            if measure_map[-1]["bar-number"] != measure_mn:
+                # Add previous measure, which is needed (because not displayed yet)
+                measure_map.append(previous_measure_dict)
+            measure_map[-1]["bar-number"] += "a" # Add letter to previous measure
+            measure_dict["bar-number"] = measure_mn + "b" # And to current measure
+        else:
+            measure_dict["bar-number"] = measure_mn
+
+        have_consecutive_number = (get_int(previous_measure_dict["bar-number"])+1 == get_int(measure_mn))
+        if not have_consecutive_number:
+            # Display the new numbering (e.g. if measure numbers were skipped or reinitialized)
+            display_measure = True
+
+        # Onsets
+        if not score_has_voltas:
+            measure_dict["onset"] = float(measure.quarterbeats)
+        else:
+            measure_dict["onset"] = float(measure.quarterbeats_all_endings)
+
+        if display_measure:
+            # i.e. the measure need to be in the compressed version
+            measure_map.append(measure_dict)        
+        previous_measure_dict = measure_dict
+
+    return measure_map
