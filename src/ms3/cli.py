@@ -145,20 +145,17 @@ def convert_cmd(args):
                    parallel=not args.iterative,
                    logger=update_logger)
 
-def empty(args):
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, file_paths=args.file, **logger_cfg)
-    p.parse_scores(parallel=False)
-    p.detach_labels()
-    p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
-    ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    if args.out is not None:
-        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
+def empty(args, parse_obj: Optional[Parse] = None):
+    if parse_obj is None:
+        p = make_parse_obj(args, parse_scores=True)
     else:
-        p.store_scores(ids=ids, overwrite=True)
+        p = parse_obj
+    p.detach_labels()
+    p.store_parsed_scores(only_changed=True,
+                          root_dir=args.out,
+                          suffix=args.suffix,
+                          overwrite=True,
+                          )
 
 
 def extract_cmd(args, parse_obj: Optional[Parse] = None):
@@ -629,6 +626,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
     # empty_parser.add_argument('--type', default=1,
     #                            help="Only remove particular types of harmony labels.")
+    empty_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_clean',
+                            help='Suffix of the new scores with removed labels. Defaults to _clean.')
     empty_parser.set_defaults(func=empty)
 
     extract_parser = subparsers.add_parser('extract',
