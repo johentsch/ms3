@@ -151,3 +151,29 @@ def generate_measure_map(file: str) -> List[dict]:
         previous_measure_dict = measure_dict
 
     return measure_map
+
+def save_measure_map(file: str, output_path: str):
+    """
+    Generate a JSON file containing the measure map converted from
+    given TSV (Tab-Separated Value) 'measure' file in DCML format.
+    """
+    json_content = {"meter": generate_measure_map(file)}
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(json_content, f, indent=2)
+
+
+
+if __name__ == "__main__":
+    # Test to be run in '<root-folder>/ms3/src/ms3/' as working directory
+    # With a clone of Annotated Mozart Sonatas dataset in the <root-folder>
+    test_file = os.path.join(
+        "..", "..", "..",
+        "mozart_piano_sonatas", "measures",
+        "K279-3.tsv"
+    )
+    output_path = os.path.join(".", "K279-3_measuremap.json")
+    
+    save_measure_map(
+        file=test_file,
+        output_path=output_path
+    )
