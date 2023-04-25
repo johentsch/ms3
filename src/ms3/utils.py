@@ -6,7 +6,7 @@ import os,sys, platform, re, shutil, subprocess
 import warnings
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from fractions import Fraction as frac
 from functools import reduce, lru_cache
@@ -28,6 +28,7 @@ from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
+from typing_extensions import Self
 
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
@@ -4596,6 +4597,17 @@ class File:
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
         commit = '' if self.commit_sha == '' else f"@{self.commit_sha[:7]}"
         return f"{self.ix}: '{self.rel_path}'{commit}{suffix}"
+
+    def replace_extension(self, new_extension: str, **kwargs) -> Self:
+        if new_extension[0] != '.':
+            new_extension = '.' + new_extension
+        old_ext_len = len(self.fext)
+        new_vals = {}
+        for field in ("file", "fext", "rel_path", "full_path"):
+            old_val = getattr(self, field)
+            new_vals[field] = old_val[:-old_ext_len] + new_extension
+        return replace(self, **new_vals, **kwargs)
+
 
     @classmethod
     def from_corpus_path(cls,
