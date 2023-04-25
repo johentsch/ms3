@@ -5,14 +5,13 @@ Command line interface for ms3.
 """
 
 import argparse, os
-from datetime import datetime
+import re
+from collections import defaultdict
 from typing import Optional
-
-import pandas as pd
 
 from ms3 import Parse
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION
+from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, fifths2sd, scale_degree2name, capture_parse_logs
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
@@ -290,6 +289,52 @@ def check_dir(d):
     return resolve_dir(d)
 
 
+def make_coloring_reports_and_warnings(parse_obj: Parse,
+                                       out_dir: Optional[str] = None,
+                                       threshold: float = 0.6) -> bool:
+    """Performs the note coloring, stores the reports as TSV files in the reviewed folder, and logs warnings about
+    those chord label segments where the ratio of out-of-label chords is greater than the given threshold.
+
+
+    Args:
+        parse_obj:
+            Parse object with parsed scores containing labels. Coloring will be performed in the XML structure in the
+            memory and scores have to be written to disk to see the result.
+        out_dir: By default, reports are written to <CORPUS_PATH>/reviewed unless another path is specified here.
+        threshold: Above which ratio of out-of-label tones a warning is to be issued.
+
+    Returns:
+        False if at least one label went beyond the threshold, True otherwise.
+    """
+    review_reports = parse_obj.color_non_chord_tones()
+    test_passes = True
+    for (corpus_name, fname), file_df_pairs in review_reports.items():
+        piece_logger = get_logger(parse_obj[corpus_name].logger_names[fname])
+        is_first = True
+        for file, report in file_df_pairs:
+            report_path = compute_path_from_file(file, root_dir=out_dir, folder='reviewed')
+            report_file = os.path.join(report_path, file.fname + '_reviewed.tsv')
+            if not is_first and os.path.isfile(report_file):
+                get_logger('ms3.review').warning(f"This coloring report has been overwritten because several scores have the same fname:\n{report_file}")
+            write_tsv(report, report_file)
+            is_first = False
+            warning_selection = (report.count_ratio > threshold) & report.chord_tones.notna()
+            if warning_selection.sum() > 0:
+                test_passes = False
+            else:
+                continue
+            for t in report[warning_selection].itertuples():
+                if len(t.added_tones) > 0:
+                    added = f" plus the added {(fifths2sd(t.added_tones, t.localkey_is_minor))} [{scale_degree2name(t.added_tones, t.localkey, t.globalkey)}]"
+                else:
+                    added = ""
+                msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems not to correspond well to the score (which does not necessarily mean it is wrong).
+In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {(fifths2sd(t.chord_tones, t.localkey_is_minor))} [{scale_degree2name(t.chord_tones, t.localkey, t.globalkey)}]{added}.
+The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets, a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
+If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed by a free-text comment in subsequent lines starting with a space or tab."""
+                piece_logger.warning(msg, extra={'message_id': (19, t.mc, str(t.mc_onset), t.label)})
+    return test_passes
+
 
 
 def review_cmd(args,
@@ -301,29 +346,24 @@ def review_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
+    accumulated_warnings = []
 
-    # create file for warnings
-    out_dir = '.' if args.out is None else args.out
-    warnings_file = os.path.join(out_dir, 'warnings.log')
-    header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
-    header = f"{header}\n{'=' * len(header)}\n\n"
-    with open(warnings_file, 'w', encoding='utf-8') as f:
-        f.write(header)
-
-    # call ms3 check
+    # call ms3 check, collecting all warnings issued while parsing
     if args.ignore_scores + args.ignore_labels < 2:
         what = '' if args.ignore_scores else 'SCORES'
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        test_passes = check(p,
-                            ignore_labels=args.ignore_labels,
-                            ignore_scores=args.ignore_scores,
-                            assertion=False,
-                            parallel=False,
-                            warnings_file=warnings_file)
+        with capture_parse_logs(p.logger) as captured_warnings:
+            test_passes = check(p,
+                                ignore_labels=args.ignore_labels,
+                                ignore_scores=args.ignore_scores,
+                                assertion=False,
+                                parallel=False)
+            accumulated_warnings.extend(captured_warnings.content_list)
         p.parse_tsv()
     else:
+        test_passes = True
         p.parse(parallel=False)
     if p.n_parsed_scores == 0:
         msg = "NO SCORES PARSED, NOTHING TO DO."
@@ -331,7 +371,6 @@ def review_cmd(args,
             msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
                    "Add -a if you want me to include all scores."
         print(msg)
-        os.remove(warnings_file)
         return
 
     # call ms3 extract
@@ -342,27 +381,38 @@ def review_cmd(args,
 
     # color out-of-label tones
     print("COLORING OUT-OF-LABEL TONES...")
-    review_reports = p.color_non_chord_tones()
-    if len(review_reports) > 0:
-        dataframes, keys = [], []
-        for (corpus_name, fname), tuples in review_reports.items():
-            for file, df in tuples:
-                dataframes.append(df)
-                keys.append((corpus_name, file.rel_path))
-                report_path = os.path.join(file.corpus_path, 'reviewed', file.fname + '_reviewed.tsv')
-                write_tsv(df, report_path)
-        report = pd.concat(dataframes, keys=keys)
-        warning_selection = (report.count_ratio > args.threshold) & report.chord_tones.notna()
-        if warning_selection.sum() > 0:
-            test_passes = False
-            filtered_report = report[warning_selection].droplevel(-1)
-            pretty_report = filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio'])
-            logger.warning(pretty_report,
-                           extra={'message_id': (19,)})
-            with open(warnings_file, 'a', encoding='utf-8') as f:
-                f.write(f"Chord labels where the ratio of colored notes vs. all notes in a segment lies above {args.threshold}:\n")
-                f.write(pretty_report + "\n")
-            logger.info(f"Added the {warning_selection.sum()} labels to {warnings_file}.")
+    with capture_parse_logs(p.logger) as captured_warnings:
+        test_passes = test_passes and make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold)
+        accumulated_warnings.extend(captured_warnings.content_list)
+
+    # attribute warnings to pieces based on logger names
+    logger2pieceID = {corpus.logger_names[fname]: (c, fname) for c, corpus in p.corpus_objects.items() for fname in corpus.keys()}
+    piece2warnings = defaultdict(list)
+    for warning in accumulated_warnings:
+        try:
+            match = next(logger_name for component in warning.split() if (logger_name := re.match(r"ms3\.Parse\.(?P<corpus>\S+)\.(?P<fname>\S+)$", component)))
+        except StopIteration:
+            logger.warning(f"This warning contains no valid logger name, skipping: {warning}")
+            continue
+        pieceID = logger2pieceID[match.group(0)]
+        piece2warnings[pieceID].append(warning)
+
+
+    # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
+    for pieceID, score_files in p.get_files('scores', unparsed=False, flat=True, include_empty=False).items():
+        file = score_files[0]
+        warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
+        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
+        if len((warnings := piece2warnings[pieceID])) > 0:
+            header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
+            header = f"{header}\n{'=' * len(header)}\n\n"
+            with open(warnings_file, 'w', encoding='utf-8') as f:
+                f.write(header)
+                f.write('\n'.join(warnings))
+            logger.info(f"Written warnings to {warnings_file}.")
+        elif os.path.isfile(warnings_file):
+            logger.info(f"Problems seem to be solved, removing {warnings_file}")
+            os.remove(warnings_file)
 
     # call ms3 compare
     if args.compare is not None:
@@ -384,15 +434,18 @@ def review_cmd(args,
     changed = sum(map(len, corpus2paths.values()))
     logger.info(f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}.")
     if test_passes:
-        logger.info(f"Parsed scores passed all tests. Removed {warnings_file}")
-        os.remove(warnings_file)
+        logger.info(f"Parsed scores passed all tests.")
     else:
-        msg = f"Not all tests have passed. Please check the relevant warnings in {warnings_file}"
+        msg = f"Not all tests have passed. Please check the relevant warnings in the generated .warnings files."
         if args.fail:
             assert test_passes, msg
         else:
             logger.info(msg)
-
+    out_dir = '.' if args.out is None else args.out
+    warnings_file = os.path.join(out_dir, 'warnings.log')
+    if os.path.isfile(warnings_file):
+        logger.info(f"Removing deprecated warnings file: {warnings_file}")
+        os.remove(warnings_file)
 
 
 
