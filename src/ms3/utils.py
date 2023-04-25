@@ -4563,8 +4563,6 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
     return row
 
 
-
-
 @dataclass
 class File:
     """Storing path and file name information for one file."""
@@ -4588,7 +4586,7 @@ class File:
     """Absolute file path."""
     directory: str
     """Absolute folder path where the file is located."""
-    suffix: str
+    suffix: str = ''
     """Upon registering the File with a :obj:`Piece`, if the current fname has a suffix compared to the Piece's fname, 
     suffix is removed from the File object's fname field and added to the suffix field."""
     commit_sha: str = ''
@@ -4598,6 +4596,43 @@ class File:
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
         commit = '' if self.commit_sha == '' else f"@{self.commit_sha[:7]}"
         return f"{self.ix}: '{self.rel_path}'{commit}{suffix}"
+
+    @classmethod
+    def from_corpus_path(cls,
+                         corpus_path: str,
+                         filename: str,
+                         ftype: Optional[str] = None,
+                         subdir='.',
+                         ix: int = -1):
+        """ Creates File object from individual components
+
+        Args:
+            corpus_path: Root directory of the file's corpus.
+            filename: Full file name including suffixes and extensions.
+            ftype: File type (used as default folder name for creating file_paths).
+            subdir: relative directory appended to corpus_path, defaults to '.', i.e. no subfolder.
+            ix: Arbitrary index number, defaults to -1.
+        """
+        full_path = os.path.realpath(os.path.join(corpus_path, subdir, filename))
+        file_name, file_ext = os.path.splitext(filename)
+        rel_path = os.path.join(subdir, filename)
+        if ftype is None:
+            file_type = path2type(full_path, logger=self.logger)
+        else:
+            file_type = ftype
+        return cls(
+            ix=ix,
+            type=file_type,
+            file=filename,
+            fname=file_name,
+            fext=file_ext,
+            subdir=subdir,
+            corpus_path=corpus_path,
+            rel_path=rel_path,
+            full_path=full_path,
+            directory=os.path.dirname(full_path),
+            suffix='',
+        )
 
 @function_logger
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
