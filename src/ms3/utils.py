@@ -1,4 +1,3 @@
-import dataclasses
 import io
 import json
 import logging
@@ -2935,33 +2934,51 @@ def roman_numeral2semitones(rn, global_minor=False):
     step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
     return step_tpc + accidentals
 
-
-def scale_degree2name(sd, localkey, globalkey):
+@overload
+def scale_degree2name(fifths: int, localkey: str, globalkey: str) -> str:
+    ...
+@overload
+def scale_degree2name(fifths: pd.Series, localkey: str, globalkey: str) -> pd.Series:
+    ...
+@overload
+def scale_degree2name(fifths: NDArray[int], localkey: str, globalkey: str) -> NDArray[str]:
+    ...
+@overload
+def scale_degree2name(fifths: List[int], localkey: str, globalkey: str) -> List[str]:
+    ...
+@overload
+def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tuple[str]:
+    ...
+def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                      localkey: str,
+                      globalkey: str) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'E' minor is 'F'.
 
-    Parameters
-    ----------
-    sd : :obj:`int`
-        Scale degree expressed as distance from the tonic in fifths.
-    localkey : :obj:`str`
-        Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
-    globalkey : :obj:`str`
-        Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
+    Args:
+        fifths: Scale degree expressed as distance from the tonic in fifths.
+        localkey: Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
+        globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
 
-    Returns
-    -------
-    :obj:`str`
-        The given scale degree, expressed as a note name.
-
+    Returns:
+        The given scale degree(s), expressed as a note name(s).
     """
-    if any(pd.isnull(val) for val in (sd, localkey, globalkey)):
-        return pd.NA
+    try:
+        if any(pd.isnull(val) for val in (fifths, localkey, globalkey)):
+            return fifths
+    except ValueError:
+        pass
+    if isinstance(fifths, pd.Series):
+        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
+    try:
+        fifths = int(float(fifths))
+    except TypeError:
+        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
     global_minor = globalkey.islower()
     if '/' in localkey:
         localkey = resolve_relative_keys(localkey, global_minor)
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
     gk_fifths = name2fifths(globalkey)
-    sd_transposed = sd + lk_fifths + gk_fifths
+    sd_transposed = fifths + lk_fifths + gk_fifths
     return fifths2name(sd_transposed)
 
 
@@ -4386,6 +4403,10 @@ def transpose(e, n):
 
 
 def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
+    """Turns a list of log messages into an iterator of (logger_name, (message_info, ...)) pairs.
+    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(Parse|Corpus).corpus.fname [-- potentially more, irrelevant stuff].
+    The header might be followed by several lines of comments, each beginning with a space or tab.
+    """
     if isinstance(messages, str):
         yield from parse_ignored_warnings([messages])
     else:
