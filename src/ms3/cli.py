@@ -9,9 +9,9 @@ import re
 from collections import defaultdict
 from typing import Optional
 
-from ms3 import Parse
+from ms3 import Parse, make_coloring_reports_and_warnings
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, fifths2sd, scale_degree2name, capture_parse_logs
+from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
@@ -287,54 +287,6 @@ def check_dir(d):
         if not os.path.isdir(d):
             raise argparse.ArgumentTypeError(d + ' needs to be an existing directory')
     return resolve_dir(d)
-
-
-def make_coloring_reports_and_warnings(parse_obj: Parse,
-                                       out_dir: Optional[str] = None,
-                                       threshold: float = 0.6) -> bool:
-    """Performs the note coloring, stores the reports as TSV files in the reviewed folder, and logs warnings about
-    those chord label segments where the ratio of out-of-label chords is greater than the given threshold.
-
-
-    Args:
-        parse_obj:
-            Parse object with parsed scores containing labels. Coloring will be performed in the XML structure in the
-            memory and scores have to be written to disk to see the result.
-        out_dir: By default, reports are written to <CORPUS_PATH>/reviewed unless another path is specified here.
-        threshold: Above which ratio of out-of-label tones a warning is to be issued.
-
-    Returns:
-        False if at least one label went beyond the threshold, True otherwise.
-    """
-    review_reports = parse_obj.color_non_chord_tones()
-    test_passes = True
-    for (corpus_name, fname), file_df_pairs in review_reports.items():
-        piece_logger = get_logger(parse_obj[corpus_name].logger_names[fname])
-        is_first = True
-        for file, report in file_df_pairs:
-            report_path = compute_path_from_file(file, root_dir=out_dir, folder='reviewed')
-            report_file = os.path.join(report_path, file.fname + '_reviewed.tsv')
-            if not is_first and os.path.isfile(report_file):
-                get_logger('ms3.review').warning(f"This coloring report has been overwritten because several scores have the same fname:\n{report_file}")
-            write_tsv(report, report_file)
-            is_first = False
-            warning_selection = (report.count_ratio > threshold) & report.chord_tones.notna()
-            if warning_selection.sum() > 0:
-                test_passes = False
-            else:
-                continue
-            for t in report[warning_selection].itertuples():
-                if len(t.added_tones) > 0:
-                    added = f" plus the added {(fifths2sd(t.added_tones, t.localkey_is_minor))} [{scale_degree2name(t.added_tones, t.localkey, t.globalkey)}]"
-                else:
-                    added = ""
-                msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems not to correspond well to the score (which does not necessarily mean it is wrong).
-In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {(fifths2sd(t.chord_tones, t.localkey_is_minor))} [{scale_degree2name(t.chord_tones, t.localkey, t.globalkey)}]{added}.
-The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets, a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
-If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed by a free-text comment in subsequent lines starting with a space or tab."""
-                piece_logger.warning(msg, extra={'message_id': (19, t.mc, str(t.mc_onset), t.label)})
-    return test_passes
-
 
 
 def review_cmd(args,
