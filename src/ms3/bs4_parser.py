@@ -2088,12 +2088,18 @@ class Prelims(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Prelims', logger_cfg)
         self.soup = soup
-        first_measure = soup.find('Measure')
-        try:
-            self.vbox = next(sib for sib in first_measure.previous_siblings if sib.name == 'VBox')
-        except StopIteration:
+        part = soup.find('Part')
+        first_staff = part.find_next_sibling('Staff')
+        vbox_nodes = first_staff.find_all('VBox')
+        if len(vbox_nodes) == 0:
             self.vbox = self.soup.new_tag('VBox')
-            self.logger.debug('Inserted <VBox> before first <Measure> tag.')
+            first_staff.insert(0, self.vbox)
+            self.logger.debug('Inserted <VBox> at the beginning of the first staff.')
+        else:
+            self.vbox = vbox_nodes[0]
+            if len(vbox_nodes) > 1:
+                self.logger.warning(f"First staff starts off with more than one VBox. Picked the first one.")
+
 
 
 
