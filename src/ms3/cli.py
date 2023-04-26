@@ -358,6 +358,7 @@ def review_cmd(args,
         if len((warnings := piece2warnings[pieceID])) > 0:
             header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
             header = f"{header}\n{'=' * len(header)}\n\n"
+            os.makedirs(warnings_path, exist_ok=True)
             with open(warnings_file, 'w', encoding='utf-8') as f:
                 f.write(header)
                 f.write('\n'.join(warnings))

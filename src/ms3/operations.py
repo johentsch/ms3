@@ -267,6 +267,7 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
         is_first = True
         for file, report in file_df_pairs:
             report_path = compute_path_from_file(file, root_dir=out_dir, folder='reviewed')
+            os.makedirs(report_path, exist_ok=True)
             report_file = os.path.join(report_path, file.fname + '_reviewed.tsv')
             if not is_first and os.path.isfile(report_file):
                 get_logger('ms3.review').warning(f"This coloring report has been overwritten because several scores have the same fname:\n{report_file}")
