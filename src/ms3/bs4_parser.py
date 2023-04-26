@@ -2105,6 +2105,7 @@ class Prelims(LoggedClass):
 
     @property
     def text_tags(self) -> Dict[str, bs4.Tag]:
+        """Returns a {key->tag} dict reflecting the <Text> tags currently present in the first <VBox>."""
         tag_dict = {}
         for text_tag in self.vbox.find_all('Text'):
             style = text_tag.find('style')
@@ -2119,7 +2120,8 @@ class Prelims(LoggedClass):
         return tag_dict
 
     @property
-    def fields(self):
+    def fields(self) -> Dict[str, str]:
+        """Returns a {key->value} dict reflecting the currently set <text> values."""
         result = {}
         for key, tag in self.text_tags.items():
             value, _ = tag2text(tag)
@@ -2148,11 +2150,15 @@ class Prelims(LoggedClass):
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
         # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
-        value_as_paragraph = bs4.BeautifulSoup(new_value, 'lxml').find('p')
-        if value_as_paragraph is not None:
-            text_contents = value_as_paragraph.contents
-            for tag in text_contents:
-                text_tag.append(copy(tag))
+        new_value_as_html_body = bs4.BeautifulSoup(new_value, 'lxml').find('body')
+        new_value_as_p_tag = new_value_as_html_body.find('p')
+        if new_value_as_p_tag is None:
+            # if the created HTML contains a <p> tag, the new value (with tags or without) has been wrapped
+            iter_contents = new_value_as_html_body.contents
+        else:
+            iter_contents = new_value_as_p_tag.contents
+        for tag_or_string in iter_contents:
+            text_tag.append(copy(tag_or_string))
         clean_tag.append(text_tag)
         text_tags = self.text_tags
         if existing_value is None:
@@ -2161,7 +2167,7 @@ class Prelims(LoggedClass):
                 following_present_key = next(k for k in self.keys[following_key_index:] if k in text_tags)
                 following_tag = text_tags[following_present_key]
                 following_tag.insert_before(clean_tag)
-                self.logger.info(f"Inserted {key} before existing {following_key_index}.")
+                self.logger.info(f"Inserted {key} before existing {self.keys[following_key_index]}.")
             except StopIteration:
                 self.vbox.append(clean_tag)
                 self.logger.info(f"Appended {key} as last tag of the VBox (after {text_tags.keys()}).")
