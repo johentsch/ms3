@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 1.2.6
+=============
+
+
+* changes the behaviour of the ``ms3 review`` command
+  * after coloring out-of-label notes, issue one warning per dubious label
+  * rather than one `warnings.log` file per corpus, create one `<fname>.warnings` file per piece in the `reviewed` folder
+* makes ``ms3 empty`` work under the new CLI (d8f661a)
+
 Version 1.2.5
 =============
 
