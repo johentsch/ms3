@@ -341,13 +341,15 @@ def review_cmd(args,
     logger2pieceID = {corpus.logger_names[fname]: (c, fname) for c, corpus in p.corpus_objects.items() for fname in corpus.keys()}
     piece2warnings = defaultdict(list)
     for warning in accumulated_warnings:
-        try:
-            match = next(logger_name for component in warning.split() if (logger_name := re.match(r"ms3\.Parse\.(?P<corpus>\S+)\.(?P<fname>\S+)$", component)))
-        except StopIteration:
-            logger.warning(f"This warning contains no valid logger name, skipping: {warning}")
+        warning_lines = warning.splitlines()
+        first_line = warning_lines[0]
+        match = re.search(r"ms3\.Parse\.\S+\.\S+", first_line)
+        if match is None:
+            logger.warning(f"This warning contains no ms3 logger name, skipping: {warning}")
             continue
+        warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
         pieceID = logger2pieceID[match.group(0)]
-        piece2warnings[pieceID].append(warning)
+        piece2warnings[pieceID].append('\n'.join(warning_lines))
 
 
     # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
