@@ -306,13 +306,13 @@ def review_cmd(args,
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        with capture_parse_logs(p.logger) as captured_warnings:
-            test_passes = check(p,
-                                ignore_labels=args.ignore_labels,
-                                ignore_scores=args.ignore_scores,
-                                assertion=False,
-                                parallel=False)
-            accumulated_warnings.extend(captured_warnings.content_list)
+        warning = check(p,
+                            ignore_labels=args.ignore_labels,
+                            ignore_scores=args.ignore_scores,
+                            assertion=False,
+                            parallel=False)
+        accumulated_warnings.extend(warning)
+        test_passes = len(warning) == 0
         p.parse_tsv()
     else:
         test_passes = True
@@ -334,7 +334,7 @@ def review_cmd(args,
     # color out-of-label tones
     print("COLORING OUT-OF-LABEL TONES...")
     with capture_parse_logs(p.logger) as captured_warnings:
-        test_passes = test_passes and make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold)
+        test_passes = make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold) and test_passes
         accumulated_warnings.extend(captured_warnings.content_list)
 
     # attribute warnings to pieces based on logger names

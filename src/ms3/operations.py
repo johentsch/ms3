@@ -104,7 +104,7 @@ def check(parse_obj: Parse,
           ignore_labels: bool = False,
           ignore_scores: bool = False,
           assertion: bool = False,
-          parallel: bool = True) -> bool:
+          parallel: bool = True) -> List[str]:
     assert ignore_labels + ignore_scores < 2, "Activate either ignore_labels or ignore_scores, not both."
     all_warnings = []
     check_logger = get_logger("ms3.check", level=parse_obj.logger.getEffectiveLevel())
@@ -137,9 +137,7 @@ def check(parse_obj: Parse,
         else:
             msg = 'All checked scores and labels alright.'
         check_logger.info(msg)
-        return True
-    else:
-        return False
+    return all_warnings
 
 @function_logger
 def compare(parse_obj: Parse,
