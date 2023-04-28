@@ -306,13 +306,13 @@ def review_cmd(args,
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        with capture_parse_logs(p.logger) as captured_warnings:
-            test_passes = check(p,
-                                ignore_labels=args.ignore_labels,
-                                ignore_scores=args.ignore_scores,
-                                assertion=False,
-                                parallel=False)
-            accumulated_warnings.extend(captured_warnings.content_list)
+        warning = check(p,
+                            ignore_labels=args.ignore_labels,
+                            ignore_scores=args.ignore_scores,
+                            assertion=False,
+                            parallel=False)
+        accumulated_warnings.extend(warning)
+        test_passes = len(warning) == 0
         p.parse_tsv()
     else:
         test_passes = True
@@ -334,20 +334,22 @@ def review_cmd(args,
     # color out-of-label tones
     print("COLORING OUT-OF-LABEL TONES...")
     with capture_parse_logs(p.logger) as captured_warnings:
-        test_passes = test_passes and make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold)
+        test_passes = make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold) and test_passes
         accumulated_warnings.extend(captured_warnings.content_list)
 
     # attribute warnings to pieces based on logger names
     logger2pieceID = {corpus.logger_names[fname]: (c, fname) for c, corpus in p.corpus_objects.items() for fname in corpus.keys()}
     piece2warnings = defaultdict(list)
     for warning in accumulated_warnings:
-        try:
-            match = next(logger_name for component in warning.split() if (logger_name := re.match(r"ms3\.Parse\.(?P<corpus>\S+)\.(?P<fname>\S+)$", component)))
-        except StopIteration:
-            logger.warning(f"This warning contains no valid logger name, skipping: {warning}")
+        warning_lines = warning.splitlines()
+        first_line = warning_lines[0]
+        match = re.search(r"ms3\.Parse\.\S+\.\S+", first_line)
+        if match is None:
+            logger.warning(f"This warning contains no ms3 logger name, skipping: {warning}")
             continue
+        warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
         pieceID = logger2pieceID[match.group(0)]
-        piece2warnings[pieceID].append(warning)
+        piece2warnings[pieceID].append('\n'.join(warning_lines))
 
 
     # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured

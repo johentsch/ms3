@@ -32,7 +32,7 @@ from typing_extensions import Self
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.2.6'
+MS3_VERSION = '1.2.7'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -5186,7 +5186,7 @@ def parse_tsv_file_at_git_revision(file: File,
     except Exception as e:
         logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}")
         return None, None
-    new_file = dataclasses.replace(file, commit_sha=commit_sha)
+    new_file = replace(file, commit_sha=commit_sha)
     return new_file, parsed
 
 

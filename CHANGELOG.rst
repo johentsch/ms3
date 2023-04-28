@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 1.2.7
+=============
+
+* warning files omit system-dependend information from warning headers (6764476)
+* bugfixes
+
 Version 1.2.6
 =============
 
