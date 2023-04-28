@@ -1273,6 +1273,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             ambitus[staff]['max_midi'] = int(max_midi)
             ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        # for including the metadata as one line in metadata.tsv the function utils.metadata2series() is used
+        # which updates `data` with the items of all part dictionaries, removing they key 'parts' afterwards
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:
                 part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
