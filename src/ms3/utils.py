@@ -5186,7 +5186,7 @@ def parse_tsv_file_at_git_revision(file: File,
     except Exception as e:
         logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}")
         return None, None
-    new_file = dataclasses.replace(file, commit_sha=commit_sha)
+    new_file = replace(file, commit_sha=commit_sha)
     return new_file, parsed
 
 
