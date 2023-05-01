@@ -316,13 +316,16 @@ def generate_dez(path_measures: str,
     origin : :obj:`tuple`
         Tuple of source(s) from which the labels originate. Defaults to "DCML".
     """
-    harmonies_df = pd.read_csv(
-        path_labels, sep='\t',
-        converters={'mc': int,
-                    'mc_onset': safe_frac,
-                    'quarterbeats': safe_frac,
-                    }
-    )
+    try:
+        harmonies_df = pd.read_csv(
+            path_labels, sep='\t',
+            converters={'mc': int,
+                        'mc_onset': safe_frac,
+                        'quarterbeats': safe_frac,
+                        }
+        )
+    except (ValueError, AssertionError, FileNotFoundError) as e:
+        raise ValueError(f"{path_labels} could not be loaded as a measure map because of the following error:\n'{e}'")
     try:
         measures_df = pd.read_csv(
             path_measures, sep='\t',
@@ -331,7 +334,7 @@ def generate_dez(path_measures: str,
                         'quarterbeats': safe_frac,
                         'act_dur': safe_frac}
         )
-    except (ValueError, AssertionError) as e:
+    except (ValueError, AssertionError, FileNotFoundError) as e:
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
 
     dezrann_labels = []
