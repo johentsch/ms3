@@ -2159,7 +2159,7 @@ class Parts(LoggedClass):
         self.parts_data = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
 
     @property
-    def map_staff2part(self) -> dict[list, str]:
+    def staff2part(self) -> dict[list, str]:
         """Returns the dict in the format {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
         staff2part = {}
         for key_part, part in self.parts_data.items():
@@ -2239,7 +2239,7 @@ class Instrumentation(LoggedClass):
 
     def get_instrument_name(self, staff_name):
         fields_data = self.fields
-        if staff_name not in self.parts.map_staff2part.keys() or staff_name not in fields_data:
+        if staff_name not in self.parts.staff2part.keys() or staff_name not in fields_data:
             raise KeyError(f"No data for staff '{staff_name}'")
         else:
             return fields_data[staff_name]['trackName']
