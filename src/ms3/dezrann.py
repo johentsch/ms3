@@ -116,8 +116,26 @@ LINE_VALUES = {
 }
 """The six annotation layers of the Dezrann app, three above ('top') and three below ('bot') the score."""
 
-DezrannLayer: TypeAlias = Literal["top.1", "top.2", "top.3", "bot.1", "bot.2", "bot.3"]
+DEZ_LINE_ARGS = (0, 1, 2, 3, 4, 5, 6, -1, -2, -3)
+
+DezrannLayer: TypeAlias = Literal["top.1", "top.2", "top.3", "bot.1", "bot.2", "bot.3", 1, 2, 3, 4, 5, 6, -1, -2, -3]
 """More expressive than simply annotating with 'str'."""
+
+def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
+    """Takes a number between -3 and 6 and turns it into one of the possible Dezrann line values.
+    0 is interpreted as None. -1, -2, -3 correspond to 4, 5, 6"""
+    if line is None:
+        return
+    try:
+        line = int(line)
+        assert line in DEZ_LINE_ARGS
+    except (TypeError, ValueError, AssertionError):
+        raise ValueError(f"{line} is not a valid argument, should be within [-3, 6].")
+    if line == 0:
+        return None
+    if line < 0:
+        line = abs(line) + 3
+    return LINE_VALUES[line]
 
 def safe_frac(s: str) -> Union[Fraction, str]:
     try:
@@ -223,7 +241,7 @@ def dcml_labels2dicts(labels: pd.DataFrame,
     label_and_qb = pd.concat([labels[label_column].rename('label'), quarterbeats.astype(float)], axis=1)
     n_before = len(labels.index)
     if label_column == 'phraseend':
-        label_and_qb = label_and_qb[label_and_qb.label == '{']
+        label_and_qb = label_and_qb[label_and_qb.label.fillna('').str.contains('{')]
     if label_column == 'localkey':
         label_and_qb = label_and_qb[label_and_qb.label != label_and_qb.label.shift().fillna(True)]
     else: # {'chord', 'cadence', 'label'}
@@ -318,7 +336,7 @@ def generate_dez_from_dfs(measures_df: pd.DataFrame,
                           keys: Optional[DezrannLayer] = None,
                           phrases: Optional[DezrannLayer] = None,
                           raw: Optional[DezrannLayer] = None,
-                          origin: Union[str, Tuple[str]] = "DCML") -> None:
+                          origin: Union[str, Tuple[str]] = "DCML") -> bool:
     """ Create a .dez file from a measures and a labels/expanded dataframe.
 
     Args:
@@ -331,7 +349,16 @@ def generate_dez_from_dfs(measures_df: pd.DataFrame,
         phrases: Specify a DezrannLayer to include the labels from the 'phraseend' column.
         raw: Specify a DezrannLayer to include the labels from the 'label' column.
         origin: Value to show in Dezrann's "Layer" field. Defaults to 'DCML'.
+
+    Returns:
+        True if a .dez file was written.
     """
+    annotation_layer_arguments = {arg: transform_line_argument(arg_val) for arg, arg_val in zip(("harmonies", "keys", "phrases", "raw"), (harmonies, keys, phrases, raw))}
+    parameters = {arg: arg_val is not None for arg, arg_val in annotation_layer_arguments.items()}
+    parameters['cadences'] = cadences
+    if not any(parameters.values()):
+        print(f"Nothing to do because no features have been selected.")
+        return False
     dezrann_labels = []
     if cadences and 'cadence' in harmonies_df.columns:
         dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column='cadence')
@@ -347,6 +374,9 @@ def generate_dez_from_dfs(measures_df: pd.DataFrame,
                 label_type=label_type,
                 origin=origin
             )
+    if len(dezrann_labels) == 0:
+        print(f"{output_path} not written because no labels correspond to the parameters: {parameters}")
+        return False
     layout = make_layout(
         cadences=cadences,
         harmonies=harmonies,
@@ -357,6 +387,7 @@ def generate_dez_from_dfs(measures_df: pd.DataFrame,
     dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(dezrann_content, f, indent=2)
+    return True
 
 
     
@@ -368,7 +399,7 @@ def generate_dez(path_measures: str,
                  keys: Optional[DezrannLayer] = None,
                  phrases: Optional[DezrannLayer] = None,
                  raw: Optional[DezrannLayer] = None,
-                 origin: Union[str, Tuple[str]] = "DCML") -> None:
+                 origin: Union[str, Tuple[str]] = "DCML") -> bool:
     """ Create a .dez file from a path to a measures TSV file and a path to a labels/expanded TSV file.
 
     Args:
@@ -381,6 +412,12 @@ def generate_dez(path_measures: str,
         phrases: Specify a DezrannLayer to include the labels from the 'phraseend' column.
         raw: Specify a DezrannLayer to include the labels from the 'label' column.
         origin: Value to show in Dezrann's "Layer" field. Defaults to 'DCML'.
+
+    Returns:
+        True if a .dez file was written.
+
+    Raises:
+        ValueError if reading from one of the specified file paths fails.
     """
     try:
         harmonies_df = pd.read_csv(
@@ -403,7 +440,7 @@ def generate_dez(path_measures: str,
     except (ValueError, AssertionError, FileNotFoundError) as e:
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
 
-    generate_dez_from_dfs(measures_df, harmonies_df, output_path, cadences, harmonies, keys, phrases, raw, origin)
+    return generate_dez_from_dfs(measures_df, harmonies_df, output_path, cadences, harmonies, keys, phrases, raw, origin)
 
 
 def main(input_dir: str,
@@ -451,6 +488,7 @@ def main(input_dir: str,
     if len(harmony_measure_matches) == 0:
         print(f"No matching measures TSVs found for any of these files: {input_files}")
         return
+    created_files = 0
     for input_file, measure_file in harmony_measure_matches:
         if output_dir == input_dir:
             output_file_path = input_file.replace(".tsv", ".dez")
@@ -458,7 +496,7 @@ def main(input_dir: str,
             dez_file = os.path.basename(measure_file).replace(".tsv", ".dez")
             output_file_path = os.path.join(output_dir, dez_file)
         try:
-            generate_dez(
+            created_files += generate_dez(
                 path_labels=input_file,
                 path_measures=measure_file,
                 output_path=output_file_path,
@@ -471,22 +509,9 @@ def main(input_dir: str,
             print(f"{output_file_path} successfully written.")
         except Exception as e:
             print(f"Converting {input_file} failed with '{e}'")
+    print(f"Done. Created {created_files} .dez files.")
 
 
-def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
-    """Takes a number bet"""
-    if line is None:
-        return
-    try:
-        line = int(line)
-        assert line in [1,2,3,4,5,6, 0 -1, -2, -3]
-    except (TypeError, ValueError, AssertionError):
-        raise ValueError(f"{line} is not a valid argument, should be within [0, 6].")
-    if line == 0:
-        return None
-    if line < 0:
-        line = abs(line) + 3
-    return LINE_VALUES[line]
 
 def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``d`` into an absolute path.
@@ -575,7 +600,7 @@ ms3 extract -h will show you all options.
                         action="store_true",
                         help="Pass this flag if you want to add time-point cadence labels to the .dez files."
                         )
-    possible_line_arguments = ("0", "1", "2", "3", "4", "5", "6", "-1", "-2", "-3")
+    possible_line_arguments = tuple(str(i) for i in DEZ_LINE_ARGS)
     parser.add_argument('-H',
                         '--harmonies',
                         metavar="{0-6}, default: 4",
