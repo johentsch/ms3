@@ -101,12 +101,23 @@ Here is an example of Dezrann file structure:
 import argparse
 import json
 import os
-from typing import Dict, List, TypedDict, Union, Tuple, Optional
+from typing import Dict, List, TypedDict, Union, Tuple, Optional, TypeAlias, Literal
 
 from fractions import Fraction
 import pandas as pd
 
+LINE_VALUES = {
+    1: "top.1",
+    2: "top.2",
+    3: "top.3",
+    4: "bot.1",
+    5: "bot.2",
+    6: "bot.3"
+}
+"""The six annotation layers of the Dezrann app, three above ('top') and three below ('bot') the score."""
 
+DezrannLayer: TypeAlias = Literal["top.1", "top.2", "top.3", "bot.1", "bot.2", "bot.3"]
+"""More expressive than simply annotating with 'str'."""
 
 def safe_frac(s: str) -> Union[Fraction, str]:
     try:
@@ -276,10 +287,10 @@ def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
 
 def make_layout(
                cadences: bool = False,
-               harmonies: Optional[str] = None,
-               keys: Optional[str] = None,
-               phrases: Optional[str] = None,
-               raw: Optional[str] = None):
+               harmonies: Optional[DezrannLayer] = None,
+               keys: Optional[DezrannLayer] = None,
+               phrases: Optional[DezrannLayer] = None,
+               raw: Optional[DezrannLayer] = None):
     """
     Compile the line positions for target labels into Dezrann layout parameter.
     """
@@ -299,22 +310,25 @@ def make_layout(
     
 def generate_dez(path_measures: str,
                  path_labels: str,
-                 output_path: str = "labels.dez",
+                 output_path: str,
                  cadences: bool = False,
-                 harmonies: Optional[str] = None,
-                 keys: Optional[str] = None,
-                 phrases: Optional[str] = None,
-                 raw: Optional[str] = None,
-                 origin: Union[str, Tuple[str]] = "DCML"):
-    """
-    path_measures : :obj:`str`
-        Path to a TSV file as output by format_data().
-    path_labels : :obj:`str`
-        Path to a TSV file as output by format_data().
-    output_labels : :obj:`str`
-        Path to a TSV file as output by format_data().
-    origin : :obj:`tuple`
-        Tuple of source(s) from which the labels originate. Defaults to "DCML".
+                 harmonies: Optional[DezrannLayer] = None,
+                 keys: Optional[DezrannLayer] = None,
+                 phrases: Optional[DezrannLayer] = None,
+                 raw: Optional[DezrannLayer] = None,
+                 origin: Union[str, Tuple[str]] = "DCML") -> None:
+    """ Create a .dez file from a path to a measures TSV file and a path to a labels/expanded TSV file.
+
+    Args:
+        path_measures: Path to a DCML measures TSV file.
+        path_labels: Path to a DCML labels/expanded TSV file.
+        output_path: Path to the .dez file to be (over)written.
+        cadences: If True (default), labels in the 'cadence' column (if present) are included as vertical lines.
+        harmonies: Specify a DezrannLayer to include the labels from the 'chord' column.
+        keys: Specify a DezrannLayer to include the labels from the 'localkey' column.
+        phrases: Specify a DezrannLayer to include the labels from the 'phraseend' column.
+        raw: Specify a DezrannLayer to include the labels from the 'label' column.
+        origin: Value to show in Dezrann's "Layer" field. Defaults to 'DCML'.
     """
     try:
         harmonies_df = pd.read_csv(
@@ -338,7 +352,7 @@ def generate_dez(path_measures: str,
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
 
     dezrann_labels = []
-    if cadences:
+    if cadences and 'cadence' in harmonies_df.columns:
         dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column='cadence')
         dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
     for arg, label_column, label_type in ((harmonies, "chord", "Harmony"), #Third argument
@@ -392,10 +406,27 @@ def main(input_dir: str,
          measures_dir: str,
          output_dir: str,
          cadences: bool = False,
-         harmonies: Optional[str] = None,
-         keys: Optional[str] = None,
-         phrases: Optional[str] = None,
-         raw: Optional[str] = None):
+         harmonies: Optional[DezrannLayer] = None,
+         keys: Optional[DezrannLayer] = None,
+         phrases: Optional[DezrannLayer] = None,
+         raw: Optional[DezrannLayer] = None) -> None:
+    """ Main function for using this module as a script. It gathers file paths and converts the detected DCML-style
+    labels/expanded TSV file to .dez format.
+
+    Args:
+        input_dir: Path containing DCML-style labels/expanded TSV files.
+        measures_dir: Path containing the corresponding DCML-style measures TSV files.
+        output_dir: Path at which the resulting .dez file are to be (over)written.
+        cadences: If True (default), labels in the 'cadence' column (if present) are included as vertical lines.
+        harmonies: Specify a DezrannLayer to include the labels from the 'chord' column.
+        keys: Specify a DezrannLayer to include the labels from the 'localkey' column.
+        phrases: Specify a DezrannLayer to include the labels from the 'phraseend' column.
+        raw: Specify a DezrannLayer to include the labels from the 'label' column.
+        origin: Value to show in Dezrann's "Layer" field. Defaults to 'DCML'.
+
+    Returns:
+
+    """
     if not cadences and all(arg is None for arg in (harmonies, keys, phrases, raw)):
         print(f"Nothing to do because no features have been selected.")
         return
@@ -411,10 +442,10 @@ def main(input_dir: str,
             harmonies_file_path = os.path.join(input_dir, tsv_name)
             harmony_measure_matches.append((harmonies_file_path, measures_file_path))
         else:
-            print(f"No measure map found for {tsv_name}. Skipping.")
+            print(f"No measures TSV found for {tsv_name}. Skipping.")
             continue
     if len(harmony_measure_matches) == 0:
-        print(f"No matching measure maps found for any of these files: {input_files}")
+        print(f"No matching measures TSVs found for any of these files: {input_files}")
         return
     for input_file, measure_file in harmony_measure_matches:
         if output_dir == input_dir:
@@ -437,14 +468,6 @@ def main(input_dir: str,
         except Exception as e:
             print(f"Converting {input_file} failed with '{e}'")
 
-LINE_VALUES = {
-    1: "top.1",
-    2: "top.2",
-    3: "top.3",
-    4: "bot.1",
-    5: "bot.2",
-    6: "bot.3"
-}
 
 def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
     """Takes a number bet"""
