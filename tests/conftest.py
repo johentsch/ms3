@@ -10,7 +10,7 @@ from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
 TEST_COMMIT = "5899afe" # commit of DCMLab/unittest_metacorpus for which the tests should pass
-MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), '..', '..'))
+MS3_DIR = os.path.abspath(os.path.join(os.path.realpath(__file__), '..', '..'))
 DOCS_DIR = os.path.join(MS3_DIR, 'docs')
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
 
@@ -32,6 +32,16 @@ def directory():
 @pytest.fixture(scope="session")
 def small_directory(directory):
     path = os.path.join(directory, "ravel_piano")
+    return path
+
+@pytest.fixture(scope="session")
+def mozart_piano_sonatas() -> str:
+    """Get the path to local clone of DCMLab/mozart_piano_sonatas"""
+    path = os.path.join(os.path.expanduser(CORPUS_DIR), "mozart_piano_sonatas")
+    if not os.path.isdir(path):
+        print(f"Directory does not exist: {path} Clone DCMLab/mozart_piano_sonatas into the CORPUS_DIR specified above.")
+    assert os.path.isdir(path)
+    assert Repo(path) # this makes sure it's a Git
     return path
 
 @pytest.fixture(
@@ -106,6 +116,7 @@ def parse_obj(directory, request) -> Parse:
             p.add_dir(os.path.join(directory, 'outputs'))
             for path in files:
                 p.add_files(path, corpus_name='sweelinck_keyboard')
+
     return p
 
 @pytest.fixture(

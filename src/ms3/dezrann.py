@@ -380,28 +380,6 @@ def generate_dez(path_measures: str,
         json.dump(dezrann_content, f, indent=2)
 
 
-# Test
-MOZART_SONATAS = [
-    'K279-1', 'K279-2', 'K279-3',
-    'K280-1', 'K280-2', 'K280-3',
-    'K283-1', 'K283-2', 'K283-3',
-]
-MEASURE_DIR = os.path.join("src", "ms3") #to be updated
-HARMONY_DIR = os.path.join("src", "ms3") #to be updated
-MEASURE_PATHS = [
-    os.path.join(MEASURE_DIR, f"{movement}_measures.tsv")
-    for movement in MOZART_SONATAS
-]
-HARMONY_PATHS = [
-    os.path.join(HARMONY_DIR, f"{movement}_harmonies.tsv")
-    for movement in MOZART_SONATAS
-]
-
-OUTPUT_DIR = "." #to be updated
-def generate_all_dez(output_dir=OUTPUT_DIR):
-    for i_piece, piece in enumerate(MOZART_SONATAS):
-        generate_dez(MEASURE_PATHS[i_piece], HARMONY_PATHS[i_piece])
-
 def main(input_dir: str,
          measures_dir: str,
          output_dir: str,
@@ -606,12 +584,3 @@ ms3 extract -h will show you all options.
 
 if __name__ == "__main__":
     run()
-
-
-    # import ms3
-    # measures = ms3.load_tsv('K283-2_measures.tsv')
-    # harmonies = ms3.load_tsv('K283-2_harmonies.tsv')
-    # transformed = transform_df(labels=harmonies, measures=measures)
-
-    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv', cadences=True, harmonies="bot.4", keys="bot.5", phrases="bot.6", raw="top.3")
-    #generate_all_dez()
