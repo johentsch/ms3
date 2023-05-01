@@ -1,12 +1,54 @@
 import os
+from typing import Optional
+
 from git import Repo
 from ms3.cli import get_arg_parser, review_cmd, extract_cmd, compare_cmd
+
+
+def get_repo_changes(repo, name: Optional[str] = None) -> str:
+    """Produce a git status-like summary of changes and  untracked files."""
+    if name is None:
+        result = "\n"
+    else:
+        result = "\n" + name + "\n" + len(name) * "=" + "\n"
+    changes = repo.index.diff(None)
+    no_changes = len(changes) == 0
+    untracked = repo.untracked_files
+    no_untracked = len(untracked) == 0
+    if no_changes and no_untracked:
+        result += "Clean."
+        return result
+    if no_changes:
+        result += "DIFF: no changes\n"
+    else:
+        changes_str = '\n'.join('\t' + change for change in changes)
+        result += f"DIFF:\n{changes_str}\n"
+    if no_untracked:
+        result += "UNTRACKED FILES: none"
+    else:
+        untracked_str = '\n'.join('\t' + file for file in untracked)
+        result += f"UNTRACKED FILES:\n{untracked_str}"
+    return result
+
+def assert_test_repo_unchanged(path_to_git_repo):
+    repo = Repo(path_to_git_repo)
+    is_clean = {}
+    repo_name = os.path.basename(repo.git.rev_parse("--show-toplevel"))
+    print(get_repo_changes(repo, repo_name))
+    is_clean[repo_name] = not repo.is_dirty(untracked_files=True)
+    for sm in repo.iter_submodules():
+        smm = sm.module()
+        print(get_repo_changes(smm, sm.name))
+        is_clean[sm.name] = not smm.is_dirty(untracked_files=True)
+    assert all(is_clean.values())
 
 
 def test_review_cmd(directory):
     parser = get_arg_parser()
     args = parser.parse_args(["review", "-d", directory])
     review_cmd(args)
+    # make sure the repo has not changed
+    assert_test_repo_unchanged(directory)
 
 def test_compare_cmd():
     parser = get_arg_parser()

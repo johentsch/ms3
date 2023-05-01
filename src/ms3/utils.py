@@ -1,4 +1,3 @@
-import dataclasses
 import io
 import json
 import logging
@@ -6,7 +5,7 @@ import os,sys, platform, re, shutil, subprocess
 import warnings
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from fractions import Fraction as frac
 from functools import reduce, lru_cache
@@ -28,11 +27,12 @@ from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
+from typing_extensions import Self
 
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.2.4'
+MS3_VERSION = '1.2.7'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -2652,31 +2652,57 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     except Exception:
         logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
         return df
-    if len(cc) > 0:
-        df = df.copy()
-        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
-        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
-    bc = [c for c in bool_cols if c in df.columns]
-    if len(bc) > 0:
-        if df[bc].isna().any().any():
-            # need to convert to nullable boolean first
-            conv = {c: 'boolean' for c in bc}
-            df = df.astype(conv)
-        conv = {c: 'Int64' for c in bc}
-        df = df.astype(conv)
+    df = df.copy()
+    for c in cc:
+        null_vals = df[c].isna()
+        if null_vals.all():
+            continue
+        df.loc[null_vals, c] = pd.NA
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, c] = transform(df[c], iterable2str)
+        logger.debug(f"Transformed iterables in the column {c} to strings.")
+    #df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
+    boolean_columns = [c for c in bool_cols if c in df.columns]
+    for bc in boolean_columns:
+        null_vals = df[bc].isna()
+        if null_vals.all():
+            continue
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, bc] = df[bc].astype('boolean').astype('Int64')
+        logger.debug(f"Transformed booleans in the column {bc} to integers.")
     return df
 
 
 def ordinal_suffix(n):
     suffixes = {
-        1: 'st',
-        2: 'nd',
-        3: 'rd'
+        "1": 'st',
+        "2": 'nd',
+        "3": 'rd'
     }
-    n = str(n)
-    if n[-1] in suffixes:
-        return suffixes[n[-1]]
-    return 'th'
+    last_digit = str(n)[-1]
+    return suffixes.get(last_digit, 'th')
 
 
 def parts_info(d):
@@ -2908,33 +2934,51 @@ def roman_numeral2semitones(rn, global_minor=False):
     step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
     return step_tpc + accidentals
 
-
-def scale_degree2name(sd, localkey, globalkey):
+@overload
+def scale_degree2name(fifths: int, localkey: str, globalkey: str) -> str:
+    ...
+@overload
+def scale_degree2name(fifths: pd.Series, localkey: str, globalkey: str) -> pd.Series:
+    ...
+@overload
+def scale_degree2name(fifths: NDArray[int], localkey: str, globalkey: str) -> NDArray[str]:
+    ...
+@overload
+def scale_degree2name(fifths: List[int], localkey: str, globalkey: str) -> List[str]:
+    ...
+@overload
+def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tuple[str]:
+    ...
+def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                      localkey: str,
+                      globalkey: str) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'E' minor is 'F'.
 
-    Parameters
-    ----------
-    sd : :obj:`int`
-        Scale degree expressed as distance from the tonic in fifths.
-    localkey : :obj:`str`
-        Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
-    globalkey : :obj:`str`
-        Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
+    Args:
+        fifths: Scale degree expressed as distance from the tonic in fifths.
+        localkey: Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
+        globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
 
-    Returns
-    -------
-    :obj:`str`
-        The given scale degree, expressed as a note name.
-
+    Returns:
+        The given scale degree(s), expressed as a note name(s).
     """
-    if any(pd.isnull(val) for val in (sd, localkey, globalkey)):
-        return pd.NA
+    try:
+        if any(pd.isnull(val) for val in (fifths, localkey, globalkey)):
+            return fifths
+    except ValueError:
+        pass
+    if isinstance(fifths, pd.Series):
+        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
+    try:
+        fifths = int(float(fifths))
+    except TypeError:
+        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
     global_minor = globalkey.islower()
     if '/' in localkey:
         localkey = resolve_relative_keys(localkey, global_minor)
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
     gk_fifths = name2fifths(globalkey)
-    sd_transposed = sd + lk_fifths + gk_fifths
+    sd_transposed = fifths + lk_fifths + gk_fifths
     return fifths2name(sd_transposed)
 
 
@@ -3578,7 +3622,7 @@ def write_metadata(metadata_df: pd.DataFrame,
 @function_logger
 def enforce_fname_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
     """Returns a copy of the DataFrame that has an index level called 'fname'."""
-    possible_column_names = ('fname', 'fnames', 'name', 'names')
+    possible_column_names = ('fname', 'fnames', 'filename', 'name', 'names',)
     if any(name in metadata_df.index.names for name in possible_column_names):
         return metadata_df
     try:
@@ -4359,6 +4403,10 @@ def transpose(e, n):
 
 
 def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
+    """Turns a list of log messages into an iterator of (logger_name, (message_info, ...)) pairs.
+    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(Parse|Corpus).corpus.fname [-- potentially more, irrelevant stuff].
+    The header might be followed by several lines of comments, each beginning with a space or tab.
+    """
     if isinstance(messages, str):
         yield from parse_ignored_warnings([messages])
     else:
@@ -4537,8 +4585,6 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
     return row
 
 
-
-
 @dataclass
 class File:
     """Storing path and file name information for one file."""
@@ -4562,7 +4608,7 @@ class File:
     """Absolute file path."""
     directory: str
     """Absolute folder path where the file is located."""
-    suffix: str
+    suffix: str = ''
     """Upon registering the File with a :obj:`Piece`, if the current fname has a suffix compared to the Piece's fname, 
     suffix is removed from the File object's fname field and added to the suffix field."""
     commit_sha: str = ''
@@ -4572,6 +4618,54 @@ class File:
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
         commit = '' if self.commit_sha == '' else f"@{self.commit_sha[:7]}"
         return f"{self.ix}: '{self.rel_path}'{commit}{suffix}"
+
+    def replace_extension(self, new_extension: str, **kwargs) -> Self:
+        if new_extension[0] != '.':
+            new_extension = '.' + new_extension
+        old_ext_len = len(self.fext)
+        new_vals = {}
+        for field in ("file", "fext", "rel_path", "full_path"):
+            old_val = getattr(self, field)
+            new_vals[field] = old_val[:-old_ext_len] + new_extension
+        return replace(self, **new_vals, **kwargs)
+
+
+    @classmethod
+    def from_corpus_path(cls,
+                         corpus_path: str,
+                         filename: str,
+                         ftype: Optional[str] = None,
+                         subdir='.',
+                         ix: int = -1):
+        """ Creates File object from individual components
+
+        Args:
+            corpus_path: Root directory of the file's corpus.
+            filename: Full file name including suffixes and extensions.
+            ftype: File type (used as default folder name for creating file_paths).
+            subdir: relative directory appended to corpus_path, defaults to '.', i.e. no subfolder.
+            ix: Arbitrary index number, defaults to -1.
+        """
+        full_path = os.path.realpath(os.path.join(corpus_path, subdir, filename))
+        file_name, file_ext = os.path.splitext(filename)
+        rel_path = os.path.join(subdir, filename)
+        if ftype is None:
+            file_type = path2type(full_path, logger=self.logger)
+        else:
+            file_type = ftype
+        return cls(
+            ix=ix,
+            type=file_type,
+            file=filename,
+            fname=file_name,
+            fext=file_ext,
+            subdir=subdir,
+            corpus_path=corpus_path,
+            rel_path=rel_path,
+            full_path=full_path,
+            directory=os.path.dirname(full_path),
+            suffix='',
+        )
 
 @function_logger
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
@@ -4930,23 +5024,23 @@ def resolve_paths_argument(paths: Union[str, Collection[str]],
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
     if files:
-        not_a_file = [p for p in paths if not os.path.isfile(p)]
+        not_a_file = [p for p in resolved_paths if not os.path.isfile(p)]
         if len(not_a_file) > 0:
             if len(not_a_file) == 1:
                 msg = f"No existing file at {not_a_file[0]}."
             else:
                 msg = f"These are not paths of existing files: {not_a_file}"
             logger.warning(msg)
-            resolved_paths = [p for p in paths if os.path.isfile(p)]
+            resolved_paths = [p for p in resolved_paths if os.path.isfile(p)]
     else:
-        not_a_folder = [p for p in paths if not os.path.isdir(p)]
+        not_a_folder = [p for p in resolved_paths if not os.path.isdir(p)]
         if len(not_a_folder) > 0:
             if len(not_a_folder) == 1:
                 msg = f"{not_a_folder[0]} is not a path to an existing folder."
             else:
                 msg = f"These are not paths of existing folders: {not_a_folder}"
             logger.warning(msg)
-            resolved_paths = [p for p in paths if os.path.isdir(p)]
+            resolved_paths = [p for p in resolved_paths if os.path.isdir(p)]
     return resolved_paths
 
 @function_logger
@@ -5092,7 +5186,7 @@ def parse_tsv_file_at_git_revision(file: File,
     except Exception as e:
         logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}")
         return None, None
-    new_file = dataclasses.replace(file, commit_sha=commit_sha)
+    new_file = replace(file, commit_sha=commit_sha)
     return new_file, parsed
 
 

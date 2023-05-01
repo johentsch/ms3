@@ -1,5 +1,5 @@
 import re
-from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator, overload
 
 import sys, os
 from collections import Counter, defaultdict
@@ -568,6 +568,10 @@ class Parse(LoggedClass):
     def count_unparsed_tsvs(self, view_name: Optional[str] = None) -> int:
         return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
 
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(corpus.count_pieces(view_name=view_name) for _, corpus in self.iter_corpora(view_name=view_name))
+
     def create_missing_metadata_tsv(self,
                                     view_name: Optional[str] = None) -> None:
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
@@ -698,7 +702,26 @@ class Parse(LoggedClass):
                                            include_empty=include_empty,
                                            concatenate=concatenate,
                                            )
-
+    @overload
+    def get_files(self, facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty=False,
+                  ) -> Dict[CorpusFnameTuple, FileDict]:
+        ...
+    @overload
+    def get_files(self, facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = True,
+                  include_empty=False,
+                  ) -> Dict[CorpusFnameTuple, FileList]:
+        ...
     def get_files(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
                   parsed: bool = True,

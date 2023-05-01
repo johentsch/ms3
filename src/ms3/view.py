@@ -216,7 +216,7 @@ class View(LoggedClass):
                 regexes = [re.escape(os.path.basename(p)) for p in resolved_paths]
                 self.include('files', *regexes)
         if folder_paths is not None:
-            resolved_paths = resolve_paths_argument(file_paths, files=False)
+            resolved_paths = resolve_paths_argument(folder_paths, files=False)
             if len(resolved_paths) > 0:
                 self.include('paths', *resolved_paths)
         if len(logger_cfg) > 0:
