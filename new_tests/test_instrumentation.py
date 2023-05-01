@@ -60,6 +60,7 @@ def get_source_target_paths() -> Dict[str, Tuple[str, str]]:
             source_path = os.path.join(path, file)
             target_path = os.path.join(target_files_folder, file)
             file2source_target_path[file] = (source_path, target_path)
+    assert len(file2source_target_path) > 0, f"Didn't find any relevant files at {target_files_folder}"
     return file2source_target_path
 
 def get_tag_string_or_none(parent_tag: bs4.Tag, tag_name: str) -> Optional[str]:
@@ -202,17 +203,22 @@ def test_instrumentation_after_instrument_change(source_path):
     if file_name not in TEST_CASES:
         return
     for (staff_to_modify, new_instrument), staff_id2expected_instrument in TEST_CASES[file_name].items():
+        print(f"Creating new Instrumentation object from {source_path}...")
         soup = get_soup(source_path) # re-parse everytime because soup is mutable
         tested_object = Instrumentation(soup=soup)
+        print(f"Setting staff {staff_to_modify} to {new_instrument!r}...")
         tested_object.set_instrument(f"staff_{staff_to_modify}", new_instrument)
         expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
+        test_results = {}
         for part in parts:
             result = part_info_without_staves(part)
             for staff_name in part['staves']:
                 if staff_name not in expectation:
+                    del(expectation[staff_name])
                     continue
-                assert result == expectation[staff_name]
+                test_results[staff_name] = result
+        assert test_results == expectation
 
 
 # endregion tests
