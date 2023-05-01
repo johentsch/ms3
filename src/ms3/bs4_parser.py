@@ -2172,25 +2172,26 @@ class Instrumentation(LoggedClass):
     """Easy way to read and write the instrumentation of a score, that is
     'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
 
+    INSTRUMENT_DEFAULTS = {
+        'Harpsichord': {'instrumentId': 'keyboard.harpsichord',
+                        'longName': 'Harpsichord',
+                        'part_trackName': 'Harpsichord',
+                        'shortName': 'Hch.',
+                        'trackName': 'Harpsichord'},
+        'Piano': {'instrumentId': 'keyboard.piano',
+                  'longName': 'Piano',
+                  'part_trackName': 'Piano',
+                  'shortName': 'Pno.',
+                  'trackName': 'Piano'},
+        'Violoncello': {'instrumentId': 'strings.cello',
+                        'longName': 'Violoncello',
+                        'part_trackName': 'Cello',
+                        'shortName': 'Vc.',
+                        'trackName': 'Violoncello'},
+    }
+
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Instrumentation', logger_cfg)
-        self.INSTRUMENT_DEFAULTS = {
-            'Harpsichord': {'instrumentId': 'keyboard.harpsichord',
-                            'longName': 'Harpsichord',
-                            'part_trackName': 'Harpsichord',
-                            'shortName': 'Hch.',
-                            'trackName': 'Harpsichord'},
-            'Piano': {'instrumentId': 'keyboard.piano',
-                      'longName': 'Piano',
-                      'part_trackName': 'Piano',
-                      'shortName': 'Pno.',
-                      'trackName': 'Piano'},
-            'Violoncello': {'instrumentId': 'strings.cello',
-                            'longName': 'Violoncello',
-                            'part_trackName': 'Cello',
-                            'shortName': 'Vc.',
-                            'trackName': 'Violoncello'},
-        }
         self.part_tracknames = [elem['part_trackName'] for elem in self.INSTRUMENT_DEFAULTS.values()]
         self.soup = soup
         # 'instrument',
