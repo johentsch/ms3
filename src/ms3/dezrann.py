@@ -161,10 +161,10 @@ def get_volta_groups(mc2volta: pd.Series) -> List[List[int]]:
             current_groups_first_mcs.append(first_mc)
     return volta_groups
 
-def transform_df(labels: pd.DataFrame,
-                 measures: pd.DataFrame,
-                 label_column: str = 'label',
-                 ) -> List[DcmlLabel]:
+def dcml_labels2dicts(labels: pd.DataFrame,
+                      measures: pd.DataFrame,
+                      label_column: str = 'label',
+                      ) -> List[DcmlLabel]:
     """
 
     Parameters
@@ -339,14 +339,14 @@ def generate_dez(path_measures: str,
 
     dezrann_labels = []
     if cadences:
-        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column='cadence')
+        dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column='cadence')
         dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
     for arg, label_column, label_type in ((harmonies, "chord", "Harmony"), #Third argument
                                           (keys, "localkey", "Local Key"),
                                           (phrases, "phraseend", "Phrase"),
                                           (raw, "label", "Harmony")):
         if arg is not None:
-            dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column=label_column)
+            dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column=label_column)
             dezrann_labels += convert_dcml_list_to_dezrann_list(
                 dcml_labels,
                 label_type=label_type,
