@@ -41,8 +41,9 @@ def mozart_piano_sonatas() -> str:
     if not os.path.isdir(path):
         print(f"Directory does not exist: {path} Clone DCMLab/mozart_piano_sonatas into the CORPUS_DIR specified above.")
     assert os.path.isdir(path)
-    assert Repo(path) # this makes sure it's a Git
-    return path
+    repo = Repo(path)
+    yield path
+    repo.git.clean('-fdx') # removes new files potentially generated during test
 
 @pytest.fixture(
     scope="session",
