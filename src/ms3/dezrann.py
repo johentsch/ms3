@@ -307,6 +307,58 @@ def make_layout(
         layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw}})
 
     return layout
+
+
+
+def generate_dez_from_dfs(measures_df: pd.DataFrame,
+                          harmonies_df: pd.DataFrame,
+                          output_path: str,
+                          cadences: bool = False,
+                          harmonies: Optional[DezrannLayer] = None,
+                          keys: Optional[DezrannLayer] = None,
+                          phrases: Optional[DezrannLayer] = None,
+                          raw: Optional[DezrannLayer] = None,
+                          origin: Union[str, Tuple[str]] = "DCML") -> None:
+    """ Create a .dez file from a measures and a labels/expanded dataframe.
+
+    Args:
+        measures_df:
+        harmonies_df:
+        output_path: Path to the .dez file to be (over)written.
+        cadences: If True (default), labels in the 'cadence' column (if present) are included as vertical lines.
+        harmonies: Specify a DezrannLayer to include the labels from the 'chord' column.
+        keys: Specify a DezrannLayer to include the labels from the 'localkey' column.
+        phrases: Specify a DezrannLayer to include the labels from the 'phraseend' column.
+        raw: Specify a DezrannLayer to include the labels from the 'label' column.
+        origin: Value to show in Dezrann's "Layer" field. Defaults to 'DCML'.
+    """
+    dezrann_labels = []
+    if cadences and 'cadence' in harmonies_df.columns:
+        dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column='cadence')
+        dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
+    for arg, label_column, label_type in ((harmonies, "chord", "Harmony"),  # Third argument
+                                          (keys, "localkey", "Local Key"),
+                                          (phrases, "phraseend", "Phrase"),
+                                          (raw, "label", "Harmony")):
+        if arg is not None:
+            dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column=label_column)
+            dezrann_labels += convert_dcml_list_to_dezrann_list(
+                dcml_labels,
+                label_type=label_type,
+                origin=origin
+            )
+    layout = make_layout(
+        cadences=cadences,
+        harmonies=harmonies,
+        keys=keys,
+        phrases=phrases,
+        raw=raw
+    )
+    dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(dezrann_content, f, indent=2)
+
+
     
 def generate_dez(path_measures: str,
                  path_labels: str,
@@ -351,33 +403,7 @@ def generate_dez(path_measures: str,
     except (ValueError, AssertionError, FileNotFoundError) as e:
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
 
-    dezrann_labels = []
-    if cadences and 'cadence' in harmonies_df.columns:
-        dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column='cadence')
-        dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
-    for arg, label_column, label_type in ((harmonies, "chord", "Harmony"), #Third argument
-                                          (keys, "localkey", "Local Key"),
-                                          (phrases, "phraseend", "Phrase"),
-                                          (raw, "label", "Harmony")):
-        if arg is not None:
-            dcml_labels = dcml_labels2dicts(labels=harmonies_df, measures=measures_df, label_column=label_column)
-            dezrann_labels += convert_dcml_list_to_dezrann_list(
-                dcml_labels,
-                label_type=label_type,
-                origin=origin
-            )
-    
-    layout = make_layout(
-        cadences=cadences,
-        harmonies=harmonies,
-        keys=keys,
-        phrases=phrases,
-        raw=raw
-    )
-    dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
-
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(dezrann_content, f, indent=2)
+    generate_dez_from_dfs(measures_df, harmonies_df, output_path, cadences, harmonies, keys, phrases, raw, origin)
 
 
 def main(input_dir: str,
