@@ -51,7 +51,7 @@ def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
     """
     logger = get_logger('ms3.add')
     facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=logger)
-    ms3_object.view.include('facets', 'scores', facet)
+    ms3_object.view.include('facets', 'scores', f"^{facet}$")
     ms3_object.disambiguate_facet(facet, ask_for_input=ask_for_input)
     ms3_object.disambiguate_facet('scores', ask_for_input=ask_for_input)
     ms3_object.view.fnames_with_incomplete_facets = False
