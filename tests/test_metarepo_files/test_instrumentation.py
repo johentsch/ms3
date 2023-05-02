@@ -211,6 +211,11 @@ def test_instrumentation_after_instrument_change(source_path):
         parts = get_instrumentation(soup)
         test_results = {}
         for part in parts:
+            print("PART", part)
+            """ test: Brahms Op. 99iv.mscx
+            here we can see that when setting staff 1 to piano, part_trackName for ['staff_2', 'staff_3']=MusicXML Part
+            that is != Piano as expected 
+            """
             result = part_info_without_staves(part)
             for staff_name in part['staves']:
                 if staff_name not in expectation:

@@ -2064,8 +2064,9 @@ class Instrumentation(LoggedClass):
                     tag = part.trackName
                 else:
                     tag = instrument_info.find(name)
-                    if tag is None or tag.get_text() == "":
-                        tag = part.find(name)
+                if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
+                    instrument_info.trackName.string = part.trackName.string
+                    tag = instrument_info.find(name)
                 cur_dict[name] = tag
             tag_dict.update({key_staff: cur_dict for key_staff in staves})
         return tag_dict
@@ -2090,8 +2091,28 @@ class Instrumentation(LoggedClass):
         else:
             return fields_data[staff_name]['trackName']
 
-    def set_instrument(self, staff, trackname):
-        pass
+    def set_instrument(self, staff_name, trackname):
+        if staff_name not in self.parsed_parts.staff2part.keys():
+            raise KeyError(f"Don't recognize key '{staff_name}'")
+        existing_value = self.get_instrument_name(staff_name)
+        new_value = str(trackname)
+        if existing_value is not None and existing_value == new_value:
+            self.logger.debug(f"The {staff_name} was already '{existing_value}' and doesn't need changing.")
+            return
+        new_values = self.INSTRUMENT_DEFAULTS[trackname]
+        for field_to_change in self.instrumentation_fields:
+            value = new_values[field_to_change]
+            if self.soup_references[staff_name][field_to_change] is not None:
+                self.soup_references[staff_name][field_to_change].string = value
+            else:
+                self.soup_references[staff_name][field_to_change] = value
+
+                new_tag = self.soup.new_tag(field_to_change)
+                if value is not None:
+                    new_tag.string = value
+                else:
+                    self.logger.debug(f"The value is None.")
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_name]].Instrument.append(new_tag)
 
 
 
