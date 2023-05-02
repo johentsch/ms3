@@ -2045,7 +2045,6 @@ class Instrumentation(LoggedClass):
         super().__init__('Instrumentation', logger_cfg)
         self.part_tracknames = [elem['part_trackName'] for elem in self.INSTRUMENT_DEFAULTS.values()]
         self.soup = soup
-        # 'instrument',
         self.fields_names = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
         self.parts = Parts(soup)
         self.text_tags = self.text_tags_fn()  # store references to XML tags
@@ -2067,6 +2066,9 @@ class Instrumentation(LoggedClass):
                         tag = tags[0]
                     else:
                         tag = part_tracknames[0]
+
+                    part.trackName.string = tag.get_text()
+                    tag = part.trackName
                 else:
                     tag = instrument_info.find(name)
                     if tag is None or tag.get_text() == "":
@@ -2088,15 +2090,35 @@ class Instrumentation(LoggedClass):
                 result[key][key_instr_data] = value
         return result
 
-    def get_instrument_name(self, staff_name):
+    def get_instrument_name(self, staff_name, return_full=False):
         fields_data = self.fields
         if staff_name not in self.parts.staff2part.keys() or staff_name not in fields_data:
             raise KeyError(f"No data for staff '{staff_name}'")
         else:
-            return fields_data[staff_name]['trackName']
+            return fields_data[staff_name] if return_full else fields_data[staff_name]['trackName']
 
     def set_instrument(self, staff, trackname):
-        pass
+        if staff not in self.parts.map_staff2part.keys():
+            raise KeyError(f"Don't recognize key '{staff}'")
+        existing_value = self.get_instrument_name(staff)
+        new_value = str(trackname)
+        if existing_value is not None and existing_value == new_value:
+            self.logger.debug(f"The {staff} was already '{existing_value}' and doesn't need changing.")
+            return
+        new_values = self.INSTRUMENT_DEFAULTS[trackname]
+        for field_to_change in self.fields_names:
+            value = new_values[field_to_change]
+            if self.text_tags[staff][field_to_change] is not None:
+                self.text_tags[staff][field_to_change].string = value
+            else:
+                self.text_tags[staff][field_to_change] = value
+                new_tag = self.soup.new_tag(field_to_change)
+                if value is not None:
+                    new_tag.string = value
+                else:
+                    self.logger.debug(f"The value is None.")
+                self.parts.parts_data[self.parts.map_staff2part[staff]].Instrument.append(new_tag)
+
 
 
 
