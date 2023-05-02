@@ -2006,9 +2006,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
 #######################################################################
 ####################### END OF CLASS DEFINITION #######################
 #######################################################################
-class Parts(LoggedClass):
+class ParsedParts(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
-        super().__init__('Parts', logger_cfg)
+        super().__init__('ParsedParts', logger_cfg)
         self.parts_data = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
 
     @property
@@ -2047,20 +2047,19 @@ class Instrumentation(LoggedClass):
         super().__init__('Instrumentation', logger_cfg)
         self.part_tracknames = [elem['part_trackName'] for elem in self.INSTRUMENT_DEFAULTS.values()]
         self.soup = soup
-        # 'instrument',
-        self.fields_names = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
-        self.parts = Parts(soup)
-        self.text_tags = self.text_tags_fn()  # store references to XML tags
+        self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
+        self.parsed_parts = ParsedParts(soup)
+        self.soup_references = self.soup_references()  # store references to XML tags
 
 
-    def text_tags_fn(self) -> dict[str, dict[str, bs4.Tag]]:
+    def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
         """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
         tag_dict = {}
-        for key_part, part in self.parts.parts_data.items():
+        for key_part, part in self.parsed_parts.parts_data.items():
             instrument_info = part.Instrument
             staves = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
             cur_dict = {"instrumentId": instrument_info["id"]}
-            for name in self.fields_names:
+            for name in self.instrumentation_fields:
                 if name == "part_trackName":
                     tag = part.trackName
                 else:
@@ -2074,7 +2073,7 @@ class Instrumentation(LoggedClass):
     @property
     def fields(self):
         result = {}
-        for key, instr_data in self.text_tags.items():
+        for key, instr_data in self.soup_references.items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
                 if type(tag) == bs4.element.Tag and tag is not None:
@@ -2086,7 +2085,7 @@ class Instrumentation(LoggedClass):
 
     def get_instrument_name(self, staff_name):
         fields_data = self.fields
-        if staff_name not in self.parts.staff2part.keys() or staff_name not in fields_data:
+        if staff_name not in self.parsed_parts.staff2part.keys() or staff_name not in fields_data:
             raise KeyError(f"No data for staff '{staff_name}'")
         else:
             return fields_data[staff_name]['trackName']
