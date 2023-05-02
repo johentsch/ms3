@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 1.2.8
+=============
+
+* operations.insert_labels_into_score() filters pieces exactly one facet to be inserted (e.g. ``labels``),
+  not a fuzzy regex (e.g., which would include ``form_labels`` in the filter)
+
 Version 1.2.7
 =============
 
