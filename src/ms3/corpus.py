@@ -2127,7 +2127,7 @@ class Corpus(LoggedClass):
             By default, warnings are thrown when there already exists a label at a position (and in a notational
             layer) where a new one is attached. Pass False to deactivate these warnings.
         """
-        reached, goal = 0, 0
+        reached, goal, i = 0, 0, 0
         for i, (file, score) in enumerate(self.iter_parsed('scores', view_name=view_name), 1):
             r, g = score.attach_labels(key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
             self.logger.debug(f"{r}/{g} labels successfully added to {file}")
