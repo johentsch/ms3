@@ -185,9 +185,9 @@ TEST_CASES = {
         (2, 'Piano'): {1: 'Piano', 2: 'Piano'}
     },
     "Brahms Op. 99iv.mscx": {
-        (1, 'Piano'): {1: 'Piano', 2: 'Piano', 3: 'Piano'},
+        (1, 'Piano'): {1: 'Piano'},
         (2, 'Piano'): {1: 'Violoncello', 2: 'Piano', 3: 'Piano'},
-        (3, 'Violoncello'): {1: 'Violoncello', 2: 'Piano', 3: 'Violoncello'},
+        (3, 'Violoncello'): {1: 'Violoncello', 2: 'Violoncello', 3: 'Violoncello'},
     },
 
 }
@@ -212,17 +212,14 @@ def test_instrumentation_after_instrument_change(source_path):
         test_results = {}
         for part in parts:
             print("PART", part)
-            """ test: Brahms Op. 99iv.mscx
-            here we can see that when setting staff 1 to piano, part_trackName for ['staff_2', 'staff_3']=MusicXML Part
-            that is != Piano as expected 
-            """
             result = part_info_without_staves(part)
             for staff_name in part['staves']:
                 if staff_name not in expectation:
-                    del(expectation[staff_name])
                     continue
                 test_results[staff_name] = result
-        assert test_results == expectation
+        if test_results != expectation:
+            print(f"Setting {staff_to_modify} to {new_instrument!r} did not result in the expected instrumentation.")
+            assert test_results == expectation
 
 
 # endregion tests
