@@ -8,11 +8,13 @@ one or several <Staff> tags which are assigned the same instrument. The relevant
 in the TypedDict PartInfo.
 """
 import os
+from functools import lru_cache
 from pprint import pprint
 from typing import Dict, Tuple, Optional, List, TypedDict
 
 import bs4
 import pytest
+from git import Repo
 
 from ms3.bs4_parser import Instrumentation
 
@@ -36,13 +38,24 @@ INSTRUMENT_DEFAULTS = {
                     'trackName': 'Violoncello'},
 }
 
+UNITTEST_COMMIT = "7b0de5f"
 
+@lru_cache()
+def check_metarepo_commit(path: str) -> str:
+    repo = Repo(path)
+    commit = repo.commit('HEAD')
+    sha = commit.hexsha[:len(UNITTEST_COMMIT)]
+    if sha != UNITTEST_COMMIT:
+        print(f"Please checkout unittest_metarepo to {UNITTEST_COMMIT}")
+        assert sha == UNITTEST_COMMIT
+    return path
 
 # region test utilities
 
 def get_source_target_paths() -> Dict[str, Tuple[str, str]]:
     """Returns a {file_name -> (source_path, target_path)} dictionary."""
-    source_files_folder = os.path.join(os.path.expanduser(UNITTEST_METACORPUS), "mixed_files")
+    metarepo_path = check_metarepo_commit(os.path.expanduser(UNITTEST_METACORPUS))
+    source_files_folder = os.path.join(metarepo_path, "mixed_files")
 
     target_files_folder = os.path.join(source_files_folder, "changed_instruments")
     target_files = os.listdir(target_files_folder)
