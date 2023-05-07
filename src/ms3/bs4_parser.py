@@ -2046,7 +2046,7 @@ class Instrumentation(LoggedClass):
         self.soup = soup
         self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
         self.parsed_parts = ParsedParts(soup)
-        self.soup_references = self.soup_references()  # store references to XML tags
+        self.soup_references_data = self.soup_references()  # store references to XML tags
 
 
     def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
@@ -2071,7 +2071,7 @@ class Instrumentation(LoggedClass):
     @property
     def fields(self):
         result = {}
-        for key, instr_data in self.soup_references.items():
+        for key, instr_data in self.soup_references_data.items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
                 if type(tag) == bs4.element.Tag and tag is not None:
@@ -2091,18 +2091,14 @@ class Instrumentation(LoggedClass):
     def set_instrument(self, staff_name, trackname):
         if staff_name not in self.parsed_parts.staff2part.keys():
             raise KeyError(f"Don't recognize key '{staff_name}'")
-        existing_value = self.get_instrument_name(staff_name)
         new_value = str(trackname)
-        if existing_value is not None and existing_value == new_value:
-            self.logger.debug(f"The {staff_name} was already '{existing_value}' and doesn't need changing.")
-            return
         new_values = self.INSTRUMENT_DEFAULTS[trackname]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
-            if self.soup_references[staff_name][field_to_change] is not None:
-                self.soup_references[staff_name][field_to_change].string = value
+            if self.soup_references_data[staff_name][field_to_change] is not None:
+                self.soup_references_data[staff_name][field_to_change].string = value
             else:
-                self.soup_references[staff_name][field_to_change] = value
+                self.soup_references_data[staff_name][field_to_change] = value
 
                 new_tag = self.soup.new_tag(field_to_change)
                 if value is not None:
@@ -2110,7 +2106,6 @@ class Instrumentation(LoggedClass):
                 else:
                     self.logger.debug(f"The value is None.")
                 self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_name]].Instrument.append(new_tag)
-
 
 
 
