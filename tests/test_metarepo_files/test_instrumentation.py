@@ -219,7 +219,7 @@ def test_instrumentation_after_instrument_change(source_path):
         soup = get_soup(source_path) # re-parse everytime because soup is mutable
         tested_object = Instrumentation(soup=soup)
         print(f"Setting staff {staff_to_modify} to {new_instrument!r}...")
-        tested_object.set_instrument(f"staff_{staff_to_modify}", new_instrument)
+        tested_object.set_instrument(staff_to_modify, new_instrument)
         expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
         test_results = {}

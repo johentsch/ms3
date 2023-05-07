@@ -2084,14 +2084,18 @@ class Instrumentation(LoggedClass):
                 result[key][key_instr_data] = value
         return result
 
-    def get_instrument_name(self, staff_name):
+    def get_instrument_name(self, staff_name: Union[str, int]):
+        if type(staff_name) == int:
+            staff_name = f'staff_{staff_name}'
         fields_data = self.fields
         if staff_name not in self.parsed_parts.staff2part.keys() or staff_name not in fields_data:
             raise KeyError(f"No data for staff '{staff_name}'")
         else:
             return fields_data[staff_name]['trackName']
 
-    def set_instrument(self, staff_name, trackname):
+    def set_instrument(self, staff_name: Union[str, int], trackname):
+        if type(staff_name) == int:
+            staff_name = f'staff_{staff_name}'
         if staff_name not in self.parsed_parts.staff2part.keys():
             raise KeyError(f"Don't recognize key '{staff_name}'")
         new_value = str(trackname)
