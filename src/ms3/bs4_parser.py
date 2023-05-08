@@ -2095,7 +2095,8 @@ class Instrumentation(LoggedClass):
             staff_name = f'staff_{staff_name}'
         if staff_name not in self.parsed_parts.staff2part.keys():
             raise KeyError(f"Don't recognize key '{staff_name}'")
-        new_value = str(trackname)
+        if trackname not in self.INSTRUMENT_DEFAULTS.keys():
+            raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {self.INSTRUMENT_DEFAULTS.keys()}")
         new_values = self.INSTRUMENT_DEFAULTS[trackname]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
