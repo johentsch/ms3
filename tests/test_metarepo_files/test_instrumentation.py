@@ -21,17 +21,17 @@ from ms3.bs4_parser import Instrumentation
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
 
 INSTRUMENT_DEFAULTS = {
-    'Harpsichord': {'instrumentId': 'keyboard.harpsichord',
+    'harpsichord': {'instrumentId': 'keyboard.harpsichord',
                     'longName': 'Harpsichord',
                     'part_trackName': 'Harpsichord',
                     'shortName': 'Hch.',
                     'trackName': 'Harpsichord'},
-    'Piano': {'instrumentId': 'keyboard.piano',
+    'piano': {'instrumentId': 'keyboard.piano',
               'longName': 'Piano',
               'part_trackName': 'Piano',
               'shortName': 'Pno.',
               'trackName': 'Piano'},
-    'Violoncello': {'instrumentId': 'strings.cello',
+    'violoncello': {'instrumentId': 'strings.cello',
                     'longName': 'Violoncello',
                     'part_trackName': 'Cello',
                     'shortName': 'Vc.',
@@ -190,17 +190,17 @@ def test_accessing_source_instrument_names(source_path):
 # {file_name: {(staff_to_modify, 'new_instrument'): {staff_to_test: 'expected_instrument'}
 TEST_CASES = {
     "BWV_0815.mscx": {
-        (1, 'Harpsichord'): {1: 'Harpsichord', 2: 'Harpsichord'},
-        (2, 'Harpsichord'): {1: 'Harpsichord', 2: 'Harpsichord'}
+        (1, 'harpsichord'): {1: 'harpsichord', 2: 'harpsichord'},
+        (2, 'harpsichord'): {1: 'harpsichord', 2: 'harpsichord'}
     },
     "K281-3.mscx": {
-        (1, 'Piano'): {1: 'Piano', 2: 'Piano'},
-        (2, 'Piano'): {1: 'Piano', 2: 'Piano'}
+        (1, 'piano'): {1: 'piano', 2: 'piano'},
+        (2, 'piano'): {1: 'piano', 2: 'piano'}
     },
     "Brahms Op. 99iv.mscx": {
-        (1, 'Piano'): {1: 'Piano'},
-        (2, 'Piano'): {1: 'Violoncello', 2: 'Piano', 3: 'Piano'},
-        (3, 'Violoncello'): {1: 'Violoncello', 2: 'Violoncello', 3: 'Violoncello'},
+        (1, 'piano'): {1: 'piano'},
+        (2, 'piano'): {1: 'violoncello', 2: 'piano', 3: 'piano'},
+        (3, 'violoncello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
     },
 
 }

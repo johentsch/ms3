@@ -2026,17 +2026,17 @@ class Instrumentation(LoggedClass):
     'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
 
     INSTRUMENT_DEFAULTS = {
-        'Harpsichord': {'instrumentId': 'keyboard.harpsichord',
+        'harpsichord': {'instrumentId': 'keyboard.harpsichord',
                         'longName': 'Harpsichord',
                         'part_trackName': 'Harpsichord',
                         'shortName': 'Hch.',
                         'trackName': 'Harpsichord'},
-        'Piano': {'instrumentId': 'keyboard.piano',
+        'piano': {'instrumentId': 'keyboard.piano',
                   'longName': 'Piano',
                   'part_trackName': 'Piano',
                   'shortName': 'Pno.',
                   'trackName': 'Piano'},
-        'Violoncello': {'instrumentId': 'strings.cello',
+        'violoncello': {'instrumentId': 'strings.cello',
                         'longName': 'Violoncello',
                         'part_trackName': 'Cello',
                         'shortName': 'Vc.',
