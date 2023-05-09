@@ -20,23 +20,6 @@ from ms3.bs4_parser import Instrumentation
 
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
 
-INSTRUMENT_DEFAULTS = {
-    'harpsichord': {'instrumentId': 'keyboard.harpsichord',
-                    'longName': 'Harpsichord',
-                    'part_trackName': 'Harpsichord',
-                    'shortName': 'Hch.',
-                    'trackName': 'Harpsichord'},
-    'piano': {'instrumentId': 'keyboard.piano',
-              'longName': 'Piano',
-              'part_trackName': 'Piano',
-              'shortName': 'Pno.',
-              'trackName': 'Piano'},
-    'violoncello': {'instrumentId': 'strings.cello',
-                    'longName': 'Violoncello',
-                    'part_trackName': 'Cello',
-                    'shortName': 'Vc.',
-                    'trackName': 'Violoncello'},
-}
 
 UNITTEST_COMMIT = "7b0de5f"
 
@@ -200,7 +183,7 @@ TEST_CASES = {
     "Brahms Op. 99iv.mscx": {
         (1, 'piano'): {1: 'piano'},
         (2, 'piano'): {1: 'violoncello', 2: 'piano', 3: 'piano'},
-        (3, 'violoncello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
+        (3, 'cello'): {1: 'violoncello', 2: 'violoncello', 3: 'cello'},
     },
 
 }
@@ -220,7 +203,7 @@ def test_instrumentation_after_instrument_change(source_path):
         tested_object = Instrumentation(soup=soup)
         print(f"Setting staff {staff_to_modify} to {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
-        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
+        expectation = {f"staff_{staff_id}": tested_object.INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
         test_results = {}
         for part in parts:
