@@ -2060,7 +2060,21 @@ class Instrumentation(LoggedClass):
         self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
+        self.INSTRUMENT_DEFAULTS = self.enlarge_instrument_defaults_keys()
 
+    def enlarge_instrument_defaults_keys(self):
+        data_dict = {}
+        for cur_key, cur_value in self.INSTRUMENT_DEFAULTS.items():
+            part_trackname = cur_value['part_trackName'].lower()
+            if len(data_dict) > 0:
+                if cur_key != part_trackname:
+                    data_dict.update(dict.fromkeys([cur_key, part_trackname], cur_value))
+                else:
+                    data_dict.update(dict.fromkeys([cur_key], cur_value))
+            else:
+                data_dict = dict.fromkeys([cur_key], cur_value) if cur_key == part_trackname else dict.fromkeys(
+                    [cur_key, part_trackname], cur_value)
+        return data_dict
 
 
 
