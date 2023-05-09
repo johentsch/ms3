@@ -183,7 +183,8 @@ TEST_CASES = {
     "Brahms Op. 99iv.mscx": {
         (1, 'piano'): {1: 'piano'},
         (2, 'piano'): {1: 'violoncello', 2: 'piano', 3: 'piano'},
-        (3, 'cello'): {1: 'violoncello', 2: 'violoncello', 3: 'cello'},
+        (3, 'cello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
+        (3, 'violoncello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
     },
 
 }
