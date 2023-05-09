@@ -2020,7 +2020,7 @@ class ParsedParts(LoggedClass):
 
 class Instrumentation(LoggedClass):
     """Easy way to read and write the instrumentation of a score, that is
-    'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
+    'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'."""
 
     INSTRUMENT_DEFAULTS = {
         'harpsichord': {'instrumentId': 'keyboard.harpsichord',
@@ -2047,7 +2047,21 @@ class Instrumentation(LoggedClass):
         self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
+        self.INSTRUMENT_DEFAULTS = self.enlarge_instrument_defaults_keys()
 
+    def enlarge_instrument_defaults_keys(self):
+        data_dict = {}
+        for cur_key, cur_value in self.INSTRUMENT_DEFAULTS.items():
+            part_trackname = cur_value['part_trackName'].lower()
+            if len(data_dict) > 0:
+                if cur_key != part_trackname:
+                    data_dict.update(dict.fromkeys([cur_key, part_trackname], cur_value))
+                else:
+                    data_dict.update(dict.fromkeys([cur_key], cur_value))
+            else:
+                data_dict = dict.fromkeys([cur_key], cur_value) if cur_key == part_trackname else dict.fromkeys(
+                    [cur_key, part_trackname], cur_value)
+        return data_dict
 
     def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
         """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
