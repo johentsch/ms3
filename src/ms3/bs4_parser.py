@@ -2107,33 +2107,33 @@ class Instrumentation(LoggedClass):
         else:
             return fields_data[staff_name]['trackName']
 
-    def set_instrument(self, staff_name: Union[str, int], trackname):
+    def set_instrument(self, staff_id: Union[str, int], trackname):
         available_staves = list(self.parsed_parts.staff2part.keys())
-        if not isinstance(staff_name, str):
+        if not isinstance(staff_id, str):
             try:
-                staff_name = int(staff_name)
+                staff_id = int(staff_id)
             except Exception:
-                raise ValueError(f"{staff_name!r} cannot be interpreted as staff ID which needs to be int or str, not {type(staff_name)}. "
+                raise ValueError(f"{staff_id!r} cannot be interpreted as staff ID which needs to be int or str, not {type(staff_id)}. "
                                  f"Use one of {available_staves}.")
-            staff_name = f'staff_{staff_name}'
-        if staff_name not in available_staves:
-            raise KeyError(f"Don't recognize key '{staff_name}'. Use one of {available_staves}.")
+            staff_id = f'staff_{staff_id}'
+        if staff_id not in available_staves:
+            raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
         if trackname not in self.INSTRUMENT_DEFAULTS.keys():
             raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {self.INSTRUMENT_DEFAULTS.keys()}")
         new_values = self.INSTRUMENT_DEFAULTS[trackname]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
-            if self.soup_references_data[staff_name][field_to_change] is not None:
-                self.soup_references_data[staff_name][field_to_change].string = value
+            if self.soup_references_data[staff_id][field_to_change] is not None:
+                self.soup_references_data[staff_id][field_to_change].string = value
             else:
-                self.soup_references_data[staff_name][field_to_change] = value
+                self.soup_references_data[staff_id][field_to_change] = value
 
                 new_tag = self.soup.new_tag(field_to_change)
                 if value is not None:
                     new_tag.string = value
                 else:
                     self.logger.debug(f"The value is None.")
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_name]].Instrument.append(new_tag)
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument.append(new_tag)
 
 
 
