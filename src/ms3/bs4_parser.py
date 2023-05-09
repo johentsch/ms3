@@ -2108,10 +2108,16 @@ class Instrumentation(LoggedClass):
             return fields_data[staff_name]['trackName']
 
     def set_instrument(self, staff_name: Union[str, int], trackname):
-        if type(staff_name) == int:
+        available_staves = list(self.parsed_parts.staff2part.keys())
+        if not isinstance(staff_name, str):
+            try:
+                staff_name = int(staff_name)
+            except Exception:
+                raise ValueError(f"{staff_name!r} cannot be interpreted as staff ID which needs to be int or str, not {type(staff_name)}. "
+                                 f"Use one of {available_staves}.")
             staff_name = f'staff_{staff_name}'
-        if staff_name not in self.parsed_parts.staff2part.keys():
-            raise KeyError(f"Don't recognize key '{staff_name}'")
+        if staff_name not in available_staves:
+            raise KeyError(f"Don't recognize key '{staff_name}'. Use one of {available_staves}.")
         if trackname not in self.INSTRUMENT_DEFAULTS.keys():
             raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {self.INSTRUMENT_DEFAULTS.keys()}")
         new_values = self.INSTRUMENT_DEFAULTS[trackname]
