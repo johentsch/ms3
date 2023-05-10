@@ -57,10 +57,11 @@ computes the temporal positions of all encoded elements, and transforms those re
 The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to enable processing with other software
 and facilitate version control[^1]. The most typical aspects that users extract from a score are
 tables containing notes, measures (bars), metadata, and text labels, in particular those representing analytical annotations.
-Moreover, `ms3` allows the user to remove and insert analytical labels from and into scores and to write back the modified
-scores. This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
+Moreover, `ms3` allows the user to transform scores by removing analytical labels after their extraction or by (re-)inserting annotations from 
+TSV files (whether previously extracted or generated from scratch). 
+This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
 into a score arbitrary textual labels, to then have `ms3` extract them with their temporal positions for further
-analysis. It comes with a commandline interface that makes its data extraction, translocation, and validation
+analysis. It comes with a commandline interface that makes its data extraction, transformation, and validation
 functionalities accessible for productive every-day workflows.
 
 [^1]: Version control is facilitated by the TSV files because, unlike the original XML source, they present score information with timestamps.
