@@ -70,7 +70,7 @@ functionalities accessible for productive every-day workflows.
 [@Neuwirth2018_AnnotatedBeethovenCorpus], the Annotated Mozart Sonatas [@Hentschel2021_AnnotatedMozartSonatas],
 and an annotated corpus of 19th century piano music [@Hentschelinpress_AnnotatedCorpusTonal]. It has been successful
 in formatting training and validation data for a chord inference algorithm and for inserting its analytical outputs
-into the respective scores [@McLeod:21; @McLeod].
+into the respective scores [@Mcleod2021_ModularSystemHarmonic].
 Moreover, the library is at the heart of a semi-automated annotation workflow running on GitHub
 [@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency of the music corpus analysis library
 DiMCAT [@Hentschelsubmittedforreview_IntroducingDiMCATUtilize].
