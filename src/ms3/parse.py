@@ -347,7 +347,7 @@ class Parse(LoggedClass):
         subdir_corpora = sorted(get_first_level_corpora(directory, logger=self.logger))
         n_corpora = len(subdir_corpora)
         if n_corpora == 0:
-            self.logger.debug(f"Treating {directory} as corpus.")
+            self.logger.debug(f"Treating {directory} as corpus because none of its children seems to be a corpus.")
             self.add_corpus(directory,
                             **corpus_config)
         else:

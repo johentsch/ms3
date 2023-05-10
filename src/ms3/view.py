@@ -424,8 +424,6 @@ class View(LoggedClass):
             msg_components.append("excludes fnames that are contained in the metadata")
         if not self.fnames_not_in_metadata:
             msg_components.append("excludes fnames that are not contained in the metadata")
-        if not self.fnames_with_incomplete_facets:
-            msg_components.append(f"excludes pieces that do not have at least one file per selected facet ({', '.join(self.selected_facets)})")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
         if not self.include_tsv:
@@ -460,6 +458,8 @@ class View(LoggedClass):
                 excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 excluded += f" ({n_excluded - 10} more, see filtering_report())"
             msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
+        if not self.fnames_with_incomplete_facets:
+            msg_components.append(f"excludes pieces that do not have at least one file per selected facet ({', '.join(self.selected_facets)})")
         if len(self.excluded_file_paths) > 0:
             msg_components.append(f"excludes {len(self.excluded_file_paths)} files based on user input")
         msg = f"This view is called '{self.name}'. It "
