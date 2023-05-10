@@ -54,8 +54,9 @@ Despite being one of the most wide-spread score encoding formats, current score 
 do not handle it without first performing a lossy conversion to the musicXML format.
 The Python library `ms3` fills this gap. It loads the XML tree of a MuseScore file into working memory, 
 computes the temporal positions of all encoded elements, and transforms those requested by the user into DataFrames [@Petersohn2021_DataframeSystemsTheory]. 
-The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to
-enable version control and processing with other software. The most typical aspects that users extract from a score are
+The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to enable processing with other software
+and facilitate version control[^Version control is facilitated by the TSV files because, unlike the original XML source, 
+they present score information with timestamps.]. The most typical aspects that users extract from a score are
 tables containing notes, measures (bars), metadata, and text labels, in particular those representing analytical annotations.
 Moreover, `ms3` allows the user to remove and insert analytical labels from and into scores and to write back the modified
 scores. This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
