@@ -5173,7 +5173,7 @@ def parse_tsv_file_at_git_revision(file: File,
     commit_info = f"{short_sha} with message '{commit.message.strip()}'"
     if short_sha != git_revision:
         logger.debug(f"Resolved '{git_revision}' to '{short_sha}'.")
-    rel_path = os.path.normpath(file.rel_path)
+    rel_path = os.path.normpath(file.rel_path).replace("\\", "/")
     try:
         targetfile = commit.tree / rel_path
     except KeyError:
