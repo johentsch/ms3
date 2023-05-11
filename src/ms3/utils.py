@@ -3657,8 +3657,8 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     drop_index = 'fnames' in metadata_df.columns
     md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
     md = md.rename(columns=rename4markdown)
-    md_table = str(df2md(md))
-    md_table += f"\n\n*Overview table updated using [ms3](https://johentsch.github.io/ms3/) {MS3_VERSION}.*\n"
+    md_table = "#" + str(df2md(md)) # comes with a first-level heading which we turn into second-level
+    md_table += f"\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
 
     if os.path.isfile(file_path):
         msg = 'Updated'
