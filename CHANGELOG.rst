@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.2.9
+=============
+
+* when updating ``README.md``:
+
+  * make 2nd-level heading ``## Overview`` (instead of first-level)
+  * don't output ms3 version (to avoid merge conflicts)
+
+* small bugfixes in ``ms3 review`` command
+
 Version 1.2.8
 =============
 
