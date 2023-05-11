@@ -4,7 +4,8 @@ from typing import Literal, Optional, Tuple, Dict, List, Union
 from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
 from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, fifths2sd, scale_degree2name
-from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
+from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids
+
 
 def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
                              facet: AnnotationsFacet,
@@ -262,6 +263,7 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
     test_passes = True
     for (corpus_name, fname), file_df_pairs in review_reports.items():
         piece_logger = get_logger(parse_obj[corpus_name].logger_names[fname])
+        ignored_warning_ids = get_ignored_warning_ids(piece_logger)
         is_first = True
         for file, report in file_df_pairs:
             report_path = compute_path_from_file(file, root_dir=out_dir, folder='reviewed')
@@ -272,11 +274,11 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
             write_tsv(report, report_file)
             is_first = False
             warning_selection = (report.count_ratio > threshold) & report.chord_tones.notna()
-            if warning_selection.sum() > 0:
-                test_passes = False
-            else:
-                continue
             for t in report[warning_selection].itertuples():
+                message_id = (19, t.mc, str(t.mc_onset), t.label)
+                if message_id in ignored_warning_ids:
+                    continue
+                test_passes = False
                 if len(t.added_tones) > 0:
                     added = f" plus the added {(fifths2sd(t.added_tones, t.localkey_is_minor))} [{scale_degree2name(t.added_tones, t.localkey, t.globalkey)}]"
                 else:
@@ -285,5 +287,5 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
 In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {(fifths2sd(t.chord_tones, t.localkey_is_minor))} [{scale_degree2name(t.chord_tones, t.localkey, t.globalkey)}]{added}.
 The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets, a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
 If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed by a free-text comment in subsequent lines starting with a space or tab."""
-                piece_logger.warning(msg, extra={'message_id': (19, t.mc, str(t.mc_onset), t.label)})
+                piece_logger.warning(msg, extra={'message_id': message_id})
     return test_passes
