@@ -578,6 +578,10 @@ class _MSCX_bs4(LoggedClass):
             return self._fl
         return
 
+    def get_instrumentation(self) -> Dict[str, str]:
+        """Returns a {staff_<i>_instrument -> instrument_name} dict."""
+        return {staff: instrument['trackName'] for staff, instrument in self.instrumentation.fields.items()}
+
     @property
     @lru_cache
     def has_voltas(self) -> bool:
