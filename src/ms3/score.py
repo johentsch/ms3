@@ -651,6 +651,7 @@ class MSCX(LoggedClass):
             else:
                 to_mc, to_mc_onset = mc, mc_onset
         stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'], index=df.index)
+        stats = stats.astype(dict(n_colored = 'Int64', n_untouched = 'Int64'))
         if (stats.n_colored > 0).any():
             self.parsed.parse_measures()
             self.changed = True
