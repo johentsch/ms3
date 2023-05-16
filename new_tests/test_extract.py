@@ -75,7 +75,7 @@ class TestEmptyParse():
                    'ravel_piano': {},
                    'sweelinck_keyboard': {},
                    'wagner_overtures': {'.mscx': 2}},
-            everything={'mixed_files': {'.mscx': 11, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
+            everything={'mixed_files': {'.mscx': 22, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
                         'outputs': {'.mscx': 1},
                         'ravel_piano': {'.mscx': 8, '.tsv': 16},
                         'sweelinck_keyboard': {'.mscx': 2, '.tsv': 4},
@@ -150,9 +150,9 @@ class TestParsedParse():
 
     @pytest.fixture()
     def n_parsed_files(self, request):
-        expected = {
+        expected = { # (n_scores, n_tsvs)
             "regex": (2, 0),
-            "everything": (27, 28),
+            "everything": (38, 28),
             "chaotic_dirs": (11, 4),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),

@@ -17,21 +17,20 @@ import pytest
 from git import Repo
 
 from ms3.bs4_parser import Instrumentation, INSTRUMENT_DEFAULTS
+from conftest import TEST_COMMIT
 
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
 
 
-UNITTEST_COMMIT = "7b0de5f"
-
 @lru_cache()
-def check_metarepo_commit(path: str) -> str:
-    repo = Repo(path)
+def check_metarepo_commit(directory) -> str:
+    repo = Repo(directory)
     commit = repo.commit('HEAD')
-    sha = commit.hexsha[:len(UNITTEST_COMMIT)]
-    if sha != UNITTEST_COMMIT:
-        print(f"Please checkout unittest_metarepo to {UNITTEST_COMMIT}")
-        assert sha == UNITTEST_COMMIT
-    return path
+    sha = commit.hexsha[:len(TEST_COMMIT)]
+    if sha != TEST_COMMIT:
+        print(f"Please checkout unittest_metarepo to {TEST_COMMIT}")
+        assert sha == TEST_COMMIT
+    return directory
 
 # region test utilities
 
