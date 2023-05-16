@@ -174,15 +174,15 @@ def test_accessing_source_instrument_names(source_path):
 TEST_CASES = {
     "BWV_0815.mscx": {
         (1, 'harpsichord'): {1: 'harpsichord', 2: 'harpsichord'},
-        (2, 'harpsichord'): {1: 'harpsichord', 2: 'harpsichord'}
+        (2, 'hch'): {1: 'harpsichord', 2: 'harpsichord'}
     },
     "K281-3.mscx": {
         (1, 'piano'): {1: 'piano', 2: 'piano'},
-        (2, 'piano'): {1: 'piano', 2: 'piano'}
+        (2, 'Pno.'): {1: 'piano', 2: 'piano'}
     },
     "Brahms Op. 99iv.mscx": {
-        (1, 'piano'): {1: 'piano'},
-        (2, 'piano'): {1: 'violoncello', 2: 'piano', 3: 'piano'},
+        (1, 'keyboard.piano'): {1: 'piano'},
+        (2, 'pno'): {1: 'violoncello', 2: 'piano', 3: 'piano'},
         (3, 'cello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
         (3, 'violoncello'): {1: 'violoncello', 2: 'violoncello', 3: 'violoncello'},
     },
