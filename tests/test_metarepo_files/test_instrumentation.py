@@ -16,7 +16,7 @@ import bs4
 import pytest
 from git import Repo
 
-from ms3.bs4_parser import Instrumentation
+from ms3.bs4_parser import Instrumentation, INSTRUMENT_DEFAULTS
 
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
 
@@ -204,7 +204,7 @@ def test_instrumentation_after_instrument_change(source_path):
         tested_object = Instrumentation(soup=soup)
         print(f"Setting staff {staff_to_modify} to {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
-        expectation = {f"staff_{staff_id}": tested_object.INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
+        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
         test_results = {}
         for part in parts:
