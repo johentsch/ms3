@@ -2017,12 +2017,7 @@ class ParsedParts(LoggedClass):
             staff2part.update(dict.fromkeys(staves, key_part))
         return staff2part
 
-
-class Instrumentation(LoggedClass):
-    """Easy way to read and write the instrumentation of a score, that is
-    'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'."""
-
-    INSTRUMENT_DEFAULTS = {
+INSTRUMENT_DEFAULTS = {
         'harpsichord': {'instrumentId': 'keyboard.harpsichord',
                         'longName': 'Harpsichord',
                         'part_trackName': 'Harpsichord',
@@ -2040,30 +2035,40 @@ class Instrumentation(LoggedClass):
                         'trackName': 'Violoncello'},
     }
 
+def enlarge_instrument_defaults_keys():
+    """
+    Allows users to set an instrument by trackName as well as by part_trackName
+    """
+    keys_translation_dict = {}
+    for cur_key, cur_value in INSTRUMENT_DEFAULTS.items():
+        part_trackname = cur_value['part_trackName'].lower()
+        if len(keys_translation_dict) > 0:
+            if cur_key != part_trackname:
+                keys_translation_dict.update(dict.fromkeys([cur_key, part_trackname], cur_key))
+            else:
+                keys_translation_dict.update(dict.fromkeys([cur_key], cur_key))
+        else:
+            keys_translation_dict = dict.fromkeys([cur_key], cur_key) if cur_key == part_trackname else dict.fromkeys(
+                [cur_key, part_trackname], cur_key)
+    return keys_translation_dict
+
+
+class Instrumentation(LoggedClass):
+    """Easy way to read and write the instrumentation of a score, that is
+    'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'."""
+
+
+    key2default = enlarge_instrument_defaults_keys()
+
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Instrumentation', logger_cfg)
-        self.part_tracknames = [elem['part_trackName'] for elem in self.INSTRUMENT_DEFAULTS.values()]
+        self.part_tracknames = [elem['part_trackName'] for elem in INSTRUMENT_DEFAULTS.values()]
         self.soup = soup
         self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
 
-    def enlarge_instrument_defaults_keys(self):
-        """
-        Allows users to set an instrument by trackName as well as by part_trackName
-        """
-        keys_translation_dict = {}
-        for cur_key, cur_value in self.INSTRUMENT_DEFAULTS.items():
-            part_trackname = cur_value['part_trackName'].lower()
-            if len(keys_translation_dict) > 0:
-                if cur_key != part_trackname:
-                    keys_translation_dict.update(dict.fromkeys([cur_key, part_trackname], cur_key))
-                else:
-                    keys_translation_dict.update(dict.fromkeys([cur_key], cur_key))
-            else:
-                keys_translation_dict = dict.fromkeys([cur_key], cur_key) if cur_key == part_trackname else dict.fromkeys(
-                    [cur_key, part_trackname], cur_key)
-        return keys_translation_dict
+
 
     def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
         """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
@@ -2117,9 +2122,9 @@ class Instrumentation(LoggedClass):
             staff_id = f'staff_{staff_id}'
         if staff_id not in available_staves:
             raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
-        if trackname not in self.enlarge_instrument_defaults_keys().keys():
-            raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {self.enlarge_instrument_defaults_keys().keys()}")
-        new_values = self.INSTRUMENT_DEFAULTS[self.enlarge_instrument_defaults_keys()[trackname]]
+        if trackname not in self.key2default:
+            raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {self.key2default.keys()}")
+        new_values = INSTRUMENT_DEFAULTS[self.key2default[trackname]]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
             if self.soup_references_data[staff_id][field_to_change] is not None:
