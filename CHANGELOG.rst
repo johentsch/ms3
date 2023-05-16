@@ -2,6 +2,44 @@
 Changelog
 =========
 
+Version 1.2.9
+=============
+
+* when updating ``README.md``:
+
+  * make 2nd-level heading ``## Overview`` (instead of first-level)
+  * don't output ms3 version (to avoid merge conflicts)
+
+* small bugfixes in ``ms3 review`` command
+
+Version 1.2.8
+=============
+
+* operations.insert_labels_into_score() filters pieces exactly one facet to be inserted (e.g. ``labels``),
+  not a fuzzy regex (e.g., which would include ``form_labels`` in the filter)
+
+Version 1.2.7
+=============
+
+* warning files omit system-dependend information from warning headers (6764476)
+* bugfixes
+
+Version 1.2.6
+=============
+
+
+* changes the behaviour of the ``ms3 review`` command
+  * after coloring out-of-label notes, issue one warning per dubious label
+  * rather than one `warnings.log` file per corpus, create one `<fname>.warnings` file per piece in the `reviewed` folder
+* makes ``ms3 empty`` work under the new CLI (d8f661a)
+
+Version 1.2.5
+=============
+
+* :obj:`~ms3.Corpus` and :obj:`~ms3.Piece` come with the new method ``count_pieces()``
+* ``ms3 transform -D`` to concatenate only metadata works
+* ``View.fnames_with_incomplete_facets = False`` enforces selected facets if some have been excluded
+
 Version 1.2.4
 =============
 
@@ -17,7 +55,7 @@ Version 1.2.3
 
 * Piece.get_facet() gets parameter 'force' which defaults to False (analogous to the other methods),
   in order to avoid unsolicited score parsing.
-* improves `ms3 transform`:
+* improves ``ms3 transform``:
   * parse only facets to be concatenated (rather than all TSV files)
   * do not accidentally output metadata if not requested
 * prevents including 'volta_mcs' in metadata of pieces that don't have voltas

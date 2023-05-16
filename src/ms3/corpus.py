@@ -1343,9 +1343,11 @@ class Corpus(LoggedClass):
                 selected_fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
             filter_incomplete_facets = not view.fnames_with_incomplete_facets
             if filter_incomplete_facets:
-                selected_facets = set(self.get_present_facets(view_name))
-                selected_facets = selected_facets.intersection(set(view.selected_facets))
-                selected_facets = tuple(selected_facets)
+                selected_facets = view.selected_facets
+                if len(selected_facets) == len(View.available_facets):
+                    # No facets have been excluded from the view, therefore the completeness criterion is based
+                    # on which facets the corpus has rather than which ones have been selected
+                    selected_facets = self.get_present_facets(view_name)
             for fname, piece in view.filter_by_token('fnames', self):
                 if len(piece.count_detected()) == 0:
                     # no facets to show, probably due to other filters; do not include in 'fnames' filter counts
@@ -2125,7 +2127,7 @@ class Corpus(LoggedClass):
             By default, warnings are thrown when there already exists a label at a position (and in a notational
             layer) where a new one is attached. Pass False to deactivate these warnings.
         """
-        reached, goal = 0, 0
+        reached, goal, i = 0, 0, 0
         for i, (file, score) in enumerate(self.iter_parsed('scores', view_name=view_name), 1):
             r, g = score.attach_labels(key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
             self.logger.debug(f"{r}/{g} labels successfully added to {file}")
@@ -2305,6 +2307,9 @@ class Corpus(LoggedClass):
             result['metadata'] = Counter(file.fext for file in self.ix2metadata_file.values())
         return result
 
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(1 for _ in self.iter_pieces(view_name=view_name))
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
         file_dict = self.get_files('scores', view_name=view_name, unparsed=False, flat=True)

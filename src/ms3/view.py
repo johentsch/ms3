@@ -216,7 +216,7 @@ class View(LoggedClass):
                 regexes = [re.escape(os.path.basename(p)) for p in resolved_paths]
                 self.include('files', *regexes)
         if folder_paths is not None:
-            resolved_paths = resolve_paths_argument(file_paths, files=False)
+            resolved_paths = resolve_paths_argument(folder_paths, files=False)
             if len(resolved_paths) > 0:
                 self.include('paths', *resolved_paths)
         if len(logger_cfg) > 0:
@@ -424,8 +424,6 @@ class View(LoggedClass):
             msg_components.append("excludes fnames that are contained in the metadata")
         if not self.fnames_not_in_metadata:
             msg_components.append("excludes fnames that are not contained in the metadata")
-        if not self.fnames_with_incomplete_facets:
-            msg_components.append("excludes pieces that do not have at least one file per selected facet")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
         if not self.include_tsv:
@@ -436,7 +434,7 @@ class View(LoggedClass):
                        for what_to_include, regexes in self.including.items()}
         excluded_re = {what_to_exclude: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_exclude, regexes in self.excluding.items()}
-        for what_to_exclude, re_strings in included_re.items():
+        for what_to_include, re_strings in included_re.items():
             n_included = len(re_strings)
             if n_included == 0:
                 continue
@@ -447,7 +445,7 @@ class View(LoggedClass):
             else:
                 included = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 included += f" ({n_included - 10} more, see filtering_report()))"
-            msg_components.append(f"includes only {what_to_exclude} containing {included}")
+            msg_components.append(f"includes only {what_to_include} containing {included}")
         for what_to_exclude, re_strings in excluded_re.items():
             n_excluded = len(re_strings)
             if n_excluded == 0:
@@ -460,6 +458,8 @@ class View(LoggedClass):
                 excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 excluded += f" ({n_excluded - 10} more, see filtering_report())"
             msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
+        if not self.fnames_with_incomplete_facets:
+            msg_components.append(f"excludes pieces that do not have at least one file per selected facet ({', '.join(self.selected_facets)})")
         if len(self.excluded_file_paths) > 0:
             msg_components.append(f"excludes {len(self.excluded_file_paths)} files based on user input")
         msg = f"This view is called '{self.name}'. It "

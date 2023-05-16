@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
 from inspect import stack
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple, List, Set
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -452,3 +452,10 @@ def normalize_logger_name(name: str) -> str:
             components = components[:-1]
             break
     return '.'.join(components)
+
+def get_ignored_warning_ids(logger: logging.Logger) -> Set[tuple]:
+    try:
+        existing_filter = next(filter for filter in logger.filters if isinstance(filter, WarningFilter))
+        return set(existing_filter.ignored_warnings)
+    except StopIteration:
+        return set()
