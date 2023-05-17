@@ -81,6 +81,7 @@ from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
+import os
 from bs4 import NavigableString
 
 from .annotations import Annotations
@@ -2024,28 +2025,7 @@ class ParsedParts(LoggedClass):
             staff2part.update(dict.fromkeys(staves, key_part))
         return staff2part
 
-INSTRUMENT_DEFAULTS = {
-        'harpsichord': {'instrumentId': 'keyboard.harpsichord',
-                        'longName': 'Harpsichord',
-                        'part_trackName': 'Harpsichord',
-                        'shortName': 'Hch.',
-                        'trackName': 'Harpsichord'},
-        'organ': {'instrumentId': 'keyboard.organ',
-                  'longName': 'Organ',
-                  'part_trackName': 'Organ',
-                  'shortName': 'Org.',
-                  'trackName': 'Organ'},
-        'piano': {'instrumentId': 'keyboard.piano',
-                  'longName': 'Piano',
-                  'part_trackName': 'Piano',
-                  'shortName': 'Pno.',
-                  'trackName': 'Piano'},
-        'violoncello': {'instrumentId': 'strings.cello',
-                        'longName': 'Violoncello',
-                        'part_trackName': 'Cello',
-                        'shortName': 'Vc.',
-                        'trackName': 'Violoncello'},
-    }
+INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).to_dict()
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
     """
@@ -2054,7 +2034,8 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
     enlarged_dict = dict(INSTRUMENT_DEFAULTS)
     for cur_key, cur_value in INSTRUMENT_DEFAULTS.items():
         for additional_key in cur_value.values():
-            additional_key = additional_key.lower().strip('.')
+            if type(additional_key) == str:
+                additional_key = additional_key.lower().strip('.')
             if additional_key in enlarged_dict:
                 continue
             enlarged_dict[additional_key] = cur_value
