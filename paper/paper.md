@@ -51,11 +51,11 @@ interoperable format.
 
 Despite being one of the most wide-spread score encoding formats, current score parsers 
 [e.g., @Cancino-Chacon2022_PartituraPythonPackage; @Cuthbert2010_Music21ToolkitComputerAided; @Pugin2014_VerovioLibraryEngraving], 
-do not handle it without first performing a lossy conversion to the musicXML format.
+do not handle it without first performing a lossy conversion to the musicXML format[^1].
 The Python library `ms3` fills this gap. It loads the XML tree of a MuseScore file into working memory, 
 computes the temporal positions of all encoded elements, and transforms those requested by the user into DataFrames [@Petersohn2021_DataframeSystemsTheory]. 
 The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to enable processing with other software
-and facilitate version control[^1]. The most typical aspects that users extract from a score are
+and facilitate version control[^2]. The most typical aspects that users extract from a score are
 tables containing notes, measures (bars), metadata, and text labels, in particular those representing analytical annotations.
 Moreover, `ms3` allows the user to transform scores by removing analytical labels after their extraction or by (re-)inserting annotations from 
 TSV files (whether previously extracted or generated from scratch). 
@@ -64,7 +64,8 @@ into a score arbitrary textual labels, to then have `ms3` extract them with thei
 analysis. It comes with a commandline interface that makes its data extraction, transformation, and validation
 functionalities accessible for productive every-day workflows.
 
-[^1]: Version control is facilitated by the TSV files because, unlike the original XML source, they present score information with timestamps.
+[^1]: For example, musicXML's implicit encoding of temporal positions is limited to those where a note or rest event occurs. When converting MuseScore XML to musicXML, all score elements occurring between two such events are misplaced.    
+[^2]: Version control is facilitated by the TSV files because, unlike the original XML source, they present score information with timestamps.
 
 `ms3` has already been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus
 [@Neuwirth2018_AnnotatedBeethovenCorpus], the Annotated Mozart Sonatas [@Hentschel2021_AnnotatedMozartSonatas],
