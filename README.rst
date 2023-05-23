@@ -26,9 +26,14 @@ ms3 - Parsing MuseScore 3 and 4
     failed because of PyPi
 
 
-Welcome to **ms3**, a Python library for parsing `MuseScore <https://musescore.org/en/download>`__ files. It
+Welcome to **ms3**, a Python library for parsing `MuseScore <https://musescore.org/en/download>`__ files.
 
-* parses MuseScore 3 and 4 files, i.e.
+Statement of need
+=================
+
+Here comes a list of functionalities to help you decide if this library could be useful for you.
+
+* parses MuseScore 3 and 4 files, dispensing with lossy conversion to musicXML. The file formats in question are
 
   * uncompressed ``*.mscx`` files,
   * compressed ``*.mscz`` files,

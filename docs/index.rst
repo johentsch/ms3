@@ -11,6 +11,7 @@ Table of Contents
    Quick Reference <quick>
    manual/index
    Developers' Reference <reference>
+   Contributions & Help <contributing>
    License <license>
    Authors <authors>
    Changelog <changelog>

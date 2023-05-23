@@ -149,8 +149,8 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="license.html">
-                        License
+                      <a class="nav-link nav-internal" href="contributing.html">
+                        Contributions & Help
                       </a>
                     </li>
                 
@@ -160,6 +160,13 @@
                 </button>
                 <div class="dropdown-menu">
                     
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="authors.html">
                         Authors
@@ -275,8 +282,8 @@
                 
 
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="license.html">
-                        License
+                      <a class="nav-link nav-internal" href="contributing.html">
+                        Contributions & Help
                       </a>
                     </li>
                 
@@ -286,6 +293,13 @@
                 </button>
                 <div class="dropdown-menu">
                     
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="authors.html">
                         Authors
@@ -339,6 +353,7 @@
 <li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="manual/index.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributions &amp; Help</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -392,7 +407,11 @@
   <p><img alt="GitHub" src="https://img.shields.io/github/license/johentsch/ms3?color=%230000ff" /> <img alt="PyPI" src="https://img.shields.io/pypi/v/ms3?color=%2300" /> <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/johentsch/ms3" />  <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/johentsch/ms3" /></p>
 <section id="ms3-parsing-musescore-3-and-4">
 <h1>ms3 - Parsing MuseScore 3 and 4<a class="headerlink" href="#ms3-parsing-musescore-3-and-4" title="Permalink to this heading">#</a></h1>
-<p>Welcome to <strong>ms3</strong>, a Python library for parsing <a class="reference external" href="https://musescore.org/en/download">MuseScore</a> files. It</p>
+<p>Welcome to <strong>ms3</strong>, a Python library for parsing <a class="reference external" href="https://musescore.org/en/download">MuseScore</a> files.</p>
+<section id="statement-of-need">
+<h2>Statement of need<a class="headerlink" href="#statement-of-need" title="Permalink to this heading">#</a></h2>
+<p>Here comes a list of functionalities to help you decide if this library could be useful for you.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ms3</span></code></p>
 <ul class="simple">
 <li><p>parses MuseScore 3 and 4 files, i.e.</p>
 <ul>
@@ -437,6 +456,7 @@
 </ul>
 <p>View the <a class="reference external" href="https://johentsch.github.io/ms3/">full documentation here</a>.</p>
 <p>For a demo video (using an old, pre-1.0.0 version) on YouTube, <a class="reference external" href="https://youtu.be/UBY3wuIS4wc">click here</a></p>
+</section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
 <p>ms3 requires Python &gt;= 3.10 (type <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">--version</span></code> to check). Once you have switched to a virtual environment
@@ -514,7 +534,14 @@ conducted at the Latour Chair in Digital and Cognitive Musicology, generously fu
 <li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.utils">Utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.transformations">Transformations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html#the-commandline-interface">The commandline interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#developing-a-new-parser">Developing a new parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#unittests">Unittests</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributions &amp; Help</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#issue-reports">Issue Reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#documentation-improvements">Documentation Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-contributions">Code Contributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#maintainer-tasks">Maintainer tasks</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
@@ -597,6 +624,11 @@ conducted at the Latour Chair in Digital and Cognitive Musicology, generously fu
 </div>
 <nav id="bd-toc-nav" class="page-toc">
     <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#statement-of-need">
+   Statement of need
+  </a>
+ </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#installation">
    Installation
