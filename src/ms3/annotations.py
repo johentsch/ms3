@@ -75,7 +75,7 @@ class Annotations(LoggedClass):
         if df is not None:
             self.df = df.copy()
         else:
-            assert tsv_path is not None, "Name a TSV file to be loaded."
+            assert tsv_path is not None, "Name a TSV file to be loaded or pass a DataFrame."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep)
         sorting_cols = ['mc', 'mn', 'mc_onset', 'staff']
         sorting_cols = [self.cols[c] if c in self.cols else c for c in sorting_cols]
@@ -432,7 +432,7 @@ class Annotations(LoggedClass):
 
     def infer_types(self, regex_dict=None):
         if 'harmony_layer' not in self.df.columns:
-            harmony_layer_col = pd.Series(1, index=self.df.index, dtype='object', name='harmony_layer')
+            harmony_layer_col = pd.Series(0, index=self.df.index, dtype='object', name='harmony_layer')
             self.df = pd.concat([self.df, harmony_layer_col], axis=1)
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'harmony_layer'] = 2
@@ -471,7 +471,7 @@ class Annotations(LoggedClass):
         self.df.loc[starts_with_dot, label_col] = self.df.loc[starts_with_dot, label_col].str[1:]
 
 
-    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=positioning, decode=decode)
         if decode and 'harmony_layer' in df.columns:
             df.drop(columns='harmony_layer', inplace=True)
