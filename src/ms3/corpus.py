@@ -626,7 +626,7 @@ class Corpus(LoggedClass):
             logger_cfg = dict(self.logger_cfg)
             logger_name = self.logger.name + '.' + fname.replace('.', '')
             logger_cfg['name'] = logger_name
-            piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
+            piece = Piece(fname, view=self.get_view(), labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
             piece.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
             self._pieces[fname] = piece
             self.logger_names[fname] = logger_name
@@ -1587,7 +1587,7 @@ class Corpus(LoggedClass):
         ) for ix in selected_scores_df.ix]
 
         ### collect argument tuples for calling parse_musescore_file
-        parse_this = [(file, self.logger, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
+        parse_this = [(file, self.logger, self.labels_cfg, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
         try:
             if parallel:
                 pool = mp.Pool(mp.cpu_count())
@@ -2137,7 +2137,7 @@ class Corpus(LoggedClass):
         return reached, goal
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Corpus.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
@@ -2148,17 +2148,15 @@ class Corpus(LoggedClass):
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
         keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
         for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
-        for score in self._parsed_mscx.values():
-            score.change_labels_cfg(labels_cfg=updated)
-        ids = list(self._labellists.keys())
-        if len(ids) > 0:
-            self._extract_and_cache_dataframes(ids=ids, labels=True)
+        for piece_name, piece in self:
+            piece.change_labels_cfg(labels_cfg=self.labels_cfg)
 
 
     def check_labels(self, keys=None, ids=None):
@@ -2997,6 +2995,7 @@ class Corpus(LoggedClass):
 
 def parse_musescore_file(file: File,
                          logger: Logger,
+                         labels_cfg: dict = {},
                          logger_cfg: dict = {},
                          read_only: bool = False,
                          ms: Optional[str]= None) -> Score:
@@ -3019,7 +3018,7 @@ def parse_musescore_file(file: File,
 
     logger.debug(f"Attempting to parse {file}")
     try:
-        score = Score(path, read_only=read_only, ms=ms, **logger_cfg)
+        score = Score(path, read_only=read_only, labels_cfg=labels_cfg, ms=ms, **logger_cfg)
         if score is None:
             logger.debug(f"Encountered errors when parsing {file}")
         else:

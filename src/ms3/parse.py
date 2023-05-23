@@ -441,7 +441,7 @@ class Parse(LoggedClass):
             result.update({(corpus_name, fname): report for fname, report in fname2reports.items()})
         return result
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
@@ -452,17 +452,15 @@ class Parse(LoggedClass):
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
         keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
         for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
-        for score in self._parsed_mscx.values():
-            score.change_labels_cfg(labels_cfg=updated)
-        ids = list(self._labellists.keys())
-        if len(ids) > 0:
-            self._extract_and_cache_dataframes(ids=ids, labels=True)
+        for corpus_name, corpus in self:
+            corpus.change_labels_cfg(labels_cfg=self.labels_cfg)
 
     def compare_labels(self,
                        key: str = 'detached',

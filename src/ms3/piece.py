@@ -12,7 +12,8 @@ from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS, \
+    update_labels_cfg
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -23,7 +24,7 @@ class Piece(LoggedClass):
 
     _deprecated_elements = ["get_dataframe"]
 
-    def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
+    def __init__(self, fname: str, view: View = None, labels_cfg={}, ms=None, **logger_cfg):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.name = fname
         available_types = ('scores',) + Score.dataframe_types
@@ -63,20 +64,21 @@ class Piece(LoggedClass):
         """If the :class:`~.corpus.Corpus` has :attr:`~.corpus.Corpus.metadata_tsv`, this field will contain the
         {column: value} pairs of the row pertaining to this piece.
         """
-        # self.score_obj: Score = None
-        # self.score_metadata: pd.Series = None
-        # """:obj:`pandas.Series`
-        # Metadata from :attr:`.Score.metadata`, transformed by :func:`.utils.metadata2series`.
-        # """
-        # self.measures: pd.DataFrame = None
-        # self.notes: pd.DataFrame = None
-        # self.rests: pd.DataFrame = None
-        # self.notes_and_rests: pd.DataFrame = None
-        # self.labels: pd.DataFrame = None
-        # self.expanded: pd.DataFrame = None
-        # self.events: pd.DataFrame = None
-        # self.chords: pd.DataFrame = None
-        # self.form_labels: pd.DataFrame = None
+
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'harmony_layer': None,
+            'positioning': False,
+            'decode': True,
+            'column_name': 'label',
+            'color_format': None,
+        }
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
+        :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
+        """
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
     def all_facets_present(self, view_name: Optional[str] = None,
                            selected_facets: Optional[Facets] = None) -> bool:
@@ -430,43 +432,26 @@ class Piece(LoggedClass):
         if inferred_type in ('labels', 'expanded'):
             self.ix2annotations = Annotations(df = parsed_tsv)
 
-    # def make_annotation_objects(self, view_name: Optional[str] = None, label_col='label'):
-    #     selected_files = self.get_files_of_types(['labels', 'expanded'], unparsed=False, view_name=view_name)
-    #     try:
-    #         self._parsed_tsv[id] = df
-    #         if 'label' in cols and label_col in df.columns:
-    #             tsv_type = 'labels'
-    #         else:
-    #             tsv_type = infer_tsv_type(df)
-    #
-    #         if tsv_type is None:
-    #             logger.debug(
-    #                 f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
-    #             self._tsv_types[id] = 'other'
-    #         else:
-    #             self._tsv_types[id] = tsv_type
-    #             if tsv_type == 'metadata':
-    #                 self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-    #                 logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
-    #             else:
-    #                 self._dataframes[tsv_type][id] = self._parsed_tsv[id]
-    #                 if tsv_type in ['labels', 'expanded']:
-    #                     if label_col in df.columns:
-    #                         logger_cfg = dict(self.logger_cfg)
-    #                         logger_cfg['name'] = self.logger_names[(key, i)]
-    #                         self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-    #                                                             logger_cfg=logger_cfg, level=level)
-    #                         logger.debug(
-    #                             f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
-    #                     else:
-    #                         logger.info(
-    #                             f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-    #             Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
-    #                 else:
-    #                     logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
-    #
-    #     except Exception as e:
-    #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+        """ Update :obj:`Piece.labels_cfg` and retrieve new 'labels' tables accordingly.
+
+        Parameters
+        ----------
+        labels_cfg : :obj:`dict`
+            Using an entire dictionary or, to change only particular options, choose from:
+        staff, voice, harmony_layer, positioning, decode, column_name
+            Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
+        """
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
+        for k in keys:
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
+        for score in self.ix2parsed_score.values():
+            score.change_labels_cfg(labels_cfg=self.labels_cfg)
 
     def compare_labels(self,
                        key: str = 'detached',
@@ -1281,7 +1266,7 @@ class Piece(LoggedClass):
         file = self.ix2file[ix]
         if file.type == 'scores':
             logger_cfg = dict(self.logger_cfg)
-            score = Score(file.full_path, ms=self.ms, **logger_cfg)
+            score = Score(file.full_path, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
             if score is None:
                 self.logger.warning(f"Parsing {file.rel_path} failed.")
             else:
