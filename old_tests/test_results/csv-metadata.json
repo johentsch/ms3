@@ -1,0 +1,155 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw#",
+    {
+      "@language": "en "
+    }
+  ],
+  "dc:title": "labels for old_tests",
+  "dialect": {
+    "delimiter": "\t"
+  },
+  "dc:created": "2023-05-24T01:54:55",
+  "dc:creator": [
+    {
+      "@context": "https://schema.org/",
+      "@type": "SoftwareApplication",
+      "@id": "https://github.com/johentsch/ms3",
+      "name": "ms3",
+      "description": "A parser for MuseScore 3 files.",
+      "author": {
+        "name": "Johannes Hentschel",
+        "@id": "https://orcid.org/0000-0002-1986-9545"
+      },
+      "softwareVersion": "1.2.9"
+    }
+  ],
+  "tables": [
+    {
+      "url": "76CASM34A33UM_labels.tsv"
+    },
+    {
+      "url": "76CASM34A33UM_labels.tsv"
+    },
+    {
+      "url": "Did03M-Son_regina-1762-Sarti_labels.tsv"
+    },
+    {
+      "url": "K281-3_labels.tsv"
+    },
+    {
+      "url": "stabat_03_coloured_labels.tsv"
+    },
+    {
+      "url": "stabat_03_coloured_labels.tsv"
+    }
+  ],
+  "tableSchema": {
+    "columns": [
+      {
+        "titles": "mc",
+        "datatype": "integer",
+        "dc:description": "Measure count."
+      },
+      {
+        "titles": "mn",
+        "datatype": "string",
+        "dc:description": "Measure number."
+      },
+      {
+        "titles": "quarterbeats",
+        "datatype": {
+          "base": "string",
+          "format": "-?\\d+(?:\\/\\d+)?"
+        }
+      },
+      {
+        "titles": "duration_qb",
+        "datatype": "float"
+      },
+      {
+        "titles": "mc_onset",
+        "datatype": {
+          "base": "string",
+          "format": "-?\\d+(?:\\/\\d+)?"
+        },
+        "dc:description": "An event's distance (fraction of a whole note) from the beginning of the MC."
+      },
+      {
+        "titles": "mn_onset",
+        "datatype": {
+          "base": "string",
+          "format": "-?\\d+(?:\\/\\d+)?"
+        },
+        "dc:description": "An event's distance (fraction of a whole note) from the beginning of the MN."
+      },
+      {
+        "titles": "timesig",
+        "datatype": "string"
+      },
+      {
+        "titles": "staff",
+        "datatype": "integer"
+      },
+      {
+        "titles": "voice",
+        "datatype": "integer"
+      },
+      {
+        "titles": "absolute_base",
+        "datatype": "integer"
+      },
+      {
+        "titles": "absolute_root",
+        "datatype": "integer"
+      },
+      {
+        "titles": "color"
+      },
+      {
+        "titles": "color_a",
+        "datatype": "integer"
+      },
+      {
+        "titles": "color_b",
+        "datatype": "integer"
+      },
+      {
+        "titles": "color_g",
+        "datatype": "integer"
+      },
+      {
+        "titles": "color_r",
+        "datatype": "integer"
+      },
+      {
+        "titles": "harmony_layer",
+        "datatype": "string"
+      },
+      {
+        "titles": "label",
+        "datatype": "string"
+      },
+      {
+        "titles": "nashville",
+        "datatype": "integer"
+      },
+      {
+        "titles": "offset_x",
+        "datatype": "string"
+      },
+      {
+        "titles": "offset_y",
+        "datatype": "string"
+      },
+      {
+        "titles": "regex_match",
+        "datatype": "string"
+      },
+      {
+        "titles": "rootCase",
+        "datatype": "integer"
+      }
+    ]
+  }
+}
