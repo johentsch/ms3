@@ -37,7 +37,7 @@ class TestScore:
             if score_object.mscx.has_annotations:
                 score_object.detach_labels('labels')
                 score_object.attach_labels('labels')
-            score_object.store_mscx(tmp_file.name)
+            score_object.store_score(tmp_file.name)
             original = open(original_mscx, encoding='utf-8').read()
             after_parsing = tmp_file.read()
             assert_all_lines_equal(original, after_parsing, original=original_mscx, tmp_file=tmp_file)
@@ -56,7 +56,7 @@ class TestScore:
             score_object.attach_labels('tsv')
             try:
                 tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.tsv', dir=self.test_folder, encoding='utf-8', delete=False)
-                score_object.store_mscx(tmp_file.name)
+                score_object.store_score(tmp_file.name)
                 original_mscx = score_object.full_paths['mscx']
                 before = open(original_mscx, encoding='utf-8').read()
                 after = tmp_file.read()
@@ -93,7 +93,7 @@ class TestScore:
         fpath = os.path.join(score_object.paths['mscx'], '..')
         old_path = os.path.join(fpath, 'notes', fname + '.tsv')
         old_notelist = load_tsv(old_path, index_col=None)
-        new_notelist = score_object.mscx.notes
+        new_notelist = score_object.mscx.notes()
         # Exclude 'onset' because the new parser computes 'offset' (measure list) more correctly
         excl = ['onset']
         new_notelist.to_csv(fname + '_notes.tsv', sep='\t', index=False)
@@ -101,7 +101,7 @@ class TestScore:
 
     def test_parse_to_eventlist(self, score_object):
         fname = score_object.fnames['mscx']
-        score_object.mscx.events.to_csv(fname + '_events.tsv', sep='\t', index=False)
+        score_object.mscx.events().to_csv(fname + '_events.tsv', sep='\t', index=False)
 
 
 

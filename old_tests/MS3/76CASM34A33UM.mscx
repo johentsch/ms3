@@ -8122,6 +8122,10 @@ Transcribed by Kristine Kier Jørgensen</text>
               <tpc>14</tpc>
               </Note>
             </Chord>
+          <Harmony>
+            <root>17</root>
+            <name>m7</name>
+            </Harmony>
           <Chord>
             <durationType>half</durationType>
             <duration>1/4</duration>
@@ -8133,10 +8137,6 @@ Transcribed by Kristine Kier Jørgensen</text>
               <subtype>c16</subtype>
               </Tremolo>
             </Chord>
-          <Harmony>
-            <root>17</root>
-            <name>m7</name>
-            </Harmony>
           <Chord>
             <durationType>half</durationType>
             <duration>1/4</duration>
