@@ -279,8 +279,8 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
         # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated function without passing logger=<logger>:\n{last_8}")
         set_level = 0 if level is None else level
-        logging.basicConfig(level=set_level)
-        logger.debug(f"set logging.basicConfig(level={set_level})")
+        logger.debug(f"Setting top-level logger 'ms3' to level {set_level}")
+        logger.setLevel(set_level)
     is_head_logger = logger.parent.name == 'ms3'
     adding_file_handler = path is not None
     adding_any_handlers = is_head_logger or adding_file_handler
