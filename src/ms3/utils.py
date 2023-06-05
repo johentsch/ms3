@@ -2763,8 +2763,8 @@ def path2type(path):
     else:
         found_components, n_found = find_components(path)
     if n_found == 0:
-        logger.debug(f"Type could not be inferred from path '{path}'.")
-        return 'unknown'
+        logger.debug(f"Type could not be inferred from path '{path}'. Letting it default to 'labels'.")
+        return 'labels'
     if n_found == 1:
         typ = component2type[found_components[0]]
         logger.debug(f"Path '{path}' recognized as {typ}.")

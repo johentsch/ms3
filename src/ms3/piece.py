@@ -109,7 +109,7 @@ class Piece(LoggedClass):
         if not result:
             missing = [f for f in facets if f not in present_facets]
             plural = 's are' if len(missing) > 1 else ' is'
-            self.logger.debug(f"The following facet{plural} are not present under the view '{view.name}': {missing}")
+            self.logger.debug(f"The following facet{plural} not present under the view '{view.name}': {missing}")
         return result
 
     @property
