@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import pytest
-from conftest import DOCS_EXAMPLES_DIR
+from tests.conftest import DOCS_EXAMPLES_DIR
 
 @pytest.fixture(
     params=os.listdir(DOCS_EXAMPLES_DIR)
