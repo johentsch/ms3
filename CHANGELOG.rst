@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.2.10
+==============
+
+* merges old_tests with new_tests
+* correct handling of ``labels_cfg``
+* refrains from calling ``logging.basicConfig()``
+* unknown TSV types now default to ``labels``
+* ``conti`` now recognized as abbreviation for "continuation idea"
+
+
 Version 1.2.9
 =============
 
