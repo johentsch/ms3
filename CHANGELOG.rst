@@ -10,6 +10,7 @@ Version 1.2.10
 * refrains from calling ``logging.basicConfig()``
 * unknown TSV types now default to ``labels``
 * ``conti`` now recognized as abbreviation for "continuation idea"
+* suppresses warnings about multiple "Fingering_text" values
 
 
 Version 1.2.9

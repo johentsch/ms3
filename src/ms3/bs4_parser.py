@@ -352,7 +352,10 @@ class _MSCX_bs4(LoggedClass):
                             for text_tag in event_node.find_all('text'):
                                 parent_name = text_tag.parent.name
                                 text = text_tag2str(text_tag)
-                                if parent_name == 'Lyrics':
+                                if parent_name == 'Fingering':
+                                    # fingerings occur within <Note> tags, if they are to be extracted, they should go into the notes table
+                                    continue
+                                elif parent_name == 'Lyrics':
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find('no')
                                     if no_tag is None:
@@ -376,7 +379,7 @@ class _MSCX_bs4(LoggedClass):
                                 else:
                                     column_name = parent_name + '_text'
                                 if column_name in event:
-                                    self.logger.warning(f"Event already contained a '{column_name}': {event[column_name]}")
+                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{column_name}': {event[column_name]}")
                                 else:
                                     event[column_name] = text
                             event_list.append(event)
