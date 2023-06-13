@@ -210,6 +210,7 @@ FORM_TOKEN_ABBREVIATIONS = {
  'coda': 'coda',
  'cons': 'consequent',
  'cont': 'continuation',
+ 'conti': 'continuation idea',
  'ctta': 'codetta',
  'depi': 'display episode',
  'diss': 'dissolution',
