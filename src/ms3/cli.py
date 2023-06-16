@@ -358,7 +358,7 @@ def review_cmd(args,
         warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
         warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
         if len((warnings := piece2warnings[pieceID])) > 0:
-            header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
+            header = f"Warnings encountered during the last execution of ms3 review"
             header = f"{header}\n{'=' * len(header)}\n\n"
             os.makedirs(warnings_path, exist_ok=True)
             with open(warnings_file, 'w', encoding='utf-8') as f:
