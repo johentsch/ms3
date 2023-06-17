@@ -2045,7 +2045,7 @@ def load_tsv(path,
 
 
 @lru_cache()
-def tsv_column2datatype():
+def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
     mapping = defaultdict(lambda: 'string')
     mapping.update({
         'Int64': 'integer',
@@ -2076,11 +2076,11 @@ def tsv_column2description(col: str) -> Optional[str]:
 
 
 @lru_cache()
-def tsv_column2schema(col: str) -> dict:
+def tsv_column2csvw_schema(col: str) -> dict:
     result = {
         "titles": col,
     }
-    column2type = tsv_column2datatype()
+    column2type = tsv_column2csvw_datatype()
     if col in column2type:
         result["datatype"] = column2type[col]
     description = tsv_column2description(col)
@@ -2120,7 +2120,7 @@ def make_csvw_jsonld(title: str,
     else:
         result["tables"] = [{"url": p} for p in urls]
     result["tableSchema"] = {
-        "columns": [tsv_column2schema(col) for col in columns]
+        "columns": [tsv_column2csvw_schema(col) for col in columns]
     }
     return result
 
