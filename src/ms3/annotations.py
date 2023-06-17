@@ -1,6 +1,6 @@
 import sys
 import warnings
-from functools import lru_cache
+from functools import cache
 from inspect import stack
 
 import pandas as pd
@@ -328,7 +328,7 @@ class Annotations(LoggedClass):
             res = column_order(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
-    @lru_cache()
+    @cache
     def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, chord_tones=True, relative_to_global=False, absolute=False, all_in_c=False,  **kwargs):
         """ Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 

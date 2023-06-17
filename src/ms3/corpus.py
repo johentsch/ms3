@@ -1,4 +1,4 @@
-from functools import lru_cache
+from functools import cache
 from logging import Logger
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional, Set
 
@@ -846,7 +846,7 @@ class Corpus(LoggedClass):
             file = new_files[0]
         self.load_metadata_file(file)
 
-    @lru_cache()
+    @cache
     def fnames_in_metadata(self, metadata_ix: Optional[int] = None) -> List[str]:
         """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply

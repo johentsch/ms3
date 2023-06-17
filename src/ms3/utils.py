@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from fractions import Fraction as frac
-from functools import reduce, lru_cache
+from functools import reduce, cache
 from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
 from shutil import which
@@ -651,7 +651,7 @@ def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
         previous_mc = mc
     return pd.Series(mn_playthrough_column, index=measures.index, name='mn_playthrough')
 
-@lru_cache()
+@cache
 def get_major_version_of_musescore_executable(ms) -> Optional[int]:
     try:
         result = subprocess.run([ms, "-v"], capture_output=True, text=True)
@@ -2044,7 +2044,7 @@ def load_tsv(path,
     return df
 
 
-@lru_cache()
+@cache
 def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
     mapping = defaultdict(lambda: 'string')
     mapping.update({
@@ -2063,7 +2063,7 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
     return column2datatype
 
 
-@lru_cache()
+@cache
 def tsv_column2description(col: str) -> Optional[str]:
     mapping = {
         'mc': 'Measure count.',
@@ -2075,7 +2075,7 @@ def tsv_column2description(col: str) -> Optional[str]:
         return mapping[col]
 
 
-@lru_cache()
+@cache
 def tsv_column2csvw_schema(col: str) -> dict:
     result = {
         "titles": col,
@@ -2783,7 +2783,7 @@ def path2type(path):
         return 'other'
 
 
-@lru_cache()
+@cache
 def path_component2file_type_map() -> dict:
     comp2type = {comp: comp for comp in STANDARD_NAMES}
     comp2type['MS3'] = 'scores'
@@ -4903,7 +4903,7 @@ def literal_type2tuple(typ: TypeVar) -> Tuple[str]:
     return literal_type2tuple(typ.__args__[0])
 
 
-@lru_cache
+@cache
 @function_logger
 def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None]],
                                    typ: Optional[Union[TypeVar, Tuple[str]]] = None,
@@ -5146,7 +5146,7 @@ def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
 
     return s
 
-@lru_cache()
+@cache
 @function_logger
 def get_git_commit(repo_path: str, git_revision: str) -> Optional[git.Commit]:
     try:

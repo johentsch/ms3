@@ -77,7 +77,7 @@ from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from itertools import zip_longest
 from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection, Hashable
-from functools import lru_cache
+from functools import cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
@@ -578,7 +578,7 @@ class _MSCX_bs4(LoggedClass):
         return
 
     @property
-    @lru_cache
+    @cache
     def has_voltas(self) -> bool:
         """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
         measures = self.ml()
@@ -723,7 +723,7 @@ class _MSCX_bs4(LoggedClass):
             self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
-    @lru_cache()
+    @cache
     def offset_dict(self,
                     all_endings: bool = False,
                     unfold: bool = False,
@@ -1007,7 +1007,7 @@ class _MSCX_bs4(LoggedClass):
             additional_cols.extend([c for c in df.columns if feature in c and c not in main_cols])
         return df[main_cols + additional_cols]
 
-    @lru_cache()
+    @cache
     def get_playthrough_mcs(self) -> Optional[pd.Series]:
         measures = self.ml()  # measures table without quarterbeats
         playthrough_mcs = make_playthrough2mc(measures, logger=self.logger)
