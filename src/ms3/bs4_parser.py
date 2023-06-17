@@ -73,7 +73,7 @@
 
 import re, sys, warnings
 from copy import copy
-from fractions import Fraction as frac
+from fractions import Fraction
 from collections import defaultdict, ChainMap # for merging dictionaries
 from itertools import zip_longest
 from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection, Hashable
@@ -111,20 +111,20 @@ class _MSCX_bs4(LoggedClass):
 
     """
 
-    durations = {"measure": frac(1),
-                 "breve": frac(2),  # in theory, of course, they could have length 1.5
-                 "long": frac(4),   # and 3 as well and other values yet
-                 "whole": frac(1),
-                 "half": frac(1 / 2),
-                 "quarter": frac(1 / 4),
-                 "eighth": frac(1 / 8),
-                 "16th": frac(1 / 16),
-                 "32nd": frac(1 / 32),
-                 "64th": frac(1 / 64),
-                 "128th": frac(1 / 128),
-                 "256th": frac(1 / 256),
-                 "512th": frac(1 / 512),
-                 "1024th": frac(1 / 1024)}
+    durations = {"measure": Fraction(1),
+                 "breve": Fraction(2),  # in theory, of course, they could have length 1.5
+                 "long": Fraction(4),   # and 3 as well and other values yet
+                 "whole": Fraction(1),
+                 "half": Fraction(1, 2),
+                 "quarter": Fraction(1, 4),
+                 "eighth": Fraction(1, 8),
+                 "16th": Fraction(1, 16),
+                 "32nd": Fraction(1, 32),
+                 "64th": Fraction(1, 64),
+                 "128th": Fraction(1, 128),
+                 "256th": Fraction(1, 256),
+                 "512th": Fraction(1, 512),
+                 "1024th": Fraction(1, 1024)}
 
     def __init__(self, mscx_src, read_only=False, logger_cfg={}):
         """
@@ -251,9 +251,9 @@ class _MSCX_bs4(LoggedClass):
                 for voice_id, voice_node in enumerate(voice_nodes, start=1):
                     if not self.read_only:
                         self.tags[mc][staff_id][voice_id] = defaultdict(list)
-                    current_position = frac(0)
-                    duration_multiplier = 1
-                    multiplier_stack = [1]
+                    current_position = Fraction(0)
+                    duration_multiplier = Fraction(1)
+                    multiplier_stack = [Fraction(1)]
                     tremolo_type = None
                     tremolo_component = 0
                     # iterate through children of <voice> which constitute the note level of one notational layer
@@ -265,7 +265,7 @@ class _MSCX_bs4(LoggedClass):
                             'staff': staff_id,
                             'voice': voice_id,
                             'mc_onset': current_position,
-                            'duration': frac(0)}
+                            'duration': Fraction(0)}
 
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
@@ -317,10 +317,10 @@ class _MSCX_bs4(LoggedClass):
                         elif event_name == 'Rest':
                             event['duration'], dot_multiplier = bs4_rest_duration(event_node, duration_multiplier)
                         elif event_name == 'location':  # <location> tags move the position counter
-                            event['duration'] = frac(event_node.fractions.string)
+                            event['duration'] = Fraction(event_node.fractions.string)
                         elif event_name == 'Tuplet':
                             multiplier_stack.append(duration_multiplier)
-                            duration_multiplier = duration_multiplier * frac(int(event_node.normalNotes.string),
+                            duration_multiplier = duration_multiplier * Fraction(int(event_node.normalNotes.string),
                                                                              int(event_node.actualNotes.string))
                         elif event_name == 'endTuplet':
                             duration_multiplier = multiplier_stack.pop()
@@ -1069,7 +1069,7 @@ class _MSCX_bs4(LoggedClass):
             mn = int(m.group(1))
             volta = ord(m.group(2)) - 96 # turn 'a' into 1, 'b' into 2 etc.
         try:
-            mn_onset = frac(mn_onset)
+            mn_onset = Fraction(mn_onset)
         except:
             self.logger.error(f"The mn_onset {mn_onset} could not be interpreted as a fraction.")
             raise
@@ -1383,8 +1383,8 @@ because it precedes the label to be deleted which is the voice's last onset, {mc
 #                         raise NotImplementedError(
 #     f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
                     if prv_n_locs > 0:
-                        cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
-                        prv_loc_dur = frac(prv_elements[-1]['duration'])
+                        cur_loc_dur = Fraction(elements[element_names.index('location')]['duration'])
+                        prv_loc_dur = Fraction(prv_elements[-1]['duration'])
                         prv_loc_tag = prv_elements[-1]['tag']
                         new_loc_dur = prv_loc_dur + cur_loc_dur
                         prv_loc_tag.fractions.string = str(new_loc_dur)
@@ -1419,10 +1419,10 @@ f"Location tag is not the last element in MC {mc}, mc_onset {nxt_onset}, staff {
                         if element_names[-1] != 'location':
                             raise NotImplementedError(
 f"Location tag is not the last element in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
-                        neg_loc_dur = frac(elements[element_names.index('location')]['duration'])
+                        neg_loc_dur = Fraction(elements[element_names.index('location')]['duration'])
                         assert neg_loc_dur < 0, f"""Location tag in MC {mc}, mc_onset {nxt_onset}, staff {staff}, voice {voice}
 should be negative but is {neg_loc_dur}."""
-                        pos_loc_dur = frac(elements[-1]['duration'])
+                        pos_loc_dur = Fraction(elements[-1]['duration'])
                         new_loc_value = neg_loc_dur + pos_loc_dur
                         new_tag = self.new_location(new_loc_value)
                         nxt_elements[0]['tag'].insert_before(new_tag)
@@ -1527,7 +1527,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
             return False
 
-        mc_onset = frac(mc_onset)
+        mc_onset = Fraction(mc_onset)
         label_name = kwargs['decoded'] if 'decoded' in kwargs else label
         if voice not in self.tags[mc][staff]:
             # Adding label to an unused voice that has to be created
@@ -1679,7 +1679,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         tag = self.new_label(label, before=before, after=after, within=within, **kwargs)
         remember = [dict(
                         name = 'Harmony',
-                        duration = frac(0),
+                        duration = Fraction(0),
                         tag = tag
                     )]
         if loc_before is not None:
@@ -1745,7 +1745,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
             self.logger.error(f"Staff {staff}, MC {mc} has no voice {voice}.")
             return False
         measure = self.tags[mc][staff][voice]
-        mc_onset = frac(mc_onset)
+        mc_onset = Fraction(mc_onset)
         if mc_onset not in measure:
             self.logger.error(f"Staff {staff}, MC {mc}, voice {voice} has no event on mc_onset {mc_onset}.")
             return False
@@ -1866,9 +1866,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
     def color_notes(self,
                     from_mc: int,
-                    from_mc_onset: frac,
+                    from_mc_onset: Fraction,
                     to_mc: Optional[int] = None,
-                    to_mc_onset: Optional[frac] = None,
+                    to_mc_onset: Optional[Fraction] = None,
                     midi: List[int] = [],
                     tpc: List[int] = [],
                     inverse: bool = False,
@@ -1878,7 +1878,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
                     color_g: Optional[int] = None,
                     color_b: Optional[int] = None,
                     color_a: Optional[int] = None,
-                    ) -> Tuple[List[frac], List[frac]]:
+                    ) -> Tuple[List[Fraction], List[Fraction]]:
         """ Colors all notes occurring in a particular score segment in one particular color, or
         only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
 
@@ -2303,7 +2303,7 @@ def make_spanner_cols(df: pd.DataFrame,
                 ),
             )
             duration_df.iloc[:, 0] = duration_df.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(Fraction)          # nxt_f
         custom_text_col = f"Spanner/{spanner_type}/beginText"
         add_custom_text_cols = custom_text_col in df and df[custom_text_col].notna().any()
         if add_custom_text_cols:
@@ -2475,21 +2475,21 @@ def recurse_node(node, prepend=None, exclude_children=None):
 
 
 def bs4_chord_duration(node: bs4.Tag,
-                       duration_multiplier: Union[float, int] = 1) -> Tuple[frac, frac]:
+                       duration_multiplier: Fraction = Fraction(1)) -> Tuple[Fraction, Fraction]:
     duration_type_tag = node.find('durationType')
     if duration_type_tag is None:
-        return frac(0), frac(0)
+        return Fraction(0), Fraction(0)
     durationtype = duration_type_tag.string
     if durationtype == 'measure' and node.find('duration'):
-        nominal_duration = frac(node.find('duration').string)
+        nominal_duration = Fraction(node.find('duration').string)
     else:
         nominal_duration = _MSCX_bs4.durations[durationtype]
     dots = node.find('dots')
-    dotmultiplier = sum([frac(1 / 2) ** i for i in range(int(dots.string) + 1)]) if dots else 1
+    dotmultiplier = sum([Fraction(1, 2) ** i for i in range(int(dots.string) + 1)]) if dots else Fraction(1)
     return nominal_duration * duration_multiplier * dotmultiplier, dotmultiplier
 
 
-def bs4_rest_duration(node, duration_multiplier=1):
+def bs4_rest_duration(node, duration_multiplier=Fraction(1)):
     return bs4_chord_duration(node, duration_multiplier)
 
 
@@ -2688,13 +2688,13 @@ def thoroughbass_item(item_tag: bs4.Tag) -> str:
     return result + continuation_line
 
 
-def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[frac]]:
+def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[Fraction]]:
     """Turns a <FiguredBass> tag into a list of components strings, one per level, and duration."""
     ticks_tag = thoroughbass_tag.find('ticks')
     if ticks_tag is None:
         duration = None
     else:
-        duration = frac(ticks_tag.string)
+        duration = Fraction(ticks_tag.string)
     components = []
     for item_tag in thoroughbass_tag.find_all('FiguredBassItem'):
         components.append(thoroughbass_item(item_tag))
