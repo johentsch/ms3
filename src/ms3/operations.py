@@ -92,13 +92,24 @@ def extract(parse_obj: Parse,
             unfold: bool = False,
             interval_index: bool = False,
             silence_label_warnings: bool = False,
+            iter_corpus: bool = False,
             **suffixes):
-    parse_obj.parse_scores(parallel=parallel)
-    parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
-                                     measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
-                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
-                                     markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
-
+    mode = "IN PARALLEL" if parallel else "ONE AFTER THE OTHER"
+    if not iter_corpus:
+        print(f"PARSING SCORES {mode}...")
+        parse_obj.parse_scores(parallel=parallel)
+        parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
+                                         measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
+                                         expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
+                                         markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
+        return
+    for corpus_name, corpus, in parse_obj.iter_corpora():
+        print(f"PARSING SCORES FOR CORPUS '{corpus_name}' {mode}...")
+        corpus.parse_scores(parallel=parallel)
+        corpus.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
+                                      measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
+                                      expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
+                                      markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
 
 
 def check(parse_obj: Parse,

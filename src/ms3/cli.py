@@ -159,7 +159,7 @@ def empty(args, parse_obj: Optional[Parse] = None):
 
 def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
-        p = make_parse_obj(args, parse_scores=True)
+        p = make_parse_obj(args)
     else:
         p = parse_obj
     params = gather_extract_params(args)
@@ -180,9 +180,11 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
             form_labels_folder=args.form_labels,
             metadata_suffix=args.metadata,
             simulate=args.test,
+            parallel=not args.iterative,
             unfold=args.unfold,
             interval_index=args.interval_index,
             silence_label_warnings=silence_label_warnings,
+            iter_corpus=args.iter_corpus,
             **suffixes)
 
 def metadata(args, parse_obj: Optional[Parse] = None):
@@ -553,6 +555,7 @@ def get_arg_parser():
                                 help="Unfold the repeats for all stored DataFrames.")
     extract_args.add_argument('--interval_index', action='store_true',
                                 help="Prepend a column with [start, end) intervals to the TSV files.")
+    extract_args.add_argument('--iter_corpus', action='store_true', help="Parse one corpus after the other rather than all at once.")
 
     select_facet_args = argparse.ArgumentParser(add_help=False)
     select_facet_args.add_argument('--ask', action='store_true',
