@@ -4402,6 +4402,20 @@ def transpose(e, n):
     """
     return map2elements(e, lambda x: x + n)
 
+def parse_tuple(l: str) -> tuple:
+    l = l.strip('(),')
+    if l == '':
+        return tuple()
+    res = []
+    for s in l.split(', '):
+        try:
+            res.append(int(s))
+        except ValueError:
+            if s[0] == s[-1] and s[0] in ("\"", "\'"):
+                s = s[1:-1]
+            res.append(s)
+    return tuple(res)
+
 
 def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
     """Turns a list of log messages into an iterator of (logger_name, (message_info, ...)) pairs.
@@ -4442,7 +4456,7 @@ def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tup
                         raise ValueError(f"Unexpected log message format: {msg}")
                 tuple_start = msg.index('(') + 1
                 tuple_str = msg[tuple_start:-1]
-                info = str2inttuple(tuple_str, strict=False)
+                info = parse_tuple(tuple_str)
                 yield logger_name, info
 
 def ignored_warnings2dict(messages: Collection[str]) -> Dict[str, List[Tuple[int]]]:
