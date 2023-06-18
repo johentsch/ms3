@@ -29,8 +29,8 @@ from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 from typing_extensions import Self
 
-from .logger import function_logger, update_cfg, LogCapturer
-from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
+from ms3.logger import function_logger, update_cfg, LogCapturer
+from ms3._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
 MS3_VERSION = '1.2.10'
 LATEST_MUSESCORE_VERSION = '3.6.2'
@@ -2230,7 +2230,7 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
         int2bool: 'boolean',
         safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
         safe_int: 'integer',
-        str2inttuple: {"base": "string", "format": r"\(-?\d+, ?-?\d+\)"},
+        str2inttuple: {"base": "string", "format": r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$"},
     })
     column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
     column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
@@ -3889,6 +3889,8 @@ def prepare_metadata_for_writing(metadata_df):
         metadata_df = metadata_df.reset_index()
     return metadata_df
 
+def ensure_correct_column_types(df):
+    return df
 
 @function_logger
 def write_tsv(df, file_path, pre_process=True, **kwargs):
@@ -3927,6 +3929,7 @@ def write_tsv(df, file_path, pre_process=True, **kwargs):
         kwargs['index'] = False
     if pre_process:
         df = no_collections_no_booleans(df, logger=logger)
+        df = ensure_correct_column_types(df)
     df.to_csv(file_path, **kwargs)
     logger.debug(f"{file_path} written with parameters {kwargs}.")
     return
