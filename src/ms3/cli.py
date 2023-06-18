@@ -11,7 +11,7 @@ from typing import Optional
 
 from ms3 import Parse, make_coloring_reports_and_warnings
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs
+from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs, write_to_warnings_file
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
@@ -357,19 +357,11 @@ def review_cmd(args,
     # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
     for pieceID, score_files in p.get_files('scores', unparsed=False, flat=True, include_empty=False).items():
         file = score_files[0]
-        warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
-        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
-        if len((warnings := piece2warnings[pieceID])) > 0:
-            header = f"Warnings encountered during the last execution of ms3 review"
-            header = f"{header}\n{'=' * len(header)}\n\n"
-            os.makedirs(warnings_path, exist_ok=True)
-            with open(warnings_file, 'w', encoding='utf-8') as f:
-                f.write(header)
-                f.write('\n'.join(warnings))
-            logger.info(f"Written warnings to {warnings_file}.")
-        elif os.path.isfile(warnings_file):
-            logger.info(f"Problems seem to be solved, removing {warnings_file}")
-            os.remove(warnings_file)
+        write_to_warnings_file(warnings=piece2warnings[pieceID],
+                               file=file,
+                               root_dir=args.out,
+                               remove_if_empty=True,
+                               logger=logger)
 
     # call ms3 compare
     if args.compare is not None:
