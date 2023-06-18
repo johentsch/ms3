@@ -1,5 +1,6 @@
 from functools import cache
 from logging import Logger
+from pprint import pformat
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional, Set
 
 import os, re
@@ -21,7 +22,7 @@ from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, METAD
     pretty_dict, resolve_dir, update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
     convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
-    scan_directory
+    scan_directory, write_to_warnings_file
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -2593,7 +2594,7 @@ class Corpus(LoggedClass):
                                unfold: bool = False,
                                interval_index: bool = False,
                                silence_label_warnings: bool = False,
-                               validate: bool = True,
+                               frictionless: bool = True,
                                ) -> List[str]:
         """  Store facets extracted from parsed scores as TSV files.
 
@@ -2616,7 +2617,7 @@ class Corpus(LoggedClass):
               playthrough, including correct positioning of first and second endings.
           interval_index:
           silence_label_warnings:
-          validate:
+          frictionless:
             If True (default), the file is written together with a frictionless resource descriptor JSON file
             whose column schema is used to validate the stored TSV file.
 
@@ -2663,8 +2664,19 @@ class Corpus(LoggedClass):
                         else:
                             write_tsv(df, file_path, logger=self.logger)
                             self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
-                            if validate:
-                                store_descriptor_and_validate(df, file_path, facet, file.fname, logger=self.logger)
+                            if frictionless:
+                                report = store_descriptor_and_validate(df, file_path, facet, file.fname, logger=self.logger)
+                                warnings = []
+                                if not report.valid:
+                                    for task in report.tasks:
+                                        if not task.valid:
+                                            warnings.append(pformat(task))
+                                # the following call removes the .warnings file if the validation was successful
+                                write_to_warnings_file(warnings=warnings,
+                                                       file=file,
+                                                       root_dir=root_dir,
+                                                       validation_errors=True,
+                                                       logger=self.logger)
                         paths.append(file_path)
         if output_metadata:
             if not markdown:

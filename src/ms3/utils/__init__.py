@@ -5410,18 +5410,24 @@ def write_to_warnings_file(
         warnings: List[str],
         file: File,
         root_dir: Optional[str] = None,
-        remove_if_empty: bool = False,
+        validation_errors: bool = False
 ):
     warnings_path = compute_path_from_file(file, root_dir=root_dir, folder='reviewed')
-    warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
-    if len(warnings) > 0:
+    if validation_errors:
+        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.errors')
+        header = f"Validation errors encountered during the last execution of ms3 extract"
+        log_msg = f"Written warnings to {warnings_file}."
+    else:
+        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
         header = f"Warnings encountered during the last execution of ms3 review"
-        header = f"{header}\n{'=' * len(header)}\n\n"
+        log_msg = f"Written validation errors to {warnings_file}."
+    if len(warnings) > 0:
         os.makedirs(warnings_path, exist_ok=True)
+        header = f"{header}\n{'=' * len(header)}\n\n"
         with open(warnings_file, 'w', encoding='utf-8') as f:
             f.write(header)
             f.write('\n'.join(warnings))
-        logger.info(f"Written warnings to {warnings_file}.")
-    elif remove_if_empty and os.path.isfile(warnings_file):
+        logger.info(log_msg)
+    elif os.path.isfile(warnings_file):
         logger.info(f"Problems seem to be solved, removing {warnings_file}")
         os.remove(warnings_file)

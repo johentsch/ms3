@@ -360,7 +360,7 @@ def review_cmd(args,
         write_to_warnings_file(warnings=piece2warnings[pieceID],
                                file=file,
                                root_dir=args.out,
-                               remove_if_empty=True,
+                               validation_errors=False,
                                logger=logger)
 
     # call ms3 compare

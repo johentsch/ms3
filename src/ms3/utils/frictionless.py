@@ -159,16 +159,8 @@ def store_descriptor(fname: str,
     return descriptor
 
 @function_logger
-def store_descriptor_and_validate(df, file_path, facet, fname):
+def store_descriptor_and_validate(df, file_path, facet, fname) -> fl.Report:
     schema = get_schema(df, facet)
     json_path = replace_extension(file_path, '.resource.json')
     store_descriptor(fname, facet, schema, json_path, logger=logger)
-    validate_descriptor(json_path, logger=logger)
-
-@function_logger
-def validate_descriptor(path):
-    report = fl.validate(path)
-    if not report.valid:
-        error_report = pformat(report)
-        raise fl.FrictionlessException(error_report)
-    logger.info(f"Frictionless descriptor successfully validated: {path}")
+    return fl.validate(json_path)
