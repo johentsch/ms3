@@ -9,23 +9,19 @@ from collections import Counter, defaultdict
 
 import pandas as pd
 import numpy as np
-from git import Repo, InvalidGitRepositoryError
-from gitdb.exc import BadName
 
-from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger, normalize_logger_name
+from ms3.utils.frictionless import store_descriptor_and_validate
+
+from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name
 from .piece import Piece
 from .score import Score, compare_two_score_objects
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, \
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FacetArguments, \
     Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
-from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
-    load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough_info, METADATA_COLUMN_ORDER, path2type, \
-    pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
+from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, METADATA_COLUMN_ORDER, path2type, \
+    pretty_dict, resolve_dir, update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
     convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
-    store_csvw_jsonld, scan_directory
+    scan_directory
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -2596,7 +2592,9 @@ class Corpus(LoggedClass):
                                simulate: bool = False,
                                unfold: bool = False,
                                interval_index: bool = False,
-                               silence_label_warnings: bool = False) -> List[str]:
+                               silence_label_warnings: bool = False,
+                               validate: bool = True,
+                               ) -> List[str]:
         """  Store facets extracted from parsed scores as TSV files.
 
         Args:
@@ -2618,6 +2616,10 @@ class Corpus(LoggedClass):
               playthrough, including correct positioning of first and second endings.
           interval_index:
           silence_label_warnings:
+          validate:
+            If True (default), the file is written together with a frictionless resource descriptor JSON file
+            whose column schema is used to validate the stored TSV file.
+
 
         Returns:
 
@@ -2641,12 +2643,6 @@ class Corpus(LoggedClass):
 
         # if the view is default (no additional filters have been set), write one CSVW metadata file per facet
         view = self.get_view(view_name)
-        store_tsv_metadata = view.is_default(relax_for_cli=True)
-        if store_tsv_metadata:
-            self.logger.debug(f"Found that the view '{view.name}' has default settings. Will create csv-metadata.json file(s).")
-            column_combinations = defaultdict(set)
-            facet2files = defaultdict(list)
-            facet2path = dict()
         if target > 0:
             for piece_name, piece in self.iter_pieces(view_name=view_name):
                 for file, facet2dataframe in piece.iter_extracted_facets(facets,
@@ -2667,27 +2663,9 @@ class Corpus(LoggedClass):
                         else:
                             write_tsv(df, file_path, logger=self.logger)
                             self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
-                            if store_tsv_metadata:
-                                column_combinations[facet].add(tuple(df.columns))
-                                path_comp, file_comp = os.path.split(file_path)
-                                facet2files[facet].append(file_comp)
-                                facet2path[facet] = path_comp
+                            if validate:
+                                store_descriptor_and_validate(df, file_path, facet, file.fname, logger=self.logger)
                         paths.append(file_path)
-        if store_tsv_metadata:
-            for facet, files in facet2files.items():
-                clmn_combinations = column_combinations[facet]
-                if len(clmn_combinations) > 1:
-                    columns = []
-                    for clmns in clmn_combinations:
-                        if len(clmns) > len(columns):
-                            columns = clmns
-                    self.logger.info(f"The '{facet}' TSVs have varying numbers of columns which means that the 'csv-metadata.json' "
-                                        f"will not apply exactly to all of them. It describes the maximum number of columns, {len(columns)}")
-                else:
-                    columns = next(clmns for clmns in clmn_combinations)
-                corpus_name = self.name
-                json_path = store_csvw_jsonld(corpus_name, facet2path[facet], facet, columns=columns, files=files)
-                self.logger.info(f"Created metadata for '{facet}' TSVs: {json_path}")
         if output_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_tsv_from_parsed_scores(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
