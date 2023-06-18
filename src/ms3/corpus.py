@@ -2635,14 +2635,14 @@ class Corpus(LoggedClass):
         suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
-        metadata_str = 'and metadata ' if store_tsv_metadata else ''
-        self.logger.info(f"Extracting {len(facets)} facets {metadata_str}from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         paths = []
         target = len(facets) * n_scores
 
         # if the view is default (no additional filters have been set), write one CSVW metadata file per facet
         view = self.get_view(view_name)
         store_tsv_metadata = view.is_default(relax_for_cli=True)
+        metadata_str = 'and metadata ' if store_tsv_metadata else ''
+        self.logger.info(f"Extracting {len(facets)} facets {metadata_str}from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         if store_tsv_metadata:
             self.logger.debug(f"Found that the view '{view.name}' has default settings. Will create csv-metadata.json file(s).")
             column_combinations = defaultdict(set)

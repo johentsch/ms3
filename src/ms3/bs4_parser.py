@@ -72,6 +72,7 @@
 """
 
 import re, sys, warnings
+from pprint import pformat
 from copy import copy
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
@@ -2014,7 +2015,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
 class ParsedParts(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('ParsedParts', logger_cfg)
-        self.parts_data = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
+        self.parts_data: Dict[str, bs4.Tag] = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
 
     @property
     def staff2part(self) -> dict[list, str]:
@@ -2024,6 +2025,9 @@ class ParsedParts(LoggedClass):
             staves = [f"staff_{staff['id']}" for staff in part.find_all('Staff')]
             staff2part.update(dict.fromkeys(staves, key_part))
         return staff2part
+
+    def __repr__(self):
+        return pformat(self.parts_data, sort_dicts=False)
 
 INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).to_dict()
 
@@ -2059,21 +2063,22 @@ class Instrumentation(LoggedClass):
 
 
 
+
     def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
         """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
         tag_dict = {}
         for key_part, part in self.parsed_parts.parts_data.items():
-            instrument_info = part.Instrument
-            staves = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
-            cur_dict = {"instrumentId": instrument_info["id"]}
+            instrument_tag = part.Instrument
+            staves: Dict[str, bs4.Tag] = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
+            cur_dict = {"instrumentId": instrument_tag["id"]}
             for name in self.instrumentation_fields:
                 if name == "part_trackName":
                     tag = part.trackName
                 else:
-                    tag = instrument_info.find(name)
+                    tag = instrument_tag.find(name)
                 if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
-                    instrument_info.trackName.string = part.trackName.string
-                    tag = instrument_info.find(name)
+                    instrument_tag.trackName.string = part.trackName.string
+                    tag = instrument_tag.find(name)
                 cur_dict[name] = tag
             tag_dict.update({key_staff: cur_dict for key_staff in staves})
         return tag_dict
@@ -2117,17 +2122,20 @@ class Instrumentation(LoggedClass):
         new_values = self.key2default_instrumentation[trackname_norm]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
+            changed_part = self.parsed_parts.staff2part[staff_id]
+            self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
             if self.soup_references_data[staff_id][field_to_change] is not None:
                 self.soup_references_data[staff_id][field_to_change].string = value
-            else:
-                self.soup_references_data[staff_id][field_to_change] = value
-
+                self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
+            elif value is not None:
                 new_tag = self.soup.new_tag(field_to_change)
-                if value is not None:
-                    new_tag.string = value
-                else:
-                    self.logger.debug(f"The value is None.")
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument.append(new_tag)
+                new_tag.string = value
+                self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
+                self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+                self.soup_references_data = self.soup_references() # update references
+
+    def __repr__(self):
+        return pformat(self.fields, sort_dicts=False)
 
 
 
