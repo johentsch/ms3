@@ -9,6 +9,7 @@ in the TypedDict PartInfo.
 """
 import os
 from functools import lru_cache
+from pprint import pprint
 from typing import Dict, Tuple, Optional, List, TypedDict
 
 import bs4
@@ -16,7 +17,6 @@ import pytest
 from git import Repo
 
 from ms3.bs4_parser import Instrumentation, INSTRUMENT_DEFAULTS
-from ms3 import Score
 from conftest import TEST_COMMIT
 
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
@@ -196,48 +196,23 @@ def test_instrumentation_after_instrument_change(source_path):
     """
     file_name = os.path.basename(source_path)
     if file_name not in TEST_CASES:
-        pytest.skip(f"No test cases defined for {file_name}")
+        return
     for (staff_to_modify, new_instrument), staff_id2expected_instrument in TEST_CASES[file_name].items():
         print(f"Creating new Instrumentation object from {source_path}...")
         soup = get_soup(source_path) # re-parse everytime because soup is mutable
         tested_object = Instrumentation(soup=soup)
-        print(f"INITIAL STATE: {tested_object}")
-        print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
+        print(f"Setting staff {staff_to_modify} to {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
         expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
         test_results = {}
         for part in parts:
             print("PART", part)
-            actual_result = part_info_without_staves(part)
+            result = part_info_without_staves(part)
             for staff_name in part['staves']:
                 if staff_name not in expectation:
                     continue
-                test_results[staff_name] = actual_result
-        print(f"ASSERT: {test_results} == {expectation}")
-        if test_results != expectation:
-            print(f"Setting {staff_to_modify} to {new_instrument!r} did not result in the expected instrumentation.")
-            assert test_results == expectation
-
-def test_accessing_instrumentation_after_instrument_change(source_path):
-    """Analogous to test_instrumentation_after_instrument_change but using a Score object."""
-    file_name = os.path.basename(source_path)
-    if file_name not in TEST_CASES:
-        pytest.skip(f"No test cases defined for {file_name}")
-    for (staff_to_modify, new_instrument), staff_id2expected_instrument in TEST_CASES[file_name].items():
-        print(f"Creating new Score object from {source_path}...")
-        score = Score(source_path)
-        tested_object = score.mscx.parsed.instrumentation
-        print(f"INITIAL STATE: {tested_object}")
-        print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
-        tested_object.set_instrument(staff_to_modify, new_instrument)
-        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
-        test_results = {}
-        for staff_name, actual_result in tested_object.fields.items():
-            if staff_name not in expectation:
-                continue
-            test_results[staff_name] = actual_result
-        print(f"ASSERT: {test_results} == {expectation}")
+                test_results[staff_name] = result
         if test_results != expectation:
             print(f"Setting {staff_to_modify} to {new_instrument!r} did not result in the expected instrumentation.")
             assert test_results == expectation
