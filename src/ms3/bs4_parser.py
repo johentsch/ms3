@@ -2037,12 +2037,16 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
     """
     enlarged_dict = dict(INSTRUMENT_DEFAULTS)
     for cur_key, cur_value in INSTRUMENT_DEFAULTS.items():
+        added_value = cur_value.copy()
+        # added_value['ChannelName'] = "test_channel_name"
+        # added_value['ChannelValue'] = "0"
+        # added_value['id'] = "id"
         for additional_key in cur_value.values():
             if type(additional_key) == str:
                 additional_key = additional_key.lower().strip('.')
             if additional_key in enlarged_dict:
                 continue
-            enlarged_dict[additional_key] = cur_value
+            enlarged_dict[additional_key] = added_value
     return enlarged_dict
 
 
@@ -2057,24 +2061,11 @@ class Instrumentation(LoggedClass):
         super().__init__('Instrumentation', logger_cfg)
         self.part_tracknames = [elem['part_trackName'] for elem in INSTRUMENT_DEFAULTS.values()]
         self.soup = soup
-        self.instrumentation_fields = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
+        self.instrumentation_fields = ["id", 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+                                       'ChannelName', 'ChannelValue']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
-        self.INSTRUMENT_DEFAULTS = self.enlarge_instrument_defaults_keys()
 
-    def enlarge_instrument_defaults_keys(self):
-        data_dict = {}
-        for cur_key, cur_value in self.INSTRUMENT_DEFAULTS.items():
-            part_trackname = cur_value['part_trackName'].lower()
-            if len(data_dict) > 0:
-                if cur_key != part_trackname:
-                    data_dict.update(dict.fromkeys([cur_key, part_trackname], cur_value))
-                else:
-                    data_dict.update(dict.fromkeys([cur_key], cur_value))
-            else:
-                data_dict = dict.fromkeys([cur_key], cur_value) if cur_key == part_trackname else dict.fromkeys(
-                    [cur_key, part_trackname], cur_value)
-        return data_dict
 
 
 
@@ -2084,16 +2075,19 @@ class Instrumentation(LoggedClass):
         for key_part, part in self.parsed_parts.parts_data.items():
             instrument_tag = part.Instrument
             staves: Dict[str, bs4.Tag] = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
-            cur_dict = {"instrumentId": instrument_tag["id"]}
+            channel_info = part.Channel
+            channel_name = None if "name" not in channel_info.attrs.keys() else channel_info["name"]
+            cur_dict = {"id": instrument_tag["id"], "ChannelName": channel_name, "ChannelValue": channel_info.program}
             for name in self.instrumentation_fields:
-                if name == "part_trackName":
-                    tag = part.trackName
-                else:
-                    tag = instrument_tag.find(name)
-                if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
-                    instrument_tag.trackName.string = part.trackName.string
-                    tag = instrument_tag.find(name)
-                cur_dict[name] = tag
+                if name not in cur_dict.keys():
+                    if name == "part_trackName":
+                        tag = part.trackName
+                    else:
+                        tag = instrument_tag.find(name)
+                    if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
+                        instrument_tag.trackName.string = part.trackName.string
+                        tag = instrument_tag.find(name)
+                    cur_dict[name] = tag
             tag_dict.update({key_staff: cur_dict for key_staff in staves})
         return tag_dict
 
@@ -2104,7 +2098,10 @@ class Instrumentation(LoggedClass):
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
                 if type(tag) == bs4.element.Tag and tag is not None:
-                    value = tag.get_text()
+                    if key_instr_data == "ChannelValue":
+                        value = tag['value']
+                    else:
+                        value = tag.get_text()
                 else:
                     value = tag
                 result[key][key_instr_data] = value
@@ -2120,6 +2117,7 @@ class Instrumentation(LoggedClass):
             return fields_data[staff_name]['trackName']
 
     def set_instrument(self, staff_id: Union[str, int], trackname):
+        print("BEFORE", self.soup_references())
         available_staves = list(self.parsed_parts.staff2part.keys())
         if not isinstance(staff_id, str):
             try:
@@ -2139,7 +2137,14 @@ class Instrumentation(LoggedClass):
             changed_part = self.parsed_parts.staff2part[staff_id]
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
             if self.soup_references_data[staff_id][field_to_change] is not None:
-                self.soup_references_data[staff_id][field_to_change].string = value
+                if field_to_change == "id":
+                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument[field_to_change] = value
+                elif field_to_change == "ChannelName":
+                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel["name"] = value
+                elif field_to_change == "ChannelValue":
+                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program = value
+                else:
+                    self.soup_references_data[staff_id][field_to_change].string = value
                 self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
             elif value is not None:
                 new_tag = self.soup.new_tag(field_to_change)
@@ -2147,127 +2152,10 @@ class Instrumentation(LoggedClass):
                 self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
                 self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
                 self.soup_references_data = self.soup_references() # update references
+        print("AFTER", self.soup_references())
 
     def __repr__(self):
         return pformat(self.fields, sort_dicts=False)
-
-
-
-class Parts(LoggedClass):
-    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
-        super().__init__('Parts', logger_cfg)
-        self.parts_data = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
-
-    @property
-    def staff2part(self) -> dict[list, str]:
-        """Returns the dict in the format {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
-        staff2part = {}
-        for key_part, part in self.parts_data.items():
-            staves = [f"staff_{staff['id']}" for staff in part.find_all('Staff')]
-            staff2part.update(dict.fromkeys(staves, key_part))
-        return staff2part
-
-
-class Instrumentation(LoggedClass):
-    """Easy way to read and write the instrumentation of a score, that is
-    'instrument', 'longName', 'shortName', 'trackName', 'instrumentId'."""
-
-    INSTRUMENT_DEFAULTS = {
-        'harpsichord': {'instrumentId': 'keyboard.harpsichord',
-                        'longName': 'Harpsichord',
-                        'part_trackName': 'Harpsichord',
-                        'shortName': 'Hch.',
-                        'trackName': 'Harpsichord'},
-        'piano': {'instrumentId': 'keyboard.piano',
-                  'longName': 'Piano',
-                  'part_trackName': 'Piano',
-                  'shortName': 'Pno.',
-                  'trackName': 'Piano'},
-        'violoncello': {'instrumentId': 'strings.cello',
-                        'longName': 'Violoncello',
-                        'part_trackName': 'Cello',
-                        'shortName': 'Vc.',
-                        'trackName': 'Violoncello'},
-    }
-
-    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
-        super().__init__('Instrumentation', logger_cfg)
-        self.part_tracknames = [elem['part_trackName'] for elem in self.INSTRUMENT_DEFAULTS.values()]
-        self.soup = soup
-        self.fields_names = ['longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName']
-        self.parts = Parts(soup)
-        self.text_tags = self.text_tags_fn()  # store references to XML tags
-
-
-    def text_tags_fn(self) -> dict[str, dict[str, bs4.Tag]]:
-        """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
-        tag_dict = {}
-        for key_part, part in self.parts.parts_data.items():
-            instrument_info = part.Instrument
-            staves = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
-            cur_dict = {"instrumentId": instrument_info["id"]}
-            for name in self.fields_names:
-                if name == "part_trackName":
-                    part_tracknames = part.find_all("trackName")
-                    tags = list(filter(lambda k: k.get_text() in self.part_tracknames,
-                                       part_tracknames))
-                    if len(tags) > 0:
-                        tag = tags[0]
-                    else:
-                        tag = part_tracknames[0]
-
-                    part.trackName.string = tag.get_text()
-                    tag = part.trackName
-                else:
-                    tag = instrument_info.find(name)
-                    if tag is None or tag.get_text() == "":
-                        tag = part.find(name)
-                cur_dict[name] = tag
-            tag_dict.update({key_staff: cur_dict for key_staff in staves})
-        return tag_dict
-
-    @property
-    def fields(self):
-        result = {}
-        for key, instr_data in self.text_tags.items():
-            result[key] = {}
-            for key_instr_data, tag in instr_data.items():
-                if type(tag) == bs4.element.Tag and tag is not None:
-                    value = tag.get_text()
-                else:
-                    value = tag
-                result[key][key_instr_data] = value
-        return result
-
-    def get_instrument_name(self, staff_name, return_full=False):
-        fields_data = self.fields
-        if staff_name not in self.parts.staff2part.keys() or staff_name not in fields_data:
-            raise KeyError(f"No data for staff '{staff_name}'")
-        else:
-            return fields_data[staff_name] if return_full else fields_data[staff_name]['trackName']
-
-    def set_instrument(self, staff, trackname):
-        if staff not in self.parts.map_staff2part.keys():
-            raise KeyError(f"Don't recognize key '{staff}'")
-        existing_value = self.get_instrument_name(staff)
-        new_value = str(trackname)
-        if existing_value is not None and existing_value == new_value:
-            self.logger.debug(f"The {staff} was already '{existing_value}' and doesn't need changing.")
-            return
-        new_values = self.INSTRUMENT_DEFAULTS[trackname]
-        for field_to_change in self.fields_names:
-            value = new_values[field_to_change]
-            if self.text_tags[staff][field_to_change] is not None:
-                self.text_tags[staff][field_to_change].string = value
-            else:
-                self.text_tags[staff][field_to_change] = value
-                new_tag = self.soup.new_tag(field_to_change)
-                if value is not None:
-                    new_tag.string = value
-                else:
-                    self.logger.debug(f"The value is None.")
-                self.parts.parts_data[self.parts.map_staff2part[staff]].Instrument.append(new_tag)
-
 
 
 
