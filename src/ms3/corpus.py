@@ -18,11 +18,12 @@ from .piece import Piece
 from .score import Score, compare_two_score_objects
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FacetArguments, \
     Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
-from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, METADATA_COLUMN_ORDER, path2type, \
+from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, path2type, \
     pretty_dict, resolve_dir, update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
+    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, \
     convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
     scan_directory, write_to_warnings_file
+from .utils.constants import METADATA_COLUMN_ORDER, LATEST_MUSESCORE_VERSION
 from .view import DefaultView, View, create_view_from_parameters
 
 

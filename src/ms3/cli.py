@@ -11,7 +11,8 @@ from typing import Optional
 
 from ms3 import Parse, make_coloring_reports_and_warnings
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs, write_to_warnings_file
+from ms3.utils import convert_folder, resolve_dir, write_tsv, capture_parse_logs, write_to_warnings_file
+from ms3.utils.constants import MS3_VERSION
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"

@@ -6,8 +6,9 @@ from collections import defaultdict
 
 import pandas as pd
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
+from .utils import abs2rel_key, changes2list, rel2abs_key, resolve_relative_keys, \
     series_is_minor, split_alternatives, transform
+from .utils.constants import DCML_REGEX
 from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
 

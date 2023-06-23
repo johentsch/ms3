@@ -23,6 +23,8 @@ from .parse import Parse
 from .piece import Piece
 from .corpus import Corpus
 from .utils import *
+from .utils.constants import *
+from .utils.frictionless import *
 from .transformations import *
 from .operations import *
 from .logger import config_logger

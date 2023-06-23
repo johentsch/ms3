@@ -77,9 +77,10 @@ from typing import Literal, Optional, Collection, Tuple
 
 import pandas as pd
 
-from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc, \
+from .utils import assert_dfs_equal, check_labels, color2rgba, convert, decode_harmonies,\
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, replace_index_by_intervals, expand_form_labels, make_playthrough2mc, \
     check_phrase_annotations
+from .utils.constants import FORM_DETECTION_REGEX, DCML_DOUBLE_REGEX
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler, function_logger

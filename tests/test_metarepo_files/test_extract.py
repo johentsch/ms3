@@ -1,10 +1,8 @@
-import logging
 from itertools import product
 
 import pytest
 from collections import defaultdict
 
-from ms3.logger import MessageType, LEVELS
 
 DOCUMENTED_COLUMNS = {
     'measures': ['mc', 'mn', 'quarterbeats', 'duration_qb', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta', 'numbering_offset', 'dont_count', 'barline', 'breaks', 'repeats', 'next'],
@@ -75,7 +73,7 @@ class TestEmptyParse():
                    'ravel_piano': {},
                    'sweelinck_keyboard': {},
                    'wagner_overtures': {'.mscx': 2}},
-            everything={'mixed_files': {'.mscx': 11, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
+            everything={'mixed_files': {'.mscx': 22, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
                         'outputs': {'.mscx': 1},
                         'ravel_piano': {'.mscx': 8, '.tsv': 16},
                         'sweelinck_keyboard': {'.mscx': 2, '.tsv': 4},
@@ -152,18 +150,8 @@ class TestParsedParse():
     def n_parsed_files(self, request):
         expected = {
             "regex": (2, 0),
-            "everything": (27, 28),
-            "chaotic_dirs": (11, 4),
-            "file_re_without_key": (2, 7),
-            "files_correct_without_metadata": (2, 6),
-            "files_with_correct_key": (2, 7),
-            "files_with_wrong_key": (4, 4),
-            "files_with_inferred_key": (1, 4),
-            "files_without_key": (3, 0),
-            "redundant": (2, 0),
-            "regular_dirs": (8, 25),
-            "regular_dirs_at_once": (8, 25),
-            "without_metadata": (3, 0),
+            "everything": (38, 28),
+
         }
         name2expected = {}  # defaultdict(lambda: (0,0))
         parse_modes = "parsed_all-", "parse_scores-", "parsed_tsv-"

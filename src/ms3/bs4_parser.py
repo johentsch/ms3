@@ -88,10 +88,10 @@ from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, compute_mn_playthrough, decode_harmonies, fifths2name, \
-    DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX, \
     make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough_info, \
-    make_playthrough2mc, midi2octave, MS3_VERSION, ordinal_suffix, resolve_dir, rgba2attrs, \
+    make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name, unfold_measures_table, unfold_repeats
+from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX, MS3_VERSION
 
 NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',

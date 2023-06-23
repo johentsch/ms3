@@ -3,7 +3,8 @@ from typing import Literal, Optional, Tuple, Dict, List, Union
 
 from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
-from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, fifths2sd, scale_degree2name
+from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, fifths2sd, scale_degree2name
+from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids
 
 
