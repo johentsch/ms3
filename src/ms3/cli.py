@@ -346,12 +346,12 @@ def review_cmd(args,
     for warning in accumulated_warnings:
         warning_lines = warning.splitlines()
         first_line = warning_lines[0]
-        match = re.search(r"ms3\.Parse\.\S+\.\S+", first_line)
+        match = re.search(r"(ms3\.Parse\..+) --", first_line)
         if match is None:
             logger.warning(f"This warning contains no ms3 logger name, skipping: {warning}")
             continue
         warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
-        pieceID = logger2pieceID[match.group(0)]
+        pieceID = logger2pieceID[match.group(1)]
         piece2warnings[pieceID].append('\n'.join(warning_lines))
 
 
