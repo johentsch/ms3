@@ -671,7 +671,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                               help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
                                    "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
                                    "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
-    review_parser.add_argument('--threshold', default=0.6,
+    review_parser.add_argument('--threshold', default=0.6, type=float,
                                   help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
                                        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to 0.6 (3:2).")
     review_parser.set_defaults(func=review_cmd)
