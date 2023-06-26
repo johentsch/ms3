@@ -1480,7 +1480,7 @@ class Corpus(LoggedClass):
         try:
             metadata_df = load_tsv(file.full_path)
         except Exception as e:
-            self.logger.warning(f"Parsing {file.rel_path} as metadata failed with the exception '{e}'")
+            self.logger.warning(f"load_tsv({file.full_path!r}) failed with the exception '{e}'")
             return
         if len(metadata_df) == 0:
             self.logger.warning(f"Parsed metadata file {file.rel_path} was empty.")

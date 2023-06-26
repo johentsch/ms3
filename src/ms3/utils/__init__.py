@@ -1592,6 +1592,13 @@ def safe_int(s) -> Union[int, str]:
     except Exception:
         return s
 
+def safe_tuple(s) -> Optional[tuple]:
+    """Tries to parse a string encoding a tuple, returns the input if it fails."""
+    try:
+        return literal_eval(s)
+    except Exception:
+        return s
+
 def parse_interval_index_column(df, column=None, closed='left'):
     """ Turns a column of strings in the form '[0.0, 1.1)' into a :obj:`pandas.IntervalIndex`.
 
@@ -1636,7 +1643,7 @@ TSV_COLUMN_CONVERTERS = {
     'onset': safe_frac,
     'duration': safe_frac,
     'scalar': safe_frac,
-    'volta_mcs': literal_eval,
+    'volta_mcs': safe_tuple,
 }
 
 TSV_COLUMN_TITLES = {
