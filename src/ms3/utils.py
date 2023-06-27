@@ -1352,6 +1352,40 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     acc_str = abs(acc) * 'b' if acc < 0 else acc * '#'
     return f"{note_names[ix]}{acc_str}"
 
+def tpc2scale_degree(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                     localkey: str,
+                     globalkey: str,
+                     ) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """ For example, tonal pitch class 3 (fifths, i.e. "A") is scale degree '#3' in the localkey of 'iv' within 'c' minor.
+
+    Args:
+        fifths: Tonal pitch class(es) to turn into scale degree(s).
+        localkey: Local key in which the pitch classes are situated, as Roman numeral (can include slash notation such as V/ii).
+        globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
+
+    Returns:
+        The given tonal pitch class(es), expressed as scale degree(s).
+    """
+    try:
+        if pd.isnull(tpc):
+            return tpc
+    except ValueError:
+        pass
+    if isinstance(tpc, pd.Series):
+        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+    try:
+        tpc = int(float(tpc))
+    except TypeError:
+        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+    global_minor = globalkey.islower()
+    if '/' in localkey:
+        localkey = resolve_relative_keys(localkey, global_minor)
+    localkey_is_minor = localkey.islower()
+    lk_fifths = roman_numeral2fifths(localkey, global_minor)
+    gk_fifths = name2fifths(globalkey)
+    transposed_tpc = transpose(tpc, -(gk_fifths + lk_fifths))
+    return fifths2sd(transposed_tpc, minor=localkey_is_minor)
+
 @overload
 def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> Optional[str]:
     ...
@@ -2953,7 +2987,7 @@ def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tupl
 def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
                       localkey: str,
                       globalkey: str) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'E' minor is 'F'.
+    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'e' minor is 'F'.
 
     Args:
         fifths: Scale degree expressed as distance from the tonic in fifths.
@@ -2979,7 +3013,7 @@ def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tup
         localkey = resolve_relative_keys(localkey, global_minor)
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
     gk_fifths = name2fifths(globalkey)
-    sd_transposed = fifths + lk_fifths + gk_fifths
+    sd_transposed = transpose(fifths, lk_fifths + gk_fifths)
     return fifths2name(sd_transposed)
 
 
