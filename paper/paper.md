@@ -74,7 +74,7 @@ in formatting training and validation data for a chord inference algorithm and f
 into the respective scores [@Mcleod2021_ModularSystemHarmonic].
 Moreover, the library is at the heart of a semi-automated annotation workflow running on GitHub
 [@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency of the music corpus analysis library
-DiMCAT [@Hentschelsubmittedforreview_IntroducingDiMCATUtilize].
+DiMCAT [@Hentschelinpress_IntroducingDiMCATProcessing].
 
 # Acknowledgements
 
