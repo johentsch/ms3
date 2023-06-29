@@ -49,7 +49,7 @@ intuitive interface for engraving music, but its native XML format does not expl
 events such as notes and rests. Hence the need for a parser that extracts the implicit information and stores it in an
 interoperable format. 
 
-Despite being one of the most wide-spread score encoding formats, current score parsers 
+Despite being one of the most widespread score encoding formats, current score parsers 
 [e.g., @Cancino-Chacon2022_PartituraPythonPackage; @Cuthbert2010_Music21ToolkitComputerAided; @Pugin2014_VerovioLibraryEngraving], 
 do not handle it without first performing a lossy conversion to the musicXML format[^1].
 The Python library `ms3` fills this gap. It loads the XML tree of a MuseScore file into working memory, 
@@ -61,8 +61,8 @@ Moreover, `ms3` allows the user to transform scores by removing analytical label
 TSV files (whether previously extracted or generated from scratch). 
 This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
 into a score arbitrary textual labels, to then have `ms3` extract them with their temporal positions for further
-analysis. It comes with a commandline interface that makes its data extraction, transformation, and validation
-functionalities accessible for productive every-day workflows.
+analysis. It comes with a command line interface that makes its data extraction, transformation, and validation
+functionalities accessible for productive everyday workflows.
 
 [^1]: For example, musicXML's implicit encoding of temporal positions is limited to those where a note or rest event occurs. When converting MuseScore XML to musicXML, all score elements occurring between two such events are misplaced.    
 [^2]: Version control is facilitated by the TSV files because, unlike the original XML source, they present score information with timestamps.
@@ -73,13 +73,13 @@ and an annotated corpus of 19th century piano music [@Hentschelinpress_Annotated
 in formatting training and validation data for a chord inference algorithm and for inserting its analytical outputs
 into the respective scores [@Mcleod2021_ModularSystemHarmonic].
 Moreover, the library is at the heart of a semi-automated annotation workflow running on GitHub
-[@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency of the music corpus analysis library
+[@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency on the music corpus analysis library
 DiMCAT [@Hentschelinpress_IntroducingDiMCATProcessing].
 
 # Acknowledgements
 
 Development of this software tool was supported by the Swiss National Science Foundation within the project “Distant
 Listening – The Development of Harmony over Three Centuries (1700–2000)” (Grant no. 182811). This project is being
-conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr. Claude Latour.
+conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr Claude Latour.
 
 # References
