@@ -919,14 +919,17 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     df.drop(columns=drop_cols, inplace=True)
     return df
 
-
 def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
+    """Alias for :func:`dataframe2markdown`."""
+    return dataframe2markdown(df, name=name)
+
+def dataframe2markdown(df: pd.DataFrame,
+                       name: Optional[str] = None) -> MarkdownTableWriter:
     """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
     """
     writer = MarkdownTableWriter()
     writer.table_name = name
-    writer.header_list = list(df.columns.values)
-    writer.value_matrix = df.values.tolist()
+    writer.from_dataframe(df)
     return writer
 
 
@@ -3692,7 +3695,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     drop_index = 'fnames' in metadata_df.columns
     md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
     md = md.rename(columns=rename4markdown)
-    md_table = "#" + str(df2md(md)) # comes with a first-level heading which we turn into second-level
+    md_table = "#" + str(dataframe2markdown(md, name="Overview")) # comes with a first-level heading which we turn into second-level
     md_table += f"\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
 
     if os.path.isfile(file_path):
