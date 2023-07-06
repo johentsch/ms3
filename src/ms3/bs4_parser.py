@@ -35,6 +35,9 @@
 .. |mc| replace:: :ref:`mc <mc>`
 .. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
 .. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
+.. |metronome_base| replace:: :ref:`metronome_base <metronome_base>`
+.. |metronome_number| replace:: :ref:`metronome_number <metronome_number>`
+.. |metronome_visible| replace:: :ref:`metronome_visible <metronome_visible>`
 .. |midi| replace:: :ref:`midi <midi>`
 .. |mn| replace:: :ref:`mn <mn>`
 .. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
@@ -97,7 +100,16 @@ NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',
     'metNoteQuarterUp': '𝅘𝅥',
     'metNote8thUp': '𝅘𝅥𝅮',
-    'metAugmentationDot': '.'
+    'metAugmentationDot': '.',
+    "": "𝅝",
+    "": "𝅗𝅥",
+    "": "𝅘𝅥",
+    "": "𝅘𝅥𝅮",
+    "": "𝅘𝅥𝅯",
+    "": "𝅘𝅥𝅰",
+    "": "𝅘𝅥𝅱",
+    "": "𝅘𝅥𝅲",
+    "": ".",
 }
 
 
@@ -351,10 +363,25 @@ class _MSCX_bs4(LoggedClass):
                                         event['thoroughbass_duration'] = duration
                             for text_tag in event_node.find_all('text'):
                                 parent_name = text_tag.parent.name
-                                text = text_tag2str(text_tag)
+                                text_including_html = text_tag2str(text_tag)
+                                text_excluding_html = text_tag2str_recursive(text_tag)
                                 if parent_name == 'Fingering':
                                     # fingerings occur within <Note> tags, if they are to be extracted, they should go into the notes table
                                     continue
+                                if parent_name == 'Tempo':
+                                    tempo_tag = text_tag.parent
+                                    quarters_per_second = float(tempo_tag.tempo.string)
+                                    event['qpm'] = round(quarters_per_second * 60)
+                                    event["tempo"] = text_excluding_html
+                                    metronome_match = re.match(r"^(.+)=(([0-9]+(?:\.[0-9]*)?))$", text_excluding_html)
+                                    if metronome_match:
+                                        base, value = metronome_match.group(1), metronome_match.group(2)
+                                        event["metronome_base"] = base
+                                        event["metronome_number"] = float(value)
+                                    try:
+                                        event["metronome_visible"] = int(tempo_tag.visible.string)
+                                    except AttributeError:
+                                        event["metronome_visible"] = 1
                                 elif parent_name == 'Lyrics':
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find('no')
@@ -368,20 +395,21 @@ class _MSCX_bs4(LoggedClass):
                                     if syllabic_tag is not None:
                                         match syllabic_tag.string:
                                             case 'begin':
-                                                text = text + '-'
+                                                text_including_html = text_including_html + '-'
                                             case 'middle':
-                                                text = '-' + text + '-'
+                                                text_including_html = '-' + text_including_html + '-'
                                             case 'end':
-                                                text = '-' + text
+                                                text_including_html = '-' + text_including_html
                                             case other:
                                                 logger.warning(f"<syllabic> tag came with the value '{syllabic_tag.string}', not begin|middle|end.")
 
                                 else:
                                     column_name = parent_name + '_text'
                                 if column_name in event:
-                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{column_name}': {event[column_name]}")
+                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{column_name}': {event[column_name]} "
+                                                        f"so I did not overwrite it with {text_including_html!r}.")
                                 else:
-                                    event[column_name] = text
+                                    event[column_name] = text_including_html
                             event_list.append(event)
 
                         if not self.read_only:
@@ -452,7 +480,8 @@ class _MSCX_bs4(LoggedClass):
         Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|,
         |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
         |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
-        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
+        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |metronome_base|, |metronome_number|,
+        |metronome_visible|, |lyrics:1|, |Ottava:15mb|
 
         Args:
           mode:
@@ -968,21 +997,7 @@ class _MSCX_bs4(LoggedClass):
         if params['system_text']:
             main_cols.append('system_text')
         if params['tempo']:
-            main_cols.extend(['tempo', 'qpm'])
-            if 'Tempo/tempo' in df.columns:
-                text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
-                existing_cols = [c for c in text_cols if c in df.columns]
-                tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
-                if 'Tempo/text/sym' in df.columns:
-                    replace_symbols = defaultdict(lambda: '')
-                    replace_symbols.update(NOTE_SYMBOL_MAP)
-                    symbols = df['Tempo/text/sym'].str.split(expand=True)\
-                                                  .apply(lambda S: S.str.strip()\
-                                                  .map(replace_symbols))\
-                                                  .sum(axis=1)
-                    tempo_text = symbols + tempo_text
-                new_cols['tempo'] = tempo_text
-                new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+            main_cols.extend(['tempo', 'qpm', 'metronome_base', 'metronome_number', 'metronome_visible'])
         if params['thoroughbass']:
             if 'thoroughbass_level_1' in df.columns:
                 tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
@@ -2515,7 +2530,7 @@ def decode_harmony_tag(tag):
     return label
 
 
-############ Functions for writing BeautifulSoup to MSCX file
+# region Functions for writing BeautifulSoup to MSCX file
 
 def escape_string(s):
     return str(s).replace('&', '&amp;')\
@@ -2577,6 +2592,7 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+# endregion Functions for writing BeautifulSoup to MSCX file
 
 def text_tag2str(tag: bs4.Tag) -> str:
     """Transforms a <text> tag into a string that potentially includes written-out HTML tags."""
@@ -2593,6 +2609,30 @@ def text_tag2str(tag: bs4.Tag) -> str:
             components.append(str(c))
     txt = ''.join(components)
     return txt
+
+
+def text_tag2str_components(tag: bs4.Tag) -> List[str]:
+    """Recursively traverses a <text> tag and returns all string components, effectively removing all HTML markup."""
+    components = []
+    for c in tag.contents:
+        if isinstance(c, str):
+            s = c.replace(' ', '')
+            for symbol, replacement in NOTE_SYMBOL_MAP.items():
+                s = s.replace(symbol, replacement)
+            components.append(s)
+        else:
+            # <i></i> or <sym></sym> other text markup within the string
+            components.extend(text_tag2str_components(c))
+    return components
+
+def text_tag2str_recursive(tag: bs4.Tag,
+                           join_char: str = "") -> str:
+    """Gets all string components from a <text> tag and joins them with join_char."""
+    components = text_tag2str_components(tag)
+    return join_char.join(components)
+
+
+
 
 
 def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
