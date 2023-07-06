@@ -2784,7 +2784,7 @@ def path2type(path):
     """
     _, fext = os.path.splitext(path)
     if fext.lower() in SCORE_EXTENSIONS:
-        logger.debug(f"Recognized file extension '{fext}' as score.")
+        logger.debug(f"Categorized {path} as score based on the file extension {fext!r}.")
         return 'scores'
     component2type = path_component2file_type_map()
     def find_components(s):
@@ -2794,6 +2794,7 @@ def path2type(path):
         # give preference to folder names before file names
         directory, fname = os.path.split(path)
         if 'metadata' in fname:
+            logger.debug(f"Categorized {path} as metadata based on the filename {fname!r}.")
             return 'metadata'
         found_components, n_found = find_components(directory)
         if n_found == 0:
@@ -2805,16 +2806,14 @@ def path2type(path):
         return 'labels'
     if n_found == 1:
         typ = component2type[found_components[0]]
-        logger.debug(f"Path '{path}' recognized as {typ}.")
+        logger.debug(f"Categorized {path} as {typ} based on the component {found_components[0]!r}.")
         return typ
     else:
-        shortened_path = path
-        while len(shortened_path) > 0:
-            shortened_path, base = os.path.split(shortened_path)
+        for path_component in reversed(os.path.split(os.sep)):
             for comp in component2type.keys():
-                if comp in base:
+                if comp in path_component:
                     typ = component2type[comp]
-                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
+                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'; opted for the last one: {typ}")
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
         return 'other'
