@@ -2114,7 +2114,6 @@ class Instrumentation(LoggedClass):
             return fields_data[staff_name]['trackName']
 
     def set_instrument(self, staff_id: Union[str, int], trackname):
-        print("BEFORE", self.soup_references())
         available_staves = list(self.parsed_parts.staff2part.keys())
         if not isinstance(staff_id, str):
             try:
@@ -2125,6 +2124,7 @@ class Instrumentation(LoggedClass):
             staff_id = f'staff_{staff_id}'
         if staff_id not in available_staves:
             raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
+        print("BEFORE", self.soup_references(), self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].find_all("Channel"))
         trackname_norm = trackname.lower().strip('.')
         if trackname_norm not in self.key2default_instrumentation:
             raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {list(self.key2default_instrumentation.keys())}")
@@ -2135,13 +2135,10 @@ class Instrumentation(LoggedClass):
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
             if field_to_change == "id":
                 self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument[field_to_change] = value
-                self.soup_references_data[staff_id][field_to_change] = value
             elif field_to_change == "ChannelName":
                 self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel["name"] = value
-                self.soup_references_data[staff_id][field_to_change] = value
             elif field_to_change == "ChannelValue":
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program = value
-                self.soup_references_data[staff_id][field_to_change] = value
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program["value"] = value
             else:
                 if self.soup_references_data[staff_id][field_to_change] is not None:
                     self.soup_references_data[staff_id][field_to_change].string = value
@@ -2151,8 +2148,8 @@ class Instrumentation(LoggedClass):
                     new_tag.string = value
                     self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
                     self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
-                    self.soup_references_data = self.soup_references() # update references
-        print("AFTER", self.soup_references())
+            self.soup_references_data = self.soup_references()  # update references
+        print("AFTER", self.soup_references(), self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].find_all("Channel"))
 
     def __repr__(self):
         return pformat(self.fields, sort_dicts=False)
