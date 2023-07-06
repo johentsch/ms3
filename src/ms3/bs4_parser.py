@@ -2030,14 +2030,14 @@ class ParsedParts(LoggedClass):
     def __repr__(self):
         return pformat(self.parts_data, sort_dicts=False)
 
-INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None}).to_dict()
+INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None})
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
     """
     Allows users to set an instrument by trackName as well as by part_trackName
     """
     enlarged_dict = dict(INSTRUMENT_DEFAULTS)
-    for cur_key, cur_value in INSTRUMENT_DEFAULTS.items():
+    for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.to_dict().items():
         added_value = cur_value.copy()
         for additional_key in cur_value.values():
             if type(additional_key) == str:
@@ -2054,10 +2054,9 @@ class Instrumentation(LoggedClass):
 
 
     key2default_instrumentation = get_enlarged_default_dict()
-
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Instrumentation', logger_cfg)
-        self.part_tracknames = [elem['part_trackName'] for elem in INSTRUMENT_DEFAULTS.values()]
+        self.part_tracknames = INSTRUMENT_DEFAULTS['part_trackName']
         self.soup = soup
         self.instrumentation_fields = ["id", 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
                                        'ChannelName', 'ChannelValue']

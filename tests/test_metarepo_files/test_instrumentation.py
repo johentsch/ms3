@@ -232,7 +232,7 @@ def test_accessing_instrumentation_after_instrument_change(source_path):
         print(f"INITIAL STATE: {tested_object}")
         print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
-        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
+        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS.loc[expected_instrument_name].to_dict() for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         test_results = {}
         for staff_name, actual_result in tested_object.fields.items():
             if staff_name not in expectation:
