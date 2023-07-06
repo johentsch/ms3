@@ -179,6 +179,7 @@ class _MSCX_bs4(LoggedClass):
         When creating note tables, the 'name' column will be populated with the names here rather than note names.
         """
         self.parse_measures()
+        self.perform_checks()
 
 
 
@@ -445,6 +446,26 @@ class _MSCX_bs4(LoggedClass):
                 if form_labels.any():
                     self.n_form_labels = sum(form_labels)
         self.update_metadata()
+
+
+    def perform_checks(self):
+        """Perform a series of checks after parsing and emit warnings registered by the ms3 check command (and,
+        by extension, by ms3 review, too)."""
+        # check if the first measure includes a metronome mark
+        events = self._events
+        first_bar_event_types = events.loc[events.mc == 1, "event"]
+        if 'Tempo' not in first_bar_event_types.values:
+            msg = "No metronome mark found in the very first measure"
+            tempo_selector = (events.event == 'Tempo').fillna(False)
+            if tempo_selector.sum() == 0:
+                msg += " nor anywhere else in the score."
+            else:
+                all_tempo_mark_mcs = events.loc[tempo_selector, ["mc", "staff", "voice", "tempo",]]
+                msg += ". Later in the score:\n" + all_tempo_mark_mcs.to_string(index=False)
+            msg += "\n* Please add one at the very beginning and hide it if it's not from the original print edition.\n" \
+                   "* Make sure to choose the rhythmic unit that corresponds to beats in this piece and to set another mark " \
+                   "wherever that unit changes.\n* The tempo marks can be rough estimates, maybe cross-checked with a recording."
+            self.logger.warning(msg, extra=dict(message_id=(29,)))
 
 
 
