@@ -82,6 +82,7 @@ from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
+import numpy as np
 import os
 from bs4 import NavigableString
 
@@ -2029,7 +2030,7 @@ class ParsedParts(LoggedClass):
     def __repr__(self):
         return pformat(self.parts_data, sort_dicts=False)
 
-INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).to_dict()
+INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None}).to_dict()
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
     """
@@ -2038,9 +2039,6 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
     enlarged_dict = dict(INSTRUMENT_DEFAULTS)
     for cur_key, cur_value in INSTRUMENT_DEFAULTS.items():
         added_value = cur_value.copy()
-        # added_value['ChannelName'] = "test_channel_name"
-        # added_value['ChannelValue'] = "0"
-        # added_value['id'] = "id"
         for additional_key in cur_value.values():
             if type(additional_key) == str:
                 additional_key = additional_key.lower().strip('.')
@@ -2136,22 +2134,25 @@ class Instrumentation(LoggedClass):
             value = new_values[field_to_change]
             changed_part = self.parsed_parts.staff2part[staff_id]
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
-            if self.soup_references_data[staff_id][field_to_change] is not None:
-                if field_to_change == "id":
-                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument[field_to_change] = value
-                elif field_to_change == "ChannelName":
-                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel["name"] = value
-                elif field_to_change == "ChannelValue":
-                    self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program = value
-                else:
+            if field_to_change == "id":
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument[field_to_change] = value
+                self.soup_references_data[staff_id][field_to_change] = value
+            elif field_to_change == "ChannelName":
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel["name"] = value
+                self.soup_references_data[staff_id][field_to_change] = value
+            elif field_to_change == "ChannelValue":
+                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program = value
+                self.soup_references_data[staff_id][field_to_change] = value
+            else:
+                if self.soup_references_data[staff_id][field_to_change] is not None:
                     self.soup_references_data[staff_id][field_to_change].string = value
-                self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
-            elif value is not None:
-                new_tag = self.soup.new_tag(field_to_change)
-                new_tag.string = value
-                self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
-                self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
-                self.soup_references_data = self.soup_references() # update references
+                    self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
+                elif value is not None:
+                    new_tag = self.soup.new_tag(field_to_change)
+                    new_tag.string = value
+                    self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
+                    self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+                    self.soup_references_data = self.soup_references() # update references
         print("AFTER", self.soup_references())
 
     def __repr__(self):
