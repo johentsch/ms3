@@ -204,7 +204,7 @@ def test_instrumentation_after_instrument_change(source_path):
         print(f"INITIAL STATE: {tested_object}")
         print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
-        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS[expected_instrument_name] for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
+        expectation = {f"staff_{staff_id}": INSTRUMENT_DEFAULTS.loc[expected_instrument_name].to_dict() for staff_id, expected_instrument_name in staff_id2expected_instrument.items()}
         parts = get_instrumentation(soup)
         test_results = {}
         for part in parts:
