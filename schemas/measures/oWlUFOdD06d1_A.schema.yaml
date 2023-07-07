@@ -1,0 +1,81 @@
+fields:
+  - name: mc
+    type: integer
+    title: Measure Count
+    description: Running count of encoded <Measure> tags which do not necessarily
+      express a full measure (e.g. in case of an anacrusis).
+    constraints:
+      required: true
+  - name: mn
+    type: string
+    title: Measure Number
+    description: Measure number as printed in the score, computed from mc, dont_count
+      and numbering_offset.
+  - name: quarterbeats
+    type: string
+    title: Offset from Beginning
+    description: Distance of an event from the piece's beginning. By default, only
+      second endings are taken into account to reflect the proportions of a simply
+      playthrough without repeats.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: duration_qb
+    type: number
+    title: Duration in ♩
+    description: A float corresponding to duration * 4
+  - name: keysig
+    type: integer
+    title: Key Signature
+    description: Positive integer for number of sharps, negative integer for number
+      of flats.
+  - name: timesig
+    type: string
+    title: Time Signature
+    description: Given as string, e.g. "4/4".
+  - name: act_dur
+    type: string
+    title: Actual Length
+    description: How long a measure actually lasts, which can deviate from the time
+      signature. Relevant, for example, for pickup measures, split measures, cadenzas.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: mc_offset
+    type: string
+    title: Offset of Encoded Measure
+    description: Distance of a <Measure> from the beginning of the logical measure,
+      expressed as fraction of a whole note. Relevant only for split and anacrusis
+      measures, 0 otherwise.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: numbering_offset
+    type: integer
+    title: Numbering Offset
+    description: An integer to be added to the measure number count, as specified
+      in MuseScore.
+  - name: dont_count
+    type: integer
+    title: Exclude from measure count
+    description: Is 1 if this MC does not increase the measure number counter, according
+      to the MuseScore setting.
+  - name: barline
+    type: string
+    title: Barline
+    description: Name of non-default barline.
+  - name: breaks
+    type: string
+    title: Breaks
+    description: Can be "section" or "line".
+  - name: repeats
+    type: string
+    title: Repeats
+    description: Can be "start", "end", "firstMeasure", "lastMeasure"
+  - name: next
+    type: string
+    title: Next Measure Counts
+    description: The "mc" values of all <Measure> tags that can follow this one, specified
+      as a tuple of integers.
+    constraints:
+      pattern: ^[([]?(?:-?\d+\s*,?\s*)*[])]?$
+facet: measures
+identifier: oWlUFOdD06d1_A
+filepath: measures/oWlUFOdD06d1_A.schema.yaml

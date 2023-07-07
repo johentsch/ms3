@@ -138,7 +138,8 @@ def replace_extension(filepath: str, new_extension: str) -> str:
 def make_json_path(file: File) -> str:
     return os.path.join(file.directory, f"{file.fname}.resource.json")
 
-SCHEMAS_DIR = os.path.join(os.path.dirname(__file__), 'schemas')
+UTILS_DIR = os.path.dirname(__file__) # .../ms3/src/ms3/utils/
+SCHEMAS_DIR = os.path.join(UTILS_DIR, '..', '..', '..', 'schemas')
 os.makedirs(SCHEMAS_DIR, exist_ok=True)
 
 # SCHEMA_REGISTRY_PATH = os.path.join(SCHEMAS_DIR, 'schema_registry.json')
@@ -193,10 +194,11 @@ def get_schema_or_url(facet: str,
     else:
         column_names = tuple(index_levels) + tuple(column_names)
     schema_identifier = get_truncated_hash(column_names)
-    schema_filename = f"{facet}_{schema_identifier}.schema.json"
-    schema_path = os.path.join(SCHEMAS_DIR, schema_filename)
+    schema_filename = f"{schema_identifier}.schema.yaml"
+    schema_filepath = f"{facet}/{schema_filename}" # for URL & uniform filepath
+    schema_path = os.path.join(SCHEMAS_DIR, facet, schema_filename) # for local OS
     if os.path.exists(schema_path):
-        schema_url = f"https://raw.githubusercontent.com/johentsch/ms3/main/src/ms3/utils/schemas/{schema_filename}"
+        schema_url = f"https://raw.githubusercontent.com/johentsch/ms3/main/schemas/{schema_filepath}"
         # check if URL exists
         try:
             fl.Schema(schema_url)
@@ -214,9 +216,9 @@ def get_schema_or_url(facet: str,
                                                          primary_key=index_levels,
                                                          facet=facet,
                                                          identifier=schema_identifier,
-                                                         filename=schema_filename,
+                                                         filepath=schema_filepath,
                                                          )
-        fl.Schema(descriptor).to_json(schema_path)
+        fl.Schema(descriptor).to_yaml(schema_path)
         return descriptor
 
 
