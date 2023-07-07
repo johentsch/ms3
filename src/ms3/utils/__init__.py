@@ -646,14 +646,17 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     df.drop(columns=drop_cols, inplace=True)
     return df
 
-
 def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
+    """Alias for :func:`dataframe2markdown`."""
+    return dataframe2markdown(df, name=name)
+
+def dataframe2markdown(df: pd.DataFrame,
+                       name: Optional[str] = None) -> MarkdownTableWriter:
     """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
     """
     writer = MarkdownTableWriter()
     writer.table_name = name
-    writer.header_list = list(df.columns.values)
-    writer.value_matrix = df.values.tolist()
+    writer.from_dataframe(df)
     return writer
 
 
@@ -1078,6 +1081,40 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     acc, ix = divmod(tpc + 1, 7)
     acc_str = abs(acc) * 'b' if acc < 0 else acc * '#'
     return f"{note_names[ix]}{acc_str}"
+
+def tpc2scale_degree(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                     localkey: str,
+                     globalkey: str,
+                     ) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """ For example, tonal pitch class 3 (fifths, i.e. "A") is scale degree '#3' in the localkey of 'iv' within 'c' minor.
+
+    Args:
+        fifths: Tonal pitch class(es) to turn into scale degree(s).
+        localkey: Local key in which the pitch classes are situated, as Roman numeral (can include slash notation such as V/ii).
+        globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
+
+    Returns:
+        The given tonal pitch class(es), expressed as scale degree(s).
+    """
+    try:
+        if pd.isnull(tpc):
+            return tpc
+    except ValueError:
+        pass
+    if isinstance(tpc, pd.Series):
+        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+    try:
+        tpc = int(float(tpc))
+    except TypeError:
+        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+    global_minor = globalkey.islower()
+    if '/' in localkey:
+        localkey = resolve_relative_keys(localkey, global_minor)
+    localkey_is_minor = localkey.islower()
+    lk_fifths = roman_numeral2fifths(localkey, global_minor)
+    gk_fifths = name2fifths(globalkey)
+    transposed_tpc = transpose(tpc, -(gk_fifths + lk_fifths))
+    return fifths2sd(transposed_tpc, minor=localkey_is_minor)
 
 @overload
 def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> Optional[str]:
@@ -2671,7 +2708,7 @@ def path2type(path):
     """
     _, fext = os.path.splitext(path)
     if fext.lower() in SCORE_EXTENSIONS:
-        logger.debug(f"Recognized file extension '{fext}' as score.")
+        logger.debug(f"Categorized {path} as score based on the file extension {fext!r}.")
         return 'scores'
     component2type = path_component2file_type_map()
     def find_components(s):
@@ -2681,6 +2718,7 @@ def path2type(path):
         # give preference to folder names before file names
         directory, fname = os.path.split(path)
         if 'metadata' in fname:
+            logger.debug(f"Categorized {path} as metadata based on the filename {fname!r}.")
             return 'metadata'
         found_components, n_found = find_components(directory)
         if n_found == 0:
@@ -2692,16 +2730,14 @@ def path2type(path):
         return 'labels'
     if n_found == 1:
         typ = component2type[found_components[0]]
-        logger.debug(f"Path '{path}' recognized as {typ}.")
+        logger.debug(f"Categorized {path} as {typ} based on the component {found_components[0]!r}.")
         return typ
     else:
-        shortened_path = path
-        while len(shortened_path) > 0:
-            shortened_path, base = os.path.split(shortened_path)
+        for path_component in reversed(os.path.split(os.sep)):
             for comp in component2type.keys():
-                if comp in base:
+                if comp in path_component:
                     typ = component2type[comp]
-                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
+                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'; opted for the last one: {typ}")
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
         return 'other'
@@ -2877,7 +2913,7 @@ def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tupl
 def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
                       localkey: str,
                       globalkey: str) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'E' minor is 'F'.
+    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'e' minor is 'F'.
 
     Args:
         fifths: Scale degree expressed as distance from the tonic in fifths.
@@ -2903,7 +2939,7 @@ def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tup
         localkey = resolve_relative_keys(localkey, global_minor)
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
     gk_fifths = name2fifths(globalkey)
-    sd_transposed = fifths + lk_fifths + gk_fifths
+    sd_transposed = transpose(fifths, lk_fifths + gk_fifths)
     return fifths2name(sd_transposed)
 
 
@@ -3582,7 +3618,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     drop_index = 'fnames' in metadata_df.columns
     md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
     md = md.rename(columns=rename4markdown)
-    md_table = "#" + str(df2md(md)) # comes with a first-level heading which we turn into second-level
+    md_table = "#" + str(dataframe2markdown(md, name="Overview")) # comes with a first-level heading which we turn into second-level
     md_table += f"\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
 
     if os.path.isfile(file_path):

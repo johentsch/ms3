@@ -3,7 +3,7 @@ from typing import Literal, Optional, Tuple, Dict, List, Union
 
 from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
-from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, fifths2sd, scale_degree2name
+from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids
 
@@ -292,11 +292,11 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
                     continue
                 test_passes = False
                 if len(t.added_tones) > 0:
-                    added = f" plus the added {(fifths2sd(t.added_tones, t.localkey_is_minor))} [{scale_degree2name(t.added_tones, t.localkey, t.globalkey)}]"
+                    added = f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} [{fifths2name(t.added_tones)}]"
                 else:
                     added = ""
                 msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems not to correspond well to the score (which does not necessarily mean it is wrong).
-In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {(fifths2sd(t.chord_tones, t.localkey_is_minor))} [{scale_degree2name(t.chord_tones, t.localkey, t.globalkey)}]{added}.
+In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {tpc2scale_degree(t.chord_tones, t.localkey, t.globalkey)} [{fifths2name(t.chord_tones)}]{added}.
 The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets, a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
 If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed by a free-text comment in subsequent lines starting with a space or tab."""
                 piece_logger.warning(msg, extra={'message_id': message_id})

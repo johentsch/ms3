@@ -599,7 +599,10 @@ class MSCX(LoggedClass):
           color_name:
               Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
               a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
-          chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
+          chord_tone_cols:
+            Names of the columns containing tuples of chord tones, expressed as TPC. Not that in the expanded tables
+            extracted by default, these columns correspond to intervals relative to the local tonic. The absolute
+            representation required here can be obtained using :attr:`.Annotations.expand_dcml` with ``absolute=True``.
           color_nan:
               By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
               will be colored. Pass False to add the segment to the previous one instead.
