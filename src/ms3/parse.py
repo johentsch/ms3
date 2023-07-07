@@ -278,13 +278,8 @@ class Parse(LoggedClass):
             self._views[initial_view.name] = initial_view
         else:
             initial_view = self.get_view()
-        try:
-            corpus = Corpus(directory=directory, view=initial_view, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
-        except AssertionError:
-            self.logger.debug(f"{directory} contains no parseable files.")
-            return
-        corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
-        if len(corpus.files) == 0:
+        corpus = self.make_corpus(directory, initial_view, **logger_cfg)
+        if corpus is None or len(corpus.files) == 0:
             self.logger.info(f"No parseable files detected in {directory}. Skipping...")
             return
         if corpus_name is None:
@@ -299,8 +294,14 @@ class Parse(LoggedClass):
         self.corpus_paths[corpus_name] = directory
         self.corpus_objects[corpus_name] = corpus
 
-
-
+    def make_corpus(self, directory, initial_view, **logger_cfg) -> Optional[Corpus]:
+        try:
+            corpus = Corpus(directory=directory, view=initial_view, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
+        except AssertionError:
+            self.logger.debug(f"{directory} contains no parseable files.")
+            return
+        corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
+        return corpus
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
@@ -874,7 +875,7 @@ class Parse(LoggedClass):
             self.logger.info(f"{reached}/{goal} labels successfully added.")
 
 
-    def iter_corpora(self, view_name: Optional[str] = None) -> Generator[Tuple[str, Corpus], None, None]:
+    def iter_corpora(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Corpus]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
         for corpus_name, corpus in view.filter_by_token('corpora', self):
@@ -884,6 +885,13 @@ class Parse(LoggedClass):
                 else:
                     corpus.set_view(**{view_name: view})
             yield corpus_name, corpus
+
+    def iter_independent_corpora(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Corpus]]:
+        """Like iter_corpora() but creating new Corpus objects that are not stored in this Parse object to avoid
+        filling up memory when parsing many files."""
+        initial_view = self.get_view(view_name)
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            yield corpus_name, self.make_corpus(directory=corpus.corpus_path, initial_view=initial_view)
 
     def iter_pieces(self) -> Tuple[CorpusFnameTuple, Piece]:
         for corpus_name, corpus in self:

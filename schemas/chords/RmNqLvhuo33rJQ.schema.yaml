@@ -1,0 +1,101 @@
+fields:
+  - name: mc
+    type: integer
+    title: Measure Count
+    description: Running count of encoded <Measure> tags which do not necessarily
+      express a full measure (e.g. in case of an anacrusis).
+    constraints:
+      required: true
+  - name: mn
+    type: string
+    title: Measure Number
+    description: Measure number as printed in the score, computed from mc, dont_count
+      and numbering_offset.
+  - name: quarterbeats
+    type: string
+    title: Offset from Beginning
+    description: Distance of an event from the piece's beginning. By default, only
+      second endings are taken into account to reflect the proportions of a simply
+      playthrough without repeats.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: duration_qb
+    type: number
+    title: Duration in ♩
+    description: A float corresponding to duration * 4
+  - name: mc_onset
+    type: string
+    title: Offset within Encoded Measure
+    description: Distance of an event from the beginning of the <Measure> tag.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: mn_onset
+    type: string
+    title: Offset within Logical Measure
+    description: Distance from the beginning of the logical measure. Relevant, for
+      example, to compute the metric position of an event.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: event
+    type: string
+  - name: timesig
+    type: string
+    title: Time Signature
+    description: Given as string, e.g. "4/4".
+  - name: staff
+    type: integer
+    title: Staff
+    description: Number of the staff where an event occurs, 1 designating the top
+      staff.
+  - name: voice
+    type: integer
+    title: Notational Layer
+    description: A number between 1-4 where 1 is MuseScore's default layer (blue),
+      2 the second layer in green with downward stems, etc.
+  - name: duration
+    type: string
+    title: Duration
+    description: As fraction of a whole note.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: gracenote
+    type: string
+    title: Grace Note
+    description: Name given to a type of grace note in the MuseScore encoding, e.g.
+      "grace16"
+  - name: tremolo
+    type: string
+  - name: nominal_duration
+    type: string
+    title: Nominal Duration
+    description: The duration corresponding to a note/rest value without applying
+      any dots or n-tuplets, as fraction of a whole note. Multiplied with "scalar"
+      to yield the actual duration of the note/rest.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: scalar
+    type: string
+    title: Scalar
+    description: Decimal value reflecting all dots and n-tuplets modifying the duration
+      of a note/rest. Yields the actual duration when multiplied with "nominal_duration".
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: chord_id
+    type: integer
+    title: Chord ID
+    description: Row in the chords table.
+  - name: dynamics
+    type: string
+  - name: articulation
+    type: string
+  - name: staff_text
+    type: string
+  - name: slur
+    type: string
+    title: Slur
+    description: IDs of active slurs that a chord falls under, as a tuple of integers.
+  - name: crescendo_line
+    type: string
+facet: chords
+identifier: RmNqLvhuo33rJQ
+filepath: chords/RmNqLvhuo33rJQ.schema.yaml

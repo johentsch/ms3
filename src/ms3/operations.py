@@ -3,7 +3,8 @@ from typing import Literal, Optional, Tuple, Dict, List, Union
 
 from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
-from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, fifths2sd, scale_degree2name
+from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
+from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids
 
 
@@ -92,13 +93,24 @@ def extract(parse_obj: Parse,
             unfold: bool = False,
             interval_index: bool = False,
             silence_label_warnings: bool = False,
+            corpuswise: bool = False,
             **suffixes):
-    parse_obj.parse_scores(parallel=parallel)
-    parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
-                                     measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
-                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
-                                     markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
-
+    mode = "IN PARALLEL" if parallel else "ONE AFTER THE OTHER"
+    if not corpuswise:
+        print(f"PARSING SCORES {mode}...")
+        parse_obj.parse_scores(parallel=parallel)
+        parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
+                                         measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
+                                         expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
+                                         markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
+        return
+    for corpus_name, corpus, in parse_obj.iter_independent_corpora():
+        print(f"PARSING SCORES FOR CORPUS '{corpus_name}' {mode}...")
+        corpus.parse_scores(parallel=parallel)
+        corpus.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
+                                      measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
+                                      expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
+                                      markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
 
 
 def check(parse_obj: Parse,
@@ -280,11 +292,11 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
                     continue
                 test_passes = False
                 if len(t.added_tones) > 0:
-                    added = f" plus the added {(fifths2sd(t.added_tones, t.localkey_is_minor))} [{scale_degree2name(t.added_tones, t.localkey, t.globalkey)}]"
+                    added = f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} [{fifths2name(t.added_tones)}]"
                 else:
                     added = ""
                 msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems not to correspond well to the score (which does not necessarily mean it is wrong).
-In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {(fifths2sd(t.chord_tones, t.localkey_is_minor))} [{scale_degree2name(t.chord_tones, t.localkey, t.globalkey)}]{added}.
+In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees {tpc2scale_degree(t.chord_tones, t.localkey, t.globalkey)} [{fifths2name(t.chord_tones)}]{added}.
 The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets, a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
 If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed by a free-text comment in subsequent lines starting with a space or tab."""
                 piece_logger.warning(msg, extra={'message_id': message_id})

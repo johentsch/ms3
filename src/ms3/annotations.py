@@ -1,12 +1,13 @@
 import sys
 import warnings
-from functools import lru_cache
+from functools import cache
 from inspect import stack
 
 import pandas as pd
 
-from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
-    name2format, resolve_dir, rgb2format, column_order, update_cfg, FORM_DETECTION_REGEX
+from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, \
+    name2format, resolve_dir, rgb2format, column_order, update_cfg
+from .utils.constants import DCML_REGEX, DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -328,7 +329,7 @@ class Annotations(LoggedClass):
             res = column_order(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
-    @lru_cache()
+    @cache
     def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, chord_tones=True, relative_to_global=False, absolute=False, all_in_c=False,  **kwargs):
         """ Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 

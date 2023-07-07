@@ -11,7 +11,8 @@ from typing import Optional
 
 from ms3 import Parse, make_coloring_reports_and_warnings
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs
+from ms3.utils import convert_folder, resolve_dir, write_tsv, capture_parse_logs, write_to_warnings_file
+from ms3.utils.constants import MS3_VERSION
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
@@ -159,7 +160,7 @@ def empty(args, parse_obj: Optional[Parse] = None):
 
 def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
-        p = make_parse_obj(args, parse_scores=True)
+        p = make_parse_obj(args)
     else:
         p = parse_obj
     params = gather_extract_params(args)
@@ -180,9 +181,11 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
             form_labels_folder=args.form_labels,
             metadata_suffix=args.metadata,
             simulate=args.test,
+            parallel=not args.iterative,
             unfold=args.unfold,
             interval_index=args.interval_index,
             silence_label_warnings=silence_label_warnings,
+            corpuswise=args.corpuswise,
             **suffixes)
 
 def metadata(args, parse_obj: Optional[Parse] = None):
@@ -343,31 +346,23 @@ def review_cmd(args,
     for warning in accumulated_warnings:
         warning_lines = warning.splitlines()
         first_line = warning_lines[0]
-        match = re.search(r"ms3\.Parse\.\S+\.\S+", first_line)
+        match = re.search(r"(ms3\.Parse\..+) --", first_line)
         if match is None:
             logger.warning(f"This warning contains no ms3 logger name, skipping: {warning}")
             continue
         warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
-        pieceID = logger2pieceID[match.group(0)]
+        pieceID = logger2pieceID[match.group(1)]
         piece2warnings[pieceID].append('\n'.join(warning_lines))
 
 
     # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
     for pieceID, score_files in p.get_files('scores', unparsed=False, flat=True, include_empty=False).items():
         file = score_files[0]
-        warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
-        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
-        if len((warnings := piece2warnings[pieceID])) > 0:
-            header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
-            header = f"{header}\n{'=' * len(header)}\n\n"
-            os.makedirs(warnings_path, exist_ok=True)
-            with open(warnings_file, 'w', encoding='utf-8') as f:
-                f.write(header)
-                f.write('\n'.join(warnings))
-            logger.info(f"Written warnings to {warnings_file}.")
-        elif os.path.isfile(warnings_file):
-            logger.info(f"Problems seem to be solved, removing {warnings_file}")
-            os.remove(warnings_file)
+        write_to_warnings_file(warnings=piece2warnings[pieceID],
+                               file=file,
+                               root_dir=args.out,
+                               validation_errors=False,
+                               logger=logger)
 
     # call ms3 compare
     if args.compare is not None:
@@ -553,6 +548,7 @@ def get_arg_parser():
                                 help="Unfold the repeats for all stored DataFrames.")
     extract_args.add_argument('--interval_index', action='store_true',
                                 help="Prepend a column with [start, end) intervals to the TSV files.")
+    extract_args.add_argument('--corpuswise', action='store_true', help="Parse one corpus after the other rather than all at once.")
 
     select_facet_args = argparse.ArgumentParser(add_help=False)
     select_facet_args.add_argument('--ask', action='store_true',
@@ -671,7 +667,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                               help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
                                    "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
                                    "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
-    review_parser.add_argument('--threshold', default=0.6,
+    review_parser.add_argument('--threshold', default=0.6, type=float,
                                   help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
                                        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to 0.6 (3:2).")
     review_parser.set_defaults(func=review_cmd)

@@ -77,9 +77,10 @@ from typing import Literal, Optional, Collection, Tuple
 
 import pandas as pd
 
-from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc, \
+from .utils import assert_dfs_equal, check_labels, color2rgba, convert, decode_harmonies,\
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, replace_index_by_intervals, expand_form_labels, make_playthrough2mc, \
     check_phrase_annotations
+from .utils.constants import FORM_DETECTION_REGEX, DCML_DOUBLE_REGEX
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler, function_logger
@@ -598,7 +599,10 @@ class MSCX(LoggedClass):
           color_name:
               Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
               a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
-          chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
+          chord_tone_cols:
+            Names of the columns containing tuples of chord tones, expressed as TPC. Not that in the expanded tables
+            extracted by default, these columns correspond to intervals relative to the local tonic. The absolute
+            representation required here can be obtained using :attr:`.Annotations.expand_dcml` with ``absolute=True``.
           color_nan:
               By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
               will be colored. Pass False to add the segment to the previous one instead.
