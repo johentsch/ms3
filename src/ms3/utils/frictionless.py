@@ -188,7 +188,38 @@ def get_truncated_hash(S: str | Iterable[str],
 def get_schema_or_url(facet: str,
                       column_names: Tuple[str],
                       index_levels: Optional[Tuple[str]] = None,
-                      ):
+                      base_local_path = SCHEMAS_DIR,
+                      base_url = "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/",
+                      ) -> str | dict:
+    """ Given a facet name (=subfolder) and a tuple of [index column names +] column names, compute an identifier and
+    if that schema exists under ``<base_url>/<facet>/<identifier>.schema.yaml`` return that URL, or otherwise
+    create a the frictionless schema descriptor based on the column names, using the descriptions and types the ms3
+    stores for known column names (see :func:`make_frictionless_schema_descriptor`) and treating unknown columns
+    as string fields. In the latter case, the YAML file is written to ``<base_local_path>/<facet>/<identifier>.schema.yaml``
+    so specify local and remote bases such that the latter can be easily updated with the former.
+    Both types of function outputs can be used for the ``schema`` key in a frictionless table resource descriptor.
+
+    Args:
+        facet: Name of the subfolder where to store the schema descriptor.
+        column_names:
+            Names of the schema fields. Used for generating the hash-based identifier and for creating the actual
+            frictionless descriptor based on known field names. Unknown field names are assumed to be strings.
+        index_levels:
+            Additional index column names prepended to the column names. They are specified separately because in the
+            frictionless schema they are declared under ``primaryKey``, meaning that the IDs will be validated on the
+            basis of being required and unique.
+        base_local_path:
+            Schema descriptors will be created locally under ``<base_local_path>/<facet>/<identifier>.schema.yaml``,
+            unless the schema is found online.
+        base_url:
+            Schema descriptor is found at``<base_url>/<facet>/<identifier>.schema.yaml``, the function returns the
+            URL rather than the descriptor dict.
+
+    Returns:
+
+    """
+    if base_url[-1] != '/':
+        base_url += '/'
     if index_levels is None:
         column_names = tuple(column_names)
     else:
@@ -196,9 +227,9 @@ def get_schema_or_url(facet: str,
     schema_identifier = get_truncated_hash(column_names)
     schema_filename = f"{schema_identifier}.schema.yaml"
     schema_filepath = f"{facet}/{schema_filename}" # for URL & uniform filepath
-    schema_path = os.path.join(SCHEMAS_DIR, facet, schema_filename) # for local OS
+    schema_path = os.path.join(base_local_path, facet, schema_filename) # for local OS
     if os.path.exists(schema_path):
-        schema_url = f"https://raw.githubusercontent.com/johentsch/ms3/main/schemas/{schema_filepath}"
+        schema_url = f"{base_url}{schema_filepath}"
         # check if URL exists
         try:
             fl.Schema(schema_url)
@@ -214,6 +245,7 @@ def get_schema_or_url(facet: str,
     else:
         descriptor = make_frictionless_schema_descriptor(column_names=column_names,
                                                          primary_key=index_levels,
+                                                         # the rest is custom data added to the schema descriptor
                                                          facet=facet,
                                                          identifier=schema_identifier,
                                                          filepath=schema_filepath,
