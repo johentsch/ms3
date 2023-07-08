@@ -12,7 +12,7 @@ import frictionless as fl
 import pandas as pd
 
 from ms3._typing import ScoreFacet
-from ms3.utils import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File
+from ms3.utils import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, safe_tuple
 
 FIELDS_WITHOUT_MISSING_VALUES = (
     'mc',
@@ -52,7 +52,7 @@ def column_name2frictionless_field(column_name) -> dict:
             constraints["pattern"] = INT_ARRAY_REGEX
         elif string_converter == int2bool:
             field['type'] = 'boolean'
-        elif string_converter == literal_eval:
+        elif string_converter in (literal_eval, safe_tuple):
             field['type'] = 'array'
         else:
             NotImplementedError(f"Unfamiliar with string converter {string_converter}")
