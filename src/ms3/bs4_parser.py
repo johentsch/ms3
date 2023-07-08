@@ -2124,7 +2124,7 @@ class Instrumentation(LoggedClass):
             staff_id = f'staff_{staff_id}'
         if staff_id not in available_staves:
             raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
-        print("BEFORE", self.soup_references(), self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].find_all("Channel"))
+        self.logger.debug(f"References to tags before the instrument was changed: {self.soup_references()}")
         trackname_norm = trackname.lower().strip('.')
         if trackname_norm not in self.key2default_instrumentation:
             raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {list(self.key2default_instrumentation.keys())}")
@@ -2149,7 +2149,7 @@ class Instrumentation(LoggedClass):
                     self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
                     self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
             self.soup_references_data = self.soup_references()  # update references
-        print("AFTER", self.soup_references(), self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].find_all("Channel"))
+        self.logger.debug(f"References to tags after the instrument was changed: {self.soup_references()}")
 
     def __repr__(self):
         return pformat(self.fields, sort_dicts=False)

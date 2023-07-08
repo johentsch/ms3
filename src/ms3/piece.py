@@ -1589,9 +1589,9 @@ class Piece(LoggedClass):
                         to_be_updated[staff_id] = value
                 if len(to_be_updated) > 0:
                     changed = True
-                    self.logger.warning(f"This instrumentation will be written into the score:\n{to_be_updated}")
+                    self.logger.debug(f"This instrumentation will be written into the score:\n{to_be_updated}")
                     for staff, instrument in to_be_updated.items():
-                        self.logger.warning(f"{staff}: {current_values[staff]} => {instrument}")
+                        self.logger.debug(f"{staff}: {current_values[staff]} => {instrument}")
                         MSCX.instrumentation.set_instrument(staff, instrument)
             if changed:
                 MSCX.update_metadata()
