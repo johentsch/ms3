@@ -81,6 +81,7 @@ from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collec
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
+import difflib
 import pandas as pd
 import numpy as np
 import os
@@ -2034,17 +2035,19 @@ INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
     """
-    Allows users to set an instrument by trackName as well as by part_trackName
+    Allows users to set an instrument by 'id', 'longName', 'shortName',
+       'trackName', 'instrumentId', 'part_trackName'
     """
-    enlarged_dict = dict(INSTRUMENT_DEFAULTS)
-    for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.to_dict().items():
-        added_value = cur_value.copy()
+    enlarged_dict = dict(INSTRUMENT_DEFAULTS.T)
+    for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.drop(["ChannelName", "ChannelValue"]).to_dict().items():
+        added_value = INSTRUMENT_DEFAULTS.T[cur_key]
         for additional_key in cur_value.values():
-            if type(additional_key) == str:
-                additional_key = additional_key.lower().strip('.')
-            if additional_key in enlarged_dict:
-                continue
-            enlarged_dict[additional_key] = added_value
+            if not additional_key is None:
+                if type(additional_key) == str:
+                    additional_key = additional_key.lower().strip('.')
+                if additional_key in enlarged_dict:
+                    continue
+                enlarged_dict[additional_key] = added_value
     return enlarged_dict
 
 
@@ -2124,21 +2127,32 @@ class Instrumentation(LoggedClass):
             staff_id = f'staff_{staff_id}'
         if staff_id not in available_staves:
             raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
+        changed_part = self.parsed_parts.staff2part[staff_id]
         self.logger.debug(f"References to tags before the instrument was changed: {self.soup_references()}")
         trackname_norm = trackname.lower().strip('.')
         if trackname_norm not in self.key2default_instrumentation:
-            raise KeyError(f"Don't recognize trackName '{trackname}'. Select among the values: {list(self.key2default_instrumentation.keys())}")
+            trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
+            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}?", extra=dict(message_id=(30,)))
         new_values = self.key2default_instrumentation[trackname_norm]
+
+        staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
+                              part_value == changed_part and staff_key != staff_id])  # which staves share this part
+        if len(staves_within_part) > 0:
+            different_values_set = np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[0]  # staves of the same part with different instruments
+            if len(different_values_set) > 0:
+                damaged_staves = staves_within_part[different_values_set]
+                damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
+                self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
+
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
-            changed_part = self.parsed_parts.staff2part[staff_id]
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
             if field_to_change == "id":
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Instrument[field_to_change] = value
+                self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
             elif field_to_change == "ChannelName":
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel["name"] = value
+                self.parsed_parts.parts_data[changed_part].Channel["name"] = value
             elif field_to_change == "ChannelValue":
-                self.parsed_parts.parts_data[self.parsed_parts.staff2part[staff_id]].Channel.program["value"] = value
+                self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
             else:
                 if self.soup_references_data[staff_id][field_to_change] is not None:
                     self.soup_references_data[staff_id][field_to_change].string = value
