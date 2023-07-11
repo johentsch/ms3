@@ -249,12 +249,15 @@ class _MSCX_bs4(LoggedClass):
         staff_ids = tuple(self.measure_nodes.keys())
         chord_id = 0
         # For every measure: bundle the <Measure> nodes from every staff
-        for mc, measure_stack in enumerate(
-                zip(
+        mc = self.first_mc - 1 # replace the previous enumerate() loop so we can filter out multimeasure rests which seem to be redundant additional tags
+        for measure_stack in zip(
                     *[[measure_node for measure_node in measure_dict.values()] for measure_dict in
                       self.measure_nodes.values()]
-                ),
-                start=self.first_mc):
+                ):
+            if measure_stack[0].find('multiMeasureRest') is not None:
+                self.logger.debug(f"Skipping multimeasure rest that follows MC {mc} in the encoding: {measure_stack}.")
+                continue
+            mc += 1
             if not self.read_only:
                 self.tags[mc] = {}
             # iterate through staves and collect information about each <Measure> node
