@@ -17,7 +17,7 @@ from git import Repo
 
 from ms3.bs4_parser import Instrumentation, INSTRUMENT_DEFAULTS
 from ms3 import Score
-from conftest import TEST_COMMIT
+from ..conftest import TEST_COMMIT
 
 UNITTEST_METACORPUS = "~/unittest_metacorpus"
 
