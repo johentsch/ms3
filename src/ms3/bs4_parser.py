@@ -367,7 +367,18 @@ class _MSCX_bs4(LoggedClass):
                                     event.update(thoroughbass_cols)
                                     if duration is not None:
                                         event['thoroughbass_duration'] = duration
+
+                            def safe_update_event(key, value):
+                                """Update event dict unless key is already present."""
+                                nonlocal event, current_position, staff_id, event_name, text_including_html
+                                if key and key in event:
+                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{key}': {event[key]} "
+                                                        f"so I did not overwrite it with {value!r}.")
+                                else:
+                                    event[key] = value
+
                             for text_tag in event_node.find_all('text'):
+                                column_name = None # the key to be written to the `event` row dict after the if-else block
                                 parent_name = text_tag.parent.name
                                 text_including_html = text_tag2str(text_tag)
                                 text_excluding_html = text_tag2str_recursive(text_tag)
@@ -377,17 +388,18 @@ class _MSCX_bs4(LoggedClass):
                                 if parent_name == 'Tempo':
                                     tempo_tag = text_tag.parent
                                     quarters_per_second = float(tempo_tag.tempo.string)
-                                    event['qpm'] = round(quarters_per_second * 60)
-                                    event["tempo"] = text_excluding_html
+                                    safe_update_event('qpm', round(quarters_per_second * 60))
+                                    safe_update_event('tempo', text_excluding_html)
                                     metronome_match = re.match(r"^(.+)=(([0-9]+(?:\.[0-9]*)?))$", text_excluding_html)
                                     if metronome_match:
                                         base, value = metronome_match.group(1), metronome_match.group(2)
-                                        event["metronome_base"] = base
-                                        event["metronome_number"] = float(value)
+                                        safe_update_event('metronome_base', base)
+                                        safe_update_event('metronome_number', float(value))
                                     try:
-                                        event["metronome_visible"] = int(tempo_tag.visible.string)
+                                        metronome_visible = int(tempo_tag.visible.string)
                                     except AttributeError:
-                                        event["metronome_visible"] = 1
+                                        metronome_visible = 1
+                                    safe_update_event('metronome_visible', metronome_visible)
                                 elif parent_name == 'Lyrics':
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find('no')
@@ -408,14 +420,11 @@ class _MSCX_bs4(LoggedClass):
                                                 text_including_html = '-' + text_including_html
                                             case other:
                                                 logger.warning(f"<syllabic> tag came with the value '{syllabic_tag.string}', not begin|middle|end.")
-
+                                    safe_update_event(column_name, text_including_html)
                                 else:
-                                    column_name = parent_name + '_text'
-                                if column_name in event:
-                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{column_name}': {event[column_name]} "
-                                                        f"so I did not overwrite it with {text_including_html!r}.")
-                                else:
-                                    event[column_name] = text_including_html
+                                    self.logger.debug(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} contained a <text> tag within a <{parent_name}> tag, "
+                                                      f"which I did not know how to handle. I stored it in the column {parent_name}_text.")
+                                    column_name = safe_update_event(parent_name + '_text', text_including_html)
                             event_list.append(event)
 
                         if not self.read_only:
