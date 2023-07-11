@@ -75,6 +75,7 @@
 """
 
 import re, sys, warnings
+from pprint import pformat
 from copy import copy
 from fractions import Fraction
 from collections import defaultdict, ChainMap # for merging dictionaries
@@ -83,7 +84,10 @@ from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collec
 from functools import cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
+import difflib
 import pandas as pd
+import numpy as np
+import os
 from bs4 import NavigableString
 
 from .annotations import Annotations
@@ -171,8 +175,9 @@ class _MSCX_bs4(LoggedClass):
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
-        self._prelims = None
-        self._style = None
+        self._instrumentation: Instrumentation = None
+        self._prelims: Prelims = None
+        self._style: Style = None
         self.staff2drum_map: Dict[int, pd.DataFrame] = {}
         """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
         note and instrument features. The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut']. 
@@ -627,12 +632,25 @@ class _MSCX_bs4(LoggedClass):
             return self._fl
         return
 
+    def get_instrumentation(self) -> Dict[str, str]:
+        """Returns a {staff_<i>_instrument -> instrument_name} dict."""
+        return {staff: instrument['trackName'] for staff, instrument in self.instrumentation.fields.items()}
+
     @property
     @cache
     def has_voltas(self) -> bool:
         """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
         measures = self.ml()
         return measures.volta.notna().any()
+
+    @property
+    def instrumentation(self):
+        if self._instrumentation is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._instrumentation = Instrumentation(self.soup, name=self.logger.name)
+        return self._instrumentation
+
 
 
     def measures(self,
@@ -1302,6 +1320,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             ambitus[staff]['max_midi'] = int(max_midi)
             ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        # for including the metadata as one line in metadata.tsv the function utils.metadata2series() is used
+        # which updates `data` with the items of all part dictionaries, removing they key 'parts' afterwards
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:
                 part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
@@ -2030,6 +2050,161 @@ and {loc_after} before the subsequent {nxt_name}.""")
 #######################################################################
 ####################### END OF CLASS DEFINITION #######################
 #######################################################################
+class ParsedParts(LoggedClass):
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('ParsedParts', logger_cfg)
+        self.parts_data: Dict[str, bs4.Tag] = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
+
+    @property
+    def staff2part(self) -> dict[list, str]:
+        """Returns the dict in the format {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
+        staff2part = {}
+        for key_part, part in self.parts_data.items():
+            staves = [f"staff_{staff['id']}" for staff in part.find_all('Staff')]
+            staff2part.update(dict.fromkeys(staves, key_part))
+        return staff2part
+
+    def __repr__(self):
+        return pformat(self.parts_data, sort_dicts=False)
+
+INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None})
+
+def get_enlarged_default_dict() -> Dict[str, dict]:
+    """
+    Allows users to set an instrument by 'id', 'longName', 'shortName',
+       'trackName', 'instrumentId', 'part_trackName'
+    """
+    enlarged_dict = dict(INSTRUMENT_DEFAULTS.T)
+    for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.drop(["ChannelName", "ChannelValue"]).to_dict().items():
+        added_value = INSTRUMENT_DEFAULTS.T[cur_key]
+        for additional_key in cur_value.values():
+            if not additional_key is None:
+                if type(additional_key) == str:
+                    additional_key = additional_key.lower().strip('.')
+                if additional_key in enlarged_dict:
+                    continue
+                enlarged_dict[additional_key] = added_value
+    return enlarged_dict
+
+
+class Instrumentation(LoggedClass):
+    """Easy way to read and write the instrumentation of a score, that is
+    'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'."""
+
+
+    key2default_instrumentation = get_enlarged_default_dict()
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Instrumentation', logger_cfg)
+        self.part_tracknames = INSTRUMENT_DEFAULTS['part_trackName']
+        self.soup = soup
+        self.instrumentation_fields = ["id", 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+                                       'ChannelName', 'ChannelValue']
+        self.parsed_parts = ParsedParts(soup)
+        self.soup_references_data = self.soup_references()  # store references to XML tags
+
+
+
+
+    def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
+        """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
+        tag_dict = {}
+        for key_part, part in self.parsed_parts.parts_data.items():
+            instrument_tag = part.Instrument
+            staves: Dict[str, bs4.Tag] = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
+            channel_info = part.Channel
+            channel_name = None if "name" not in channel_info.attrs.keys() else channel_info["name"]
+            cur_dict = {"id": instrument_tag["id"], "ChannelName": channel_name, "ChannelValue": channel_info.program}
+            for name in self.instrumentation_fields:
+                if name not in cur_dict.keys():
+                    if name == "part_trackName":
+                        tag = part.trackName
+                    else:
+                        tag = instrument_tag.find(name)
+                    if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
+                        instrument_tag.trackName.string = part.trackName.string
+                        tag = instrument_tag.find(name)
+                    cur_dict[name] = tag
+            tag_dict.update({key_staff: cur_dict for key_staff in staves})
+        return tag_dict
+
+    @property
+    def fields(self):
+        result = {}
+        for key, instr_data in self.soup_references_data.items():
+            result[key] = {}
+            for key_instr_data, tag in instr_data.items():
+                if type(tag) == bs4.element.Tag and tag is not None:
+                    if key_instr_data == "ChannelValue":
+                        value = tag['value']
+                    else:
+                        value = tag.get_text()
+                else:
+                    value = tag
+                result[key][key_instr_data] = value
+        return result
+
+    def get_instrument_name(self, staff_name: Union[str, int]):
+        if type(staff_name) == int:
+            staff_name = f'staff_{staff_name}'
+        fields_data = self.fields
+        if staff_name not in self.parsed_parts.staff2part.keys() or staff_name not in fields_data:
+            raise KeyError(f"No data for staff '{staff_name}'")
+        else:
+            return fields_data[staff_name]['trackName']
+
+    def set_instrument(self, staff_id: Union[str, int], trackname):
+        available_staves = list(self.parsed_parts.staff2part.keys())
+        if not isinstance(staff_id, str):
+            try:
+                staff_id = int(staff_id)
+            except Exception:
+                raise ValueError(f"{staff_id!r} cannot be interpreted as staff ID which needs to be int or str, not {type(staff_id)}. "
+                                 f"Use one of {available_staves}.")
+            staff_id = f'staff_{staff_id}'
+        if staff_id not in available_staves:
+            raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
+        changed_part = self.parsed_parts.staff2part[staff_id]
+        self.logger.debug(f"References to tags before the instrument was changed: {self.soup_references()}")
+        trackname_norm = trackname.lower().strip('.')
+        if trackname_norm not in self.key2default_instrumentation:
+            trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
+            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}?", extra=dict(message_id=(30,)))
+        new_values = self.key2default_instrumentation[trackname_norm]
+
+        staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
+                              part_value == changed_part and staff_key != staff_id])  # which staves share this part
+        if len(staves_within_part) > 0:
+            different_values_set = np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[0]  # staves of the same part with different instruments
+            if len(different_values_set) > 0:
+                damaged_staves = staves_within_part[different_values_set]
+                damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
+                self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
+
+        for field_to_change in self.instrumentation_fields:
+            value = new_values[field_to_change]
+            self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
+            if field_to_change == "id":
+                self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
+            elif field_to_change == "ChannelName":
+                self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+            elif field_to_change == "ChannelValue":
+                self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
+            else:
+                if self.soup_references_data[staff_id][field_to_change] is not None:
+                    self.soup_references_data[staff_id][field_to_change].string = value
+                    self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
+                elif value is not None:
+                    new_tag = self.soup.new_tag(field_to_change)
+                    new_tag.string = value
+                    self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
+                    self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+            self.soup_references_data = self.soup_references()  # update references
+        self.logger.debug(f"References to tags after the instrument was changed: {self.soup_references()}")
+
+    def __repr__(self):
+        return pformat(self.fields, sort_dicts=False)
+
+
 
 class Metatags:
     """Easy way to read and write any style information in a parsed MSCX score."""

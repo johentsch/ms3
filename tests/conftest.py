@@ -101,7 +101,6 @@ def parse_obj(directory, request) -> Parse:
             p.add_dir(os.path.join(directory, 'outputs'))
             for path in files:
                 p.add_files(path, corpus_name='sweelinck_keyboard')
-
     return p
 
 @pytest.fixture(

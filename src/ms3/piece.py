@@ -1504,13 +1504,14 @@ class Piece(LoggedClass):
             self.info()
 
     def update_score_metadata_from_tsv(self,
-                              view_name: Optional[str] = None,
-                              force: bool = False,
-                              choose: Literal['all', 'auto', 'ask'] = 'all',
-                              write_empty_values: bool = False,
-                              remove_unused_fields: bool = False,
-                              write_text_fields: bool = False,
-                              ) -> List[File]:
+                                       view_name: Optional[str] = None,
+                                       force: bool = False,
+                                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                                       write_empty_values: bool = False,
+                                       remove_unused_fields: bool = False,
+                                       write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
+                                       ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
         Args:
@@ -1525,20 +1526,22 @@ class Piece(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score header.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
         """
-        row_dict = self.tsv_metadata
-        if row_dict is None:
+        if self.tsv_metadata is None:
             self.logger.info(f"No metadata available for updating scores.")
             return []
         updated_scores = []
         ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['fname']
         for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
-            current_metadata = score.mscx.parsed.metatags.fields
-            current_metadata.update(score.mscx.parsed.prelims.fields)
-            row_dict = {column: value for column, value in row_dict.items()
+            MSCX = score.mscx.parsed
+            current_metadata = MSCX.metatags.fields
+            current_metadata.update(MSCX.prelims.fields)
+            row_dict = {column: value for column, value in self.tsv_metadata.items()
                         if column not in ignore_columns and not re.match(r"^staff_\d", column)}
             unused_fields = [field for field in current_metadata.keys() if field not in row_dict and field not in MUSESCORE_METADATA_FIELDS]
             if write_empty_values:
@@ -1562,20 +1565,38 @@ class Piece(LoggedClass):
                         continue
                     if value == '' and not write_empty_values:
                         continue
-                    score.mscx.parsed.prelims[field] = value
+                    MSCX.prelims[field] = value
                     self.logger.debug(f"{file.rel_path}: {field} set to '{value}'.")
                     changed = True
             for field, value in metadata_fields.items():
                 specifier = 'New field' if field in fields_to_be_created else 'Field'
                 self.logger.debug(f"{file.rel_path}: {specifier} '{field}' set to {value}.")
-                score.mscx.parsed.metatags[field] = value
+                MSCX.metatags[field] = value
                 changed = True
             if remove_unused_fields:
                 for field in unused_fields:
-                    score.mscx.parsed.metatags.remove(field)
+                    MSCX.metatags.remove(field)
                     self.logger.debug(f"{file.rel_path}: Field {field} removed.")
                     changed = True
+            if update_instrumentation:
+                current_values = MSCX.get_instrumentation()
+                to_be_updated = {}
+                for column, value in self.tsv_metadata.items():
+                    if (m := re.match(r"^(staff_\d+)_instrument", column)) is None:
+                        continue
+                    staff_id = m.group(1)
+                    if pd.isnull(value):
+                        self.logger.warning(f"{file.full_path}: Instrumentation for staff {staff_id} is empty.")
+                    if value != current_values[staff_id]:
+                        to_be_updated[staff_id] = value
+                if len(to_be_updated) > 0:
+                    changed = True
+                    self.logger.debug(f"This instrumentation will be written into the score:\n{to_be_updated}")
+                    for staff, instrument in to_be_updated.items():
+                        self.logger.debug(f"{staff}: {current_values[staff]} => {instrument}")
+                        MSCX.instrumentation.set_instrument(staff, instrument)
             if changed:
+                MSCX.update_metadata()
                 score.mscx.changed = True
                 updated_scores.append(file)
             else:

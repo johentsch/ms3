@@ -48,7 +48,8 @@ def test_review_cmd(directory):
     args = parser.parse_args(["review", "-d", directory])
     review_cmd(args)
     # make sure the repo has not changed
-    # assert_test_repo_unchanged(directory)
+    ## currently deactivated because the .warning files change with every new ms3 version
+    #assert_test_repo_unchanged(directory)
 
 def test_compare_cmd():
     parser = get_arg_parser()

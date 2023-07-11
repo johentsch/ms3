@@ -2639,12 +2639,12 @@ class Corpus(LoggedClass):
         suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
-        self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         paths = []
         target = len(facets) * n_scores
 
-        # if the view is default (no additional filters have been set), write one CSVW metadata file per facet
-        view = self.get_view(view_name)
+        # (deprecated for now) if the view is default (no additional filters have been set), write one CSVW metadata file per facet
+        #view = self.get_view(view_name)
+        self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         if target > 0:
             for piece_name, piece in self.iter_pieces(view_name=view_name):
                 for file, facet2dataframe in piece.iter_extracted_facets(facets,
@@ -2750,6 +2750,7 @@ class Corpus(LoggedClass):
                                        write_empty_values: bool = False,
                                        remove_unused_fields: bool = False,
                                        write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -2765,6 +2766,8 @@ class Corpus(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score headers.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
@@ -2776,8 +2779,11 @@ class Corpus(LoggedClass):
                                                             choose=choose,
                                                             write_empty_values=write_empty_values,
                                                             remove_unused_fields=remove_unused_fields,
-                                                            write_text_fields=write_text_fields)
+                                                            write_text_fields=write_text_fields,
+                                                            update_instrumentation=update_instrumentation)
             updated_scores.extend(modified)
+        if len(updated_scores) > 0:
+            self.update_metadata_tsv_from_parsed_scores(markdown_file=None)
         return updated_scores
 
     #

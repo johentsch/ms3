@@ -1014,7 +1014,8 @@ class Parse(LoggedClass):
                                        choose: Literal['all', 'auto', 'ask'] = 'all',
                                        write_empty_values: bool = False,
                                        remove_unused_fields: bool = False,
-                                       write_text_fields: bool = False
+                                       write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -1030,6 +1031,8 @@ class Parse(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score headers.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
@@ -1041,7 +1044,8 @@ class Parse(LoggedClass):
                                                              choose=choose,
                                                              write_empty_values=write_empty_values,
                                                              remove_unused_fields=remove_unused_fields,
-                                                             write_text_fields=write_text_fields)
+                                                             write_text_fields=write_text_fields,
+                                                             update_instrumentation=update_instrumentation)
             updated_scores.extend(modified)
         return updated_scores
 

@@ -148,10 +148,20 @@ class TestParsedParse():
 
     @pytest.fixture()
     def n_parsed_files(self, request):
-        expected = {
+        expected = { # (n_scores, n_tsvs)
             "regex": (2, 0),
             "everything": (38, 28),
-
+            "chaotic_dirs": (11, 4),
+            "file_re_without_key": (2, 7),
+            "files_correct_without_metadata": (2, 6),
+            "files_with_correct_key": (2, 7),
+            "files_with_wrong_key": (4, 4),
+            "files_with_inferred_key": (1, 4),
+            "files_without_key": (3, 0),
+            "redundant": (2, 0),
+            "regular_dirs": (8, 25),
+            "regular_dirs_at_once": (8, 25),
+            "without_metadata": (3, 0),
         }
         name2expected = {}  # defaultdict(lambda: (0,0))
         parse_modes = "parsed_all-", "parse_scores-", "parsed_tsv-"
