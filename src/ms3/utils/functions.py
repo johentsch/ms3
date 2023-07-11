@@ -3581,13 +3581,13 @@ def unpack_mscz(mscz, tmp_dir=None):
 def capture_parse_logs(logger_object: logging.Logger,
                        level: Union[str, int] = 'w') -> LogCapturer:
     """Within the context, the given logger will have an additional handler that captures all messages with level
-    ``level`` or higher. At the end of the context, retrieve the message list via LocCapturer.content_list.
+    ``level`` or higher. At the end of the context, retrieve the message list via LogCapturer.content_list.
 
     Example:
         .. code-block:: python
 
             with capture_parse_logs(logger, level='d') as capturer:
-                # do the stuff of which you want to capture
+                # do the stuff of which you want to capture the log messages of the given level (and above)
                 all_messages = capturer.content_list
     """
     captured_warnings = LogCapturer(level=level)

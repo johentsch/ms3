@@ -9,7 +9,7 @@ from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 
 CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
-TEST_COMMIT = "c34b94a" # commit of DCMLab/unittest_metacorpus for which the tests should pass
+TEST_COMMIT = "4966d4c" # commit of DCMLab/unittest_metacorpus for which the tests should pass
 MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), '..', '..'))
 DOCS_DIR = os.path.join(MS3_DIR, 'docs')
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
@@ -27,6 +27,11 @@ def directory():
     sha = commit.hexsha[:len(TEST_COMMIT)]
     assert sha == TEST_COMMIT
     assert repo.git.diff() == ''
+    return path
+
+@pytest.fixture(scope="session")
+def small_directory(directory):
+    path = os.path.join(directory, "ravel_piano")
     return path
 
 @pytest.fixture(
