@@ -4242,7 +4242,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             added_notes.append(new_val)
         elif next_octave:
             if any((replacing_lower, replacing_upper, substracted)):
-                logger.info(f"{MC}{full[0]} has no effect in {full}  because the interval is larger than an octave.")
+                logger.info(f"{MC}{full[0]} has no effect on tonal pitch classes computed for {full}  because the interval is larger than an octave.")
             added_notes.append(new_val)
         elif chord_interval in [1, 3, 5]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
             if '#' in acc or replacing_upper:

@@ -5,7 +5,7 @@ from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
 from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
-from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids
+from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids, MessageType
 
 
 def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
@@ -117,32 +117,49 @@ def check(parse_obj: Parse,
           ignore_labels: bool = False,
           ignore_scores: bool = False,
           assertion: bool = False,
-          parallel: bool = True) -> List[str]:
+          parallel: bool = True,
+          ignore_metronome: bool = False,
+          ) -> List[str]:
     assert ignore_labels + ignore_scores < 2, "Activate either ignore_labels or ignore_scores, not both."
     all_warnings = []
     check_logger = get_logger("ms3.check", level=parse_obj.logger.getEffectiveLevel())
+    first_bar_warning_str = MessageType(29).name
     if not ignore_scores:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
             parse_obj.parse_scores(parallel=parallel, only_new=False)
-            warnings = captured_warnings.content_list
-        if len(warnings) > 0:
-            all_warnings.extend(warnings)
-            check_logger.warning("Warnings detected while parsing scores (see above).")
+            warning_strings = captured_warnings.content_list
+        n_score_warnings = len(warning_strings)
+        if n_score_warnings > 0:
+            if ignore_metronome:
+                # filter out warning messages about missing metronome mark in the first bar, if any
+                warning_strings = [w for w in warning_strings if not first_bar_warning_str.startswith(first_bar_warning_str)]
+                if len(warning_strings) < n_score_warnings:
+                    check_logger.debug(f"Ignored {n_score_warnings - len(warning_strings)} warnings about missing metronome mark in the first bar.")
+            if warning_strings:
+                all_warnings.extend(warning_strings)
+                check_logger.warning("Warnings detected while parsing scores (see above).")
     else:
         with temporarily_suppress_warnings(parse_obj) as parse_obj:
             parse_obj.parse_scores(parallel=parallel)
     if not ignore_labels:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
             expanded = parse_obj.get_dataframes(expanded=True)
-            warnings = captured_warnings.content_list
+            warning_strings = captured_warnings.content_list
         if len(expanded) == 0:
             parse_obj.logger.info(f"No DCML labels to check.")
-        elif len(warnings) > 0:
-            all_warnings.extend(warnings)
+        elif len(warning_strings) > 0:
+            all_warnings.extend(warning_strings)
             check_logger.warning("Warnings detected while checking DCML labels (see above).")
+    n_warnings = len(all_warnings)
     if assertion:
-        assert len(all_warnings) == 0, "Encountered warnings, check failed."
-    if len(all_warnings) == 0:
+        if n_warnings > 0 and all(w.startswith(first_bar_warning_str) for w in all_warnings):
+            plural = f"some of the checked scores do" if n_warnings > 1 else "one of the checked score does"
+            assert_msg = f"Check failed only because the {plural} not have a metronome mark in the first bar. " \
+                         f"It would therefore pass if you were to add the --ignore_metronome flag."
+        else:
+            assert_msg = "Encountered warnings, check failed."
+        assert n_warnings == 0, assert_msg
+    if n_warnings == 0:
         if ignore_labels:
             msg = 'All checked scores alright.'
         elif ignore_scores:

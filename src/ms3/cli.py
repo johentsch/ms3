@@ -78,7 +78,9 @@ def check_cmd(args,
     _ = check(p,
               ignore_labels=args.ignore_labels,
               ignore_scores=args.ignore_scores,
-              assertion=args.fail)
+              assertion=args.fail,
+              ignore_metronome=args.ignore_metronome,
+              )
     return p
 
 
@@ -311,13 +313,16 @@ def review_cmd(args,
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        warning = check(p,
-                            ignore_labels=args.ignore_labels,
-                            ignore_scores=args.ignore_scores,
-                            assertion=False,
-                            parallel=False)
-        accumulated_warnings.extend(warning)
-        test_passes = len(warning) == 0
+        warning_strings = check(
+            p,
+            ignore_labels=args.ignore_labels,
+            ignore_scores=args.ignore_scores,
+            assertion=False,
+            parallel=False,
+            ignore_metronome=args.ignore_metronome,
+        )
+        accumulated_warnings.extend(warning_strings)
+        test_passes = len(warning_strings) == 0
         p.parse_tsv()
     else:
         test_passes = True
@@ -345,12 +350,12 @@ def review_cmd(args,
     # attribute warnings to pieces based on logger names
     logger2pieceID = {corpus.logger_names[fname]: (c, fname) for c, corpus in p.corpus_objects.items() for fname in corpus.keys()}
     piece2warnings = defaultdict(list)
-    for warning in accumulated_warnings:
-        warning_lines = warning.splitlines()
+    for warning_strings in accumulated_warnings:
+        warning_lines = warning_strings.splitlines()
         first_line = warning_lines[0]
         match = re.search(r"(ms3\.Parse\..+) --", first_line)
         if match is None:
-            logger.warning(f"This warning contains no ms3 logger name, skipping: {warning}")
+            logger.warning(f"This warning contains no ms3 logger name, skipping: {warning_strings}")
             continue
         warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
         pieceID = logger2pieceID[match.group(1)]
@@ -506,6 +511,8 @@ def get_arg_parser():
                               help="Don't check DCML labels for syntactic correctness.")
     check_args.add_argument('--fail', action='store_true', help="If you pass this argument the process will deliberately fail with an AssertionError "
                                                                 "when there are any mistakes.")
+    check_args.add_argument('--ignore_metronome', action='store_true', help="Pass this flag if you want the check to pass (not fail) even if there is a warning about a missing "
+                                                                            "metronome mark in the first bar of the score.")
 
     compare_args = argparse.ArgumentParser(add_help=False)
     compare_args.add_argument('--flip', action='store_true',
