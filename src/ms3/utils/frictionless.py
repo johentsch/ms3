@@ -12,7 +12,8 @@ import frictionless as fl
 import pandas as pd
 
 from ms3._typing import ScoreFacet
-from ms3.utils import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, safe_tuple
+from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, \
+    safe_tuple
 
 FIELDS_WITHOUT_MISSING_VALUES = (
     'mc',
