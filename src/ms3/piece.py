@@ -1585,6 +1585,8 @@ class Piece(LoggedClass):
                     if (m := re.match(r"^(staff_\d+)_instrument", column)) is None:
                         continue
                     staff_id = m.group(1)
+                    if pd.isnull(value):
+                        self.logger.warning(f"{file.full_path}: Instrumentation for staff {staff_id} is empty.")
                     if value != current_values[staff_id]:
                         to_be_updated[staff_id] = value
                 if len(to_be_updated) > 0:
