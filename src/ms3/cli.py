@@ -200,11 +200,13 @@ def metadata(args, parse_obj: Optional[Parse] = None):
     p.parse_scores(parallel=False)
     modified_score_files = p.update_score_metadata_from_tsv(write_empty_values=args.empty,
                                                             remove_unused_fields=args.remove,
-                                                            write_text_fields=args.prelims)
+                                                            write_text_fields=args.prelims,
+                                                            update_instrumentation=args.instrumentation,)
     if len(modified_score_files) == 0:
         print("Nothing to update.")
         return
     corpus2paths = store_scores(p,
+                                only_changed=True,
                                 root_dir=args.out,
                                 folder='.',
                                 simulate=args.test,
@@ -649,6 +651,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     metadata_parser.add_argument('-p', '--prelims', action='store_true',
                                  help="Pass this flag if, in addition to updating metadata fields, you also want score headers to be updated "
                                       "from the columns title_text, subtitle_text, composer_text, lyricist_text, part_name_text.")
+    metadata_parser.add_argument('--instrumentation', action='store_true',
+                                 help="Pass this flag to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.")
     metadata_parser.add_argument('--empty', action='store_true',
                                   help="Set this flag to also allow empty values to be used for overwriting existing ones.")
     metadata_parser.add_argument('--remove', action='store_true',

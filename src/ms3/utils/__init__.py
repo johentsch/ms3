@@ -2673,7 +2673,7 @@ def parts_info(d):
 
     Example
     -------
-    >>> d = s.mscx.metadata_from_parsed
+    >>> d = s.mscx.metadata
     >>> parts_info(d['parts'])
     {'staff_1_instrument': 'Voice',
      'staff_1_ambitus': '66-76 (F#4-E5)',

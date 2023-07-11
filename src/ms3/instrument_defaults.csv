@@ -1,0 +1,652 @@
+,id,ChannelName,ChannelValue,longName,shortName,trackName,instrumentId,part_trackName
+piccolo,piccolo,,72,Piccolo,Picc.,Piccolo,wind.flutes.flute.piccolo,Piccolo
+d♭ piccolo,db-piccolo,,72,D♭ Piccolo,D♭ Picc.,D♭ Piccolo,wind.flutes.flute.piccolo,D♭ Piccolo
+e♭ piccolo,eb-piccolo,,72,E♭ Piccolo,E♭ Picc.,E♭ Piccolo,wind.flutes.flute.piccolo,E♭ Piccolo
+flute,flute,,73,Flute,Fl.,Flute,wind.flutes.flute,Flute
+treble flute,treble-flute,,72,Treble Flute,Tr. Fl.,Treble Flute,wind.flutes.flute,Treble Flute
+soprano flute,soprano-flute,,73,Soprano Flute,Sop. Fl.,Soprano Flute,wind.flutes.flute,Soprano Flute
+sub contra-alto flute,subcontra-alto-flute,,73,Sub Contra-alto Flute,Sc-a. Fl.,Sub Contra-alto Flute,wind.flutes.flute.subcontrabass,Sub Contra-alto Flute
+alto flute,alto-flute,,73,Alto Flute,A. Fl.,Alto Flute,wind.flutes.flute.alto,Alto Flute
+bass flute,bass-flute,,73,Bass Flute,B. Fl.,Bass Flute,wind.flutes.flute.bass,Bass Flute
+contra-alto flute,contra-alto-flute,,73,Contra-alto Flute,C-a. Fl.,Contra-alto Flute,wind.flutes.flute.contra-alto,Contra-alto Flute
+contrabass flute,contrabass-flute,,73,Contrabass Flute,Cb. Fl.,Contrabass Flute,wind.flutes.flute.contrabass,Contrabass Flute
+double contrabass flute,double-contrabass-flute,,73,Double Contrabass Flute,D. Cb. Fl.,Double Contrabass Flute,wind.flutes.flute.double-contrabass,Double Contrabass Flute
+hyperbass flute,hyperbass-flute,,73,Hyperbass Flute,Hb. Fl.,Hyperbass Flute,wind.flutes.flute.double-contrabass,Hyperbass Flute
+traverso,traverso,,73,Traverso,Trv.,Traverso,wind.flutes.flute,Traverso
+danso,danso,,76,Danso,Da.,Danso,wind.flutes.danso,Danso
+piccolo oboe,piccolo-oboe,,68,Piccolo Oboe,P. Ob.,Piccolo Oboe,wind.reed.oboe.piccolo,Piccolo Oboe
+oboe,oboe,,68,Oboe,Ob.,Oboe,wind.reed.oboe,Oboe
+baroque oboe,baroque-oboe,,69,Baroque Oboe,Bq. Ob.,Baroque Oboe,wind.reed.oboe,Baroque Oboe
+oboe d'amore,oboe-d'amore,,68,Oboe d'amore,Ob. d'a.,Oboe d'amore,wind.reed.oboe-damore,Oboe d'amore
+oboe da caccia,oboe-da-caccia,,67,Oboe da caccia,Ob. d. ca.,Oboe da caccia,wind.reed.oboe-da-caccia,Oboe da caccia
+english horn,english-horn,,69,English Horn,E. Hn.,English Horn,wind.reed.english-horn,English Horn
+bass oboe,bass-oboe,,68,Bass Oboe,B. Ob.,Bass Oboe,wind.reed.oboe.bass,Bass Oboe
+piccolo heckelphone,piccolo-heckelphone,,68,Piccolo Heckelphone,P. Hph.,Piccolo Heckelphone,wind.reed.heckelphone.piccolo,Piccolo Heckelphone
+heckelphone,heckelphone,,68,Heckelphone,Hph.,Heckelphone,wind.reed.heckelphone,Heckelphone
+lupophone,lupophone,,68,Lupophone,Lph.,Lupophone,wind.reed.heckelphone,Lupophone
+clarinet,clarinet,,71,Clarinet,Cl.,Clarinet,wind.reed.clarinet,Clarinet
+piccolo clarinet,piccolo-clarinet,,71,Piccolo Clarinet,P. Cl.,Piccolo Clarinet,wind.reed.clarinet.piccolo.aflat,Piccolo Clarinet
+soprano clarinet,soprano-clarinet,,71,Soprano Clarinet,S. Cl.,Soprano Clarinet,wind.reed.clarinet,Soprano Clarinet
+c clarinet,c-clarinet,,71,C Clarinet,C Cl.,C Clarinet,wind.reed.clarinet,C Clarinet
+d clarinet,d-clarinet,,71,D Clarinet,D Cl.,D Clarinet,wind.reed.clarinet,D Clarinet
+e♭ clarinet,eb-clarinet,,71,E♭ Clarinet,E♭ Cl.,E♭ Clarinet,wind.reed.clarinet.eflat,E♭ Clarinet
+g clarinet,g-clarinet,,71,G Clarinet,G Cl.,G Clarinet,wind.reed.clarinet,G Clarinet
+b♭ clarinet,bb-clarinet,,71,B♭ Clarinet,B♭ Cl.,B♭ Clarinet,wind.reed.clarinet.bflat,B♭ Clarinet
+a clarinet,a-clarinet,,71,A Clarinet,A Cl.,A Clarinet,wind.reed.clarinet.a,A Clarinet
+alto clarinet,alto-clarinet,,71,Alto Clarinet,A. Cl.,Alto Clarinet,wind.reed.clarinet.alto,Alto Clarinet
+basset clarinet,basset-clarinet,,71,Basset Clarinet,Ba. Cl.,Basset Clarinet,wind.reed.clarinet.basset,Basset Clarinet
+basset horn,basset-horn,,71,Basset Horn,Ba. Hn.,Basset Horn,wind.reed.basset-horn,Basset Horn
+bass clarinet,bass-clarinet,,71,Bass Clarinet,B. Cl.,Bass Clarinet,wind.reed.clarinet.bass,Bass Clarinet
+b♭ bass clarinet,bb-bass-clarinet,,71,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet,wind.reed.clarinet.bass,B♭ Bass Clarinet
+b♭ bass clarinet (bass clef),bb-bass-clarinet-bass-clef,,71,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,B♭ Bass Clarinet (Bass Clef)
+a bass clarinet,a-bass-clarinet,,71,A Bass Clarinet,A B. Cl.,A Bass Clarinet,wind.reed.clarinet.bass,A Bass Clarinet
+a bass clarinet (bass clef),a-bass-clarinet-bass-clef),,71,A Bass Clarinet,A B. Cl.,A Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,A Bass Clarinet (Bass Clef)
+contra-alto clarinet,contra-alto-clarinet,,71,Contra-alto Clarinet,C-a. Cl.,Contra-alto Clarinet,wind.reed.clarinet.contra-alto,Contra-alto Clarinet
+contrabass clarinet,contrabass-clarinet,,71,Contrabass Clarinet,Cb. Cl.,Contrabass Clarinet,wind.reed.clarinet.contrabass,Contrabass Clarinet
+saxophone,saxophone,,66,Saxophone,Sax.,Saxophone,wind.reed.saxophone,Saxophone
+sopranissimo saxophone,sopranissimo-saxophone,,64,Sopranissimo Saxophone,Sio. Sax.,Sopranissimo Saxophone,wind.reed.saxophone.sopraninissimo,Sopranissimo Saxophone
+sopranino saxophone,sopranino-saxophone,,64,Sopranino Saxophone,Si. Sax.,Sopranino Saxophone,wind.reed.saxophone.sopranino,Sopranino Saxophone
+soprano saxophone,soprano-saxophone,,64,Soprano Saxophone,S. Sax.,Soprano Saxophone,wind.reed.saxophone.soprano,Soprano Saxophone
+aulochrome,aulochrome,,64,Aulochrome,Aul.,Aulochrome,wind.reed.saxophone.aulochrome,Aulochrome
+mezzo-soprano saxophone,mezzo-soprano-saxophone,,65,Mezzo-Soprano Saxophone,M.S. Sax.,Mezzo-Soprano Saxophone,wind.reed.saxophone.mezzo-soprano,Mezzo-Soprano Saxophone
+alto saxophone,alto-saxophone,,65,Alto Saxophone,A. Sax.,Alto Saxophone,wind.reed.saxophone.alto,Alto Saxophone
+melody saxophone,melody-saxophone,,66,Melody Saxophone,Mel. Sax.,Melody Saxophone,wind.reed.saxophone.melody,Melody Saxophone
+tenor saxophone,tenor-saxophone,,66,Tenor Saxophone,T. Sax.,Tenor Saxophone,wind.reed.saxophone.tenor,Tenor Saxophone
+baritone saxophone,baritone-saxophone,,67,Baritone Saxophone,Bar. Sax.,Baritone Saxophone,wind.reed.saxophone.baritone,Baritone Saxophone
+bass saxophone,bass-saxophone,,67,Bass Saxophone,B. Sax.,Bass Saxophone,wind.reed.saxophone.bass,Bass Saxophone
+contrabass saxophone,contrabass-saxophone,,67,Contrabass Saxophone,Cb. Sax.,Contrabass Saxophone,wind.reed.saxophone.contrabass,Contrabass Saxophone
+subcontrabass saxophone,subcontrabass-saxophone,,67,Subcontrabass Saxophone,Scb. Sax.,Subcontrabass Saxophone,wind.reed.saxophone.subcontrabass,Subcontrabass Saxophone
+bassoon,bassoon,,70,Bassoon,Bsn.,Bassoon,wind.reed.bassoon,Bassoon
+contrabassoon,contrabassoon,,70,Contrabassoon,Cbsn.,Contrabassoon,wind.reed.contrabassoon,Contrabassoon
+bagpipe,bagpipe,,109,Bagpipe,Bagp.,Bagpipe,wind.pipes.bagpipes,Bagpipe
+reed contrabass,reed-contrabass,,70,Reed Contrabass,Rd. Cbs.,Reed Contrabass,wind.reed.contrabass,Reed Contrabass
+dulcian,dulcian,,67,Dulcian,Du.,Dulcian,wind.reed.dulcian,Dulcian
+rackett,rackett,,67,Rackett,Ra.,Rackett,wind.reed.rackett,Rackett
+sarrusophone,sarrusophone,,67,Sarrusophone,Sar.,Sarrusophone,wind.reed.sarrusaphone,Sarrusophone
+sopranino sarrusophone,sopranino-sarrusophone,,67,Sopranino Sarrusophone,Si. Sar.,Sopranino Sarrusophone,wind.reed.sarrusaphone,Sopranino Sarrusophone
+soprano sarrusophone,soprano-sarrusophone,,67,Soprano Sarrusophone,S. Sar.,Soprano Sarrusophone,wind.reed.sarrusaphone,Soprano Sarrusophone
+alto sarrusophone,alto-sarrusophone,,67,Alto Sarrusophone,A. Sar.,Alto Sarrusophone,wind.reed.sarrusaphone,Alto Sarrusophone
+tenor sarrusophone,tenor-sarrusophone,,67,Tenor Sarrusophone,T. Sar.,Tenor Sarrusophone,wind.reed.sarrusaphone,Tenor Sarrusophone
+baritone sarrusophone,baritone-sarrusophone,,67,Baritone Sarrusophone,Bar. Sar.,Baritone Sarrusophone,wind.reed.sarrusaphone,Baritone Sarrusophone
+bass sarrusophone,bass-sarrusophone,,67,Bass Sarrusophone,B. Sar.,Bass Sarrusophone,wind.reed.sarrusaphone,Bass Sarrusophone
+contrabass sarrusophone,contrabass-sarrusophone,,67,Contrabass Sarrusophone,Cb. Sar.,Contrabass Sarrusophone,wind.reed.sarrusaphone,Contrabass Sarrusophone
+pocket sax in c,xaphoon,,71,Pocket Sax in C,C Pkt. Sax,Pocket Sax in C,wind.reed.xaphoon,Pocket Sax in C
+pocket sax in b♭,bb-xaphoon,,71,Pocket Sax in B♭,B♭ Pkt. Sax,Pocket Sax in B♭,wind.reed.xaphoon,Pocket Sax in B♭
+pocket sax in d,d-xaphoon,,71,Pocket Sax in D,D Pkt. Sax,Pocket Sax in D,wind.reed.xaphoon,Pocket Sax in D
+pocket sax in g,g-xaphoon,,71,Pocket Sax in G,G Pkt. Sax,Pocket Sax in G,wind.reed.xaphoon,Pocket Sax in G
+chalumeau,chalumeau,,67,Chalumeau,Cha.,Chalumeau,wind.reed.chalumeau,Chalumeau
+sopranino chalumeau,sopranino-chalumeau,,67,Sopranino Chalumeau,Si. Cha.,Sopranino Chalumeau,wind.reed.chalumeau,Sopranino Chalumeau
+soprano chalumeau,soprano-chalumeau,,67,Soprano Chalumeau,S. Cha.,Soprano Chalumeau,wind.reed.chalumeau,Soprano Chalumeau
+alto chalumeau,alto-chalumeau,,67,Alto Chalumeau,A. Cha.,Alto Chalumeau,wind.reed.chalumeau,Alto Chalumeau
+tenor chalumeau,tenor-chalumeau,,67,Tenor Chalumeau,T. Cha.,Tenor Chalumeau,wind.reed.chalumeau,Tenor Chalumeau
+bass chalumeau,bass-chalumeau,,67,Bass Chalumeau,B. Cha.,Bass Chalumeau,wind.reed.chalumeau,Bass Chalumeau
+tarogato,tarogato,,69,Tarogato,Tar.,Tarogato,wind.reed.taroagato,Tarogato
+octavin,octavin,,69,Octavin,Oct.,Octavin,wind.reed.octavin,Octavin
+heckelphone-clarinet,heckelphone-clarinet,,68,Heckelphone-clarinet,Hph.-cl.,Heckelphone-clarinet,wind.reed.heckelphone-clarinet,Heckelphone-clarinet
+sopranino shawm,sopranino-shawm,,67,Sopranino Shawm,Si. Sh.,Sopranino Shawm,wind.reed.shawm,Sopranino Shawm
+soprano shawm,soprano-shawm,,67,Soprano Shawm,S. Sh.,Soprano Shawm,wind.reed.shawm,Soprano Shawm
+alto shawm,alto-shawm,,67,Alto Shawm,A. Sh.,Alto Shawm,wind.reed.shawm,Alto Shawm
+tenor shawm,tenor-shawm,,67,Tenor Shawm,T. Sh.,Tenor Shawm,wind.reed.shawm,Tenor Shawm
+bass shawm,bass-shawm,,67,Bass Shawm,B. Sh.,Bass Shawm,wind.reed.shawm,Bass Shawm
+great bass shawm,great-bass-shawm,,67,Great Bass Shawm,G.B. Sh.,Great Bass Shawm,wind.reed.shawm,Great Bass Shawm
+cromorne,cromorne,,67,Cromorne,Cr.,Cromorne,wind.reed.cromorne,Cromorne
+crumhorn,crumhorn,,67,Crumhorn,Crh.,Crumhorn,wind.reed.crumhorn,Crumhorn
+soprano crumhorn,soprano-crumhorn,,67,Soprano Crumhorn,S. Crh.,Soprano Crumhorn,wind.reed.crumhorn.soprano,Soprano Crumhorn
+alto crumhorn,alto-crumhorn,,67,Alto Crumhorn,A. Crh.,Alto Crumhorn,wind.reed.crumhorn.alto,Alto Crumhorn
+tenor crumhorn,tenor-crumhorn,,67,Tenor Crumhorn,T. Crh.,Tenor Crumhorn,wind.reed.crumhorn.tenor,Tenor Crumhorn
+bass crumhorn,bass-crumhorn,,67,Bass Crumhorn,B. Crh.,Bass Crumhorn,wind.reed.crumhorn.bass,Bass Crumhorn
+greatbass crumhorn,greatbass-crumhorn,,67,Greatbass Crumhorn,Gb. Crh.,Greatbass Crumhorn,wind.reed.crumhorn.great-bass,Greatbass Crumhorn
+cornamuse,cornamuse,,67,Cornamuse,Cm.,Cornamuse,wind.reed.cornamuse,Cornamuse
+soprano cornamuse,soprano-cornamuse,,67,Soprano Cornamuse,S. Cm.,Soprano Cornamuse,wind.reed.cornamuse,Soprano Cornamuse
+alto cornamuse,alto-cornamuse,,67,Alto Cornamuse,A. Cm.,Alto Cornamuse,wind.reed.cornamuse,Alto Cornamuse
+tenor cornamuse,tenor-cornamuse,,67,Tenor Cornamuse,T. Cm.,Tenor Cornamuse,wind.reed.cornamuse,Tenor Cornamuse
+bass cornamuse,bass-cornamuse,,67,Bass Cornamuse,B. Cm.,Bass Cornamuse,wind.reed.cornamuse,Bass Cornamuse
+duduk,duduk,,71,Duduk 1,Du. 1,Duduk,wind.reed.duduk,Duduk 1
+f duduk,f-duduk,,71,F Duduk,F Du.,F Duduk,wind.reed.duduk,F Duduk
+e duduk,e-duduk,,71,E Duduk,E Du.,E Duduk,wind.reed.duduk,E Duduk
+duduk.1,d-duduk,,71,Duduk 2,Du. 2,Duduk,wind.reed.duduk,Duduk 2
+c duduk,c-duduk,,71,C Duduk,C Du.,C Duduk,wind.reed.duduk,C Duduk
+b duduk,b-duduk,,71,B Duduk,B Du.,B Duduk,wind.reed.duduk,B Duduk
+b♭ duduk,bb-duduk,,71,B♭ Duduk,B♭ Du.,B♭ Duduk,wind.reed.duduk,B♭ Duduk
+a duduk,a-duduk,,71,A Duduk,A Du.,A Duduk,wind.reed.duduk,A Duduk
+g duduk,g-duduk,,71,G Duduk,G Du.,G Duduk,wind.reed.duduk,G Duduk
+a bass duduk,a-bass-duduk,,71,A Bass Duduk,A B. Du.,A Bass Duduk,wind.reed.duduk,A Bass Duduk
+soprano kelhorn,soprano-kelhorn,,67,Soprano Kelhorn,S. Kh.,Soprano Kelhorn,,Soprano Kelhorn
+alto kelhorn,alto-kelhorn,,67,Alto Kelhorn,A. Kh.,Alto Kelhorn,,Alto Kelhorn
+tenor kelhorn,tenor-kelhorn,,67,Tenor Kelhorn,T. Kh.,Tenor Kelhorn,,Tenor Kelhorn
+bass kelhorn,bass-kelhorn,,67,Bass Kelhorn,B. Kh.,Bass Kelhorn,,Bass Kelhorn
+greatbass kelhorn,greatbass-kelhorn,,67,Greatbass Kelhorn,Gb. Kh.,Greatbass Kelhorn,,Greatbass Kelhorn
+rauschpfeife,rauschpfeife,,67,Rauschpfeife,Rpf.,Rauschpfeife,wind.reed.rauschpfeife,Rauschpfeife
+sopranino rauschpfeife,sopranino-rauschpfeife,,67,Sopranino Rauschpfeife,Si. Rpf.,Sopranino Rauschpfeife,wind.reed.rauschpfeife,Sopranino Rauschpfeife
+soprano rauschpfeife,soprano-rauschpfeife,,67,Soprano Rauschpfeife,S. Rpf.,Soprano Rauschpfeife,wind.reed.rauschpfeife,Soprano Rauschpfeife
+shenai,shenai,,111,Shenai,She.,Shenai,wind.reed.shenai,Shenai
+dizi,d-dizi,,72,Dizi,Di.,Dizi,wind.flutes.di-zi,Dizi
+c dizi,c-dizi,,72,C Dizi,C Di.,C Dizi,wind.flutes.di-zi,C Dizi
+a dizi,a-dizi,,72,A Dizi,A Di.,A Dizi,wind.flutes.di-zi,A Dizi
+g dizi,g-dizi,,72,G Dizi,G Di.,G Dizi,wind.flutes.di-zi,G Dizi
+f dizi,f-dizi,,72,F Dizi,F Di.,F Dizi,wind.flutes.di-zi,F Dizi
+e dizi,e-dizi,,72,E Dizi,E Di.,E Dizi,wind.flutes.di-zi,E Dizi
+b♭ fife,fife,,72,B♭ Fife,B♭ Fife,B♭ Fife,wind.flutes.fife,B♭ Fife
+flageolet,flageolet,,78,Flageolet,Fla.,Flageolet,wind.flutes.flageolet,Flageolet
+french flageolet,french-flageolet,,78,French Flageolet,Fr. Fla.,French Flageolet,wind.flutes.flageolet,French Flageolet
+english flageolet,english-flageolet,,78,English Flageolet,Eng. Fla.,English Flageolet,wind.flutes.flageolet,English Flageolet
+irish flute,irish-flute,,73,Irish Flute,Ir. Fl.,Irish Flute,wind.flutes.flute.irish,Irish Flute
+gemshorn,gemshorn,,79,Gemshorn,Gh.,Gemshorn,wind.flutes.gemshorn,Gemshorn
+soprano gemshorn,soprano-gemshorn,,79,Soprano Gemshorn,S. Gh.,Soprano Gemshorn,wind.flutes.gemshorn,Soprano Gemshorn
+alto gemshorn,alto-gemshorn,,79,Alto Gemshorn,A. Gh.,Alto Gemshorn,wind.flutes.gemshorn,Alto Gemshorn
+tenor gemshorn,tenor-gemshorn,,79,Tenor Gemshorn,T. Gh.,Tenor Gemshorn,wind.flutes.gemshorn,Tenor Gemshorn
+bass gemshorn,bass-gemshorn,,79,Bass Gemshorn,B. Gh.,Bass Gemshorn,wind.flutes.gemshorn,Bass Gemshorn
+ocarina,ocarina,,79,Ocarina,Oc.,Ocarina,wind.flutes.ocarina,Ocarina
+g soprano ocarina,g-soprano-ocarina,,79,G Soprano Ocarina,G S. Oc.,G Soprano Ocarina,wind.flutes.ocarina,G Soprano Ocarina
+f soprano ocarina,f-soprano-ocarina,,79,F Soprano Ocarina,F S. Oc.,F Soprano Ocarina,wind.flutes.ocarina,F Soprano Ocarina
+c soprano ocarina,c-soprano-ocarina,,79,C Soprano Ocarina,C S. Oc.,C Soprano Ocarina,wind.flutes.ocarina,C Soprano Ocarina
+b♭ soprano ocarina,bb-soprano-ocarina,,79,B♭ Soprano Ocarina,B♭ S. Oc.,B♭ Soprano Ocarina,wind.flutes.ocarina,B♭ Soprano Ocarina
+g alto ocarina,g-alto-ocarina,,79,G Alto Ocarina,G A. Oc.,G Alto Ocarina,wind.flutes.ocarina,G Alto Ocarina
+f alto ocarina,f-alto-ocarina,,79,F Alto Ocarina,F A. Oc.,F Alto Ocarina,wind.flutes.ocarina,F Alto Ocarina
+c alto ocarina,c-alto-ocarina,,79,C Alto Ocarina,C A. Oc.,C Alto Ocarina,wind.flutes.ocarina,C Alto Ocarina
+b♭ alto ocarina,bb-alto-ocarina,,79,B♭ Alto Ocarina,B♭ A. Oc.,B♭ Alto Ocarina,wind.flutes.ocarina,B♭ Alto Ocarina
+c bass ocarina,c-bass-ocarina,,79,C Bass Ocarina,C B. Oc.,C Bass Ocarina,wind.flutes.ocarina,C Bass Ocarina
+pan flute,pan-flute,,75,Pan Flute,Pn. Fl.,Pan Flute,wind.flutes.panpipes,Pan Flute
+quena,quena,,67,Quena 1,Qn. 1,Quena,wind.flutes.quena,Quena 1
+c quena,c-quena,,67,C Quena,C Qn.,C Quena,wind.flutes.quena,C Quena
+g quena,g-quena,,67,G Quena,G Qn.,G Quena,wind.flutes.quena,G Quena
+f quena,f-quena,,67,F Quena,F Qn.,F Quena,wind.flutes.quena,F Quena
+quena.1,d-quena,,67,Quena 2,Qn. 2,Quena,wind.flutes.quena,Quena 2
+recorder,recorder,,74,Recorder,Rec.,Recorder,wind.flutes.recorder,Recorder
+garklein recorder,garklein-recorder,,74,Garklein Recorder,Gk. Rec.,Garklein Recorder,wind.flutes.recorder.garklein,Garklein Recorder
+sopranino recorder,sopranino-recorder,,74,Sopranino Recorder,Si. Rec.,Sopranino Recorder,wind.flutes.recorder.sopranino,Sopranino Recorder
+soprano recorder,soprano-recorder,,74,Soprano Recorder,S. Rec.,Soprano Recorder,wind.flutes.recorder.soprano,Soprano Recorder
+alto recorder,alto-recorder,,74,Alto Recorder,A. Rec.,Alto Recorder,wind.flutes.recorder.alto,Alto Recorder
+tenor recorder,tenor-recorder,,74,Tenor Recorder,T. Rec.,Tenor Recorder,wind.flutes.recorder.tenor,Tenor Recorder
+bass recorder,bass-recorder,,74,Bass Recorder,B. Rec.,Bass Recorder,wind.flutes.recorder.bass,Bass Recorder
+greatbass recorder,greatbass-recorder,,74,Greatbass Recorder,Gb. Rec.,Greatbass Recorder,wind.flutes.recorder.great-bass,Greatbass Recorder
+contrabass recorder,contrabass-recorder,,74,Contrabass Recorder,Cb. Rec.,Contrabass Recorder,wind.flutes.recorder.contrabass,Contrabass Recorder
+slide whistle,slide-whistle,,79,Slide Whistle,Sl. Wh.,Slide Whistle,wind.flutes.slide,Slide Whistle
+b♭ tin whistle,bflat-tin-whistle,,78,B♭ Tin Whistle,B♭ Tin Wh.,B♭ Tin Whistle,wind.flutes.whistle.tin.bflat,B♭ Tin Whistle
+c tin whistle,c-tin-whistle,,78,C Tin Whistle,C Tin Wh.,C Tin Whistle,wind.flutes.whistle.tin,C Tin Whistle
+d tin whistle,d-tin-whistle,,78,D Tin Whistle,D Tin Wh.,D Tin Whistle,wind.flutes.whistle.tin.d,D Tin Whistle
+winds,Winds,,73,Winds,Wi.,Winds,wind.group,Winds
+winds.1,Winds,,73,Winds,Wi.,Winds,wind.group,Winds
+horn in f,horn,open,60,Horn in F,F Hn.,Horn in F,brass.french-horn,Horn in F
+horn in c alto,c-horn-alto,open,60,Horn in C alto,C Hn.,Horn in C alto,brass.natural-horn,Horn in C alto
+horn in b♭ alto,bb-horn-alto,open,60,Horn in B♭ alto,B♭ Hn.,Horn in B♭ alto,brass.french-horn,Horn in B♭ alto
+horn in a,a-horn,open,60,Horn in A,A Hn.,Horn in A,brass.natural-horn,Horn in A
+horn in a♭,ab-horn,open,60,Horn in A♭,A♭ Hn.,Horn in A♭,brass.natural-horn,Horn in A♭
+horn in g,g-horn,open,60,Horn in G,G Hn.,Horn in G,brass.natural-horn,Horn in G
+horn in e,e-horn,open,60,Horn in E,E Hn.,Horn in E,brass.natural-horn,Horn in E
+horn in e♭,eb-horn,open,60,Horn in E♭,E♭ Hn.,Horn in E♭,brass.natural-horn,Horn in E♭
+horn in d,d-horn,open,60,Horn in D,D Hn.,Horn in D,brass.natural-horn,Horn in D
+horn in c,c-horn,open,60,Horn in C,C Hn.,Horn in C,brass.natural-horn,Horn in C
+horn in c (bass clef),c-horn-bass,open,60,Horn in C,C Hn.,Horn in C (Bass Clef),brass.natural-horn,Horn in C (Bass Clef)
+horn in b♭ basso,bb-horn-basso,open,60,Horn in B♭ basso,B♭ Hn.,Horn in B♭ basso,brass.natural-horn,Horn in B♭ basso
+vienna horn,vienna-horn,open,60,Vienna Horn,V. Hn.,Vienna Horn,brass.vienna-horn,Vienna Horn
+wagner tuba,wagner-tuba,,56,Wagner Tuba,Wag. Tb.,Wagner Tuba,brass.wagner-tuba,Wagner Tuba
+b♭ wagner tuba,bb-wagner-tuba,,60,B♭ Wagner Tuba,B♭ Wag. Tb.,B♭ Wagner Tuba,brass.wagner-tuba,B♭ Wagner Tuba
+f wagner tuba,f-wagner-tuba,,56,F Wagner Tuba,F Wag. Tb.,F Wagner Tuba,brass.wagner-tuba,F Wagner Tuba
+trumpet,trumpet,open,56,Trumpet,Tpt.,Trumpet,brass.trumpet,Trumpet
+piccolo trumpet,piccolo-trumpet,open,56,Piccolo Trumpet,P. Tpt.,Piccolo Trumpet,brass.trumpet.piccolo,Piccolo Trumpet
+piccolo trumpet in b♭,bb-piccolo-trumpet,open,56,Piccolo Trumpet in B♭,P. Tpt. B♭,Piccolo Trumpet in B♭,brass.trumpet.piccolo,Piccolo Trumpet in B♭
+piccolo trumpet in a,a-piccolo-trumpet,open,56,Piccolo Trumpet in A,P. Tpt. A,Piccolo Trumpet in A,brass.trumpet.piccolo,Piccolo Trumpet in A
+f trumpet,f-trumpet,open,56,F Trumpet,F Tpt.,F Trumpet,brass.trumpet,F Trumpet
+e trumpet,e-trumpet,open,56,E Trumpet,E Tpt.,E Trumpet,brass.trumpet,E Trumpet
+e♭ trumpet,eb-trumpet,open,56,E♭ Trumpet,E♭ Tpt.,E♭ Trumpet,brass.trumpet,E♭ Trumpet
+d trumpet,d-trumpet,open,56,D Trumpet,D Tpt.,D Trumpet,brass.trumpet.d,D Trumpet
+c trumpet,c-trumpet,open,56,C Trumpet,C Tpt.,C Trumpet,brass.trumpet.c,C Trumpet
+b♭ trumpet,bb-trumpet,open,56,B♭ Trumpet,B♭ Tpt.,B♭ Trumpet,brass.trumpet.bflat,B♭ Trumpet
+a trumpet,a-trumpet,open,56,A Trumpet,A Tpt.,A Trumpet,brass.trumpet,A Trumpet
+pocket trumpet,pocket-trumpet,open,56,Pocket Trumpet,Pkt. Tpt.,Pocket Trumpet,brass.trumpet.pocket,Pocket Trumpet
+slide trumpet,slide-trumpet,open,56,Slide Trumpet,Sl.Tpt.,Slide Trumpet,brass.trumpet.slide,Slide Trumpet
+tenor trumpet,tenor-trumpet,open,56,Tenor Trumpet,T. Tpt.,Tenor Trumpet,brass.trumpet.tenor,Tenor Trumpet
+bass trumpet,bass-trumpet,open,56,Bass Trumpet,B. Tpt.,Bass Trumpet,brass.trumpet.bass,Bass Trumpet
+e♭ bass trumpet,eb-bass-trumpet,open,56,E♭ Bass Trumpet,E♭ B. Tpt.,E♭ Bass Trumpet,brass.trumpet.bass,E♭ Bass Trumpet
+bass trumpet in c,c-bass-trumpet,open,56,Bass Trumpet in C,B. Tpt. C,Bass Trumpet in C,brass.trumpet.bass,Bass Trumpet in C
+b♭ bass trumpet,bb-bass-trumpet,open,56,B♭ Bass Trumpet,B♭ B. Tpt.,B♭ Bass Trumpet,brass.trumpet.bass,B♭ Bass Trumpet
+baroque trumpet,baroque-trumpet,open,56,Baroque Trumpet,Bq. Tpt.,Baroque Trumpet,brass.trumpet.baroque,Baroque Trumpet
+baroque trumpet in f,f-baroque-trumpet,open,56,Baroque Trumpet in F,Bq. Tpt. F,Baroque Trumpet in F,brass.trumpet.baroque,Baroque Trumpet in F
+baroque trumpet in e♭,eb-baroque-trumpet,open,56,Baroque Trumpet in E♭,Bq. Tpt. E♭,Baroque Trumpet in E♭,brass.trumpet.baroque,Baroque Trumpet in E♭
+baroque trumpet in d,d-baroque-trumpet,open,56,Baroque Trumpet in D,Bq. Tpt. D,Baroque Trumpet in D,brass.trumpet.baroque,Baroque Trumpet in D
+baroque trumpet in c,c-baroque-trumpet,open,56,Baroque Trumpet in C,Bq. Tpt. C,Baroque Trumpet in C,brass.trumpet.baroque,Baroque Trumpet in C
+baroque trumpet in b♭,bb-baroque-trumpet,open,56,Baroque Trumpet in B♭,Bq. Tpt. B♭,Baroque Trumpet in B♭,brass.trumpet.baroque,Baroque Trumpet in B♭
+e♭ cornet,eb-cornet,open,56,E♭ Cornet,E♭ Cnt.,E♭ Cornet,brass.cornet.soprano,E♭ Cornet
+c cornet,c-cornet,open,56,C Cornet,C Cnt.,C Cornet,brass.cornet,C Cornet
+b♭ cornet,bb-cornet,open,56,B♭ Cornet,B♭ Cnt.,B♭ Cornet,brass.cornet,B♭ Cornet
+a cornet,a-cornet,open,56,A Cornet,A Cnt.,A Cornet,brass.cornet,A Cornet
+flugelhorn,flugelhorn,open,56,Flugelhorn,Flghn.,Flugelhorn,brass.flugelhorn,Flugelhorn
+trombone,trombone,open,57,Trombone,Tbn.,Trombone,brass.trombone,Trombone
+trombone (treble clef),trombone-treble,open,57,Trombone,Tbn.,Trombone (Treble Clef),brass.trombone,Trombone (Treble Clef)
+soprano trombone,soprano-trombone,open,57,Soprano Trombone,S. Tbn.,Soprano Trombone,brass.trombone,Soprano Trombone
+alto trombone,alto-trombone,open,57,Alto Trombone,A. Tbn.,Alto Trombone,brass.trombone.alto,Alto Trombone
+tenor trombone,tenor-trombone,open,57,Tenor Trombone,T. Tbn.,Tenor Trombone,brass.trombone.tenor,Tenor Trombone
+bass trombone,bass-trombone,open,57,Bass Trombone,B. Tbn.,Bass Trombone,brass.trombone.bass,Bass Trombone
+contrabass trombone,contrabass-trombone,open,57,Contrabass Trombone,Cb. Tbn.,Contrabass Trombone,brass.trombone.contrabass,Contrabass Trombone
+cimbasso,cimbasso,,57,Cimbasso,Cim.,Cimbasso,brass.cimbasso,Cimbasso
+tuba,tuba,,58,Tuba,Tba.,Tuba,brass.tuba,Tuba
+f tuba,f-tuba,,58,F Tuba,F Tb.,F Tuba,brass.tuba,F Tuba
+e♭ tuba,eb-tuba,,58,E♭ Tuba,E♭ Tb.,E♭ Tuba,brass.tuba,E♭ Tuba
+e♭ tuba (treble clef),eb-tuba-treble,,58,E♭ Tuba,E♭ Tb.,E♭ Tuba (Treble Clef),brass.tuba,E♭ Tuba (Treble Clef)
+c tuba,c-tuba,,58,C Tuba,C Tb.,C Tuba,brass.tuba,C Tuba
+b♭ tuba,bb-tuba,,58,B♭ Tuba,B♭ Tb.,B♭ Tuba,brass.tuba,B♭ Tuba
+b♭ tuba (treble clef),bb-tuba-treble,,58,B♭ Tuba,B♭ Tb.,B♭ Tuba (Treble Clef),brass.tuba,B♭ Tuba (Treble Clef)
+bass tuba in f,bass-f-tuba,,58,Bass Tuba in F,Ba. Tb. F,Bass Tuba in F,brass.tuba.bass,Bass Tuba in F
+bass tuba in e♭,bass-eb-tuba,,58,Bass Tuba in E♭,Ba. Tb. E♭,Bass Tuba in E♭,brass.tuba.bass,Bass Tuba in E♭
+sub-contrabass tuba,subcontrabass-tuba,,58,Sub-Contrabass Tuba,SCb. Tb.,Sub-Contrabass Tuba,brass.tuba.subcontrabass,Sub-Contrabass Tuba
+timpani,timpani,,47,Timpani,Timp.,Timpani,drum.timpani,Timpani
+glockenspiel,glockenspiel,,9,Glockenspiel,Glock.,Glockenspiel,pitched-percussion.glockenspiel,Glockenspiel
+vibraphone,vibraphone,,11,Vibraphone,Vib.,Vibraphone,pitched-percussion.vibraphone,Vibraphone
+xylophone,xylophone,,13,Xylophone,Xyl.,Xylophone,pitched-percussion.xylophone,Xylophone
+xylomarimba,xylomarimba,,12,Xylomarimba,XMrm.,Xylomarimba,pitched-percussion.xylomarimba,Xylomarimba
+xylomarimba.1,xylomarimba,,12,Xylomarimba,XMrm.,Xylomarimba,pitched-percussion.xylomarimba,Xylomarimba
+marimba (grand staff),marimba,,12,Marimba,Mrm.,Marimba (Grand Staff),pitched-percussion.marimba,Marimba (Grand Staff)
+marimba (grand staff).1,marimba,,12,Marimba,Mrm.,Marimba (Grand Staff),pitched-percussion.marimba,Marimba (Grand Staff)
+marimba (single staff),marimba-single,,12,Marimba,Mrm.,Marimba (Single Staff),pitched-percussion.marimba,Marimba (Single Staff)
+bass marimba,bass-marimba,,12,Bass Marimba,B. Mrm.,Bass Marimba,pitched-percussion.marimba.bass,Bass Marimba
+contrabass marimba,contrabass-marimba,,12,Contrabass Marimba,Cb. Mrm.,Contrabass Marimba,pitched-percussion.marimba.bass,Contrabass Marimba
+dulcimer,dulcimer,,15,Dulcimer,Dlc.,Dulcimer,pitched-percussion.hammer-dulcimer,Dulcimer
+dulcimer.1,dulcimer,,15,Dulcimer,Dlc.,Dulcimer,pitched-percussion.hammer-dulcimer,Dulcimer
+cimbalom,cimbalom,,15,Cimbalom,Cimb.,Cimbalom,pitched-percussion.cimbalom,Cimbalom
+cimbalom.1,cimbalom,,15,Cimbalom,Cimb.,Cimbalom,pitched-percussion.cimbalom,Cimbalom
+drumset,drumset,,0,Drumset,D. Set,Drumset,drum.group.set,Drumset
+concert snare drum,snare-drum,,48,Concert Snare Drum,Con. Sn.,Concert Snare Drum,drum.snare-drum,Concert Snare Drum
+concert bass drum,bass-drum,,48,Concert Bass Drum,Con. BD ,Concert Bass Drum,drum.bass-drum,Concert Bass Drum
+piccolo snare,piccolo-snare-drum,,48,Piccolo Snare,Picc. Sn.,Piccolo Snare,drum.snare-drum,Piccolo Snare
+field drum,military-drum,,48,Field Drum,Field Dr.,Field Drum,drum.snare-drum,Field Drum
+concert toms,tom-toms,,48,Concert Toms,C. Toms,Concert Toms,drum.tom-tom,Concert Toms
+chinese tom-toms,chinese-tom-toms,,48,Chinese Tom-Toms,Ch. Toms,Chinese Tom-Toms,drum.group.chinese,Chinese Tom-Toms
+bongos,bongos,,48,Bongos,Bon.,Bongos,drum.bongo,Bongos
+congas,congas,,48,Congas,Con.,Congas,drum.conga,Congas
+timbales,timbales,,0,Timbales,Timb.,Timbales,drum.timbale,Timbales
+frame drum,frame-drum,,0,Frame Drum,Fr. Dr.,Frame Drum,drum.frame-drum,Frame Drum
+automobile brake drums,automobile-brake-drums,,0,Automobile Brake Drums,Aut. Brk. Dr.,Automobile Brake Drums,metal.brake-drums,Automobile Brake Drums
+slit drum,slit-drum,,0,Slit Drum,Slt. Dr.,Slit Drum,drum.slit-drum,Slit Drum
+hi-hat,hi-hat,,0,Hi-hat,Hi-hat,Hi-hat,metal.hi-hat,Hi-hat
+tam-tam,tam-tam,,0,Tam-Tam,Tam,Tam-Tam,metal.tamtam,Tam-Tam
+sleigh bells,sleigh-bells,,0,Sleigh Bells,Sle. Be.,Sleigh Bells,metal.bells.sleigh-bells,Sleigh Bells
+metal castanets,metal-castanets,,0,Metal Castanets,Met. Cst.,Metal Castanets,,Metal Castanets
+iron pipes,iron-pipes,,0,Iron Pipes,Ir. Pi.,Iron Pipes,,Iron Pipes
+chains,chains,,0,Chains,Chn.,Chains,,Chains
+anvil,anvil,,48,Anvil,Anv.,Anvil,metal.anvil,Anvil
+triangle,triangle,,48,Triangle,Trgl.,Triangle,metal.triangle,Triangle
+cymbal,cymbal,,48,Cymbal,Cym.,Cymbal,metal.cymbal.crash,Cymbal
+ride cymbal,ride-cymbal,,0,Ride Cymbal,R. Cym.,Ride Cymbal,metal.cymbal.ride,Ride Cymbal
+chinese cymbal,chinese-cymbal,,0,Chinese Cymbal,Ch. Cym.,Chinese Cymbal,metal.cymbal.chinese,Chinese Cymbal
+crash cymbal,crash-cymbal,,48,Crash Cymbal,Cr. Cym.,Crash Cymbal,metal.cymbal.crash,Crash Cymbal
+splash cymbal,splash-cymbal,,0,Splash Cymbal,Sp. Cym.,Splash Cymbal,metal.cymbal.splash,Splash Cymbal
+cowbell,cowbell,,0,Cowbell,Cwb.,Cowbell,metal.bells.cowbell,Cowbell
+thundersheet,thundersheet,,0,Thundersheet,Thu.,Thundersheet,metal.thundersheet,Thundersheet
+metal wind chimes,metal-wind-chimes,,0,Metal Wind Chimes,Met. Wn Ch.,Metal Wind Chimes,metal.bells.wind-chimes,Metal Wind Chimes
+wood blocks,wood-blocks,,48,Wood Blocks,Wd. Bl.,Wood Blocks,wood.wood-block,Wood Blocks
+temple blocks,temple-blocks,,0,Temple Blocks,Tmp. Bl.,Temple Blocks,wood.temple-block,Temple Blocks
+claves,claves,,0,Claves,Clv.,Claves,wood.claves,Claves
+castanets,castanets,,0,Castanets,Cst.,Castanets,wood.castanets,Castanets
+güiro,guiro,,0,Güiro,Gro.,Güiro,wood.guiro,Güiro
+wooden wind chimes,wooden-wind-chimes,,0,Wooden Wind Chimes,Wd. Wn. Ch.,Wooden Wind Chimes,metal.bells.wind-chimes,Wooden Wind Chimes
+bamboo wind chimes,bamboo-wind-chimes,,0,Bamboo Wind Chimes,Bam. Wn. Ch.,Bamboo Wind Chimes,metal.bells.wind-chimes,Bamboo Wind Chimes
+maracas,maracas,,0,Maracas,Mrcs.,Maracas,rattle.maraca,Maracas
+cabasa,cabasa,,0,Cabasa,Cabs.,Cabasa,rattle.cabasa,Cabasa
+vibraslap,vibraslap,,0,Vibraslap,Vibslp.,Vibraslap,rattle.vibraslap,Vibraslap
+whip,whip,,0,Whip,Wh.,Whip,effect.whip,Whip
+ratchet,ratchet,,0,Ratchet,Rat.,Ratchet,rattle.ratchet,Ratchet
+sandpaper blocks,sandpaper-blocks,,0,Sandpaper Blocks,Sa. Bl.,Sandpaper Blocks,wood.sand-block,Sandpaper Blocks
+glass wind chimes,glass-wind-chimes,,0,Glass Wind Chimes,Gl. Wn Ch.,Glass Wind Chimes,metal.bells.wind-chimes,Glass Wind Chimes
+shell wind chimes,shell-wind-chimes,,0,Shell Wind Chimes,Sh. Wn Ch.,Shell Wind Chimes,metal.bells.wind-chimes,Shell Wind Chimes
+stones,stones,,0,Stones,Sto.,Stones,rattle.lava-stones,Stones
+tambourine,tambourine,,0,Tambourine,Tamb.,Tambourine,drum.tambourine,Tambourine
+percussion,percussion,,48,Percussion,Perc.,Percussion,drum.group.set,Percussion
+piano,piano,,0,Piano,Pno.,Piano,keyboard.piano,Piano
+piano.1,piano,,0,Piano,Pno.,Piano,keyboard.piano,Piano
+grand piano,grand-piano,,0,Grand Piano,Pno.,Grand Piano,keyboard.piano.grand,Grand Piano
+grand piano.1,grand-piano,,0,Grand Piano,Pno.,Grand Piano,keyboard.piano.grand,Grand Piano
+upright piano,upright-piano,,0,Upright Piano,Pno.,Upright Piano,keyboard.piano.upright,Upright Piano
+upright piano.1,upright-piano,,0,Upright Piano,Pno.,Upright Piano,keyboard.piano.upright,Upright Piano
+honky tonk piano,honky-tonk-piano,,3,Honky Tonk Piano,Hnk. Pno.,Honky Tonk Piano,keyboard.piano.honky-tonk,Honky Tonk Piano
+honky tonk piano.1,honky-tonk-piano,,3,Honky Tonk Piano,Hnk. Pno.,Honky Tonk Piano,keyboard.piano.honky-tonk,Honky Tonk Piano
+toy piano,toy-piano,,0,Toy Piano,Toy Pno.,Toy Piano,keyboard.piano.toy,Toy Piano
+toy piano.1,toy-piano,,0,Toy Piano,Toy Pno.,Toy Piano,keyboard.piano.toy,Toy Piano
+clavichord,clavichord,,7,Clavichord,Cch.,Clavichord,keyboard.clavichord,Clavichord
+clavichord.1,clavichord,,7,Clavichord,Cch.,Clavichord,keyboard.clavichord,Clavichord
+harpsichord,harpsichord,,6,Harpsichord,Hch.,Harpsichord,keyboard.harpsichord,Harpsichord
+harpsichord.1,harpsichord,,6,Harpsichord,Hch.,Harpsichord,keyboard.harpsichord,Harpsichord
+virginal,virginal,,6,Virginal,Vir.,Virginal,keyboard.virginal,Virginal
+virginal.1,virginal,,6,Virginal,Vir.,Virginal,keyboard.virginal,Virginal
+celesta,celesta,,8,Celesta,Cel.,Celesta,keyboard.celesta,Celesta
+celesta.1,celesta,,8,Celesta,Cel.,Celesta,keyboard.celesta,Celesta
+electric piano,electric-piano,,4,Electric Piano,El. Pno.,Electric Piano,keyboard.piano.electric,Electric Piano
+electric piano.1,electric-piano,,4,Electric Piano,El. Pno.,Electric Piano,keyboard.piano.electric,Electric Piano
+clavinet,clavinet,,7,Clavinet,Clav.,Clavinet,keyboard.clavichord.synth,Clavinet
+clavinet.1,clavinet,,7,Clavinet,Clav.,Clavinet,keyboard.clavichord.synth,Clavinet
+harp,harp,,46,Harp,Hrp.,Harp,pluck.harp,Harp
+harp.1,harp,,46,Harp,Hrp.,Harp,pluck.harp,Harp
+organ,organ,,19,Organ,Org.,Organ,keyboard.organ,Organ
+organ.1,organ,,19,Organ,Org.,Organ,keyboard.organ,Organ
+organ.2,organ,,19,Organ,Org.,Organ,keyboard.organ,Organ
+percussive organ,percussive-organ,,17,Percussive Organ,Perc. Org.,Percussive Organ,keyboard.organ.percussive,Percussive Organ
+percussive organ.1,percussive-organ,,17,Percussive Organ,Perc. Org.,Percussive Organ,keyboard.organ.percussive,Percussive Organ
+percussive organ.2,percussive-organ,,17,Percussive Organ,Perc. Org.,Percussive Organ,keyboard.organ.percussive,Percussive Organ
+hammond organ,hammond-organ,,16,Hammond Organ,Hm. Org.,Hammond Organ,keyboard.organ.drawbar,Hammond Organ
+hammond organ.1,hammond-organ,,16,Hammond Organ,Hm. Org.,Hammond Organ,keyboard.organ.drawbar,Hammond Organ
+hammond organ.2,hammond-organ,,16,Hammond Organ,Hm. Org.,Hammond Organ,keyboard.organ.drawbar,Hammond Organ
+rotary organ,rotary-organ,,18,Rotary Organ,Rot. Org.,Rotary Organ,keyboard.organ.rotary,Rotary Organ
+rotary organ.1,rotary-organ,,18,Rotary Organ,Rot. Org.,Rotary Organ,keyboard.organ.rotary,Rotary Organ
+rotary organ.2,rotary-organ,,18,Rotary Organ,Rot. Org.,Rotary Organ,keyboard.organ.rotary,Rotary Organ
+pipe organ,pipe-organ,,19,Pipe Organ,Org.,Pipe Organ,keyboard.organ.pipe,Pipe Organ
+pipe organ.1,pipe-organ,,19,Pipe Organ,Org.,Pipe Organ,keyboard.organ.pipe,Pipe Organ
+pipe organ.2,pipe-organ,,19,Pipe Organ,Org.,Pipe Organ,keyboard.organ.pipe,Pipe Organ
+harmonium,harmonium,,20,Harmonium,Harm.,Harmonium,keyboard.harmonium,Harmonium
+harmonium.1,harmonium,,20,Harmonium,Harm.,Harmonium,keyboard.harmonium,Harmonium
+reed organ,reed-organ,,20,Reed Organ,Rd. Org.,Reed Organ,keyboard.organ.reed,Reed Organ
+reed organ.1,reed-organ,,20,Reed Organ,Rd. Org.,Reed Organ,keyboard.organ.reed,Reed Organ
+atmosphere synthesizer,atmosphere-synth,,99,Atmosphere Synthesizer,Synth.,Atmosphere Synthesizer,synth.effects.atmosphere,Atmosphere Synthesizer
+atmosphere synthesizer.1,atmosphere-synth,,99,Atmosphere Synthesizer,Synth.,Atmosphere Synthesizer,synth.effects.atmosphere,Atmosphere Synthesizer
+brightness synthesizer,brightness-synth,,100,Brightness Synthesizer,Synth.,Brightness Synthesizer,synth.effects.brightness,Brightness Synthesizer
+brightness synthesizer.1,brightness-synth,,100,Brightness Synthesizer,Synth.,Brightness Synthesizer,synth.effects.brightness,Brightness Synthesizer
+crystal synthesizer,crystal-synth,,98,Crystal Synthesizer,Synth.,Crystal Synthesizer,synth.effects.crystal,Crystal Synthesizer
+crystal synthesizer.1,crystal-synth,,98,Crystal Synthesizer,Synth.,Crystal Synthesizer,synth.effects.crystal,Crystal Synthesizer
+echoes synthesizer,echoes-synth,,102,Echoes Synthesizer,Synth.,Echoes Synthesizer,synth.effects.echoes,Echoes Synthesizer
+echoes synthesizer.1,echoes-synth,,102,Echoes Synthesizer,Synth.,Echoes Synthesizer,synth.effects.echoes,Echoes Synthesizer
+goblins synthesizer,goblins-synth,,101,Goblins Synthesizer,Synth.,Goblins Synthesizer,synth.effects.goblins,Goblins Synthesizer
+goblins synthesizer.1,goblins-synth,,101,Goblins Synthesizer,Synth.,Goblins Synthesizer,synth.effects.goblins,Goblins Synthesizer
+rain synthesizer,rain-synth,,96,Rain Synthesizer,Synth.,Rain Synthesizer,synth.effects.rain,Rain Synthesizer
+rain synthesizer.1,rain-synth,,96,Rain Synthesizer,Synth.,Rain Synthesizer,synth.effects.rain,Rain Synthesizer
+sci-fi synthesizer,sci-fi-synth,,103,Sci-fi Synthesizer,Synth.,Sci-fi Synthesizer,synth.effects.sci-fi,Sci-fi Synthesizer
+sci-fi synthesizer.1,sci-fi-synth,,103,Sci-fi Synthesizer,Synth.,Sci-fi Synthesizer,synth.effects.sci-fi,Sci-fi Synthesizer
+soundtrack synthesizer,soundtrack-synth,,97,Soundtrack Synthesizer,Synth.,Soundtrack Synthesizer,synth.effects.soundtrack,Soundtrack Synthesizer
+soundtrack synthesizer.1,soundtrack-synth,,97,Soundtrack Synthesizer,Synth.,Soundtrack Synthesizer,synth.effects.soundtrack,Soundtrack Synthesizer
+pad synthesizer,pad-synth,new age,88,Pad Synthesizer,Synth.,Pad Synthesizer,synth.pad,Pad Synthesizer
+pad synthesizer.1,pad-synth,new age,88,Pad Synthesizer,Synth.,Pad Synthesizer,synth.pad,Pad Synthesizer
+new age synthesizer,new-age-synth,,88,New Age Synthesizer,Synth.,New Age Synthesizer,synth.pad,New Age Synthesizer
+new age synthesizer.1,new-age-synth,,88,New Age Synthesizer,Synth.,New Age Synthesizer,synth.pad,New Age Synthesizer
+warm synthesizer,warm-synth,,89,Warm Synthesizer,Synth.,Warm Synthesizer,synth.pad.warm,Warm Synthesizer
+warm synthesizer.1,warm-synth,,89,Warm Synthesizer,Synth.,Warm Synthesizer,synth.pad.warm,Warm Synthesizer
+poly synthesizer,poly-synth,,90,Poly Synthesizer,Synth.,Poly Synthesizer,synth.pad.polysynth,Poly Synthesizer
+poly synthesizer.1,poly-synth,,90,Poly Synthesizer,Synth.,Poly Synthesizer,synth.pad.polysynth,Poly Synthesizer
+choir synthesizer,choir-synth,,91,Choir Synthesizer,Synth.,Choir Synthesizer,synth.pad.choir,Choir Synthesizer
+choir synthesizer.1,choir-synth,,91,Choir Synthesizer,Synth.,Choir Synthesizer,synth.pad.choir,Choir Synthesizer
+bowed synthesizer,bowed-synth,,92,Bowed Synthesizer,Synth.,Bowed Synthesizer,synth.pad.bowed,Bowed Synthesizer
+bowed synthesizer.1,bowed-synth,,92,Bowed Synthesizer,Synth.,Bowed Synthesizer,synth.pad.bowed,Bowed Synthesizer
+metallic synthesizer,metallic-synth,,93,Metallic Synthesizer,Synth.,Metallic Synthesizer,synth.pad.metallic,Metallic Synthesizer
+metallic synthesizer.1,metallic-synth,,93,Metallic Synthesizer,Synth.,Metallic Synthesizer,synth.pad.metallic,Metallic Synthesizer
+halo synthesizer,halo-synth,,94,Halo Synthesizer,Synth.,Halo Synthesizer,synth.pad.halo,Halo Synthesizer
+halo synthesizer.1,halo-synth,,94,Halo Synthesizer,Synth.,Halo Synthesizer,synth.pad.halo,Halo Synthesizer
+sweep synthesizer,sweep-synth,,95,Sweep Synthesizer,Synth.,Sweep Synthesizer,synth.pad.warm,Sweep Synthesizer
+sweep synthesizer.1,sweep-synth,,95,Sweep Synthesizer,Synth.,Sweep Synthesizer,synth.pad.warm,Sweep Synthesizer
+saw synthesizer,saw-synth,,81,Saw Synthesizer,Synth.,Saw Synthesizer,synth.tone.sawtooth,Saw Synthesizer
+saw synthesizer.1,saw-synth,,81,Saw Synthesizer,Synth.,Saw Synthesizer,synth.tone.sawtooth,Saw Synthesizer
+sine synthesizer,sine-synth,,79,Sine Synthesizer,Synth.,Sine Synthesizer,synth.tone.sine,Sine Synthesizer
+sine synthesizer.1,sine-synth,,79,Sine Synthesizer,Synth.,Sine Synthesizer,synth.tone.sine,Sine Synthesizer
+square synthesizer,square-synth,,80,Square Synthesizer,Synth.,Square Synthesizer,synth.tone.sine,Square Synthesizer
+square synthesizer.1,square-synth,,80,Square Synthesizer,Synth.,Square Synthesizer,synth.tone.sine,Square Synthesizer
+ondes martenot,ondes-martenot,,79,Ondes Martenot,O.M.,Ondes Martenot,keyboard.ondes-martenot,Ondes Martenot
+ondes martenot.1,ondes-martenot,,79,Ondes Martenot,O.M.,Ondes Martenot,keyboard.ondes-martenot,Ondes Martenot
+mallet synthesizer,mallet-synthesizer,,80,Mallet Synthesizer,Mal. Syn.,Mallet Synthesizer,synth.group,Mallet Synthesizer
+mallet synthesizer.1,mallet-synthesizer,,80,Mallet Synthesizer,Mal. Syn.,Mallet Synthesizer,synth.group,Mallet Synthesizer
+bass synthesizer,bass-synthesizer,synth-bass-1,38,Bass Synthesizer,Synth.,Bass Synthesizer,pluck.bass.synth,Bass Synthesizer
+bass synthesizer.1,bass-synthesizer,synth-bass-1,38,Bass Synthesizer,Synth.,Bass Synthesizer,pluck.bass.synth,Bass Synthesizer
+brass synthesizer,brass-synthesizer,synth-brass-1,62,Brass Synthesizer,Synth.,Brass Synthesizer,brass.group.synth,Brass Synthesizer
+brass synthesizer.1,brass-synthesizer,synth-brass-1,62,Brass Synthesizer,Synth.,Brass Synthesizer,brass.group.synth,Brass Synthesizer
+string synthesizer,string-synthesizer,synth-string-1,50,String Synthesizer,Synth.,String Synthesizer,strings.group.synth,String Synthesizer
+string synthesizer.1,string-synthesizer,synth-string-1,50,String Synthesizer,Synth.,String Synthesizer,strings.group.synth,String Synthesizer
+theremin,theremin,,79,Theremin,Thmn.,Theremin,synth.theremin,Theremin
+theremin.1,theremin,,79,Theremin,Thmn.,Theremin,synth.theremin,Theremin
+percussion synthesizer,percussion-synthesizer,,0,Percussion Synthesizer,Perc. Syn.,Percussion Synthesizer,drum.tom-tom.synth,Percussion Synthesizer
+banjo,banjo,,105,Banjo,Bj.,Banjo,pluck.banjo,Banjo
+banjo (tablature),banjo-tablature,,105,Banjo,Bj.,Banjo (Tablature),pluck.banjo,Banjo (Tablature)
+tenor banjo,tenor-banjo,,105,Tenor Banjo,T. Bj.,Tenor Banjo,pluck.banjo.tenor,Tenor Banjo
+irish tenor banjo,irish-tenor-banjo,,105,Irish Tenor Banjo,ITB,Irish Tenor Banjo,pluck.banjo.tenor,Irish Tenor Banjo
+irish tenor banjo (tablature),irish-tenor-banjo-tablature,,105,Irish Tenor Banjo,ITB,Irish Tenor Banjo (Tablature),pluck.banjo.tenor,Irish Tenor Banjo (Tablature)
+balalaika,balalaika,,107,Balalaika,Bal.,Balalaika,pluck.balalaika,Balalaika
+piccolo balalaika,balalaika-piccolo,,107,Piccolo Balalaika,Pic. Bal.,Piccolo Balalaika,pluck.balalaika.piccolo,Piccolo Balalaika
+prima balalaika,balalaika-prima,,107,Prima Balalaika,Pr. Bal.,Prima Balalaika,pluck.balalaika.prima,Prima Balalaika
+secunda balalaika,balalaika-secunda,,107,Secunda Balalaika,Sec. Bal.,Secunda Balalaika,pluck.balalaika.secunda,Secunda Balalaika
+alto balalaika,balalaika-alto,,107,Alto Balalaika,Al. Bal.,Alto Balalaika,pluck.balalaika.alto,Alto Balalaika
+bass balalaika,balalaika-bass,,107,Bass Balalaika,B. Bal.,Bass Balalaika,pluck.balalaika.bass,Bass Balalaika
+contrabass balalaika,balalaika-contrabass,,107,Contrabass Balalaika,Cb. Bal.,Contrabass Balalaika,pluck.balalaika.contrabass,Contrabass Balalaika
+bouzouki (3-course),bouzouki-3-course,,25,Bouzouki,Bou.,Bouzouki (3-course),pluck.bouzouki,Bouzouki (3-course)
+bouzouki (4-course),bouzouki-4-course,,25,Bouzouki,Bou.,Bouzouki (4-course),pluck.bouzouki,Bouzouki (4-course)
+cavaquinho,cavaquinho,,25,Cavaquinho,Cava.,Cavaquinho,pluck.guitar,Cavaquinho
+cavaquinho (tablature),cavaquinho-tablature,,25,Cavaquinho,Cava.,Cavaquinho (Tablature),pluck.guitar,Cavaquinho (Tablature)
+mandolin,mandolin,,25,Mandolin,Mdn.,Mandolin,pluck.mandolin,Mandolin
+mandolin (tablature),mandolin-tablature,,25,Mandolin,Mdn.,Mandolin (Tablature),pluck.mandolin,Mandolin (Tablature)
+alto mandola,alto-mandola,,25,Alto Mandola,A. Mda.,Alto Mandola,pluck.mandola,Alto Mandola
+ukulele,ukulele,,24,Ukulele,Uk.,Ukulele,pluck.ukulele,Ukulele
+ukulele (tablature),ukulele-4-str-tab,,24,Ukulele,Uk.,Ukulele (Tablature),pluck.ukulele,Ukulele (Tablature)
+ukulele (low g),ukulele-low-g,,24,Ukulele (Low G),Uk.,Ukulele (Low G),pluck.ukulele,Ukulele (Low G)
+tenor ukulele,tenor-ukulele,,24,Tenor Ukulele,Ten. Uk.,Tenor Ukulele,pluck.ukulele.tenor,Tenor Ukulele
+baritone ukulele,baritone-ukulele,,24,Baritone Ukulele,Bar. Uk.,Baritone Ukulele,pluck.ukulele.tenor,Baritone Ukulele
+voice,voice,,52,Voice,Vo.,Voice,voice.vocals,Voice
+boy soprano,boy-soprano,,52,Boy Soprano,B. S.,Boy Soprano,voice.child,Boy Soprano
+soprano,soprano,,52,Soprano,S.,Soprano,voice.soprano,Soprano
+soprano (c clef),soprano-c-clef,,52,Soprano,S.,Soprano (C Clef),voice.soprano,Soprano (C Clef)
+mezzo-soprano,mezzo-soprano,,52,Mezzo-soprano,Mzs.,Mezzo-soprano,voice.mezzo-soprano,Mezzo-soprano
+mezzo-soprano (c clef),mezzo-soprano-c-clef,,52,Mezzo-soprano,Mzs.,Mezzo-soprano (C Clef),voice.mezzo-soprano,Mezzo-soprano (C Clef)
+alto,alto,,52,Alto,A.,Alto,voice.alto,Alto
+alto (c clef),alto-c-clef,,52,Alto,A.,Alto (C Clef),voice.alto,Alto (C Clef)
+contralto,contralto,,52,Contralto,Contr.,Contralto,voice.alto,Contralto
+countertenor,countertenor,,52,Countertenor,Ct.,Countertenor,voice.countertenor,Countertenor
+tenor,tenor,,52,Tenor,T.,Tenor,voice.tenor,Tenor
+tenor (c clef),tenor-c-clef,,52,Tenor,T.,Tenor (C Clef),voice.tenor,Tenor (C Clef)
+baritone,baritone,,52,Baritone,Bar.,Baritone,voice.baritone,Baritone
+baritone (c clef),baritone-c-clef,,52,Baritone,Bar.,Baritone (C Clef),voice.baritone,Baritone (C Clef)
+bass,bass,,52,Bass,B.,Bass,voice.bass,Bass
+women,women,Soprano,52,Women,W.,Women,voice.female,Women
+men,men,Tenor,52,Men,M.,Men,voice.male,Men
+strings,strings,arco,48,Strings,St.,Strings,strings.group,Strings
+strings.1,strings,arco,48,Strings,St.,Strings,strings.group,Strings
+violin,violin,arco,40,Violin,Vln.,Violin,strings.violin,Violin
+violins,violins,arco,48,Violins,Vlns.,Violins,strings.group,Violins
+viola,viola,arco,41,Viola,Vla.,Viola,strings.viola,Viola
+violas,violas,arco,48,Violas,Vlas.,Violas,strings.group,Violas
+violoncello,violoncello,arco,42,Violoncello,Vc.,Violoncello,strings.cello,Violoncello
+violoncellos,violoncellos,arco,48,Violoncellos,Vcs.,Violoncellos,strings.group,Violoncellos
+contrabass,contrabass,arco,43,Contrabass,Cb.,Contrabass,strings.contrabass,Contrabass
+contrabasses,contrabasses,arco,48,Contrabasses,Cbs.,Contrabasses,strings.group,Contrabasses
+double bass,double-bass,arco,43,Double Bass,Db.,Double Bass,strings.contrabass,Double Bass
+octobass,octobass,arco,43,Octobass,Otb.,Octobass,strings.octobass,Octobass
+pardessus de viole,pardessus-de-viole,arco,40,Pardessus de viole,Pds. v.,Pardessus de viole,strings.viol,Pardessus de viole
+treble viol,treble-viol,arco,40,Treble Viol,Tr. Vl.,Treble Viol,strings.viol.treble,Treble Viol
+alto viol,alto-viol,arco,41,Alto Viol,A. Vl.,Alto Viol,strings.viol.alto,Alto Viol
+tenor viol,tenor-viol,arco,41,Tenor Viol,T. Vl.,Tenor Viol,strings.viol.tenor,Tenor Viol
+viola da gamba,viola-da-gamba,arco,42,Viola da gamba,Vla. d. g.,Viola da gamba,,Viola da gamba
+viola da gamba (tablature),viola-da-gamba-tablature,arco,42,Viola da gamba,Vla. d. g.,Viola da gamba (Tablature),,Viola da gamba (Tablature)
+baryton,baryton,arco,42,Baryton,Bary.,Baryton,strings.baryton,Baryton
+violone,violone,arco,43,Violone,Vne.,Violone,strings.viol.violone,Violone
+d violone,d-violone,arco,43,D Violone,D Vne.,D Violone,strings.viol.violone,D Violone
+erhu,erhu,arco,110,Erhu,Eh.,Erhu,strings.erhu,Erhu
+nyckelharpa,nyckelharpa,arco,41,Nyckelharpa,Nyh.,Nyckelharpa,strings.nyckelharpa,Nyckelharpa
+bass guitar,bass-guitar,,34,Bass Guitar,B. Guit.,Bass Guitar,pluck.bass,Bass Guitar
+bass guitar (tablature),bass-guitar-tablature,,34,Bass Guitar,B. Guit.,Bass Guitar (Tablature),pluck.bass,Bass Guitar (Tablature)
+acoustic bass,acoustic-bass,pizzicato,32,Acoustic Bass,Bass,Acoustic Bass,pluck.bass.acoustic,Acoustic Bass
+electric bass,electric-bass,,33,Electric Bass,El. B.,Electric Bass,pluck.bass.electric,Electric Bass
+electric bass (tablature),electric-bass-4-str-tab,,33,Electric Bass,El. B.,Electric Bass (Tablature),pluck.bass.electric,Electric Bass (Tablature)
+fretless electric bass,fretless-electric-bass,,35,Fretless Electric Bass,Frtl. El. B.,Fretless Electric Bass,pluck.bass.fretless,Fretless Electric Bass
+5-str. electric bass,5-string-electric-bass,,33,5-str. Electric Bass,El. B.,5-str. Electric Bass,pluck.bass.electric,5-str. Electric Bass
+5-str. electric bass (tablature),5-string-electric-bass-tab,,33,5-str. Electric Bass,El. B.,5-str. Electric Bass (Tablature),pluck.bass.electric,5-str. Electric Bass (Tablature)
+5-str. electric bass (high c/tenor),5-string-electric-bass-high-c,,33,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor),pluck.bass.electric,5-str. Electric Bass (High C/Tenor)
+5-str. electric bass (high c/tenor) (tablature),5-string-electric-bass-tab-high-c,,33,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor) (Tablature),pluck.bass.electric,5-str. Electric Bass (High C/Tenor) (Tablature)
+6-str. electric bass,6-string-electric-bass,,33,6-str. Electric Bass,El. B.,6-str. Electric Bass,pluck.bass.electric,6-str. Electric Bass
+6-str. electric bass (tablature),6-string-electric-bass-tab,,33,6-str. Electric Bass,El. B.,6-str. Electric Bass (Tablature),pluck.bass.electric,6-str. Electric Bass (Tablature)
+prim,prim,,24,Prim,Pr.,Prim,pluck.tambura,Prim
+brač,brac,,24,Brač,Br.,Brač,pluck.tambura,Brač
+čelo,celo,,24,Čelo,Č.,Čelo,pluck.tambura,Čelo
+bugarija,bugarija,,24,Bugarija,Bu.,Bugarija,pluck.tambura,Bugarija
+berda,berda,,32,Berda,Be.,Berda,pluck.tambura,Berda
+bandurria,bandurria,,24,Bandurria,Band.,Bandurria,pluck.bandurria,Bandurria
+bandurria (tablature),bandurria-tablature,,24,Bandurria,Band.,Bandurria (Tablature),pluck.bandurria,Bandurria (Tablature)
+laúd,laud,,24,Laúd,Laúd,Laúd,pluck.laud,Laúd
+laúd (tablature),laud-tablature,,24,Laúd,Laúd,Laúd (Tablature),pluck.laud,Laúd (Tablature)
+tenor mandola,tenor-mandola,,25,Tenor Mandola,T. Mda.,Tenor Mandola,pluck.mandola,Tenor Mandola
+mandocello,mandocello,,25,Mandocello,Mncl.,Mandocello,pluck.mandocello,Mandocello
+octave mandolin,octave-mandolin,,25,Octave Mandolin,OM.,Octave Mandolin,pluck.mandolin.octave,Octave Mandolin
+shamisen,shamisen,,106,Shamisen,Sh.,Shamisen,pluck.shamisen,Shamisen
+sitar,sitar,,104,Sitar,Si.,Sitar,pluck.sitar,Sitar
+mandola,mandola,,25,Mandola,Mda.,Mandola,pluck.mandola,Mandola
+koto,koto,,107,Koto,Ko.,Koto,pluck.koto,Koto
+mtn. dulcimer,mtn-dulcimer-std,,25,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer,pluck.dulcimer,Mtn. Dulcimer
+mtn. dulcimer (tablature),mtn-dulcimer-std-chrom-tab,,25,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer (Tablature),pluck.dulcimer,Mtn. Dulcimer (Tablature)
+mtn. dulcimer - baritone,mtn-dulcimer-baritone,,25,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone,pluck.dulcimer,Mtn. Dulcimer - Baritone
+mtn. dulcimer - baritone (tablature),mtn-dulcimer-bartn-chrom-tab,,25,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone (Tablature),pluck.dulcimer,Mtn. Dulcimer - Baritone (Tablature)
+mtn. dulcimer - bass,mtn-dulcimer-bass,,25,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass,pluck.dulcimer,Mtn. Dulcimer - Bass
+mtn. dulcimer - bass (tablature),mtn-dulcimer-bass-chrom-tab,,25,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass (Tablature),pluck.dulcimer,Mtn. Dulcimer - Bass (Tablature)
+oud,oud,,25,Oud,O.,Oud,pluck.oud,Oud
+lute,lute,,25,Lute,Lt.,Lute,pluck.lute,Lute
+lute (tablature),lute-tablature,,25,Lute,Lt.,Lute (Tablature),pluck.lute,Lute (Tablature)
+lute 5-course,ren.-tenor-lute-5-course,,25,Lute,Lt.,Lute 5-course,pluck.lute,Lute 5-course
+lute 6-course,ren.-tenor-lute-6-course,,25,Lute,Lt.,Lute 6-course,pluck.lute,Lute 6-course
+lute 7-course,ren.-tenor-lute-7-course,,25,Lute,Lt.,Lute 7-course,pluck.lute,Lute 7-course
+lute 8-course,ren.-tenor-lute-8-course,,25,Lute,Lt.,Lute 8-course,pluck.lute,Lute 8-course
+lute 9-course,ren.-tenor-lute-9-course,,25,Lute,Lt.,Lute 9-course,pluck.lute,Lute 9-course
+lute 10-course,ren.-tenor-lute-10-course,,25,Lute,Lt.,Lute 10-course,pluck.lute,Lute 10-course
+lute 13-course,baroque-lute-13-course,,25,Lute,Lt.,Lute 13-course,pluck.lute,Lute 13-course
+archlute,archlute-14-course,,25,Archlute,A. Lt.,Archlute,pluck.archlute,Archlute
+theorbo,theorbo-14-course,,25,Theorbo,Thb.,Theorbo,pluck.theorbo,Theorbo
+baritone guitar,baritone-guitar,,24,Baritone Guitar,Bar. Guit.,Baritone Guitar,pluck.guitar,Baritone Guitar
+contra guitar,contra-guitar,open,24,Contra Guitar,C. Guit.,Contra Guitar,pluck.guitar,Contra Guitar
+acoustic guitar,guitar-steel,open,25,Acoustic Guitar,Guit.,Acoustic Guitar,pluck.guitar.acoustic,Acoustic Guitar
+acoustic guitar (treble clef),guitar-steel-treble-clef,,25,Guitar,Guit.,Acoustic Guitar (Treble Clef),pluck.guitar.acoustic,Acoustic Guitar (Treble Clef)
+acoustic guitar (tablature),guitar-steel-tablature,open,25,Acoustic Guitar,Guit.,Acoustic Guitar (Tablature),pluck.guitar.acoustic,Acoustic Guitar (Tablature)
+11-string alto guitar,11-string-alto-guitar,open,24,11-string Alto Guitar,11-str. A. Guit.,11-string Alto Guitar,pluck.guitar,11-string Alto Guitar
+11-string alto guitar.1,11-string-alto-guitar,open,24,11-string Alto Guitar,11-str. A. Guit.,11-string Alto Guitar,pluck.guitar,11-string Alto Guitar
+12-string guitar,12-string-guitar,open,25,12-string Guitar,12-str. Guit.,12-string Guitar,pluck.guitar,12-string Guitar
+pedal steel guitar,pedal-steel-guitar,open,25,Pedal Steel Guitar,Ped. St. Guit.,Pedal Steel Guitar,pluck.guitar.pedal-steel,Pedal Steel Guitar
+electric guitar,electric-guitar,open,27,Electric Guitar,El. Guit.,Electric Guitar,pluck.guitar.electric,Electric Guitar
+electric guitar (treble clef),electric-guitar-treble-clef,,27,Electric Guitar,El. Guit.,Electric Guitar (Treble Clef),pluck.guitar.electric,Electric Guitar (Treble Clef)
+electric guitar (tablature),electric-guitar-tablature,open,27,Electric Guitar,El. Guit.,Electric Guitar (Tablature),pluck.guitar.electric,Electric Guitar (Tablature)
+soprano guitar,soprano-guitar,open,24,Soprano Guitar,S. Guit.,Soprano Guitar,pluck.guitar,Soprano Guitar
+alto guitar,alto-guitar,open,24,Alto Guitar,A. Guit.,Alto Guitar,pluck.guitar,Alto Guitar
+classical guitar,guitar-nylon,open,24,Classical Guitar,Guit.,Classical Guitar,pluck.guitar.nylon-string,Classical Guitar
+guitar (treble clef),guitar-nylon-treble-clef,open,24,Guitar,Guit.,Guitar (Treble Clef),pluck.guitar.nylon-string,Guitar (Treble Clef)
+classical guitar (tablature),guitar-nylon-tablature,open,24,Classical Guitar,Guit.,Classical Guitar (Tablature),pluck.guitar.nylon-string,Classical Guitar (Tablature)
+7-string guitar,7-string-guitar,,24,7-string Guitar,Guit.,7-string Guitar,pluck.guitar.nylon-string,7-string Guitar
+7-string guitar (tablature),7-string-guitar-tablature,,24,7-string Guitar,Guit.,7-string Guitar (Tablature),pluck.guitar.nylon-string,7-string Guitar (Tablature)
+effect synthesizer,effect-synth,rain,96,Effect Synthesizer,Synth.,Effect Synthesizer,synth.effects,Effect Synthesizer
+effect synthesizer.1,effect-synth,rain,96,Effect Synthesizer,Synth.,Effect Synthesizer,synth.effects,Effect Synthesizer
+kazoo,kazoo,,85,Kazoo,Kaz.,Kazoo,voice.kazoo,Kazoo
+snare drum,marching-snare,,56,Snare Drum,S.D.,Snare Drum,drum.snare-drum,Snare Drum
+tenor drums,marching-tenor-drums,,96,Tenor Drums,T.D.,Tenor Drums,drum.tenor-drum,Tenor Drums
+bass drums,marching-bass-drums,,59,Bass Drums,B.D.,Bass Drums,drum.bass-drum,Bass Drums
+cymbals,marching-cymbals,,58,Cymbals,Cym.,Cymbals,metal.cymbal.crash,Cymbals
+finger snap,finger-snap,,0,Finger Snap,Fi. Sna.,Finger Snap,effect.snap,Finger Snap
+hand clap,hand-clap,,0,Hand Clap,Hd. Clp.,Hand Clap,effect.hand-clap,Hand Clap
+slap,slap,,0,Slap,Sla.,Slap,effect.slap,Slap
+stamp,stamp,,0,Stamp,Sta.,Stamp,effect.stamp,Stamp
+quijada,quijada,,0,Quijada,Qui.,Quijada,rattle.jawbone,Quijada
+bell plate,bell-plate,,0,Bell Plate,Be. Pla.,Bell Plate,metal.bells.bell-plate,Bell Plate
+bowl gongs,bowl-gongs,,0,Bowl Gongs,Bw. Gon.,Bowl Gongs,metal.gong,Bowl Gongs
+tubo,tubo,,0,Tubo,Tu.,Tubo,,Tubo
+shaker,shaker,,0,Shaker,Sh.,Shaker,,Shaker
+bells,bells,,0,Bells,Be.,Bells,,Bells
+tablas,tablas,,0,Tablas,Tbs.,Tablas,drum.tabla,Tablas
+cuica,cuica,,0,Cuica,Cu.,Cuica,drum.cuica,Cuica
+finger cymbals,finger-cymbals,,0,Finger Cymbals,Fi. Cym.,Finger Cymbals,metal.cymbal.finger,Finger Cymbals
+tuned klaxon horns,tuned-klaxon-horns,,84,Tuned Klaxon Horns,Tn. Klx. Hns.,Tuned Klaxon Horns,,Tuned Klaxon Horns
+tuned klaxon horns.1,tuned-klaxon-horns,,84,Tuned Klaxon Horns,Tn. Klx. Hns.,Tuned Klaxon Horns,,Tuned Klaxon Horns
+kalimba,kalimba,,108,Kalimba,Kal.,Kalimba,pitched-percussion.kalimba,Kalimba
+treble kalimba,treble-kalimba,,108,Treble Kalimba,Tr. Kal.,Treble Kalimba,pitched-percussion.kalimba,Treble Kalimba
+alto kalimba,alto-kalimba,,108,Alto Kalimba,A. Kal.,Alto Kalimba,pitched-percussion.kalimba,Alto Kalimba
+carillon,carillon,,14,Carillon,Car.,Carillon,metal.bells.carillon,Carillon
+carillon.1,carillon,,14,Carillon,Car.,Carillon,metal.bells.carillon,Carillon
+orff soprano xylophone,orff-soprano-xylophone,,12,Orff Soprano Xylophone,O. S. Xyl.,Orff Soprano Xylophone,pitched-percussion.xylophone.soprano,Orff Soprano Xylophone
+orff alto xylophone,orff-alto-xylophone,,12,Orff Alto Xylophone,O. A. Xyl.,Orff Alto Xylophone,pitched-percussion.xylophone.alto,Orff Alto Xylophone
+orff bass xylophone,orff-bass-xylophone,,12,Orff Bass Xylophone,O. B. Xyl.,Orff Bass Xylophone,pitched-percussion.xylophone.soprano,Orff Bass Xylophone
+metallophone,metallophone,,11,Metallophone,Met.,Metallophone,pitched-percussion.metallophone,Metallophone
+orff soprano metallophone,orff-soprano-metallophone,,11,Orff Soprano Metallophone,O. S. Met.,Orff Soprano Metallophone,pitched-percussion.metallophone.soprano,Orff Soprano Metallophone
+orff alto metallophone,orff-alto-metallophone,,11,Orff Alto Metallophone,O. A. Met.,Orff Alto Metallophone,pitched-percussion.metallophone.alto,Orff Alto Metallophone
+orff bass metallophone,orff-bass-metallophone,,11,Orff Bass Metallophone,O. B. Met.,Orff Bass Metallophone,pitched-percussion.metallophone.bass,Orff Bass Metallophone
+chimes,tubular-bells,,14,Chimes,Cme.,Chimes,pitched-percussion.tubular-bells,Chimes
+steel drums,steel-drums,,114,Steel Drums,St. Dr.,Steel Drums,metal.steel-drums,Steel Drums
+steel drums.1,steel-drums,,114,Steel Drums,St. Dr.,Steel Drums,metal.steel-drums,Steel Drums
+soprano steel drums,soprano-steel-drums,,114,Soprano Steel Drums,S. St. Dr.,Soprano Steel Drums,metal.steel-drums,Soprano Steel Drums
+alto steel drums,alto-steel-drums,,114,Alto Steel Drums,A. St. Dr.,Alto Steel Drums,metal.steel-drums,Alto Steel Drums
+guitar steel drums,guitar-steel-drums,,114,Guitar Steel Drums,Gtr. St. Dr.,Guitar Steel Drums,metal.steel-drums,Guitar Steel Drums
+tenor steel drums,tenor-steel-drums,,114,Tenor Steel Drums,T. St. Dr.,Tenor Steel Drums,metal.steel-drums,Tenor Steel Drums
+cello steel drums,cello-steel-drums,,114,Cello Steel Drums,Ce. St. Dr.,Cello Steel Drums,metal.steel-drums,Cello Steel Drums
+bass steel drums,bass-steel-drums,,114,Bass Steel Drums,B. St. Dr.,Bass Steel Drums,metal.steel-drums,Bass Steel Drums
+hand bells,hand-bells,,112,Hand Bells,Ha. Be.,Hand Bells,pitched-percussion.handbells,Hand Bells
+hand bells.1,hand-bells,,112,Hand Bells,Ha. Be.,Hand Bells,pitched-percussion.handbells,Hand Bells
+tuned gongs,tuned-gongs,,14,Tuned Gongs,Td. Gon.,Tuned Gongs,metal.gong,Tuned Gongs
+flexatone,flexatone,,14,Flexatone,Flt.,Flexatone,metal.flexatone,Flexatone
+musical saw,musical-saw,,92,Musical Saw,Mu. Sw.,Musical Saw,metal.musical-saw,Musical Saw
+musical glasses,musical-glasses,,93,Musical Glasses,Mu. Gla.,Musical Glasses,pitched-percussion.crystal-glasses,Musical Glasses
+glass harmonica,glass-harmonica,,92,Glass Harmonica,Gla. Har.,Glass Harmonica,pitched-percussion.glass-harmonica,Glass Harmonica
+orff soprano glockenspiel,orff-soprano-glockenspiel,,9,Orff Soprano Glockenspiel,O. S. Glk.,Orff Soprano Glockenspiel,pitched-percussion.glockenspiel.soprano,Orff Soprano Glockenspiel
+orff alto glockenspiel,orff-alto-glockenspiel,,9,Orff Alto Glockenspiel,O. A. Glk.,Orff Alto Glockenspiel,pitched-percussion.glockenspiel.alto,Orff Alto Glockenspiel
+crotales,crotales,,10,Crotales,Crot.,Crotales,metal.crotales,Crotales
+tubaphone,tubaphone,,47,Tubaphone,Tph.,Tubaphone,,Tubaphone
+almglocken,almglocken,,108,Almglocken,Almg.,Almglocken,metal.bells.almglocken,Almglocken
+almglocken.1,almglocken,,108,Almglocken,Almg.,Almglocken,metal.bells.almglocken,Almglocken
+roto-toms,roto-toms,,117,Roto-Toms,Roto,Roto-Toms,drum.rototom,Roto-Toms
+conch,conch,,60,Conch,Cnch.,Conch,brass.conch-shell,Conch
+didgeridoo,didgeridoo,,57,Didgeridoo,Doo.,Didgeridoo,brass.didgeridoo,Didgeridoo
+horagai,horagai,,60,Horagai,Hor.,Horagai,brass.horagai,Horagai
+shofar,shofar,,60,Shofar,Sho.,Shofar,brass.shofar,Shofar
+vuvuzela,vuvuzela,,56,Vuvuzela,Vuv.,Vuvuzela,brass.vuvuzela,Vuvuzela
+helicon,helicon,,58,Helicon,Helicon,Helicon,brass.helicon,Helicon
+sousaphone,sousaphone,,58,Sousaphone,Sphn.,Sousaphone,brass.sousaphone,Sousaphone
+b♭ sousaphone,bb-sousaphone,,58,B♭ Sousaphone,B♭ Sphn.,B♭ Sousaphone,brass.sousaphone,B♭ Sousaphone
+euphonium,euphonium,,58,Euphonium,Euph.,Euphonium,brass.euphonium,Euphonium
+euphonium (treble clef),euphonium-treble,,58,Euphonium,Euph.,Euphonium (Treble Clef),brass.euphonium,Euphonium (Treble Clef)
+fiscorn,fiscorn,open,56,Fiscorn,Fsc.,Fiscorn,brass.fiscorn,Fiscorn
+kuhlohorn,kuhlohorn,open,56,Kuhlohorn,Klhn.,Kuhlohorn,brass.kuhlohorn,Kuhlohorn
+euphonium bugle,euphonium-bugle,,58,Euphonium Bugle,Euph. Bu.,Euphonium Bugle,brass.bugle.euphonium-bugle,Euphonium Bugle
+mellophone bugle,mellophon-bugle,,58,Mellophone Bugle,Mello. Bu.,Mellophone Bugle,brass.bugle.mellophone-bugle,Mellophone Bugle
+contrabass bugle,contrabass-bugle,,58,Contrabass Bugle,Cb. Bu.,Contrabass Bugle,brass.bugle.contrabass,Contrabass Bugle
+mellophone,mellophone,,60,Mellophone,Mello.,Mellophone,brass.mellophone,Mellophone
+ophicleide,ophicleide,,56,Ophicleide,Oph.,Ophicleide,brass.ophicleide,Ophicleide
+f alto ophicleide,f-alto-ophicleide,,56,F Alto Ophicleide,F A. Oph.,F Alto Ophicleide,brass.ophicleide,F Alto Ophicleide
+e♭ alto ophicleide,eb-alto-ophicleide,,56,E♭ Alto Ophicleide,E♭ A. Oph.,E♭ Alto Ophicleide,brass.ophicleide,E♭ Alto Ophicleide
+c bass ophicleide,c-bass-ophicleide,,56,C Bass Ophicleide,C B. Oph.,C Bass Ophicleide,brass.ophicleide,C Bass Ophicleide
+b♭ bass ophicleide,bb-bass-ophicleide,,56,B♭ Bass Ophicleide,B♭ B. Oph.,B♭ Bass Ophicleide,brass.ophicleide,B♭ Bass Ophicleide
+e♭ contrabass ophicleide,eb-contrabass-ophicleide,,56,E♭ Contrabass Ophicleide,E♭ Cb. Oph.,E♭ Contrabass Ophicleide,brass.ophicleide,E♭ Contrabass Ophicleide
+cornettino,cornettino,,56,Cornettino,Co.,Cornettino,brass.cornettino,Cornettino
+cornett,cornett,,56,Cornett,Co.,Cornett,brass.cornett,Cornett
+soprano cornett,soprano-cornett,,56,Soprano Cornett,S. Co.,Soprano Cornett,brass.cornett,Soprano Cornett
+alto cornett,alto-cornett,,56,Alto Cornett,A. Co.,Alto Cornett,brass.cornett,Alto Cornett
+tenor cornett,tenor-cornett,,56,Tenor Cornett,T. Co.,Tenor Cornett,brass.cornett.tenor,Tenor Cornett
+serpent,serpent,,56,Serpent,Spt.,Serpent,brass.serpent,Serpent
+alto sackbut,alto-sackbut,,57,Alto Sackbut,A. Sack.,Alto Sackbut,brass.sackbutt.alto,Alto Sackbut
+tenor sackbut,tenor-sackbut,,57,Tenor Sackbut,T. Sack.,Tenor Sackbut,brass.sackbutt.tenor,Tenor Sackbut
+bass sackbut,bass-sackbut,,57,Bass Sackbut,B. Sack.,Bass Sackbut,brass.sackbutt.bass,Bass Sackbut
+rag dung,rag-dung,open,56,Rag Dung,Rg. Dng.,Rag Dung,brass.rag-dung,Rag Dung
+bugle,bugle,,58,Bugle,Bu.,Bugle,brass.bugle,Bugle
+soprano bugle,soprano-bugle,,58,Soprano Bugle,S. Bu.,Soprano Bugle,brass.bugle.soprano,Soprano Bugle
+alto bugle,alto-bugle,,58,Alto Bugle,A. Bu.,Alto Bugle,brass.bugle.alto,Alto Bugle
+baritone bugle,baritone-bugle,,58,Baritone Bugle,Bar. Bu.,Baritone Bugle,brass.bugle.baritone,Baritone Bugle
+saxhorn,saxhorn,open,60,Saxhorn,Saxhorn,Saxhorn,brass.saxhorn,Saxhorn
+f alto horn,f-alto-horn,open,60,F Alto Horn,F A. Hn.,F Alto Horn,brass.alto-horn,F Alto Horn
+e♭ alto horn,eb-alto-horn,open,60,E♭ Alto Horn,E♭ A. Hn.,E♭ Alto Horn,brass.alto-horn,E♭ Alto Horn
+baritone horn,baritone-horn,open,60,Baritone Horn,Bar. Hn.,Baritone Horn,brass.baritone-horn,Baritone Horn
+baritone horn (treble clef),baritone-horn-treble,open,60,Baritone Horn,Bar. Hn.,Baritone Horn (Treble Clef),brass.baritone-horn,Baritone Horn (Treble Clef)
+baritone horn (central europe),baritone-horn-central-europe,open,60,Baritone Horn,Bar. Hn.,Baritone Horn (Central Europe),brass.baritone-horn,Baritone Horn (Central Europe)
+"baritone horn (central europe, treble clef)",baritone-horn-central-europe-treble,open,60,Baritone Horn,Bar. Hn.,"Baritone Horn (Central Europe, Treble Clef)",brass.baritone-horn,"Baritone Horn (Central Europe, Treble Clef)"
+posthorn,posthorn,open,60,Posthorn,Psthn.,Posthorn,brass.posthorn,Posthorn
+alphorn,alphorn,,60,Alphorn,AlpHn.,Alphorn,brass.alphorn,Alphorn
+harmonica,harmonica,,22,Harmonica,Harm.,Harmonica,wind.reed.harmonica,Harmonica
+12 hole c chromatic harmonica,harmonica-c12c,,22,12 Hole C Chromatic Harmonica,Harm.,12 Hole C Chromatic Harmonica,wind.reed.harmonica,12 Hole C Chromatic Harmonica
+14 hole c chromatic harmonica,harmonica-c14c,,22,14 Hole C Chromatic Harmonica,Harm.,14 Hole C Chromatic Harmonica,wind.reed.harmonica,14 Hole C Chromatic Harmonica
+12 hole g chromatic harmonica,harmonica-c12g,,22,12 Hole G Chromatic Harmonica,Harm.,12 Hole G Chromatic Harmonica,wind.reed.harmonica,12 Hole G Chromatic Harmonica
+16 hole c chromatic harmonica,harmonica-c16c,,22,16 Hole C Chromatic Harmonica,Harm.,16 Hole C Chromatic Harmonica,wind.reed.harmonica,16 Hole C Chromatic Harmonica
+12 hole tenor c chromatic harmonica,harmonica-c12tenor-c,,22,12 Hole Tenor C Chromatic Harmonica,Harm.,12 Hole Tenor C Chromatic Harmonica,wind.reed.harmonica,12 Hole Tenor C Chromatic Harmonica
+10 hole high g diatonic harmonica,harmonica-d12high-g,,22,10 Hole High G Diatonic Harmonica,Harm.,10 Hole High G Diatonic Harmonica,wind.reed.harmonica,10 Hole High G Diatonic Harmonica
+10 hole f diatonic harmonica,harmonica-d12f,,22,10 Hole F Diatonic Harmonica,Harm.,10 Hole F Diatonic Harmonica,wind.reed.harmonica,10 Hole F Diatonic Harmonica
+10 hole d diatonic harmonica,harmonica-d12d,,22,10 Hole D Diatonic Harmonica,Harm.,10 Hole D Diatonic Harmonica,wind.reed.harmonica,10 Hole D Diatonic Harmonica
+10 hole c diatonic harmonica,harmonica-d12c,,22,10 Hole C Diatonic Harmonica,Harm.,10 Hole C Diatonic Harmonica,wind.reed.harmonica,10 Hole C Diatonic Harmonica
+10 hole a diatonic harmonica,harmonica-d12a,,22,10 Hole A Diatonic Harmonica,Harm.,10 Hole A Diatonic Harmonica,wind.reed.harmonica,10 Hole A Diatonic Harmonica
+10 hole g diatonic harmonica,harmonica-d12-g,,22,10 Hole G Diatonic Harmonica,Harm.,10 Hole G Diatonic Harmonica,wind.reed.harmonica,10 Hole G Diatonic Harmonica
+10 hole low d diatonic harmonica,harmonica-d10low-d,,22,10 Hole Low D Diatonic Harmonica,Harm.,10 Hole Low D Diatonic Harmonica,wind.reed.harmonica,10 Hole Low D Diatonic Harmonica
+20 hole chordet harmonica,harmonica-chordet,,22,20 Hole Chordet Harmonica,Harm.,20 Hole Chordet Harmonica,wind.reed.harmonica,20 Hole Chordet Harmonica
+bass harmonica,bass-harmonica,,22,Bass Harmonica,Bs. Harm.,Bass Harmonica,wind.reed.harmonica.bass,Bass Harmonica
+bass hohner harmonica,bass-harmonica-hohner,,22,Bass Hohner Harmonica,Bs. Harm.,Bass Hohner Harmonica,wind.reed.harmonica.bass,Bass Hohner Harmonica
+bass huang harmonica,bass-harmonica-huang,,22,Bass Huang Harmonica,Bs. Harm.,Bass Huang Harmonica,wind.reed.harmonica.bass,Bass Huang Harmonica
+accordion,accordion,,21,Accordion,Acc.,Accordion,keyboard.accordion,Accordion
+accordion.1,accordion,,21,Accordion,Acc.,Accordion,keyboard.accordion,Accordion
+bandoneon,bandoneon,,23,Bandoneon,Ban.,Bandoneon,keyboard.bandoneon,Bandoneon
+bandoneon.1,bandoneon,,23,Bandoneon,Ban.,Bandoneon,keyboard.bandoneon,Bandoneon
+concertina,concertina,,21,Concertina,Conc.,Concertina,keyboard.concertina,Concertina
+concertina.1,concertina,,21,Concertina,Conc.,Concertina,keyboard.concertina,Concertina
+melodica,melodica,,22,Melodica,Mel.,Melodica,wind.reed.melodica,Melodica
+sheng,sheng,,20,Sheng,She.,Sheng,wind.reed.sheng,Sheng
+soprano sheng,soprano-sheng,,20,Soprano Sheng,S She.,Soprano Sheng,wind.reed.sheng,Soprano Sheng
+alto sheng,alto-sheng,,20,Alto Sheng,A She.,Alto Sheng,wind.reed.sheng,Alto Sheng
+tenor sheng,tenor-sheng,,20,Tenor Sheng,T She.,Tenor Sheng,wind.reed.sheng,Tenor Sheng
+bass sheng,bass-sheng,,20,Bass Sheng,B She.,Bass Sheng,wind.reed.sheng,Bass Sheng
+brass,brass,,61,Brass,Br.,Brass,brass.group,Brass
+brass.1,brass,,61,Brass,Br.,Brass,brass.group,Brass
