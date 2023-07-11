@@ -1301,7 +1301,18 @@ class Parse(LoggedClass):
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)
                         if corpus.metadata_tsv is not None
                         }
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        updated_metadata_dfs = {}
+        for corpus_name, df in metadata_dfs.items():
+            try:
+                rel_path_col = next(col for col in ('subdirectory', 'rel_paths') if col in df.columns)
+            except StopIteration:
+                raise ValueError(f"Metadata is expected to come with a column called 'subdirectory' or (previously) 'rel_paths'.")
+            subdirectories = ['/'.join((corpus_name, subdirectory)) for subdirectory in df[rel_path_col]]
+            df.loc[:, rel_path_col] = subdirectories
+            if 'rel_path' in df.columns:
+                rel_paths = ['/'.join((corpus_name, rel_path)) for rel_path in df['rel_path']]
+                df.loc[:, 'rel_path'] = rel_paths
+        metadata = pd.concat(metadata_dfs, names=['corpus', 'fname'])
         return metadata
 
 

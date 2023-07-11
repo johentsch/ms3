@@ -1486,6 +1486,8 @@ def iter_selection(collectio, selector=None, opposite=False):
 
 
 def iterable2str(iterable):
+    if isinstance(iterable, str):
+        return iterable
     try:
         return ', '.join(str(s) for s in iterable)
     except Exception:
@@ -3581,11 +3583,11 @@ def write_metadata(metadata_df: pd.DataFrame,
     return True
 
 @function_logger
-def enforce_fname_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
+def  enforce_fname_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
     """Returns a copy of the DataFrame that has an index level called 'fname'."""
     possible_column_names = ('fname', 'fnames', 'filename', 'name', 'names',)
     if any(name in metadata_df.index.names for name in possible_column_names):
-        return metadata_df
+        return metadata_df.copy()
     try:
         fname_col = next(col for col in possible_column_names if col in metadata_df.columns)
     except StopIteration:
