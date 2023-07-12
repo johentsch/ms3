@@ -1,7 +1,7 @@
 import os
 from typing import Literal, Optional, Tuple, Dict, List, Union
 
-from ms3 import Parse, Corpus
+from ms3 import Parse, Corpus, make_valid_frictionless_name
 from ms3._typing import AnnotationsFacet, ScoreFacets
 from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
@@ -229,12 +229,15 @@ def store_scores(ms3_object: Union[Parse, Corpus],
 def transform(
     ms3_object: Parse | Corpus,
     facets: ScoreFacets,
+    filename: str,
     output_folder: Optional[str] = None,
     suffixes: Optional[Dict[str, str]] = None,
     choose: Literal['all', 'auto', 'ask'] = 'auto',
     interval_index: bool = False,
     unfold: bool = False,
     test: bool = False,
+    zipped: bool = False,
+    overwrite: bool = True,
     log_level = None
 ):
     logger = get_logger('ms3.transform', level=log_level)
@@ -244,14 +247,42 @@ def transform(
         return
     if suffixes is None:
         suffixes = {}
-
+    obj_is_corpus = isinstance(ms3_object, Corpus)
+    if filename:
+        prefix = filename
+    elif obj_is_corpus:
+        prefix = ms3_object.name
+    elif output_folder:
+        prefix = os.path.basename(output_folder)
+    else:
+        prefix = "ms3_parse"
+    prefix = make_valid_frictionless_name(prefix)
+    overwriting_zip = False
+    if zipped:
+        # storing all facets into the same ZIP file (with a datapackage.json descriptor)
+        zip_name = f"{prefix}.zip"
+        package_descriptor_name = f"{prefix}.datapackage.json"
+        path = zip_name if output_folder is None else os.path.join(output_folder, zip_name)
+        if os.path.isfile(path):
+            if overwrite:
+                os.remove(path)
+                overwriting_zip = True
+            else:
+                logger.info(f"File {path} already exists and is not to be overwritten. Aborting...")
+                return
+    n_successful = 0
     for facet in facets:
-        sfx = suffixes.get(f"{facet}_suffix", '')
-        tsv_name = f"concatenated_{facet}{sfx}.tsv"
-        if output_folder is None:
-            path = tsv_name
-        else:
-            path = os.path.join(output_folder, tsv_name)
+        facet_suffix = suffixes.get(f"{facet}_suffix", '')
+        facet_filename = make_valid_frictionless_name(f"{prefix}{facet_suffix}.{facet}")
+        tsv_name = f"{facet_filename}.tsv"
+        overwriting_tsv = False
+        if not zipped:
+            path = tsv_name if output_folder is None else os.path.join(output_folder, tsv_name)
+            if not overwrite and os.path.isfile(path):
+                logger.info(f"File {path} already exists and is not to be overwritten. Skipping...")
+                continue
+            overwriting_tsv = True
+        # get concatenated dataframe:
         if facet == 'metadata':
             df = ms3_object.metadata()
         else:
@@ -260,16 +291,35 @@ def transform(
                 choose = choose,
                 flat=True,
                 interval_index=interval_index,
-                unfold=unfold)
+                unfold=unfold,
+            )
         df = df.reset_index(drop=False)
         if df is None or len(df.index) == 0:
-            logger.info(f"No {facet} data found. Maybe you haven't run ms3 extract?")
+            logger.info(f"No {facet} data found. Maybe you still need to run ms3 extract?")
             continue
         if test:
             logger.info(f"Would have written {path}.")
+            continue
+        if zipped:
+            kwargs = dict(
+                sep="\t",
+                mode="a",
+                compression=dict(method="zip", archive_name=tsv_name)
+            )
+            msg = f"{tsv_name} written to {path}."
         else:
-            write_tsv(df, path)
-            logger.info(f"{path} written.")
+            kwargs = {}
+            msg = f"{path} overwritten." if overwriting_tsv else f"{path} written."
+        write_tsv(
+            df=df,
+            file_path=path,
+            **kwargs
+        )
+        n_successful += 1
+        logger.info(msg)
+    if zipped:
+        verb = "Overwritten" if overwriting_zip else "Written"
+        logger.info(f"{verb} {path} with {n_successful} TSV files.")
 
 
 def update(parse_obj: Parse,

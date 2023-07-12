@@ -94,7 +94,9 @@ FRICTIONLESS_REGEX = r"^([-a-z0-9._/])+$"
 FRICTIONLESS_INVERSE = r"[^-a-z0-9._/]"
 schemata = {}
 
-def make_resource_name(name: str, replace_char="_") -> str:
+def make_valid_frictionless_name(name: str, replace_char="_") -> str:
+    if not isinstance(name, str):
+        raise TypeError(f"Name must be a string, not {type(name)}")
     name = name.lower()
     if not re.match(FRICTIONLESS_REGEX, name):
         name = re.sub(FRICTIONLESS_INVERSE, replace_char, name)
@@ -109,7 +111,7 @@ def assemble_resource_descriptor(name: str,
     if is_zipped:
         assert innerpath is not None, "Must specify innerpath for zip files."
     descriptor = {
-        "name": make_resource_name(name),
+        "name": make_valid_frictionless_name(name),
         "type": "table",
         "path": path,
         "scheme": "file",
@@ -140,35 +142,9 @@ def make_json_path(file: File) -> str:
     return os.path.join(file.directory, f"{file.piece}.resource.json")
 
 UTILS_DIR = os.path.dirname(__file__) # .../ms3/src/ms3/utils/
-SCHEMAS_DIR = os.path.join(UTILS_DIR, '..', '..', '..', 'schemas')
+SCHEMAS_DIR = os.path.normpath(os.path.join(UTILS_DIR, '..', '..', '..', 'schemas'))
 os.makedirs(SCHEMAS_DIR, exist_ok=True)
 
-# SCHEMA_REGISTRY_PATH = os.path.join(SCHEMAS_DIR, 'schema_registry.json')
-# SCHEMA_REGISTRY: dict = None
-#
-#
-# def get_schema_registry() -> dict:
-#     global SCHEMA_REGISTRY
-#     if SCHEMA_REGISTRY is None:
-#         SCHEMA_REGISTRY = dict()
-#         if os.path.exists(SCHEMA_REGISTRY_PATH):
-#             with open(SCHEMA_REGISTRY_PATH, 'r') as f:
-#                 SCHEMA_REGISTRY = json.load(f)
-#     return SCHEMA_REGISTRY
-
-# def register_new_schema_locally(descriptor: dict):
-#     registry = get_schema_registry()
-#     facet = descriptor['facet']
-#     identifier = descriptor['identifier']
-#     filename = descriptor['filename']
-#     if facet in registry:
-#         if identifier in registry[facet]:
-#             raise ValueError(f"Schema {facet}/{identifier} already registered!")
-#         registry[facet][identifier] = filename
-#     else:
-#         registry[facet] = {identifier: filename}
-#     with open(SCHEMA_REGISTRY_PATH, 'w') as f:
-#         json.dump(registry, f, indent=2)
 
 def get_truncated_hash(S: str | Iterable[str],
                        hash_func = hashlib.sha1,

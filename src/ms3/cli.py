@@ -225,27 +225,27 @@ def metadata(args, parse_obj: Optional[Parse] = None):
 #     print(args.dir)
 
 
-def transform_cmd(args, parse_obj: Optional[Parse] = None):
+def transform_cmd(args):
     params = gather_extract_params(args)
     if len(params) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
     suffixes = make_suffixes(args, include_metadata=True)
-    if parse_obj is None:
-        p = make_parse_obj(args, parse_tsv=True, facets=params)
-    else:
-        p = parse_obj
-
+    parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
+    filename = os.path.basename(args.dir)
     transform(
-        ms3_object=p,
+        ms3_object=parse_obj,
         facets=params,
+        filename=filename,
         output_folder=args.out,
         suffixes=suffixes,
         choose='auto',
         interval_index=args.interval_index,
         unfold=args.unfold,
         test=args.test,
+        zipped=not args.resources,
+        overwrite=args.safe,
         log_level=args.level
     )
 
@@ -441,7 +441,7 @@ Parse('{args.dir}',
                       ms=ms,
                       **logger_cfg)
     if facets is not None:
-        facets = [f for f in facets if f != 'metadata']
+        facets = [f"{f}$" for f in facets if f != 'metadata']
         if len(facets) > 0:
             parse_obj.view.include('facets', *facets)
     if parse_scores:
@@ -706,6 +706,9 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                 help="Unfold the repeats for all concatenated DataFrames.")
     transform_parser.add_argument('--interval_index', action='store_true',
                               help="Prepend a column with [start, end) intervals to the TSV files.")
+    transform_parser.add_argument('--resources', action='store_true',
+                                  help="Store the concatenated DataFrames as TSV files with resource descriptors rather than in a ZIP with a package descriptor.")
+    transform_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     transform_parser.set_defaults(func=transform_cmd)
 
 
