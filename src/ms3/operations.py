@@ -24,7 +24,7 @@ def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
       ms3_object: A Corpus or Parse object including the corresponding files.
       facet: Which kind of labels to pick ('labels', 'expanded', or 'unknown').
       ask_for_input:
-          What to do if more than one TSV or MuseScore file is detected for a particular fname. By default, the user is asked for input.
+          What to do if more than one TSV or MuseScore file is detected for a particular piece. By default, the user is asked for input.
           Pass False to prevent that and pick the files with the shortest relative paths instead.
       replace: By default, any existing labels are removed from the scores. Pass False to leave them in, which may lead to clashes.
       staff
@@ -56,7 +56,7 @@ def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
     ms3_object.view.include('facets', 'scores', f"^{facet}$")
     ms3_object.disambiguate_facet(facet, ask_for_input=ask_for_input)
     ms3_object.disambiguate_facet('scores', ask_for_input=ask_for_input)
-    ms3_object.view.fnames_with_incomplete_facets = False
+    ms3_object.view.pieces_with_incomplete_facets = False
     obj_name = type(ms3_object).__name__.upper()
     if print_info:
         print(f"VIEW ON THE {obj_name} BEFORE PARSING:")
@@ -242,8 +242,8 @@ def update(parse_obj: Parse,
     for corpus_name, corpus in parse_obj.iter_corpora():
         need_update = []
         latest_version = LATEST_MUSESCORE_VERSION.split('.')
-        for fname, piece in corpus.iter_pieces():
-            for file, score in piece.iter_parsed('scores'):
+        for piece, piece_obj in corpus.iter_pieces():
+            for file, score in piece_obj.iter_parsed('scores'):
                 score_version = score.mscx.metadata['musescore'].split('.')
                 need_update.append(score_version < latest_version)
         if any(need_update):
@@ -290,16 +290,16 @@ def make_coloring_reports_and_warnings(parse_obj: Parse,
     """
     review_reports = parse_obj.color_non_chord_tones()
     test_passes = True
-    for (corpus_name, fname), file_df_pairs in review_reports.items():
-        piece_logger = get_logger(parse_obj[corpus_name].logger_names[fname])
+    for (corpus_name, piece), file_df_pairs in review_reports.items():
+        piece_logger = get_logger(parse_obj[corpus_name].logger_names[piece])
         ignored_warning_ids = get_ignored_warning_ids(piece_logger)
         is_first = True
         for file, report in file_df_pairs:
             report_path = compute_path_from_file(file, root_dir=out_dir, folder='reviewed')
             os.makedirs(report_path, exist_ok=True)
-            report_file = os.path.join(report_path, file.fname + '_reviewed.tsv')
+            report_file = os.path.join(report_path, file.piece + '_reviewed.tsv')
             if not is_first and os.path.isfile(report_file):
-                get_logger('ms3.review').warning(f"This coloring report has been overwritten because several scores have the same fname:\n{report_file}")
+                get_logger('ms3.review').warning(f"This coloring report has been overwritten because several scores have the same piece:\n{report_file}")
             write_tsv(report, report_file)
             is_first = False
             warning_selection = (report.count_ratio > threshold) & report.chord_tones.notna()

@@ -81,7 +81,7 @@ class LoggedClass():
         Current logger that the object is using.
     parser : {'bs4'}
         The only XML parser currently implemented is BeautifulSoup 4.
-    paths, files, fnames, fexts, logger_names : :obj:`dict`
+    paths, files, pieces, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
 
@@ -258,10 +258,10 @@ def resolve_log_path_argument(path, name, logger):
     if path is not None:
         path = resolve_dir(path)
         if os.path.isdir(path):
-            fname = name + ".log"
-            log_file = os.path.join(path, fname)
+            piece = name + ".log"
+            log_file = os.path.join(path, piece)
         else:
-            path_component, fname = os.path.split(path)
+            path_component, piece = os.path.split(path)
             if os.path.isdir(path_component):
                 log_file = path
             else:

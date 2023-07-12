@@ -24,9 +24,9 @@ class Piece(LoggedClass):
 
     _deprecated_elements = ["get_dataframe"]
 
-    def __init__(self, fname: str, view: View = None, labels_cfg={}, ms=None, **logger_cfg):
+    def __init__(self, pname: str, view: View = None, labels_cfg={}, ms=None, **logger_cfg):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
-        self.name = fname
+        self.name = pname
         available_types = ('scores',) + Score.dataframe_types
         self.facet2files: Dict[str, FileList] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
@@ -162,7 +162,7 @@ class Piece(LoggedClass):
             return None
         meta_dict = score.mscx.metadata
         meta_dict['subdirectory'] = file.subdir
-        meta_dict['fname'] = self.name
+        meta_dict['piece'] = self.name
         meta_dict['rel_path'] = file.rel_path
         if as_dict:
             return meta_dict
@@ -840,12 +840,12 @@ class Piece(LoggedClass):
         elif choose == 'all' and 'scores' in needs_choice:
             # check if any scores can be differentiated solely by means of their file extension
             several_score_files = result['scores'].values()
-            subdir_fnames = [(file.subdir, file.fname) for file in several_score_files]
-            if len(set(subdir_fnames)) < len(subdir_fnames):
-                duplicates = {tup: [] for tup, cnt in Counter(subdir_fnames).items() if cnt > 1}
+            subdir_pieces = [(file.subdir, file.piece) for file in several_score_files]
+            if len(set(subdir_pieces)) < len(subdir_pieces):
+                duplicates = {tup: [] for tup, cnt in Counter(subdir_pieces).items() if cnt > 1}
                 for file in several_score_files:
-                    if (file.subdir, file.fname) in duplicates:
-                        duplicates[(file.subdir, file.fname)].append(file.rel_path)
+                    if (file.subdir, file.piece) in duplicates:
+                        duplicates[(file.subdir, file.piece)].append(file.rel_path)
                 display_duplicates = '\n'.join(str(sorted(files)) for files in duplicates.values())
                 self.logger.warning(f"The following scores are lying in the same subfolder and have the same name:\n{display_duplicates}.\n"
                                     f"TSV files extracted from them will be overwriting each other. Consider excluding certain "
@@ -1341,7 +1341,7 @@ class Piece(LoggedClass):
                                               **cols)
 
 
-    def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
+    def register_file(self, file: File, reject_incongruent_pnames: bool = True) -> bool:
         ix = file.ix
         if ix in self.ix2file:
             existing_file = self.ix2file[ix]
@@ -1350,12 +1350,12 @@ class Piece(LoggedClass):
                 return None
             else:
                 self.logger.debug(f"File '{existing_file.rel_path}' replaced with '{file.rel_path}'")
-        if file.fname != self.name:
-            if file.fname.startswith(self.name):
-                file.suffix = file.fname[len(self.name):]
+        if file.piece != self.name:
+            if file.piece.startswith(self.name):
+                file.suffix = file.piece[len(self.name):]
                 self.logger.debug(f"Recognized suffix '{file.suffix}' for {file.file}.")
-            elif reject_incongruent_fnames:
-                if self.name in file.fname:
+            elif reject_incongruent_pnames:
+                if self.name in file.piece:
                     self.logger.info(f"{file.file} seems to come with a prefix w.r.t. '{self.name}' and is ignored.")
                     return False
                 else:
@@ -1393,7 +1393,7 @@ class Piece(LoggedClass):
                 For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
               * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
                 ``root_dir``.
-          suffix: String to append to the file's fname.
+          suffix: String to append to the file's pname.
           view_name:
           force:
           choose:
@@ -1536,7 +1536,7 @@ class Piece(LoggedClass):
             self.logger.info(f"No metadata available for updating scores.")
             return []
         updated_scores = []
-        ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['fname']
+        ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['piece']
         for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
             MSCX = score.mscx.parsed
             current_metadata = MSCX.metatags.fields

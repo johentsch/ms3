@@ -406,7 +406,7 @@ def convert_to_ms4(old, new, MS='mscore'):
             msg = f"{MS} is MuseScore {version}, not 4. Try convert()."
         raise RuntimeError(msg)
     old_path, old_file = os.path.split(old)
-    old_fname, old_ext = os.path.splitext(old_file)
+    old_piece_name, old_ext = os.path.splitext(old_file)
     if old_ext.lower() not in SCORE_EXTENSIONS:
         logger.warning(f"Source file '{old}' doesn't have one of the following extensions and is skipped: {SCORE_EXTENSIONS}.")
         return
@@ -415,7 +415,7 @@ def convert_to_ms4(old, new, MS='mscore'):
         target_file = old_file
     else:
         target_folder, target_file = os.path.split(new)
-    target_fname, target_ext = os.path.splitext(target_file)
+    target_piece_name, target_ext = os.path.splitext(target_file)
     tmp_needed = target_ext in ('.mscx', '.mscz')
     if tmp_needed:
         tmp_dir = os.path.join(target_folder, '.ms3_tmp_' + old_file)
@@ -424,13 +424,13 @@ def convert_to_ms4(old, new, MS='mscore'):
         except FileExistsError:
             logger.warning(f"The temporary directory {tmp_dir} exists already and would be overwritten. Delete it first.")
             return
-        tmp_mscx = os.path.join(tmp_dir, target_fname + '.mscx')
+        tmp_mscx = os.path.join(tmp_dir, target_piece_name + '.mscx')
         new = tmp_mscx
     process = [MS, "-fo", new, old]
     result = subprocess.run(process, capture_output=True, text=True)
     if result.returncode == 0:
         if tmp_needed:
-            target_path_without_extension = os.path.join(target_folder, target_fname)
+            target_path_without_extension = os.path.join(target_folder, target_piece_name)
             if not os.path.isdir(tmp_dir):
                 logger.warning(f"Temporary directory '{tmp_dir}' did not exist after conversion.")
                 return
@@ -517,11 +517,11 @@ def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=
             new_dirs[subdir] = new_subdir
         name, _ = os.path.splitext(file)
         if suffix is not None:
-            fname = f"{name}{suffix}.{target_extension}"
+            piece_name = f"{name}{suffix}.{target_extension}"
         else:
-            fname = f"{name}.{target_extension}"
+            piece_name = f"{name}.{target_extension}"
         old = os.path.join(subdir, file)
-        new = os.path.join(new_subdir, fname)
+        new = os.path.join(new_subdir, piece_name)
         if overwrite or not os.path.isfile(new):
             conversion_params.append([dict(old=old, new=new, MS=MS, logger=logger)])
         else:
@@ -2791,13 +2791,13 @@ def path2type(path):
 
     if os.path.isfile(path):
         # give preference to folder names before file names
-        directory, fname = os.path.split(path)
-        if 'metadata' in fname:
-            logger.debug(f"Categorized {path} as metadata based on the filename {fname!r}.")
+        directory, piece_name = os.path.split(path)
+        if 'metadata' in piece_name:
+            logger.debug(f"Categorized {path} as metadata based on the filename {piece_name!r}.")
             return 'metadata'
         found_components, n_found = find_components(directory)
         if n_found == 0:
-            found_components, n_found = find_components(fname)
+            found_components, n_found = find_components(piece_name)
     else:
         found_components, n_found = find_components(path)
     if n_found == 0:
@@ -3619,7 +3619,8 @@ def write_metadata(metadata_df: pd.DataFrame,
     Args:
       metadata_df:
           DataFrame with one row per piece and an index of strings identifying pieces. The index is used for
-          updating a potentially pre-existent file, from which the first column ∈ ('fname', 'fnames', 'name', 'names')
+          updating a potentially pre-existent file, from which the first column ∈ ('piece', 'fname', 'fnames', 'name',
+          'names')
           will be used as index.
       path:
           If folder path, the filename 'metadata.tsv' will be appended; file_path will be used as is but a
@@ -3630,7 +3631,7 @@ def write_metadata(metadata_df: pd.DataFrame,
       True if the metadata were successfully written, False otherwise.
     """
     metadata_df = metadata_df.astype('string')
-    metadata_df = enforce_fname_index_for_metadata(metadata_df)
+    metadata_df = enforce_piece_index_for_metadata(metadata_df)
     path = resolve_dir(path)
     if os.path.isdir(path):
         tsv_path = os.path.join(path, 'metadata.tsv')
@@ -3645,7 +3646,7 @@ def write_metadata(metadata_df: pd.DataFrame,
     else:
         # Trying to load an existing 'metadata.tsv' file to update existing rows
         previous = pd.read_csv(tsv_path, sep='\t', dtype='string')
-        previous = enforce_fname_index_for_metadata(previous)
+        previous = enforce_piece_index_for_metadata(previous)
         for ix, what in zip((previous.index, previous.columns, metadata_df.index, metadata_df.columns),
                             ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
             if not ix.is_unique:
@@ -3672,19 +3673,20 @@ def write_metadata(metadata_df: pd.DataFrame,
 
 
 @function_logger
-def enforce_fname_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
-    """Returns a copy of the DataFrame that has an index level called 'fname'."""
-    possible_column_names = ('fname', 'fnames', 'filename', 'name', 'names',)
+def enforce_piece_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
+    """Returns a copy of the DataFrame that has an index level called 'piece'."""
+    possible_column_names = ('piece', 'fname', 'fnames', 'filename', 'name', 'names',)
     if any(name in metadata_df.index.names for name in possible_column_names):
         return metadata_df.copy()
     try:
-        fname_col = next(col for col in possible_column_names if col in metadata_df.columns)
+        piece_col = next(col for col in possible_column_names if col in metadata_df.columns)
     except StopIteration:
-        raise ValueError(f"Metadata is expected to come with a column or index level called 'fname' or (previously) 'fnames'.")
-    if fname_col != 'fname':
-        metadata_df = metadata_df.rename(columns={fname_col: 'fname'})
-        logger.info(f"Renamed column '{fname_col}' -> 'fname'")
-    return metadata_df.set_index('fname', append=append)
+        raise ValueError(f"Metadata is expected to come with a column or index level called 'piece' or ("
+                         f"previously) 'fname'.")
+    if piece_col != 'piece':
+        metadata_df = metadata_df.rename(columns={piece_col: 'piece'})
+        logger.info(f"Renamed column '{piece_col}' -> 'piece'")
+    return metadata_df.set_index('piece', append=append)
 
 
 @function_logger
@@ -3698,7 +3700,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
       file_path: Path of the markdown file.
     """
     rename4markdown = {
-        'fname': 'file_name',
+        'piece': 'file_name',
         'last_mn': 'measures',
         'label_count': 'labels',
         'harmony_version': 'standard',
@@ -3706,7 +3708,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
         'reviewers': 'reviewers',
     }
     rename4markdown = {k: v for k, v in rename4markdown.items() if k in metadata_df.columns}
-    drop_index = 'fnames' in metadata_df.columns
+    drop_index = 'fname' in metadata_df.columns
     md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
     md = md.rename(columns=rename4markdown)
     md_table = "#" + str(dataframe2markdown(md, name="Overview"))  # comes with a first-level heading which we turn into second-level
@@ -3797,7 +3799,7 @@ def write_tsv(df, file_path, pre_process=True, **kwargs):
     path, file = os.path.split(file_path)
     path = resolve_dir(path)
     os.path.join(path, file)
-    fname, ext = os.path.splitext(file)
+    piece, ext = os.path.splitext(file)
     if ext.lower() not in ('.tsv', '.csv', '.zip'):
         logger.error(f"This function expects file_path to include the file name ending on .csv, .tsv, or .zip, not '{ext}'.")
         return
@@ -4467,7 +4469,7 @@ def transpose(e, n):
 
 def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
     """Turns a list of log messages into an iterator of (logger_name, (message_info, ...)) pairs.
-    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(Parse|Corpus).corpus.fname [-- potentially more, irrelevant stuff].
+    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(Parse|Corpus).corpus.piece [-- potentially more, irrelevant stuff].
     The header might be followed by several lines of comments, each beginning with a space or tab.
     """
     if isinstance(messages, str):
@@ -4611,7 +4613,7 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
         'labels': ['harmony_layer', 'label', 'label_type'],
         'measures': ['act_dur'],
         'cadences': ['cadence'],
-        'metadata': ['fname'],
+        'metadata': ['piece'],
         'form_labels': ['form_label', 'a'],
     }
     for t, columns in type2cols.items():
@@ -4659,8 +4661,8 @@ class File:
     """Recognized type ∈ :attr:`ms3._typing.Facet`"""
     file: str
     """File name including extension."""
-    fname: str
-    """fname excluding the suffix (after registering the file with a :obj:`Piece`)."""
+    piece: str
+    """piece excluding the suffix (after registering the file with a :obj:`Piece`)."""
     fext: str
     """File extensions."""
     subdir: str
@@ -4674,8 +4676,8 @@ class File:
     directory: str
     """Absolute folder path where the file is located."""
     suffix: str = ''
-    """Upon registering the File with a :obj:`Piece`, if the current fname has a suffix compared to the Piece's fname, 
-    suffix is removed from the File object's fname field and added to the suffix field."""
+    """Upon registering the File with a :obj:`Piece`, if the current piece has a suffix compared to the Piece's piece, 
+    suffix is removed from the File object's piece field and added to the suffix field."""
     commit_sha: str = ''
     """The the file has been retrieved from a particular git revision, this is set to the revision's hash."""
 
@@ -4721,7 +4723,7 @@ class File:
             ix=ix,
             type=file_type,
             file=filename,
-            fname=file_name,
+            piece=file_name,
             fext=file_ext,
             subdir=subdir,
             corpus_path=corpus_path,
@@ -4734,7 +4736,7 @@ class File:
 
 @function_logger
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
-                                                  fname: str,
+                                                  piece: str,
                                                   file_type: str,
                                                   ) -> File:
     if len(disambiguated_choices) == 1:
@@ -4750,12 +4752,12 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         if '.mscx' in fext_counts:
             if fext_counts['.mscx'] == 1:
                 selected_file = disamb_series[fexts == '.mscx'].iloc[0]
-                logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{fname}', '{selected_file.rel_path}' was selected because it is the only "
+                logger.debug(f"In order to pick one from the {choice_between_n} scores with piece '{piece}', '{selected_file.rel_path}' was selected because it is the only "
                              f"one in MSCX format.")
                 return selected_file
         elif '.mscz' in fext_counts and fext_counts['.mscz'] == 1:
             selected_file = disamb_series[fexts == '.mscz'].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{fname}', '{selected_file.rel_path}' was selected because it is the only "
+            logger.debug(f"In order to pick one from the {choice_between_n} scores with piece '{piece}', '{selected_file.rel_path}' was selected because it is the only "
                          f"one in MSCZ format.")
             return selected_file
     # as first disambiguation criterion, check if the shortest disambiguation string pertains to 1 file only and pick that
@@ -4765,7 +4767,7 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
     if n_have_shortest_length == 1:
         ix = disamb_str_lengths.idxmin()
         selected_file = disamb_series.loc[ix]
-        logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one with the shortest disambiguating string '{ix}' was selected.")
+        logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one with the shortest disambiguating string '{ix}' was selected.")
         return selected_file
     if file_type != 'unknown':
         # otherwise, check if only one file is lying in a directory with default name
@@ -4776,7 +4778,7 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         if default_selector.sum() == 1:
             subdir = subdirs[default_selector].iloc[0]
             selected_file = disamb_series[default_selector].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one in the default subdir '{subdir}' was selected.")
+            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the default subdir '{subdir}' was selected.")
             return selected_file
         # or if only one file contains a default name in its suffix
         suffixes = files_df.suffix
@@ -4784,7 +4786,7 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         if default_selector.sum() == 1:
             suffix = suffixes[default_selector].iloc[0]
             selected_file = disamb_series[default_selector].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one in the default suffix '{suffix}' was selected.")
+            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the default suffix '{suffix}' was selected.")
             return selected_file
     # if no file was selected, try again with only those having the shortest disambiguation strings
     if shortest_length_selector.all():
@@ -4793,13 +4795,13 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         sorted_disamb_series = disamb_series.sort_index()
         disamb = sorted_disamb_series.index[0]
         selected_file = sorted_disamb_series.iloc[0]
-        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with fname '{fname}'. I'm picking '{selected_file.rel_path}' "
+        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with piece '{piece}'. I'm picking '{selected_file.rel_path}' "
                        f"because its disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
         return selected_file
     only_shortest_disamb_str = disamb_series[shortest_length_selector].to_dict()
-    logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with fname '{fname}', trying again "
+    logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with piece '{piece}', trying again "
                 f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
-    return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, fname, file_type)
+    return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, piece, file_type)
 
 
 def ask_user_to_choose(query: str, choices: Collection[Any]) -> Optional[Any]:
@@ -4822,7 +4824,7 @@ def ask_user_to_choose(query: str, choices: Collection[Any]) -> Optional[Any]:
 
 
 def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
-                                                fname: str,
+                                                piece: str,
                                                 file_type: str = '') -> Optional[File]:
     sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
     disambiguated_choices = {k: disambiguated_choices[k] for k in sorted_keys}
@@ -4834,13 +4836,13 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
     choices_df.index = pd.Index(range(1, len(file_list) + 1), name='select:')
     range_str = f"1-{len(disambiguated_choices)}"
     query = f"Selection [{range_str}]: "
-    print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
+    print(f"Several '{file_type}' available for '{piece}':\n{choices_df.to_string()}")
     print(f"Please select one of the files by passing an integer between {range_str} (or 0 for none):")
     return ask_user_to_choose(query, file_list)
 
 
 @function_logger
-def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
+def disambiguate_files(files: Collection[File], piece: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
     """Receives a collection of :obj:`File` with the aim to pick one of them.
     First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
     suffixes.
@@ -4864,14 +4866,14 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
         choose = 'auto'
     disambiguation_dict = files2disambiguation_dict(files, logger=logger)
     if choose == 'ask':
-        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type)
-    return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
+        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, piece, file_type)
+    return automatically_choose_from_disambiguated_files(disambiguation_dict, piece, file_type, logger=logger)
 
 
 # @function_logger
-# def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
+# def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], piece: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
 #     files = [tup[0] for tup in tuples_with_file_as_first_element]
-#     selected = disambiguate_files(files, fname=fname, file_type=file_type, choose=choose, logger=logger)
+#     selected = disambiguate_files(files, piece=piece, file_type=file_type, choose=choose, logger=logger)
 #     if selected is None:
 #         return
 #     for tup in tuples_with_file_as_first_element:
@@ -5165,22 +5167,22 @@ def make_file_path(file: File,
     """ Constructs a file path based on the arguments.
 
     Args:
-      file: This function uses the fields fname, corpus_path, subdir, and type.
+      file: This function uses the fields piece, corpus_path, subdir, and type.
       root_dir:
         Defaults to None, meaning that the path is constructed based on the corpus_path.
         Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
         ``root_dir`` is ignored.
       folder:
         Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-        files that have identical fnames but are located in different subdirectories of the same corpus.
+        files that have identical pieces but are located in different subdirectories of the same corpus.
         * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
         * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
         * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
           For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
         * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
           ``root_dir``.
-      suffix: String to append to the file's fname.
-      fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.
+      suffix: String to append to the file's piece.
+      fext: File extension to append to the (piece+suffix). Defaults to ``.tsv``.
 
     Returns:
       The constructed file path.
@@ -5189,8 +5191,8 @@ def make_file_path(file: File,
     path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
     if suffix is None:
         suffix = ''
-    fname = file.fname + suffix + fext
-    return os.path.join(path, fname)
+    piece = file.piece + suffix + fext
+    return os.path.join(path, piece)
 
 
 def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
@@ -5299,11 +5301,11 @@ def write_to_warnings_file(
 ):
     warnings_path = compute_path_from_file(file, root_dir=root_dir, folder='reviewed')
     if validation_errors:
-        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.errors')
+        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.errors')
         header = f"Validation errors encountered during the last execution of ms3 extract"
         log_msg = f"Written warnings to {warnings_file}."
     else:
-        warnings_file = os.path.join(warnings_path, file.fname + file.suffix + '.warnings')
+        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.warnings')
         header = f"Warnings encountered during the last execution of ms3 review"
         log_msg = f"Written validation errors to {warnings_file}."
     if len(warnings) > 0:

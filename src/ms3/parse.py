@@ -11,7 +11,7 @@ from .logger import LoggedClass
 from .piece import Piece
 from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet, Facet
 from .utils import get_musescore, get_first_level_corpora, pretty_dict, resolve_dir, \
-    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata, File
+    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_piece_index_for_metadata, File
 from .view import View, create_view_from_parameters, DefaultView
 
 
@@ -37,7 +37,7 @@ class Parse(LoggedClass):
     def __init__(self,
                  directory: Optional[Union[str, Collection[str]]] = None,
                  recursive: bool = True,
-                 only_metadata_fnames: bool = True,
+                 only_metadata_pieces: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
@@ -53,7 +53,7 @@ class Parse(LoggedClass):
         Args:
           directory: Path to scan for corpora.
           recursive: Pass False if you don't want to scan ``directory`` for subcorpora, but force making it a corpus instead.
-          only_metadata_fnames:
+          only_metadata_pieces:
               The default view excludes piece names that are not listed in the corpus' metadata.tsv file (e.g. when none was found).
               Pass False to include all pieces regardless. This might be needed when setting ``recursive`` to False.
           include_convertible:
@@ -94,7 +94,7 @@ class Parse(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
 
         self._views: dict = {}
-        initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+        initial_view = create_view_from_parameters(only_metadata_pieces=only_metadata_pieces,
                                                    include_convertible=include_convertible,
                                                    include_tsv=include_tsv,
                                                    exclude_review=exclude_review,
@@ -162,7 +162,7 @@ class Parse(LoggedClass):
 
     @property
     def n_orphans(self) -> int:
-        """Number of files that are always disregarded because they could not be attributed to any of the fnames."""
+        """Number of files that are always disregarded because they could not be attributed to any of the pieces."""
         return sum(len(corpus.ix2orphan_file) for _, corpus in self)
 
     @property
@@ -182,7 +182,7 @@ class Parse(LoggedClass):
 
     @property
     def n_pieces(self) -> int:
-        """Number of all available pieces ('fnames'), independent of the view."""
+        """Number of all available pieces ('pieces'), independent of the view."""
         return sum(corpus.n_pieces for _, corpus in self)
 
     @property
@@ -232,7 +232,7 @@ class Parse(LoggedClass):
     def add_corpus(self,
                    directory: str,
                    corpus_name: Optional[str] = None,
-                   only_metadata_fnames: Optional[bool] = None,
+                   only_metadata_pieces: Optional[bool] = None,
                    include_convertible: Optional[bool] = None,
                    include_tsv: Optional[bool] = None,
                    exclude_review: Optional[bool] = None,
@@ -264,9 +264,9 @@ class Parse(LoggedClass):
         if corpus_name is None:
             corpus_name = os.path.basename(directory).strip(r"\/")
         logger_cfg['name'] = self.logger.name + '.' + corpus_name.replace('.', '')
-        view_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re, only_metadata_fnames, include_tsv, exclude_review, include_convertible))
+        view_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re, only_metadata_pieces, include_tsv, exclude_review, include_convertible))
         if view_params:
-            initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+            initial_view = create_view_from_parameters(only_metadata_pieces=only_metadata_pieces,
                                                        include_convertible=include_convertible,
                                                        include_tsv=include_tsv,
                                                        exclude_review=exclude_review,
@@ -305,7 +305,7 @@ class Parse(LoggedClass):
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
-                only_metadata_fnames: Optional[bool] = None,
+                only_metadata_pieces: Optional[bool] = None,
                 include_convertible: Optional[bool] = None,
                 include_tsv: Optional[bool] = None,
                 exclude_review: Optional[bool] = None,
@@ -334,7 +334,7 @@ class Parse(LoggedClass):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
         L = locals()
-        arguments = ('only_metadata_fnames', 'include_convertible', 'include_tsv', 'exclude_review', 'file_re', 'folder_re', 'exclude_re', 'paths')
+        arguments = ('only_metadata_pieces', 'include_convertible', 'include_tsv', 'exclude_review', 'file_re', 'folder_re', 'exclude_re', 'paths')
         corpus_config = {arg: L[arg] for arg in arguments if L[arg] is not None}
         if 'level' not in logger_cfg:
             logger_cfg['level'] = self.logger.getEffectiveLevel()
@@ -425,7 +425,7 @@ class Parse(LoggedClass):
                 raise ValueError(f"corpus_name needs to be a folder contained in the first path, but '{corpus_name}' isn't.")
             self.add_corpus(first_path)
             # corpus = self.get_corpus(corpus_name)
-            # new_view = create_view_from_parameters(only_metadata_fnames=False, exclude_review=False, paths=paths)
+            # new_view = create_view_from_parameters(only_metadata_pieces=False, exclude_review=False, paths=paths)
             # corpus.set_view(new_view)
 
     def color_non_chord_tones(self,
@@ -435,11 +435,11 @@ class Parse(LoggedClass):
                               choose: Literal['all', 'auto', 'ask'] = 'all', ) -> Dict[CorpusFnameTuple, List[FileDataframeTuple]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name):
-            fname2reports = corpus.color_non_chord_tones(color_name,
+            piece2reports = corpus.color_non_chord_tones(color_name,
                                                     view_name=view_name,
                                                     force=force,
                                                     choose=choose)
-            result.update({(corpus_name, fname): report for fname, report in fname2reports.items()})
+            result.update({(corpus_name, piece): report for piece, report in piece2reports.items()})
         return result
 
     def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
@@ -535,8 +535,8 @@ class Parse(LoggedClass):
         """
         extension_counters = {corpus_name: corpus.count_extensions(view_name, include_metadata=include_metadata) for corpus_name, corpus in self.iter_corpora(view_name)}
         if per_piece:
-            return {(corpus_name, fname): dict(cnt) for corpus_name, fname2cnt in extension_counters.items() for fname, cnt in fname2cnt.items()}
-        return {corpus_name: dict(sum(fname2cnt.values(), Counter())) for corpus_name, fname2cnt in extension_counters.items()}
+            return {(corpus_name, piece): dict(cnt) for corpus_name, piece2cnt in extension_counters.items() for piece, cnt in piece2cnt.items()}
+        return {corpus_name: dict(sum(piece2cnt.values(), Counter())) for corpus_name, piece2cnt in extension_counters.items()}
 
 
     def count_files(self,
@@ -742,10 +742,10 @@ class Parse(LoggedClass):
 
 
 
-    def get_piece(self, corpus_name: str, fname: str) -> Piece:
+    def get_piece(self, corpus_name: str, piece: str) -> Piece:
         """Returns an existing Piece object."""
         assert corpus_name in self.corpus_objects, f"'{corpus_name}' is not an existing corpus. Choose from {list(self.corpus_objects.keys())}"
-        return self.corpus_objects[corpus_name].get_piece(fname)
+        return self.corpus_objects[corpus_name].get_piece(piece)
 
     def get_view(self,
                  view_name: Optional[str] = None,
@@ -811,7 +811,7 @@ class Parse(LoggedClass):
             if filtering_report != '':
                 msg += '\n\n' + filtering_report
         if self.n_orphans > 0:
-            msg += f"\n\nThere are {self.n_orphans} orphans that could not be attributed to any of the respective corpus's fnames"
+            msg += f"\n\nThere are {self.n_orphans} orphans that could not be attributed to any of the respective corpus's pieces"
             if show_discarded:
                 msg += ':'
                 for name, corpus in self:
@@ -895,8 +895,8 @@ class Parse(LoggedClass):
 
     def iter_pieces(self) -> Tuple[CorpusFnameTuple, Piece]:
         for corpus_name, corpus in self:
-            for fname, piece in corpus:
-                yield (corpus_name, fname), piece
+            for piece, piece_obj in corpus:
+                yield (corpus_name, piece), piece_obj
 
     def keys(self) -> List[str]:
         """Return the names of all corpus objects."""
@@ -1128,10 +1128,10 @@ class Parse(LoggedClass):
             if method == 'get_facet':
                 kwargs['concatenate'] = False
             corpus_result = corpus_method(view_name=view_name, **kwargs)
-            for fname, piece_result in corpus_result.items():
+            for piece, piece_result in corpus_result.items():
                 if method == 'get_facet':
                     piece_result = [piece_result]
-                result[(corpus_name, fname)] = piece_result
+                result[(corpus_name, piece)] = piece_result
         if concatenate:
             keys, dataframes = [], []
             flat = 'flat' not in kwargs or kwargs['flat']
@@ -1139,12 +1139,12 @@ class Parse(LoggedClass):
                 add_index_level = any(len(piece_result) > 1 for piece_result in result.values())
             else:
                 add_index_level = any(len(file_dataframe_tuples) > 1 for piece_result in result.values() for file_dataframe_tuples in piece_result.values())
-            for corpus_fname, piece_result in result.items():
+            for corpus_piece, piece_result in result.items():
                 if flat:
                     n_tuples = len(piece_result)
                     if n_tuples == 0:
                         continue
-                    keys.append(corpus_fname)
+                    keys.append(corpus_piece)
                     if n_tuples == 1:
                         if add_index_level:
                             file, df = piece_result[0]
@@ -1162,7 +1162,7 @@ class Parse(LoggedClass):
                         n_tuples = len(file_dataframe_tuples)
                         if n_tuples == 0:
                             continue
-                        keys.append(corpus_fname + (facet,))
+                        keys.append(corpus_piece + (facet,))
                         if n_tuples == 1:
                             if add_index_level:
                                 file, df = file_dataframe_tuples[0]
@@ -1193,7 +1193,7 @@ class Parse(LoggedClass):
                     else:
                         raise
                 nlevels = result.index.nlevels
-                level_names = ['corpus', 'fname']
+                level_names = ['corpus', 'piece']
                 if not flat:
                     level_names.append('facet')
                 if len(level_names) < nlevels - 1:
@@ -1209,27 +1209,27 @@ class Parse(LoggedClass):
     def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
+            piece2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+            result[corpus_name] = sum(piece2files.values(), [])
         return result
 
 
     def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
+            piece2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
+            result[corpus_name] = sum(piece2files.values(), [])
         return result
 
     def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+            piece2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
             if flat:
-                result[corpus_name] = sum(fname2files.values(), [])
+                result[corpus_name] = sum(piece2files.values(), [])
             else:
                 dd = defaultdict(list)
-                for fname, typ2files in fname2files.items():
+                for piece, typ2files in piece2files.items():
                     for typ, files in typ2files.items():
                         dd[typ].extend(files)
                 result[corpus_name] = dict(dd)
@@ -1238,12 +1238,12 @@ class Parse(LoggedClass):
     def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+            piece2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
             if flat:
-                result[corpus_name] = sum(fname2files.values(), [])
+                result[corpus_name] = sum(piece2files.values(), [])
             else:
                 dd = defaultdict(list)
-                for fname, typ2files in fname2files.items():
+                for piece, typ2files in piece2files.items():
                     for typ, files in typ2files.items():
                         dd[typ].extend(files)
                 result[corpus_name] = dict(dd)
@@ -1282,7 +1282,7 @@ class Parse(LoggedClass):
 
     def score_metadata(self, view_name: Optional[str] = None) -> pd.DataFrame:
         metadata_dfs = {corpus_name: corpus.score_metadata(view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'piece'])
         return metadata
 
     def metadata(self,
@@ -1290,14 +1290,14 @@ class Parse(LoggedClass):
                  choose: Optional[Literal['auto', 'ask']] = None) -> pd.DataFrame:
         metadata_dfs = {corpus_name: corpus.metadata(view_name=view_name, choose=choose)
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'piece'])
         return metadata
 
     def metadata_tsv(self, view_name: Optional[str] = None) -> pd.DataFrame:
-        """Concatenates the 'metadata.tsv' (as they come) files for all corpora with a [corpus, fname] MultiIndex. If
-        you need metadata that filters out fnames according to the current view, use :meth:`metadata`.
+        """Concatenates the 'metadata.tsv' (as they come) files for all corpora with a [corpus, piece] MultiIndex. If
+        you need metadata that filters out pieces according to the current view, use :meth:`metadata`.
         """
-        metadata_dfs = {corpus_name: enforce_fname_index_for_metadata(corpus.metadata_tsv)
+        metadata_dfs = {corpus_name: enforce_piece_index_for_metadata(corpus.metadata_tsv)
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)
                         if corpus.metadata_tsv is not None
                         }
@@ -1312,7 +1312,7 @@ class Parse(LoggedClass):
             if 'rel_path' in df.columns:
                 rel_paths = ['/'.join((corpus_name, rel_path)) for rel_path in df['rel_path']]
                 df.loc[:, 'rel_path'] = rel_paths
-        metadata = pd.concat(metadata_dfs, names=['corpus', 'fname'])
+        metadata = pd.concat(metadata_dfs, names=['corpus', 'piece'])
         return metadata
 
 
@@ -1390,7 +1390,7 @@ class Parse(LoggedClass):
           folder:
 
               * Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-                files that have identical fnames but are located in different subdirectories of the same corpus.
+                files that have identical pieces but are located in different subdirectories of the same corpus.
               * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
               * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
               * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the ``root_dir``.
@@ -1523,8 +1523,8 @@ class Parse(LoggedClass):
             if len(item) == 1:
                 return self.get_corpus(item[0])
             if len(item) == 2:
-                corpus_name, fname_or_ix = item
-                return self.get_corpus(corpus_name)[fname_or_ix]
+                corpus_name, piece_or_ix = item
+                return self.get_corpus(corpus_name)[piece_or_ix]
             corpus_name, *remainder = item
             return self.get_corpus(corpus_name)[tuple(remainder)]
 

@@ -330,7 +330,7 @@ def review_cmd(args,
     if p.n_parsed_scores == 0:
         msg = "NO SCORES PARSED, NOTHING TO DO."
         if not args.all:
-            msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
+            msg += "\nI was disregarding all files whose file names are not listed in the column 'piece' of a 'metadata.tsv' file. " \
                    "Add -a if you want me to include all scores."
         print(msg)
         return
@@ -348,7 +348,7 @@ def review_cmd(args,
         accumulated_warnings.extend(captured_warnings.content_list)
 
     # attribute warnings to pieces based on logger names
-    logger2pieceID = {corpus.logger_names[fname]: (c, fname) for c, corpus in p.corpus_objects.items() for fname in corpus.keys()}
+    logger2pieceID = {corpus.logger_names[piece]: (c, piece) for c, corpus in p.corpus_objects.items() for piece in corpus.keys()}
     piece2warnings = defaultdict(list)
     for warning_strings in accumulated_warnings:
         warning_lines = warning_strings.splitlines()
@@ -425,7 +425,7 @@ def make_parse_obj(args, parse_scores=False, parse_tsv=False, facets=None):
     print(f"""CREATING PARSE OBJECT WITH THE FOLLOWING PARAMETERS:
 Parse('{args.dir}',
      recursive={not args.nonrecursive},
-     only_metadata_fnames={not args.all},
+     only_metadata_pieces={not args.all},
      include_convertible={ms is not None},
      exclude_review={not args.reviewed},
      file_re={file_re_str},
@@ -438,7 +438,7 @@ Parse('{args.dir}',
 """)
     parse_obj = Parse(args.dir,
                       recursive=not args.nonrecursive,
-                      only_metadata_fnames=not args.all,
+                      only_metadata_pieces=not args.all,
                       include_convertible=ms is not None,
                       exclude_review=not args.reviewed,
                       file_re=args.include,
@@ -478,7 +478,7 @@ def get_arg_parser():
     parse_args.add_argument('-n', '--nonrecursive', action='store_true',
                             help='Treat DIR as single corpus even if it contains corpus directories itself.')
     parse_args.add_argument('-a', '--all', action='store_true',
-                            help="By default, only files listed in the 'fname' column of a 'metadata.tsv' file are parsed. With "
+                            help="By default, only files listed in the 'piece' column of a 'metadata.tsv' file are parsed. With "
                                  "this option, all files will be parsed.")
     parse_args.add_argument('-i', '--include', metavar="REGEX",
                                 help="Select only files whose names include this string or regular expression.")

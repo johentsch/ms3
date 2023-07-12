@@ -137,7 +137,7 @@ def replace_extension(filepath: str, new_extension: str) -> str:
     return os.path.splitext(filepath)[0] + new_extension
 
 def make_json_path(file: File) -> str:
-    return os.path.join(file.directory, f"{file.fname}.resource.json")
+    return os.path.join(file.directory, f"{file.piece}.resource.json")
 
 UTILS_DIR = os.path.dirname(__file__) # .../ms3/src/ms3/utils/
 SCHEMAS_DIR = os.path.join(UTILS_DIR, '..', '..', '..', 'schemas')
@@ -265,13 +265,13 @@ def get_schema(df: pd.DataFrame,
     return result
 
 @function_logger
-def store_descriptor(fname: str,
+def store_descriptor(piece_name: str,
                      facet: ScoreFacet,
                      schema,
                      json_path: str
                      ) -> dict:
-    descriptor = assemble_resource_descriptor(name=f"{fname}.{facet}",
-                                              path=f"{fname}.tsv",
+    descriptor = assemble_resource_descriptor(name=f"{piece_name}.{facet}",
+                                              path=f"{piece_name}.tsv",
                                               schema=schema
                                               )
     with open(json_path, 'w', encoding='utf-8') as f:
@@ -280,8 +280,8 @@ def store_descriptor(fname: str,
     return descriptor
 
 @function_logger
-def store_descriptor_and_validate(df, file_path, facet, fname) -> fl.Report:
+def store_descriptor_and_validate(df, file_path, facet, piece_name) -> fl.Report:
     schema = get_schema(df, facet)
     json_path = replace_extension(file_path, '.resource.json')
-    store_descriptor(fname, facet, schema, json_path, logger=logger)
+    store_descriptor(piece_name, facet, schema, json_path, logger=logger)
     return fl.validate(json_path)

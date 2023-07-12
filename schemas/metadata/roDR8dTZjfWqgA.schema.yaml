@@ -3,7 +3,7 @@ fields:
     type: string
     title: Corpus
     description: Name of a group of pieces
-  - name: fname
+  - name: piece
     type: string
     title: Piece identifier
     description: Name identifier (filename without suffixes) of a piece

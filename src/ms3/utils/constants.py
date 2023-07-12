@@ -29,12 +29,12 @@ MUSESCORE_HEADER_FIELDS = ['title_text', 'subtitle_text', 'lyricist_text', 'comp
 
 OTHER_COLUMNS = ['subdirectory', 'rel_path',]
 
-LEGACY_COLUMNS = ['fnames', 'rel_paths', 'md5',]
+LEGACY_COLUMNS = ['fname', 'fnames', 'rel_paths', 'md5',]
 
 AUTOMATIC_COLUMNS = COMPUTED_METADATA_COLUMNS + VERSION_COLUMNS + INSTRUMENT_RELATED_COLUMNS + OTHER_COLUMNS
 """This combination of column names is excluded when updating metadata fields in MuseScore files via ms3 metadata."""
 
-METADATA_COLUMN_ORDER = ['fname'] + COMPUTED_METADATA_COLUMNS + DCML_METADATA_COLUMNS + MUSESCORE_METADATA_FIELDS + MUSESCORE_HEADER_FIELDS + VERSION_COLUMNS + OTHER_COLUMNS + INSTRUMENT_RELATED_COLUMNS
+METADATA_COLUMN_ORDER = ['piece'] + COMPUTED_METADATA_COLUMNS + DCML_METADATA_COLUMNS + MUSESCORE_METADATA_FIELDS + MUSESCORE_HEADER_FIELDS + VERSION_COLUMNS + OTHER_COLUMNS + INSTRUMENT_RELATED_COLUMNS
 """The default order in which columns of metadata.tsv files are to be sorted."""
 
 SCORE_EXTENSIONS = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
