@@ -7,10 +7,10 @@ Command line interface for ms3.
 import argparse, os
 import re
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, List, Dict
 
 from ms3 import Parse, make_coloring_reports_and_warnings
-from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
+from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score, transform
 from ms3.utils import convert_folder, resolve_dir, write_tsv, capture_parse_logs, write_to_warnings_file
 from ms3.logger import get_logger, inspect_loggers
 from ms3._version import __version__
@@ -19,7 +19,7 @@ __author__ = "johentsch"
 __copyright__ = "École Polytechnique Fédérale de Lausanne"
 __license__ = "gpl3"
 
-def gather_extract_params(args):
+def gather_extract_params(args) -> List[str]:
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords))
@@ -31,7 +31,10 @@ def gather_extract_params(args):
 
 
 
-def make_suffixes(args, include_metadata: bool = False):
+def make_suffixes(
+        args,
+        include_metadata: bool = False
+) -> Dict[str, str]:
     params = gather_extract_params(args)
     if args.suffix is None:
         suffixes = {}
@@ -222,8 +225,7 @@ def metadata(args, parse_obj: Optional[Parse] = None):
 #     print(args.dir)
 
 
-def transform(args, parse_obj: Optional[Parse] = None):
-    logger = get_logger('ms3.transform', level=args.level)
+def transform_cmd(args, parse_obj: Optional[Parse] = None):
     params = gather_extract_params(args)
     if len(params) == 0:
         print(
@@ -235,27 +237,17 @@ def transform(args, parse_obj: Optional[Parse] = None):
     else:
         p = parse_obj
 
-
-    for param in params:
-        sfx = suffixes.get(f"{param}_suffix", '')
-        tsv_name = f"concatenated_{param}{sfx}.tsv"
-        if args.out is None:
-            path = tsv_name
-        else:
-            path = os.path.join(args.out, tsv_name)
-        if param == 'metadata':
-            df = p.metadata()
-        else:
-            df = p.get_facets(param, flat=True, interval_index=args.interval_index, unfold=args.unfold)
-        df = df.reset_index(drop=False)
-        if df is None or len(df.index) == 0:
-            logger.info(f"No {param} data found. Maybe you haven't run ms3 extract?")
-            continue
-        if args.test:
-            logger.info(f"Would have written {path}.")
-        else:
-            write_tsv(df, path)
-            logger.info(f"{path} written.")
+    transform(
+        ms3_object=p,
+        facets=params,
+        output_folder=args.out,
+        suffixes=suffixes,
+        choose='auto',
+        interval_index=args.interval_index,
+        unfold=args.unfold,
+        test=args.test,
+        log_level=args.level
+    )
 
 
 def update_cmd(args, parse_obj: Optional[Parse] = None):
@@ -714,7 +706,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                 help="Unfold the repeats for all concatenated DataFrames.")
     transform_parser.add_argument('--interval_index', action='store_true',
                               help="Prepend a column with [start, end) intervals to the TSV files.")
-    transform_parser.set_defaults(func=transform)
+    transform_parser.set_defaults(func=transform_cmd)
 
 
 

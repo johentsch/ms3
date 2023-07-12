@@ -2,7 +2,7 @@ import os
 from typing import Literal, Optional, Tuple, Dict, List, Union
 
 from ms3 import Parse, Corpus
-from ms3._typing import AnnotationsFacet
+from ms3._typing import AnnotationsFacet, ScoreFacets
 from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids, MessageType
@@ -225,6 +225,51 @@ def store_scores(ms3_object: Union[Parse, Corpus],
                                           suffix=suffix,
                                           overwrite=overwrite,
                                           simulate=simulate)
+
+def transform(
+    ms3_object: Parse | Corpus,
+    facets: ScoreFacets,
+    output_folder: Optional[str] = None,
+    suffixes: Optional[Dict[str, str]] = None,
+    choose: Literal['all', 'auto', 'ask'] = 'auto',
+    interval_index: bool = False,
+    unfold: bool = False,
+    test: bool = False,
+    log_level = None
+):
+    logger = get_logger('ms3.transform', level=log_level)
+    if len(facets) == 0:
+        print(
+            "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
+        return
+    if suffixes is None:
+        suffixes = {}
+
+    for facet in facets:
+        sfx = suffixes.get(f"{facet}_suffix", '')
+        tsv_name = f"concatenated_{facet}{sfx}.tsv"
+        if output_folder is None:
+            path = tsv_name
+        else:
+            path = os.path.join(output_folder, tsv_name)
+        if facet == 'metadata':
+            df = ms3_object.metadata()
+        else:
+            df = ms3_object.get_facets(
+                facet,
+                choose = choose,
+                flat=True,
+                interval_index=interval_index,
+                unfold=unfold)
+        df = df.reset_index(drop=False)
+        if df is None or len(df.index) == 0:
+            logger.info(f"No {facet} data found. Maybe you haven't run ms3 extract?")
+            continue
+        if test:
+            logger.info(f"Would have written {path}.")
+        else:
+            write_tsv(df, path)
+            logger.info(f"{path} written.")
 
 
 def update(parse_obj: Parse,

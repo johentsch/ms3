@@ -679,6 +679,21 @@ class Parse(LoggedClass):
                                            concatenate=concatenate,
                                            )
 
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat, include_empty, concatenate: Literal[True]) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat: Literal[True], include_empty, concatenate: Literal[False]) -> Dict[CorpusFnameTuple,
+                                                                                                                                                            List[FileDataframeTuple]]:
+        ...
+
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat: Literal[False], include_empty, concatenate: Literal[False]) -> Dict[CorpusFnameTuple,
+                                                                                                                                                             Dict[str,
+                                                                                                                                                                  List[FileDataframeTuple]]]:
+        ...
+
     def get_facets(self,
                    facets: ScoreFacets = None,
                    view_name: Optional[str] = None,
