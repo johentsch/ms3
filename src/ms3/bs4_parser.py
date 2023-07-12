@@ -98,7 +98,8 @@ from .utils import adjacency_groups, color_params2rgba, column_order, compute_mn
     make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough_info, \
     make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name, unfold_measures_table, unfold_repeats
-from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX, MS3_VERSION
+from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
+from ms3._version import __version__
 
 NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',
@@ -1304,7 +1305,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             data['annotated_key'] = annotated_key
 
         data['musescore'] = self.version
-        data['ms3_version'] = MS3_VERSION
+        data['ms3_version'] = __version__
 
         # notes
         notes = self.nl()

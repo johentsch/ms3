@@ -3,7 +3,6 @@ from collections import namedtuple
 
 import webcolors
 
-MS3_VERSION = '1.2.10'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',

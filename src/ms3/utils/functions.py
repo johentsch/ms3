@@ -1,4 +1,3 @@
-import re
 import os
 import io
 import json
@@ -34,6 +33,7 @@ from typing_extensions import Self
 from ms3.logger import update_cfg, LogCapturer, function_logger
 from ms3._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 from .constants import *
+from ms3._version import __version__
 
 
 class map_dict(dict):
@@ -2120,7 +2120,7 @@ def make_csvw_jsonld(title: str,
         "author": {"name": "Johannes Hentschel",
                    "@id": "https://orcid.org/0000-0002-1986-9545",
                    },
-        "softwareVersion": MS3_VERSION,
+        "softwareVersion": __version__,
     }]
     if isinstance(urls, str):
         result["url"] = urls,
