@@ -2,6 +2,7 @@ import os
 import io
 import json
 import logging
+import re
 import sys, platform, shutil, subprocess
 import warnings
 from ast import literal_eval
@@ -21,6 +22,7 @@ from zipfile import ZipFile as Zip
 import git
 import pandas as pd
 import numpy as np
+import webcolors
 from gitdb.exc import BadName
 from numpy.typing import NDArray
 from pandas._typing import Dtype
@@ -32,8 +34,9 @@ from typing_extensions import Self
 
 from ms3.logger import update_cfg, LogCapturer, function_logger
 from ms3._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
-from .constants import *
 from ms3._version import __version__
+from .constants import rgba, MS3_HTML, SCORE_EXTENSIONS, FORM_LEVEL_REGEX, FORM_LEVEL_CAPTURE_REGEX, FORM_LEVEL_SPLIT_REGEX, FORM_TOKEN_ABBREVIATIONS, \
+    STANDARD_NAMES_OR_GIT, STANDARD_COLUMN_ORDER, METADATA_COLUMN_ORDER, DCML_REGEX, STANDARD_NAMES, MS3_RGB, LEGACY_COLUMNS
 
 
 class map_dict(dict):
@@ -3774,27 +3777,27 @@ def ensure_correct_column_types(df):
 
 
 @function_logger
-def write_tsv(df, file_path, pre_process=True, **kwargs):
-    """ Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'.
+def write_tsv(
+        df: pd.DataFrame,
+        file_path: str,
+        pre_process: bool = True,
+        **kwargs):
+    """Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'.
     Uses: :py:func:`no_collections_no_booleans`
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame to write.
-    file_path : :obj:`str`
-        File to create or overwrite. If the extension is .tsv, the argument 'sep' will be set to '\t', otherwise the
-        extension is expected to be .csv and the default separator ',' will be used.
-    pre_process : :obj:`bool`, optional
-        By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
-        converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
-    kwargs :
-        Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
-        Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above).
-
-    Returns
-    -------
-    None
+    Args:
+        df: DataFrame to write to disk.
+        file_path:
+            File to create or overwrite. If the extension is .tsv, the argument 'sep' will be set to '\t', otherwise the
+            extension is expected to be .csv and the default separator ',' will be used.
+            Apart from that, the extension 'zip' is also allowed but you need to provide the kwargs yourself, especially
+            something like ``compression = dict(method='zip', archive_name='innername.csv')``
+        pre_process:
+            By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
+            converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
+        **kwargs:
+            Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
+            Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above).
     """
     path, file = os.path.split(file_path)
     path = resolve_dir(path)
@@ -4154,7 +4157,7 @@ def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=Fals
             d = iv2 - iv1
             if d % 7 > 0:
                 logger.warning(
-                    f"The difference between the intervals of {full} in {old_num} and {new_num} (in {'minor' if minor else 'major'}) don't differ by chromatic semitones.")
+                    f"The difference between the intervals of {full} in {old_num} and {new_num} (in {'minor' if new_minor else 'major'}) don't differ by chromatic semitones.")
             n_acc = acc.count('#') - acc.count('b')
             new_acc = get_acc(n_acc - d // 7)
             res.append(added + new_acc + chord_interval)
@@ -4716,7 +4719,7 @@ class File:
         file_name, file_ext = os.path.splitext(filename)
         rel_path = os.path.join(subdir, filename)
         if ftype is None:
-            file_type = path2type(full_path, logger=self.logger)
+            file_type = path2type(full_path)
         else:
             file_type = ftype
         return cls(

@@ -11,7 +11,8 @@ from collections import Counter, defaultdict
 import pandas as pd
 import numpy as np
 
-from ms3.utils.frictionless import store_descriptor_and_validate
+from ms3.utils.frictionless_helpers import store_dataframe, validate_resource_descriptor, replace_extension
+from ms3.utils.functions import compute_path_from_file
 
 from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name
 from .piece import Piece
@@ -2624,7 +2625,8 @@ class Corpus(LoggedClass):
 
 
         Returns:
-
+            A list of file stored to disk. If ``frictionless=True`` (default), it will be the list of descriptor file paths describing the stored TSV files (i.e.,
+            the list contains one file for every two files written to disk). Otherwise, it will be the list of TSV file paths.
         """
         l = locals()
         df_types = [t for t in Score.dataframe_types if t != 'metadata']
@@ -2655,18 +2657,25 @@ class Corpus(LoggedClass):
                         if df is None:
                             continue
                         folder = folder_params[facet]
-                        suffix = suffix_params[facet]
-                        file_path = make_file_path(file,
-                                                   root_dir=root_dir,
-                                                   folder=folder,
-                                                   suffix=suffix)
+                        suffix = suffix_params.get(facet, '')
+                        directory = compute_path_from_file(file, root_dir=root_dir, folder=folder)
+                        piece_name = file.piece + suffix
+                        facet_param = 'harmonies' if facet == 'expanded' else facet
                         if simulate:
+                            file_path = os.path.join(directory, f"{piece}.{facet_param}.tsv")
                             self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
                         else:
-                            write_tsv(df, file_path, logger=self.logger)
-                            self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
+                            descriptor_or_resource_path = store_dataframe(
+                                df=df,
+                                directory=directory,
+                                piece_name=piece_name,
+                                facet=facet_param,
+                                zipped=False,
+                                frictionless=frictionless,
+                                validate=False,
+                            )
                             if frictionless:
-                                report = store_descriptor_and_validate(df, file_path, facet, file.piece, logger=self.logger)
+                                report = validate_resource_descriptor(descriptor_or_resource_path)
                                 warnings = []
                                 if not report.valid:
                                     for task in report.tasks:
@@ -2678,7 +2687,7 @@ class Corpus(LoggedClass):
                                                        root_dir=root_dir,
                                                        validation_errors=True,
                                                        logger=self.logger)
-                        paths.append(file_path)
+                        paths.append(descriptor_or_resource_path)
         if output_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_tsv_from_parsed_scores(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)

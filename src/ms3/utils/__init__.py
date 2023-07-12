@@ -1,3 +1,3 @@
 from .constants import *
-from .frictionless import *
+from .frictionless_helpers import *
 from .functions import *

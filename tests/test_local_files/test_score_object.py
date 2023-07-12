@@ -51,7 +51,7 @@ class TestScore:
 
     def test_store_and_load_labels(self, score_object):
         if score_object.mscx.has_annotations:
-            piece_name = score_object.piece_names['mscx'] + '_labels.tsv'
+            piece_name = score_object.fnames['mscx'] + '_labels.tsv'
             labels_path = os.path.join(self.test_results, piece_name)
             score_object.load_annotations(labels_path, key='tsv')
             score_object.detach_labels('labels')
@@ -69,7 +69,7 @@ class TestScore:
 
     def test_expanded_labels(self, score_object):
         if score_object.mscx.has_annotations:
-            piece_name = score_object.piece_names['mscx'] + '_labels.tsv'
+            piece_name = score_object.fnames['mscx'] + '_labels.tsv'
             old_path = os.path.join(self.test_results, piece_name)
             old_labels = decode_harmonies(load_tsv(old_path))
             try:
@@ -84,7 +84,7 @@ class TestScore:
                 os.remove(tmp_file.name)
 
     def test_parse_to_measurelist(self, score_object):
-        piece_name = score_object.piece_names['mscx'] + '_measures.tsv'
+        piece_name = score_object.fnames['mscx'] + '_measures.tsv'
         old_path = os.path.join(self.test_results, piece_name)
         old_measurelist = load_tsv(old_path)
         try:
@@ -99,7 +99,7 @@ class TestScore:
             os.remove(tmp_file.name)
 
     def test_parse_to_notelist(self, score_object):
-        piece_name = score_object.piece_names['mscx'] + '_notes.tsv'
+        piece_name = score_object.fnames['mscx'] + '_notes.tsv'
         old_path = os.path.join(self.test_results, piece_name)
         old_notelist = load_tsv(old_path)
         try:
