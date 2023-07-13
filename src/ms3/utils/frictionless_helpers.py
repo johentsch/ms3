@@ -12,9 +12,9 @@ import frictionless as fl
 import pandas as pd
 import yaml
 
-from ms3._typing import ScoreFacet
+from ms3._typing import ScoreFacet, TSVtypes, TSVtype
 from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, \
-    safe_tuple, write_tsv
+    eval_string_to_nested_list, write_tsv, resolve_facets_param
 from ms3.logger import function_logger
 
 FIELDS_WITHOUT_MISSING_VALUES = (
@@ -55,7 +55,7 @@ def column_name2frictionless_field(column_name) -> dict:
             constraints["pattern"] = INT_ARRAY_REGEX
         elif string_converter == int2bool:
             field['type'] = 'boolean'
-        elif string_converter in (literal_eval, safe_tuple):
+        elif string_converter in (literal_eval, eval_string_to_nested_list):
             field['type'] = 'array'
         else:
             NotImplementedError(f"Unfamiliar with string converter {string_converter}")
@@ -258,6 +258,7 @@ def store_as_json_or_yaml(
         raise ValueError(
             f"Descriptor path must end with .yaml or .json: {descriptor_path}"
         )
+    logger.info(f"Stored descriptor at {descriptor_path}.")
 
 
 @function_logger
@@ -305,7 +306,7 @@ def make_resource_descriptor(
     )
 
 
-
+@function_logger
 def make_and_store_resource_descriptor(
         df: pd.DataFrame,
         directory: str,
@@ -347,8 +348,11 @@ def make_and_store_resource_descriptor(
         filepath = descriptor['path']
     # because descriptor is named after the specific resource (not after the ZIP file which could be any collection of resources)
     descriptor_filepath = replace_extension(filepath, f'.resource.{descriptor_extension}')
-    descriptor_path = os.path.join(directory, descriptor_filepath)
-    store_as_json_or_yaml(descriptor, descriptor_path)
+    if directory:
+        descriptor_path = os.path.join(directory, descriptor_filepath)
+    else:
+        descriptor_path = descriptor_filepath
+    store_as_json_or_yaml(descriptor, descriptor_path, logger=logger)
     return descriptor_path
 
 def validate_resource_descriptor(
@@ -405,9 +409,8 @@ def make_and_store_and_validate_resource_descriptor(
         raise_exception=raise_exception,
     )
 
-
 @function_logger
-def store_dataframe(
+def store_dataframe_resource(
         df: pd.DataFrame,
         directory: str,
         piece_name: str,
@@ -449,17 +452,24 @@ def store_dataframe(
             compression=dict(method="zip", archive_name=tsv_name),
         )
         read_csv_kwargs.update(kwargs)
+        msg = f"Written {tsv_name!r} to "
     else:
         relative_filepath = tsv_name
         innerpath = None
         read_csv_kwargs = dict(kwargs)
-    resource_path = os.path.join(directory, relative_filepath)
+        msg = f"Written {facet!r} to "
+    if directory:
+        resource_path = os.path.join(directory, relative_filepath)
+    else:
+        resource_path = relative_filepath
+    msg += resource_path
     write_tsv(
         df=df,
         file_path=resource_path,
         pre_process=pre_process,
         **read_csv_kwargs
     )
+    logger.info(msg)
     if not frictionless:
         return resource_path
     descriptor_path = make_and_store_resource_descriptor(
@@ -470,7 +480,74 @@ def store_dataframe(
         filepath=relative_filepath,
         innerpath=innerpath,
         descriptor_extension=descriptor_extension,
+        logger=logger
     )
     if validate:
         validate_resource_descriptor(descriptor_path)
     return descriptor_path
+
+@function_logger
+def store_dataframes_package(
+        dataframes: pd.DataFrame | Iterable[pd.DataFrame],
+        facets: TSVtypes,
+        directory: str,
+        piece_name: str,
+        pre_process: bool = True,
+        zipped: bool = True,
+        descriptor_extension: Literal["json", "yaml", None] = "json",
+        validate: bool = True,
+        **kwargs):
+    """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
+    Uses: :py:func:`write_tsv`
+
+    Args:
+        dataframes: DataFrames to write into the same zip archive forming a datapackage.
+        facets:
+            Name of the facets, one per given dataframe. Appended to the file names of the TSV files in the form
+            ``<piece_name>.<facet>.tsv``.
+        directory: Where to create the ZIP file and its descriptor.
+        piece_name: Name of the piece, used both for the names of ZIP file and the TSV files in includes.
+        pre_process:
+            By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
+            converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
+        zipped: If set to False, the TSV file will not be written into a zip archive called ``<piece_name>.zip``.
+        validate:
+            If True (default), the frictionless resource descriptor will be validated against the schema, resulting
+            in a FrictionlessException if the validation fails.
+    """
+    if isinstance(dataframes, pd.DataFrame):
+        dataframes = [dataframes]
+    facets = resolve_facets_param(facets, TSVtype, none_means_all=False)
+    package_descriptor = dict(
+        name=piece_name,
+        resources=[],
+    )
+    for df, facet in zip(dataframes, facets):
+        resource_path = store_dataframe_resource(
+            df=df,
+            directory=directory,
+            piece_name=piece_name,
+            facet=facet,
+            pre_process=pre_process,
+            zipped=zipped,
+            frictionless=False,
+            descriptor_extension=descriptor_extension,
+            validate=validate,
+            logger=logger
+        )
+        directory, filepath = os.path.split(resource_path)
+        resource_descriptor = make_resource_descriptor(
+            df=df,
+            piece_name=piece_name,
+            facet=facet,
+            filepath=filepath,
+            logger=logger,
+        )
+        package_descriptor["resources"].append(resource_descriptor)
+    package_descriptor_filepath = f"{piece_name}.datapackage.{descriptor_extension}"
+    package_descriptor_path = os.path.join(directory, package_descriptor_filepath)
+    store_as_json_or_yaml(
+        descriptor_dict=package_descriptor,
+        descriptor_path=package_descriptor_path,
+        logger=logger
+    )

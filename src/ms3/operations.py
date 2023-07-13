@@ -1,8 +1,8 @@
 import os
 from typing import Literal, Optional, Tuple, Dict, List, Union
 
-from ms3 import Parse, Corpus, make_valid_frictionless_name
-from ms3._typing import AnnotationsFacet, ScoreFacets
+from ms3 import Parse, Corpus, make_valid_frictionless_name, store_dataframe_resource, resolve_facets_param, store_dataframes_package
+from ms3._typing import AnnotationsFacet, TSVtype, TSVtypes
 from ms3.utils import capture_parse_logs, pretty_dict, check_argument_against_literal_type, compute_path_from_file, write_tsv, tpc2scale_degree, fifths2name
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger, get_ignored_warning_ids, MessageType
@@ -92,17 +92,30 @@ def extract(parse_obj: Parse,
             parallel: bool = True,
             unfold: bool = False,
             interval_index: bool = False,
-            silence_label_warnings: bool = False,
             corpuswise: bool = False,
-            **suffixes):
+):
     mode = "IN PARALLEL" if parallel else "ONE AFTER THE OTHER"
     if not corpuswise:
         print(f"PARSING SCORES {mode}...")
         parse_obj.parse_scores(parallel=parallel)
-        parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
-                                         measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
-                                         expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
-                                         markdown=markdown, simulate=simulate, unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings, **suffixes)
+        parse_obj.store_extracted_facets(
+            root_dir=root_dir,
+            notes_folder=notes_folder,
+            rests_folder=rests_folder,
+            notes_and_rests_folder=notes_and_rests_folder,
+measures_folder=measures_folder,
+            events_folder=events_folder,
+            labels_folder=labels_folder,
+            chords_folder=chords_folder,
+expanded_folder=expanded_folder,
+            cadences_folder=cadences_folder,
+            form_labels_folder=form_labels_folder,
+            metadata_suffix=metadata_suffix,
+                                         markdown=markdown,
+            simulate=simulate,
+            unfold=unfold,
+            interval_index=interval_index,
+            )
         return
     for corpus_name, corpus, in parse_obj.iter_independent_corpora():
         print(f"PARSING SCORES FOR CORPUS '{corpus_name}' {mode}...")
@@ -226,27 +239,25 @@ def store_scores(ms3_object: Union[Parse, Corpus],
                                           overwrite=overwrite,
                                           simulate=simulate)
 
-def transform(
+def _transform(
     ms3_object: Parse | Corpus,
-    facets: ScoreFacets,
+    facets: TSVtypes,
     filename: str,
     output_folder: Optional[str] = None,
-    suffixes: Optional[Dict[str, str]] = None,
     choose: Literal['all', 'auto', 'ask'] = 'auto',
     interval_index: bool = False,
     unfold: bool = False,
     test: bool = False,
     zipped: bool = False,
     overwrite: bool = True,
-    log_level = None
+    log_level = None,
 ):
     logger = get_logger('ms3.transform', level=log_level)
     if len(facets) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    if suffixes is None:
-        suffixes = {}
+    facets = resolve_facets_param(facets, TSVtype, none_means_all=False)
     obj_is_corpus = isinstance(ms3_object, Corpus)
     if filename:
         prefix = filename
@@ -257,31 +268,35 @@ def transform(
     else:
         prefix = "ms3_parse"
     prefix = make_valid_frictionless_name(prefix)
-    overwriting_zip = False
     if zipped:
-        # storing all facets into the same ZIP file (with a datapackage.json descriptor)
         zip_name = f"{prefix}.zip"
-        package_descriptor_name = f"{prefix}.datapackage.json"
         path = zip_name if output_folder is None else os.path.join(output_folder, zip_name)
         if os.path.isfile(path):
             if overwrite:
+                if test:
+                    logger.info(f"Would have overwritten file {path}")
+                    return
                 os.remove(path)
-                overwriting_zip = True
+                logger.info(f"Removed existing file {path} to overwrite it.")
             else:
                 logger.info(f"File {path} already exists and is not to be overwritten. Aborting...")
                 return
-    n_successful = 0
     for facet in facets:
-        facet_suffix = suffixes.get(f"{facet}_suffix", '')
-        facet_filename = make_valid_frictionless_name(f"{prefix}{facet_suffix}.{facet}")
+        facet_filename = make_valid_frictionless_name(f"{prefix}.{facet}")
         tsv_name = f"{facet_filename}.tsv"
         overwriting_tsv = False
         if not zipped:
             path = tsv_name if output_folder is None else os.path.join(output_folder, tsv_name)
-            if not overwrite and os.path.isfile(path):
-                logger.info(f"File {path} already exists and is not to be overwritten. Skipping...")
-                continue
-            overwriting_tsv = True
+            if os.path.isfile(path):
+                if overwrite:
+                    if test:
+                        logger.info(f"Would have overwritten file {path}")
+                        continue
+                    overwriting_tsv = True
+                else:
+                    logger.info(f"File {path} already exists and is not to be overwritten. Skipping...")
+                    continue
+
         # get concatenated dataframe:
         if facet == 'metadata':
             df = ms3_object.metadata()
@@ -301,25 +316,100 @@ def transform(
             logger.info(f"Would have written {path}.")
             continue
         if zipped:
-            kwargs = dict(
-                sep="\t",
-                mode="a",
-                compression=dict(method="zip", archive_name=tsv_name)
-            )
             msg = f"{tsv_name} written to {path}."
         else:
-            kwargs = {}
             msg = f"{path} overwritten." if overwriting_tsv else f"{path} written."
-        write_tsv(
+        yield df, facet, output_folder, prefix, msg
+
+
+
+def transform_to_resources(
+    ms3_object: Parse | Corpus,
+    facets: TSVtypes,
+    filename: str,
+    output_folder: Optional[str] = None,
+    choose: Literal['all', 'auto', 'ask'] = 'auto',
+    interval_index: bool = False,
+    unfold: bool = False,
+    test: bool = False,
+    zipped: bool = False,
+    overwrite: bool = True,
+    log_level = None
+):
+    logger = get_logger('ms3.transform', level=log_level)
+    for df, facet, output_folder, prefix, msg in _transform(
+        ms3_object=ms3_object,
+        facets=facets,
+        filename=filename,
+        output_folder=output_folder,
+        choose=choose,
+        interval_index=interval_index,
+        unfold=unfold,
+        test=test,
+        zipped=zipped,
+        overwrite=overwrite,
+        log_level=log_level
+    ):
+        _ = store_dataframe_resource(
             df=df,
-            file_path=path,
-            **kwargs
+            directory=output_folder,
+            piece_name=prefix,
+            facet=facet,
+            pre_process=True,
+            zipped=zipped,
+            frictionless=True,
+            descriptor_extension="json",
+            validate=True,
         )
-        n_successful += 1
         logger.info(msg)
-    if zipped:
-        verb = "Overwritten" if overwriting_zip else "Written"
-        logger.info(f"{verb} {path} with {n_successful} TSV files.")
+
+def transform_to_package(
+    ms3_object: Parse | Corpus,
+    facets: TSVtypes,
+    filename: str,
+    output_folder: Optional[str] = None,
+    choose: Literal['all', 'auto', 'ask'] = 'auto',
+    interval_index: bool = False,
+    unfold: bool = False,
+    test: bool = False,
+    zipped: bool = False,
+    overwrite: bool = True,
+    log_level = None
+):
+    logger = get_logger('ms3.transform', level=log_level)
+    dfs, returned_facets = [], []
+    for df, facet, output_folder, prefix, _ in _transform(
+        ms3_object=ms3_object,
+        facets=facets,
+        filename=filename,
+        output_folder=output_folder,
+        choose=choose,
+        interval_index=interval_index,
+        unfold=unfold,
+        test=test,
+        zipped=zipped,
+        overwrite=overwrite,
+        log_level=log_level
+    ):
+        dfs.append(df)
+        returned_facets.append(facet)
+    if len(dfs) == 0:
+        logger.info(f"No data to be written.")
+        return
+    store_dataframes_package(
+        dataframes=dfs,
+        facets=returned_facets,
+        directory=output_folder,
+        piece_name=prefix,
+        pre_process=True,
+        zipped=zipped,
+        frictionless=True,
+        descriptor_extension="json",
+        validate=True,
+        logger=logger
+    )
+
+
 
 
 def update(parse_obj: Parse,

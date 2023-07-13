@@ -12,7 +12,7 @@ from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, update_labels_cfg
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, update_labels_cfg, compute_path_from_file, store_dataframe_resource
 from .utils.constants import AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS
 from .score import Score
 from .logger import LoggedClass
@@ -1365,17 +1365,19 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def store_extracted_facet(self,
-                              facet: ScoreFacet,
-                              root_dir: Optional[str] = None,
-                              folder: Optional[str] = None,
-                              suffix: str = '',
-                              view_name: Optional[str] = None,
-                              force: bool = False,
-                              choose: Literal['all', 'auto', 'ask'] = 'all',
-                              unfold: bool = False,
-                              interval_index: bool = False
-                              ):
+    def store_extracted_facet(
+            self,
+            facet: ScoreFacet,
+            root_dir: Optional[str] = None,
+            folder: Optional[str] = None,
+            view_name: Optional[str] = None,
+            force: bool = False,
+            choose: Literal['all', 'auto', 'ask'] = 'all',
+            unfold: bool = False,
+            interval_index: bool = False,
+            frictionless: bool = True,
+            raise_exception: bool = False
+    ):
         """
         Extract a facet from one or several available scores and store the results as TSV files, the paths of which
         are computed from the respective score's location.
@@ -1393,12 +1395,20 @@ class Piece(LoggedClass):
                 For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
               * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
                 ``root_dir``.
-          suffix: String to append to the file's pname.
           view_name:
           force:
           choose:
           unfold:
           interval_index:
+          frictionless:
+            If True (default), the file is written together with a frictionless resource descriptor JSON file
+            whose column schema is used to validate the stored TSV file.
+          raise_exception:
+            Only relevent when frictionless=True (i.e., by default). If set to True, a FrictionlessException will be raised
+            when the resource descriptor is not successfully validated. Otherwise (default), any validation errors will be
+            written to a .warnings file.
+
+
 
         Returns:
 
@@ -1416,11 +1426,22 @@ class Piece(LoggedClass):
                                                    choose=choose,
                                                    flat=True)
         for file, df in extracted_facet:
-            file_path = make_file_path(file=file,
-                                  root_dir=root_dir,
-                                  folder=folder,
-                                  suffix=suffix)
-            write_tsv(df, file_path, logger=self.logger)
+            piece_name = file.piece
+            if unfold:
+                piece_name += f"_unfolded"
+            directory = compute_path_from_file(
+                file,
+                root_dir=root_dir,
+                folder=folder)
+            store_dataframe_resource(
+                df=df,
+                directory=directory,
+                piece_name=piece_name,
+                facet=facet,
+                zipped=False,
+                frictionless=frictionless,
+                validate=raise_exception,
+                logger=self.logger)
 
     # def store_parsed_scores(self,
     #                         view_name: Optional[str] = None,
@@ -1448,7 +1469,7 @@ class Piece(LoggedClass):
                                  overwrite: bool = False,
                                  simulate=False) -> Optional[str]:
         """
-        Creates a MuseScore 3 file from the Score object at the given index.
+        Creates a MuseScore file from the Score object at the given index.
 
         Args:
           ix:

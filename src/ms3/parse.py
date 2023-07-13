@@ -1330,26 +1330,26 @@ class Parse(LoggedClass):
         metadata = pd.concat(metadata_dfs, names=['corpus', 'piece'])
         return metadata
 
-
-
-    def store_extracted_facets(self,
-                               view_name: Optional[str] = None,
-                               root_dir: Optional[str] = None,
-                               measures_folder: Optional[str] = None, measures_suffix: str = '',
-                               notes_folder: Optional[str] = None, notes_suffix: str = '',
-                               rests_folder: Optional[str] = None, rests_suffix: str = '',
-                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
-                               labels_folder: Optional[str] = None, labels_suffix: str = '',
-                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
-                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
-                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
-                               events_folder: Optional[str] = None, events_suffix: str = '',
-                               chords_folder: Optional[str] = None, chords_suffix: str = '',
-                               metadata_suffix: Optional[str] = None, markdown: bool = True,
-                               simulate: bool = False,
-                               unfold: bool = False,
-                               interval_index: bool = False,
-                               silence_label_warnings: bool = False):
+    def store_extracted_facets(
+            self,
+            view_name: Optional[str] = None,
+            root_dir: Optional[str] = None,
+            measures_folder: Optional[str] = None,
+            notes_folder: Optional[str] = None,
+            rests_folder: Optional[str] = None,
+            notes_and_rests_folder: Optional[str] = None,
+            labels_folder: Optional[str] = None,
+            expanded_folder: Optional[str] = None,
+            form_labels_folder: Optional[str] = None,
+            cadences_folder: Optional[str] = None,
+            events_folder: Optional[str] = None,
+            chords_folder: Optional[str] = None,
+            metadata_suffix: Optional[str] = None,
+            markdown: bool = True,
+            simulate: bool = False,
+            unfold: bool = False,
+            interval_index: bool = False,
+    ):
         """  Store facets extracted from parsed scores as TSV files.
 
         Args:
@@ -1359,8 +1359,6 @@ class Parse(LoggedClass):
 
           measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
               Specify directory where to store the corresponding TSV files.
-          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
-              Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
           metadata_suffix:
               Specify a suffix to update the 'metadata{suffix}.tsv' file for each corpus. For the main file, pass ''
           markdown:
@@ -1372,19 +1370,30 @@ class Parse(LoggedClass):
               By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
               playthrough, including correct positioning of first and second endings.
           interval_index:
-          silence_label_warnings:
 
         Returns:
 
         """
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            corpus.store_extracted_facets(view_name=view_name, root_dir=root_dir, measures_folder=measures_folder, measures_suffix=measures_suffix, notes_folder=notes_folder, notes_suffix=notes_suffix,
-                                          rests_folder=rests_folder, rests_suffix=rests_suffix, notes_and_rests_folder=notes_and_rests_folder,
-                                          notes_and_rests_suffix=notes_and_rests_suffix, labels_folder=labels_folder, labels_suffix=labels_suffix, expanded_folder=expanded_folder,
-                                          expanded_suffix=expanded_suffix, form_labels_folder=form_labels_folder, form_labels_suffix=form_labels_suffix,
-                                          cadences_folder=cadences_folder, cadences_suffix=cadences_suffix, events_folder=events_folder, events_suffix=events_suffix,
-                                          chords_folder=chords_folder, chords_suffix=chords_suffix, metadata_suffix=metadata_suffix, markdown=markdown, simulate=simulate,
-                                          unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings)
+            corpus.store_extracted_facets(
+                view_name=view_name,
+                root_dir=root_dir,
+                measures_folder=measures_folder,
+                notes_folder=notes_folder,
+                rests_folder=rests_folder,
+                notes_and_rests_folder=notes_and_rests_folder,
+                labels_folder=labels_folder,
+                expanded_folder=expanded_folder,
+                form_labels_folder=form_labels_folder,
+                cadences_folder=cadences_folder,
+                events_folder=events_folder,
+                chords_folder=chords_folder,
+                metadata_suffix=metadata_suffix,
+                markdown=markdown,
+                simulate=simulate,
+                unfold=unfold,
+                interval_index=interval_index,
+            )
 
     def store_parsed_scores(self,
                             view_name: Optional[str] = None,

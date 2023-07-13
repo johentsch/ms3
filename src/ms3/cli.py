@@ -7,11 +7,11 @@ Command line interface for ms3.
 import argparse, os
 import re
 from collections import defaultdict
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from ms3 import Parse, make_coloring_reports_and_warnings
-from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score, transform
-from ms3.utils import convert_folder, resolve_dir, write_tsv, capture_parse_logs, write_to_warnings_file
+from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score, transform_to_resources, transform_to_package
+from ms3.utils import convert_folder, resolve_dir, capture_parse_logs, write_to_warnings_file
 from ms3.logger import get_logger, inspect_loggers
 from ms3._version import __version__
 
@@ -28,27 +28,6 @@ def gather_extract_params(args) -> List[str]:
         params.append('metadata')
     return params
 
-
-
-
-def make_suffixes(
-        args,
-        include_metadata: bool = False
-) -> Dict[str, str]:
-    params = gather_extract_params(args)
-    if args.suffix is None:
-        suffixes = {}
-    else:
-        l_suff = len(args.suffix)
-        if l_suff == 0:
-            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
-        elif l_suff == 1:
-            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
-        else:
-            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    if not include_metadata and "metadata_suffix" in suffixes:
-        del (suffixes["metadata_suffix"])
-    return suffixes
 
 
 def add_cmd(args,
@@ -172,8 +151,6 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if len(params) == 0:
         print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    suffixes = make_suffixes(args)
-    silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
     extract(p,
             root_dir=args.out,
             notes_folder=args.notes,
@@ -189,9 +166,8 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
             parallel=not args.iterative,
             unfold=args.unfold,
             interval_index=args.interval_index,
-            silence_label_warnings=silence_label_warnings,
             corpuswise=args.corpuswise,
-            **suffixes)
+            )
 
 def metadata(args, parse_obj: Optional[Parse] = None):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
@@ -225,26 +201,27 @@ def metadata(args, parse_obj: Optional[Parse] = None):
 #     print(args.dir)
 
 
+
 def transform_cmd(args):
     params = gather_extract_params(args)
     if len(params) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    suffixes = make_suffixes(args, include_metadata=True)
     parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
     filename = os.path.basename(args.dir)
-    transform(
+    func = transform_to_resources if args.resources else transform_to_package
+    # noinspection PyTypeChecker
+    func(
         ms3_object=parse_obj,
         facets=params,
         filename=filename,
         output_folder=args.out,
-        suffixes=suffixes,
         choose='auto',
         interval_index=args.interval_index,
         unfold=args.unfold,
         test=args.test,
-        zipped=not args.resources,
+        zipped=not args.uncompressed,
         overwrite=args.safe,
         log_level=args.level
     )
@@ -538,9 +515,6 @@ def get_arg_parser():
     extract_args.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
                                 help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
                                      "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
-    extract_args.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
-                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
-                                     "in which they are listed above (capital letter arguments).")
     extract_args.add_argument('-p', '--positioning', action='store_true',
                                 help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_args.add_argument('--raw', action='store_false',
@@ -709,6 +683,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     transform_parser.add_argument('--resources', action='store_true',
                                   help="Store the concatenated DataFrames as TSV files with resource descriptors rather than in a ZIP with a package descriptor.")
     transform_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
+    transform_parser.add_argument('--uncompressed', action='store_true',
+                                  help="Store the transformed files as uncompressed TSVs rather than writing them into a ZIP file.")
     transform_parser.set_defaults(func=transform_cmd)
 
 

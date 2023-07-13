@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 import pandas as pd
 import numpy as np
 
-from ms3.utils.frictionless_helpers import store_dataframe, validate_resource_descriptor, replace_extension
+from ms3.utils.frictionless_helpers import store_dataframe_resource, validate_resource_descriptor, replace_extension
 from ms3.utils.functions import compute_path_from_file
 
 from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name
@@ -20,7 +20,7 @@ from .score import Score, compare_two_score_objects
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FacetArguments, \
     Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
 from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, path2type, \
-    pretty_dict, resolve_dir, update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
+    pretty_dict, resolve_dir, update_labels_cfg, write_metadata, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, \
     convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_piece_index_for_metadata, \
     scan_directory, write_to_warnings_file
@@ -2581,21 +2581,21 @@ class Corpus(LoggedClass):
     def store_extracted_facets(self,
                                view_name: Optional[str] = None,
                                root_dir: Optional[str] = None,
-                               measures_folder: Optional[str] = None, measures_suffix: str = '',
-                               notes_folder: Optional[str] = None, notes_suffix: str = '',
-                               rests_folder: Optional[str] = None, rests_suffix: str = '',
-                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
-                               labels_folder: Optional[str] = None, labels_suffix: str = '',
-                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
-                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
-                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
-                               events_folder: Optional[str] = None, events_suffix: str = '',
-                               chords_folder: Optional[str] = None, chords_suffix: str = '',
-                               metadata_suffix: Optional[str] = None, markdown: bool = True,
+                               measures_folder: Optional[str] = None,
+                               notes_folder: Optional[str] = None,
+                               rests_folder: Optional[str] = None,
+                               notes_and_rests_folder: Optional[str] = None,
+                               labels_folder: Optional[str] = None,
+                               expanded_folder: Optional[str] = None,
+                               form_labels_folder: Optional[str] = None,
+                               cadences_folder: Optional[str] = None,
+                               events_folder: Optional[str] = None,
+                               chords_folder: Optional[str] = None,
+                               metadata_suffix: Optional[str] = None,
+                               markdown: bool = True,
                                simulate: bool = False,
                                unfold: bool = False,
                                interval_index: bool = False,
-                               silence_label_warnings: bool = False,
                                frictionless: bool = True,
                                ) -> List[str]:
         """  Store facets extracted from parsed scores as TSV files.
@@ -2605,8 +2605,6 @@ class Corpus(LoggedClass):
           root_dir:
           measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
               Specify directory where to store the corresponding TSV files.
-          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
-              Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
           metadata_suffix:
               Specify a suffix to update the 'metadata{suffix}.tsv' file for this corpus. For the main file, pass ''
           markdown:
@@ -2618,7 +2616,6 @@ class Corpus(LoggedClass):
               By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
               playthrough, including correct positioning of first and second endings.
           interval_index:
-          silence_label_warnings:
           frictionless:
             If True (default), the file is written together with a frictionless resource descriptor JSON file
             whose column schema is used to validate the stored TSV file.
@@ -2631,14 +2628,12 @@ class Corpus(LoggedClass):
         l = locals()
         df_types = [t for t in Score.dataframe_types if t != 'metadata']
         folder_vars = [t + '_folder' for t in df_types]
-        suffix_vars = [t + '_suffix' for t in df_types]
         folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
         output_metadata = metadata_suffix is not None
         if len(folder_params) == 0 and not output_metadata:
             self.logger.warning("Pass at least one parameter to store files.")
             return []
         facets = list(folder_params.keys())
-        suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
         paths = []
@@ -2657,15 +2652,16 @@ class Corpus(LoggedClass):
                         if df is None:
                             continue
                         folder = folder_params[facet]
-                        suffix = suffix_params.get(facet, '')
                         directory = compute_path_from_file(file, root_dir=root_dir, folder=folder)
-                        piece_name = file.piece + suffix
+                        piece_name = file.piece
+                        if unfold:
+                            piece_name += '_unfolded'
                         facet_param = 'harmonies' if facet == 'expanded' else facet
                         if simulate:
                             file_path = os.path.join(directory, f"{piece}.{facet_param}.tsv")
                             self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
                         else:
-                            descriptor_or_resource_path = store_dataframe(
+                            descriptor_or_resource_path = store_dataframe_resource(
                                 df=df,
                                 directory=directory,
                                 piece_name=piece_name,
@@ -2673,6 +2669,7 @@ class Corpus(LoggedClass):
                                 zipped=False,
                                 frictionless=frictionless,
                                 validate=False,
+                                logger=self.logger
                             )
                             if frictionless:
                                 report = validate_resource_descriptor(descriptor_or_resource_path)

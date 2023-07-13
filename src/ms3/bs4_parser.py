@@ -1279,7 +1279,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 data['last_mn_unfolded'] = None
             data['length_qb_unfolded'] = round(unfolded_measures.duration_qb.sum(), 2)
         if self.has_voltas:
-            data['volta_mcs'] = tuple(tuple(tuple(mcs) for mcs in group.values()) for group in self.volta_structure.values())
+            data['volta_mcs'] = list(list(list(mcs) for mcs in group.values()) for group in self.volta_structure.values())
 
         # labels
         all_labels = self.get_raw_labels()

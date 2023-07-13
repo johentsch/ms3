@@ -1677,10 +1677,20 @@ def safe_int(s) -> Union[int, str]:
         return s
 
 
-def safe_tuple(s) -> Optional[tuple]:
-    """Tries to parse a string encoding a tuple, returns the input if it fails."""
+
+
+
+def tuple_to_list_recursive(t):
+    if isinstance(t, (tuple, list)):
+        return [tuple_to_list_recursive(e) for e in t]
+    return t
+
+
+def eval_string_to_nested_list(s):
+    """Tries to parse a string encoding a nested list, returns the input if it fails."""
     try:
-        return literal_eval(s)
+        nested_tuple_or_list = literal_eval(s)
+        return tuple_to_list_recursive(nested_tuple_or_list)
     except Exception:
         return s
 
@@ -1729,7 +1739,7 @@ TSV_COLUMN_CONVERTERS = {
     'onset': safe_frac,
     'duration': safe_frac,
     'scalar': safe_frac,
-    'volta_mcs': safe_tuple,
+    'volta_mcs': eval_string_to_nested_list,
 }
 
 TSV_COLUMN_TITLES = {
@@ -2679,7 +2689,7 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     """
     if df is None:
         return df
-    collection_cols = ['next', 'chord_tones', 'added_tones', 'volta_mcs']
+    collection_cols = ['next', 'chord_tones', 'added_tones']
     bool_cols = ['globalkey_is_minor', 'localkey_is_minor', 'has_drumset']
     if coll_columns is not None:
         collection_cols += list(coll_columns)
@@ -2811,7 +2821,7 @@ def path2type(path):
         logger.debug(f"Categorized {path} as {typ} based on the component {found_components[0]!r}.")
         return typ
     else:
-        for path_component in reversed(os.path.split(os.sep)):
+        for path_component in reversed(directory.split(os.sep)):
             for comp in component2type.keys():
                 if comp in path_component:
                     typ = component2type[comp]
@@ -4955,9 +4965,13 @@ def literal_type2tuple(typ: TypeVar) -> Tuple[str]:
     """Turns the first Literal included in the TypeVar into a list of values. The first literal value
     needs to be a string, otherwise the function may lead to unexpected behaviour.
     """
-    if isinstance(typ.__args__[0], str):
-        return typ.__args__
-    return literal_type2tuple(typ.__args__[0])
+    result = []
+    for arg in typ.__args__:
+        if isinstance(arg, str):
+            result.append(arg)
+        else:
+            result.extend(literal_type2tuple(arg))
+    return result
 
 
 @cache
