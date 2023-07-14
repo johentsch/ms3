@@ -1,0 +1,129 @@
+fields:
+  - name: piece
+    type: string
+    title: Piece identifier
+    description: Name identifier (filename without suffixes) of a piece
+  - name: TimeSig
+    type: string
+  - name: KeySig
+    type: string
+  - name: last_mc
+    type: string
+  - name: last_mn
+    type: string
+  - name: length_qb
+    type: string
+  - name: last_mc_unfolded
+    type: string
+  - name: last_mn_unfolded
+    type: string
+  - name: length_qb_unfolded
+    type: string
+  - name: volta_mcs
+    type: array
+    title: Volta Measure Counts
+    description: For each group of alternative endings, a nested list where each inner
+      list contains the "mc" values of the <Measure> tags grouped into one ending.
+  - name: all_notes_qb
+    type: string
+  - name: n_onsets
+    type: string
+  - name: n_onset_positions
+    type: string
+  - name: guitar_chord_count
+    type: string
+  - name: form_label_count
+    type: string
+  - name: label_count
+    type: string
+  - name: annotated_key
+    type: string
+  - name: reviewers
+    type: string
+  - name: score_integrity
+    type: string
+  - name: composed_start
+    type: integer
+    title: Earliest Composition Year
+    description: Earliest possible year of composition.
+    bareNumber: false
+  - name: composed_end
+    type: integer
+    title: Latest Composition Year
+    description: Latest possible year of composition.
+    bareNumber: false
+  - name: composer
+    type: string
+  - name: workTitle
+    type: string
+  - name: movementNumber
+    type: integer
+    title: Movement Number
+    description: Metadata field for the number of a movement. Should be specified
+      as integer, not as a Roman number.
+    bareNumber: false
+  - name: movementTitle
+    type: string
+  - name: workNumber
+    type: string
+  - name: poet
+    type: string
+  - name: lyricist
+    type: string
+  - name: arranger
+    type: string
+  - name: copyright
+    type: string
+  - name: creationDate
+    type: string
+  - name: mscVersion
+    type: string
+  - name: platform
+    type: string
+  - name: source
+    type: string
+  - name: translator
+    type: string
+  - name: title_text
+    type: string
+  - name: subtitle_text
+    type: string
+  - name: musescore
+    type: string
+  - name: ms3_version
+    type: string
+  - name: subdirectory
+    type: string
+  - name: rel_path
+    type: string
+  - name: has_drumset
+    type: string
+  - name: ambitus
+    type: string
+  - name: imslp
+    type: string
+  - name: musicbrainz
+    type: string
+  - name: originalFormat
+    type: string
+  - name: source.1
+    type: string
+  - name: typesetter
+    type: string
+  - name: viaf
+    type: string
+  - name: wikidata
+    type: string
+  - name: staff_1_ambitus
+    type: string
+  - name: staff_1_instrument
+    type: string
+  - name: staff_2_ambitus
+    type: string
+  - name: staff_2_instrument
+    type: string
+primaryKey:
+  - piece
+facet: metadata
+identifier: S1LTX2sssZNO5w
+filepath: metadata/S1LTX2sssZNO5w.schema.yaml
