@@ -784,7 +784,7 @@ class Corpus(LoggedClass):
         if concatenate:
             if len(result) > 0:
                 df = pd.concat(result.values(), keys=result.keys())
-                df.index.rename(['piece', f"{facet}_i"], inplace=True)
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
@@ -957,7 +957,7 @@ class Corpus(LoggedClass):
         if concatenate:
             if len(result) > 0:
                 df = pd.concat(result.values(), keys=result.keys())
-                df.index.rename(['piece', f"{facet}_i"], inplace=True)
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
@@ -2019,76 +2019,6 @@ class Corpus(LoggedClass):
 
 
 
-    def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
-        """Concatenate DataFrames contained in a {ID -> df} dictionary.
-
-        Parameters
-        ----------
-        dict_of_dataframes : :obj:`dict`
-            {ID -> DataFrame}
-        id_index : :obj:`bool`, optional
-            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
-            'rel_paths', 'pieces', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
-        third_level_name : :obj:`str`, optional
-
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
-        """
-        d = {k: v for k, v in dict_of_dataframes.items() if v.shape[0] > 0}
-        if len(d) == 0:
-            self.logger.info(f"Nothing to concatenate:\n{dict_of_dataframes}")
-            return
-        if id_index:
-            result = pd.concat(d.values(), keys=d.keys())
-            result.index.names = ['key', 'i', third_level_name]
-        else:
-            levels = [(self.rel_paths[key][i], self.pnames[key][i]) for key, i in d.keys()]
-            result = pd.concat(d.values(), keys=levels)
-            result.index.names = ['rel_paths', 'pieces', third_level_name]
-        return result
-
-
-    def _concat_lists(self, which, id_index=False, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        """ Boiler plate for concatenating DataFrames with the same type of information.
-
-        Parameters
-        ----------
-        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests', 'form_labels'}
-        id_index : :obj:`bool`, optional
-            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
-            'rel_paths', 'pieces', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
-        keys
-        ids
-
-        Returns
-        -------
-
-        """
-        d = self.extract_facets(keys, flat=False, unfold=unfold, interval_index=interval_index, **{which: True})
-        d = d[which] if which in d else {}
-        msg = {
-            'cadences': 'cadence lists',
-            'chords': '<chord> tables',
-            'events': 'event tables',
-            'expanded': 'expandable annotation tables',
-            'labels': 'annotation tables',
-            'measures': 'measure lists',
-            'notes': 'note lists',
-            'notes_and_rests': 'note and rest lists',
-            'rests': 'rest lists',
-            'form_labels': 'form label tables'
-        }
-        if len(d) == 0:
-            if keys is None and ids is None:
-                self.logger.info(f'This Corpus object does not include any {msg[which]}.')
-            else:
-                self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
-            return pd.DataFrame()
-        return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
-
-
-
 
     def insert_detached_labels(self,
                                view_name: Optional[str] = None,
@@ -2506,7 +2436,7 @@ class Corpus(LoggedClass):
             if len(piece2tuples) > 0:
                 dfs = [df for file, df in piece2tuples.values()]
                 df = pd.concat(dfs, keys=piece2tuples.keys())
-                df.index.rename(['piece', f"{facet}_i"], inplace=True)
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
