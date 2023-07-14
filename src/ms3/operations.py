@@ -301,14 +301,22 @@ def _transform(
         if facet == 'metadata':
             df = ms3_object.metadata()
         else:
-            df = ms3_object.get_facets(
-                facet,
-                choose = choose,
-                flat=True,
-                interval_index=interval_index,
-                unfold=unfold,
-            )
-        df = df.reset_index(drop=False)
+            if obj_is_corpus:
+                df = ms3_object.get_facet(
+                    facet,
+                    choose = choose,
+                    interval_index=interval_index,
+                    unfold=unfold,
+                )
+            else:
+                # noinspection PyArgumentList
+                df = ms3_object.get_facet(
+                    facet,
+                    choose = choose,
+                    flat=True,
+                    interval_index=interval_index,
+                    unfold=unfold,
+                )
         if df is None or len(df.index) == 0:
             logger.info(f"No {facet} data found. Maybe you still need to run ms3 extract?")
             continue
@@ -372,7 +380,7 @@ def transform_to_package(
     interval_index: bool = False,
     unfold: bool = False,
     test: bool = False,
-    zipped: bool = False,
+    zipped: bool = True,
     overwrite: bool = True,
     log_level = None
 ):

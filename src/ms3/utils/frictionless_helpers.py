@@ -80,6 +80,10 @@ def make_frictionless_schema_descriptor(column_names: Tuple[str, ...],
                                         **custom_data
                                         ) -> dict:
     fields = []
+    if primary_key:
+        for ix_level, column in zip(primary_key, column_names):
+            if ix_level != column:
+                raise ValueError(f"primary_key {primary_key} does not match column_names {column_names[:len(primary_key)]}")
     for column_name in column_names:
         field = column_name2frictionless_field(column_name)
         if not "type" in field:
@@ -205,6 +209,7 @@ def get_schema_or_url(facet: str,
         column_names = tuple(column_names)
     else:
         column_names = tuple(index_levels) + tuple(column_names)
+        index_levels = list(index_levels)
     schema_identifier = get_truncated_hash(column_names)
     schema_filename = f"{schema_identifier}.schema.yaml"
     schema_filepath = f"{facet}/{schema_filename}" # for URL & uniform filepath
@@ -237,11 +242,13 @@ def get_schema_or_url(facet: str,
 
 def get_schema(df: pd.DataFrame,
                facet: ScoreFacet,
-               fl_infer: bool = False) -> dict | str:
-    if fl_infer:
-        result = fl.describe(df).schema.to_descriptor()
-    else:
-        result = get_schema_or_url(facet=facet, column_names=df.columns)
+               include_index_levels: bool = False,
+               ) -> dict | str:
+    index_levels = df.index.names if include_index_levels else None
+    result = get_schema_or_url(
+        facet=facet,
+        column_names=df.columns,
+        index_levels=index_levels,)
     return result
 
 @function_logger
@@ -268,6 +275,7 @@ def make_resource_descriptor(
         facet: ScoreFacet,
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
+        include_index_levels: bool = False,
 ) -> dict:
     """ Given a dataframe and information about resource name and type and relative paths, create a frictionless
     resource descriptor.
@@ -290,6 +298,7 @@ def make_resource_descriptor(
     schema = get_schema(
         df=df,
         facet=facet,
+        include_index_levels=include_index_levels
     )
     resource_name = f"{piece_name}.{facet}"
     if filepath is None:
@@ -315,6 +324,7 @@ def make_and_store_resource_descriptor(
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
         descriptor_extension: Literal["json", "yaml"] = "json",
+        include_index_levels: bool = False,
 ) -> str:
     """Make a resource descriptor for a given dataframe, store it to disk, and return the filepath.
 
@@ -341,6 +351,7 @@ def make_and_store_resource_descriptor(
         facet=facet,
         filepath=filepath,
         innerpath=innerpath,
+        include_index_levels=include_index_levels,
     )
     if descriptor['path'].endswith(".zip"):
         filepath =  descriptor['innerpath']
@@ -376,6 +387,7 @@ def make_and_store_and_validate_resource_descriptor(
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
         descriptor_extension: Literal["json", "yaml"] = "json",
+        include_index_levels: bool = False,
         raise_exception: bool = True,
 ) -> fl.Report:
     """Make a resource descriptor for a given dataframe, store it to disk, and return a validation report.
@@ -390,6 +402,11 @@ def make_and_store_and_validate_resource_descriptor(
             Can be a path to a ZIP file, in which case the resource is stored in the ZIP file at ``innerpath``.
         innerpath:
             If ``filepath`` is a ZIP file, the resource is stored in the ZIP file at ``innerpath``. Defaults to "<piece_name>.<facet>.tsv".
+        include_index_levels:
+            If False (default), the index levels are not described, assuming that they will not be written to disk
+            (otherwise, validation error). Set to True to add all index levels to the described columns and, in addition,
+            to make them the ``primaryKey`` (which, in frictionless, implies the constraints "required" & "unique"). In
+            order to include the index levels as columns, but as primaryKey, simply pass ``df.reset_index()`` to the function.
         raise_exception: If True (default) raise if the resource is not valid.
 
     Returns:
@@ -403,6 +420,7 @@ def make_and_store_and_validate_resource_descriptor(
         filepath=filepath,
         innerpath=innerpath,
         descriptor_extension=descriptor_extension,
+        include_index_levels=include_index_levels,
     )
     return validate_resource_descriptor(
         descriptor_path,
@@ -422,6 +440,9 @@ def store_dataframe_resource(
         validate: bool = True,
         **kwargs):
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
+    If the resource comes with a single RangeIndex level, the index will be
+    omitted from the TSV and the descriptor. If it comes with more than one level (a MultiIndex) the levels will be
+    included as the left-most columns and declared as "primaryKey" in the descriptor.
     Uses: :py:func:`write_tsv`
 
     Args:
@@ -463,6 +484,12 @@ def store_dataframe_resource(
     else:
         resource_path = relative_filepath
     msg += resource_path
+    if not isinstance(df.index, pd.RangeIndex):
+        logger.debug(f"Keyword arguments for write_tsv() updated with index=True.")
+        read_csv_kwargs["index"] = True
+        include_index_levels = True
+    else:
+        include_index_levels = False
     write_tsv(
         df=df,
         file_path=resource_path,
@@ -480,6 +507,7 @@ def store_dataframe_resource(
         filepath=relative_filepath,
         innerpath=innerpath,
         descriptor_extension=descriptor_extension,
+        include_index_levels=include_index_levels,
         logger=logger
     )
     if validate:
@@ -541,6 +569,7 @@ def store_dataframes_package(
             piece_name=piece_name,
             facet=facet,
             filepath=filepath,
+            include_index_levels=not isinstance(df.index, pd.RangeIndex),
             logger=logger,
         )
         package_descriptor["resources"].append(resource_descriptor)
