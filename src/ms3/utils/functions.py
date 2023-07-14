@@ -3792,7 +3792,8 @@ def write_tsv(
         file_path: str,
         pre_process: bool = True,
         **kwargs):
-    """Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'.
+    """Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'. By default,
+    the index is not included, unless you pass ``index=True`` as additional keyword argument.
     Uses: :py:func:`no_collections_no_booleans`
 
     Args:
@@ -4631,6 +4632,18 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
     }
     for t, columns in type2cols.items():
         if any(c in df.columns for c in columns):
+            if t == 'expanded':
+                # check if it's cadences only
+                if 'cadence' in df.columns and all(df.cadence.notna()):
+                    return 'cadences'
+                else:
+                    return 'expanded'
+            if t == 'notes':
+                # check if it contains rests, too
+                if 'tpc' in df.columns and any(df.tpc.isna()):
+                    return "notes_and_rests"
+                else:
+                    return "notes"
             return t
     if any(c in df.columns for c in ['mc', 'mn']):
         return 'labels'
