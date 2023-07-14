@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 import pandas as pd
 import numpy as np
 
-from ms3.utils.frictionless_helpers import store_dataframe_resource, validate_resource_descriptor, replace_extension
+from ms3.utils.frictionless_helpers import store_dataframe_resource, validate_descriptor_path, replace_extension
 from ms3.utils.functions import compute_path_from_file
 
 from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name
@@ -23,7 +23,7 @@ from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, path2
     pretty_dict, resolve_dir, update_labels_cfg, write_metadata, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, \
     convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_piece_index_for_metadata, \
-    scan_directory, write_to_warnings_file
+    scan_directory
 from .utils.constants import METADATA_COLUMN_ORDER, LATEST_MUSESCORE_VERSION
 from .view import DefaultView, View, create_view_from_parameters
 
@@ -2602,18 +2602,12 @@ class Corpus(LoggedClass):
                                 logger=self.logger
                             )
                             if frictionless:
-                                report = validate_resource_descriptor(descriptor_or_resource_path)
-                                warnings = []
-                                if not report.valid:
-                                    for task in report.tasks:
-                                        if not task.valid:
-                                            warnings.append(pformat(task))
-                                # the following call removes the .warnings file if the validation was successful
-                                write_to_warnings_file(warnings=warnings,
-                                                       file=file,
-                                                       root_dir=root_dir,
-                                                       validation_errors=True,
-                                                       logger=self.logger)
+                                _ = validate_descriptor_path(
+                                    descriptor_path=descriptor_or_resource_path,
+                                    raise_exception=False,
+                                    write_or_remove_errors_file=True
+                                )
+
                         paths.append(descriptor_or_resource_path)
         if output_metadata:
             if not markdown:

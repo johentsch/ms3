@@ -1376,7 +1376,8 @@ class Piece(LoggedClass):
             unfold: bool = False,
             interval_index: bool = False,
             frictionless: bool = True,
-            raise_exception: bool = False
+            raise_exception: bool = True,
+            write_or_remove_errors_file: bool = True,
     ):
         """
         Extract a facet from one or several available scores and store the results as TSV files, the paths of which
@@ -1403,10 +1404,10 @@ class Piece(LoggedClass):
           frictionless:
             If True (default), the file is written together with a frictionless resource descriptor JSON file
             whose column schema is used to validate the stored TSV file.
-          raise_exception:
-            Only relevent when frictionless=True (i.e., by default). If set to True, a FrictionlessException will be raised
-            when the resource descriptor is not successfully validated. Otherwise (default), any validation errors will be
-            written to a .warnings file.
+          raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
+          write_or_remove_errors_file:
+            If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
+
 
 
 
@@ -1440,7 +1441,8 @@ class Piece(LoggedClass):
                 facet=facet,
                 zipped=False,
                 frictionless=frictionless,
-                validate=raise_exception,
+                raise_exception=raise_exception,
+                write_or_remove_errors_file=write_or_remove_errors_file,
                 logger=self.logger)
 
     # def store_parsed_scores(self,

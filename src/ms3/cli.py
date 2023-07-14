@@ -9,9 +9,9 @@ import re
 from collections import defaultdict
 from typing import Optional, List
 
-from ms3 import Parse, make_coloring_reports_and_warnings
+from ms3 import Parse, make_coloring_reports_and_warnings, compute_path_from_file
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score, transform_to_resources, transform_to_package
-from ms3.utils import convert_folder, resolve_dir, capture_parse_logs, write_to_warnings_file
+from ms3.utils import convert_folder, resolve_dir, capture_parse_logs, write_warnings_to_file
 from ms3.logger import get_logger, inspect_loggers
 from ms3._version import __version__
 
@@ -334,11 +334,12 @@ def review_cmd(args,
     # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
     for pieceID, score_files in p.get_files('scores', unparsed=False, flat=True, include_empty=False).items():
         file = score_files[0]
-        write_to_warnings_file(warnings=piece2warnings[pieceID],
-                               file=file,
-                               root_dir=args.out,
-                               validation_errors=False,
-                               logger=logger)
+        warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
+        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.warnings')
+        write_warnings_to_file(
+            warnings_file=warnings_file,
+            warnings=piece2warnings[pieceID],
+            logger=logger)
 
     # call ms3 compare
     if args.compare is not None:

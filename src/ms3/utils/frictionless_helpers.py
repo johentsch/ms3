@@ -5,7 +5,7 @@ import re
 from ast import literal_eval
 from base64 import urlsafe_b64encode
 from functools import cache
-from pprint import pprint
+from pprint import pprint, pformat
 from typing import Optional, Tuple, Iterable, Literal
 
 import frictionless as fl
@@ -14,7 +14,7 @@ import yaml
 
 from ms3._typing import ScoreFacet, TSVtypes, TSVtype
 from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, \
-    eval_string_to_nested_list, write_tsv, resolve_facets_param
+    eval_string_to_nested_list, write_tsv, resolve_facets_param, write_validation_errors_to_file
 from ms3.logger import function_logger
 
 FIELDS_WITHOUT_MISSING_VALUES = (
@@ -162,7 +162,10 @@ def get_truncated_hash(S: str | Iterable[str],
         S = [S]
     hasher = hash_func()
     for s in S:
-        hasher.update(s.encode('utf-8'))
+        try:
+            hasher.update(s.encode('utf-8'))
+        except AttributeError as e:
+            raise ValueError(f"Element {s!r} from {S} resulted in error {e!r}") from e
     return urlsafe_b64encode(hasher.digest()[:length]).decode('utf-8').rstrip('=')
 
 
@@ -241,7 +244,7 @@ def get_schema_or_url(facet: str,
 
 
 def get_schema(df: pd.DataFrame,
-               facet: ScoreFacet,
+               facet: str,
                include_index_levels: bool = False,
                ) -> dict | str:
     index_levels = df.index.names if include_index_levels else None
@@ -272,7 +275,7 @@ def store_as_json_or_yaml(
 def make_resource_descriptor(
         df: pd.DataFrame,
         piece_name: str,
-        facet: ScoreFacet,
+        facet: str,
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
         include_index_levels: bool = False,
@@ -320,7 +323,7 @@ def make_and_store_resource_descriptor(
         df: pd.DataFrame,
         directory: str,
         piece_name: str,
-        facet: ScoreFacet,
+        facet: str,
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
         descriptor_extension: Literal["json", "yaml"] = "json",
@@ -366,16 +369,35 @@ def make_and_store_resource_descriptor(
     store_as_json_or_yaml(descriptor, descriptor_path, logger=logger)
     return descriptor_path
 
-def validate_resource_descriptor(
+@function_logger
+def validate_descriptor_path(
         descriptor_path: str,
         raise_exception: bool = True,
+        write_or_remove_errors_file: bool = True,
 ) -> fl.Report:
     report = fl.validate(descriptor_path)
-    if not report.valid:
-        errors = [err.message for task in report.tasks for err in task.errors]
-        if raise_exception:
-            raise fl.FrictionlessException("\n".join(errors))
+    validation_tasks = []
+    if report.valid:
+        logger.debug(f"{descriptor_path} successfully validated.")
+    else:
+        validation_tasks, error_lists = zip(*((pformat(task), [err.message for err in task.errors]) for task in report.tasks))
+        all_errors = sum(error_lists, [])
+        errors_block = '\n'.join(all_errors)
+        logger.error(
+            f"Validation of {descriptor_path} failed with {len(all_errors)} validation errors:\n{errors_block}",
+            extra={"message_id": (32,)}
+        )
+    if write_or_remove_errors_file:
+        # the following call removes the .errors file if the validation was successful
+        errors_file = replace_extension(descriptor_path, '.errors')
+        write_validation_errors_to_file(
+            errors_file=errors_file,
+            errors=validation_tasks,
+            logger=logger)
+    if not report.valid and raise_exception:
+        raise fl.FrictionlessException("\n".join(all_errors))
     return report
+
 
 
 @function_logger
@@ -389,6 +411,7 @@ def make_and_store_and_validate_resource_descriptor(
         descriptor_extension: Literal["json", "yaml"] = "json",
         include_index_levels: bool = False,
         raise_exception: bool = True,
+        write_or_remove_errors_file: bool = True,
 ) -> fl.Report:
     """Make a resource descriptor for a given dataframe, store it to disk, and return a validation report.
 
@@ -407,7 +430,10 @@ def make_and_store_and_validate_resource_descriptor(
             (otherwise, validation error). Set to True to add all index levels to the described columns and, in addition,
             to make them the ``primaryKey`` (which, in frictionless, implies the constraints "required" & "unique"). In
             order to include the index levels as columns, but as primaryKey, simply pass ``df.reset_index()`` to the function.
-        raise_exception: If True (default) raise if the resource is not valid.
+        raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
+        write_or_remove_errors_file:
+            If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
+
 
     Returns:
         A frictionless validation report. ``report.valid`` returns a boolean that is True if successfully validated.
@@ -422,22 +448,40 @@ def make_and_store_and_validate_resource_descriptor(
         descriptor_extension=descriptor_extension,
         include_index_levels=include_index_levels,
     )
-    return validate_resource_descriptor(
+    return validate_descriptor_path(
         descriptor_path,
         raise_exception=raise_exception,
+        write_or_remove_errors_file=write_or_remove_errors_file,
     )
+
+
+def is_range_index_equivalent(idx: pd.Index) -> bool:
+    """Check if a given index is a RangeIndex with the same start, stop, and step as the default RangeIndex."""
+    if isinstance(idx, pd.RangeIndex):
+        return True
+    if isinstance(idx, pd.core.indexes.numeric.IntegerIndex) and idx.is_monotonic_increasing and idx[0] == 0:
+        return True
+    return False
+
+@function_logger
+def all_index_levels_named(idx: pd.Index) -> bool:
+    if any(not level_name for level_name in idx.names):
+        return False
+    return True
+
 
 @function_logger
 def store_dataframe_resource(
         df: pd.DataFrame,
         directory: str,
         piece_name: str,
-        facet: ScoreFacet,
+        facet: str,
         pre_process: bool = True,
         zipped: bool = False,
         frictionless: bool = True,
         descriptor_extension: Literal["json", "yaml", None] = "json",
-        validate: bool = True,
+        raise_exception: bool = True,
+        write_or_remove_errors_file: bool = True,
         **kwargs):
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
     If the resource comes with a single RangeIndex level, the index will be
@@ -455,9 +499,10 @@ def store_dataframe_resource(
             converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
         zipped: If set to True, the TSV file will be written into a zip archive called ``<piece_name>.zip``.
         frictionless: If True (default), a frictionless resource descriptor will be written to disk as well.
-        validate:
-            If True (default), the frictionless resource descriptor will be validated against the schema, resulting
-            in a FrictionlessException if the validation fails.
+        raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
+        write_or_remove_errors_file:
+            If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
+
         **kwargs:
             Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
             Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above) and,
@@ -484,12 +529,12 @@ def store_dataframe_resource(
     else:
         resource_path = relative_filepath
     msg += resource_path
-    if not isinstance(df.index, pd.RangeIndex):
+    if not all_index_levels_named(df.index) or is_range_index_equivalent(df.index):
+        include_index_levels = False
+    else:
         logger.debug(f"Keyword arguments for write_tsv() updated with index=True.")
         read_csv_kwargs["index"] = True
         include_index_levels = True
-    else:
-        include_index_levels = False
     write_tsv(
         df=df,
         file_path=resource_path,
@@ -510,8 +555,11 @@ def store_dataframe_resource(
         include_index_levels=include_index_levels,
         logger=logger
     )
-    if validate:
-        validate_resource_descriptor(descriptor_path)
+    validate_descriptor_path(
+        descriptor_path,
+        raise_exception=raise_exception,
+        write_or_remove_errors_file=write_or_remove_errors_file,
+    )
     return descriptor_path
 
 @function_logger
@@ -523,7 +571,8 @@ def store_dataframes_package(
         pre_process: bool = True,
         zipped: bool = True,
         descriptor_extension: Literal["json", "yaml", None] = "json",
-        validate: bool = True,
+        raise_exception: bool = True,
+        write_or_remove_errors_file: bool = True,
         **kwargs):
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
     Uses: :py:func:`write_tsv`
@@ -539,9 +588,10 @@ def store_dataframes_package(
             By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
             converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
         zipped: If set to False, the TSV file will not be written into a zip archive called ``<piece_name>.zip``.
-        validate:
-            If True (default), the frictionless resource descriptor will be validated against the schema, resulting
-            in a FrictionlessException if the validation fails.
+        raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
+        write_or_remove_errors_file:
+            If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
+
     """
     if isinstance(dataframes, pd.DataFrame):
         dataframes = [dataframes]
@@ -559,8 +609,6 @@ def store_dataframes_package(
             pre_process=pre_process,
             zipped=zipped,
             frictionless=False,
-            descriptor_extension=descriptor_extension,
-            validate=validate,
             logger=logger
         )
         directory, filepath = os.path.split(resource_path)
@@ -579,4 +627,10 @@ def store_dataframes_package(
         descriptor_dict=package_descriptor,
         descriptor_path=package_descriptor_path,
         logger=logger
+    )
+    validate_descriptor_path(
+        package_descriptor_path,
+        raise_exception=raise_exception,
+        write_or_remove_errors_file=write_or_remove_errors_file,
+        logger=logger,
     )

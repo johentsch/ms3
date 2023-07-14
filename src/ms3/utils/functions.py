@@ -5321,30 +5321,45 @@ def check_phrase_annotations(df: pd.DataFrame,
         return False
     return True
 
-
 @function_logger
-def write_to_warnings_file(
+def write_messages_to_file_or_remove(
+        warnings_file: str,
         warnings: List[str],
-        file: File,
-        root_dir: Optional[str] = None,
-        validation_errors: bool = False
-):
-    warnings_path = compute_path_from_file(file, root_dir=root_dir, folder='reviewed')
-    if validation_errors:
-        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.errors')
-        header = f"Validation errors encountered during the last execution of ms3 extract"
-        log_msg = f"Written warnings to {warnings_file}."
-    else:
-        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.warnings')
-        header = f"Warnings encountered during the last execution of ms3 review"
-        log_msg = f"Written validation errors to {warnings_file}."
+        header: str) -> bool:
+    warnings_path = os.path.dirname(warnings_file)
     if len(warnings) > 0:
         os.makedirs(warnings_path, exist_ok=True)
         header = f"{header}\n{'=' * len(header)}\n\n"
         with open(warnings_file, 'w', encoding='utf-8') as f:
             f.write(header)
             f.write('\n'.join(warnings))
-        logger.info(log_msg)
+        return True
     elif os.path.isfile(warnings_file):
         logger.info(f"Problems seem to be solved, removing {warnings_file}")
         os.remove(warnings_file)
+    return False
+
+
+@function_logger
+def write_warnings_to_file(
+        warnings_file: str,
+        warnings: List[str],
+        header: Optional[str] = None,
+):
+    if header is None:
+        header = f"Warnings encountered during the last execution of ms3 review"
+    if write_messages_to_file_or_remove(warnings_file, warnings, header):
+        logger.info(f"Written warnings to {warnings_file}.")
+
+
+@function_logger
+def write_validation_errors_to_file(
+        errors_file: str,
+        errors: List[str],
+        header: Optional[str] = None,
+):
+    if header is None:
+        header = f"To reproduce execute: frictionless validate \"{os.path.basename(errors_file)}\""
+    if write_messages_to_file_or_remove(errors_file, errors, header):
+        logger.info(f"Written validation errors to {errors_file}.")
+
