@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Command line interface for ms3.
+Command line interface for ms3. This module includes the argument parsers for the various commands and has one function
+<command>_cmd() per <command> which takes the parsed arguments namespace and dispatches them to the appropriate function
+in the ms3.operations module, using a couple of helper functions to that aim.
 """
 
 import argparse, os

@@ -570,10 +570,11 @@ def store_dataframes_package(
         piece_name: str,
         pre_process: bool = True,
         zipped: bool = True,
+        frictionless: bool = True,
         descriptor_extension: Literal["json", "yaml", None] = "json",
         raise_exception: bool = True,
         write_or_remove_errors_file: bool = True,
-        **kwargs):
+        ):
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
     Uses: :py:func:`write_tsv`
 
@@ -588,6 +589,9 @@ def store_dataframes_package(
             By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
             converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
         zipped: If set to False, the TSV file will not be written into a zip archive called ``<piece_name>.zip``.
+        frictionless:
+            If True (default), the package is written together with a frictionless package descriptor JSON/YAML file
+            that includes column schemas of the included TSV files which are used to validate them all at once.
         raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
         write_or_remove_errors_file:
             If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
@@ -621,6 +625,8 @@ def store_dataframes_package(
             logger=logger,
         )
         package_descriptor["resources"].append(resource_descriptor)
+    if not frictionless:
+        return
     package_descriptor_filepath = f"{piece_name}.datapackage.{descriptor_extension}"
     package_descriptor_path = os.path.join(directory, package_descriptor_filepath)
     store_as_json_or_yaml(
@@ -628,7 +634,7 @@ def store_dataframes_package(
         descriptor_path=package_descriptor_path,
         logger=logger
     )
-    validate_descriptor_path(
+    _ = validate_descriptor_path(
         package_descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,

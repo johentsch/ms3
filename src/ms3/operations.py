@@ -1,3 +1,6 @@
+"""This module contains the functions called by the ms3 commandline interface, which is why they may use
+print() instead of log messages from time to time.
+"""
 import os
 from typing import Literal, Optional, Tuple, Dict, List, Union
 
@@ -332,17 +335,19 @@ def _transform(
 
 
 def transform_to_resources(
-    ms3_object: Parse | Corpus,
-    facets: TSVtypes,
-    filename: str,
-    output_folder: Optional[str] = None,
-    choose: Literal['all', 'auto', 'ask'] = 'auto',
-    interval_index: bool = False,
-    unfold: bool = False,
-    test: bool = False,
-    zipped: bool = False,
-    overwrite: bool = True,
-    log_level = None
+        ms3_object: Parse | Corpus,
+        facets: TSVtypes,
+        filename: str,
+        output_folder: Optional[str] = None,
+        choose: Literal['all', 'auto', 'ask'] = 'auto',
+        interval_index: bool = False,
+        unfold: bool = False,
+        test: bool = False,
+        zipped: bool = False,
+        overwrite: bool = True,
+        raise_exception: bool = False,
+        write_or_remove_errors_file: bool = True,
+        log_level=None
 ):
     logger = get_logger('ms3.transform', level=log_level)
     for df, facet, output_folder, prefix, msg in _transform(
@@ -367,22 +372,25 @@ def transform_to_resources(
             zipped=zipped,
             frictionless=True,
             descriptor_extension="json",
-            validate=True,
+            raise_exception=raise_exception,
+            write_or_remove_errors_file=write_or_remove_errors_file,
         )
         logger.info(msg)
 
 def transform_to_package(
-    ms3_object: Parse | Corpus,
-    facets: TSVtypes,
-    filename: str,
-    output_folder: Optional[str] = None,
-    choose: Literal['all', 'auto', 'ask'] = 'auto',
-    interval_index: bool = False,
-    unfold: bool = False,
-    test: bool = False,
-    zipped: bool = True,
-    overwrite: bool = True,
-    log_level = None
+        ms3_object: Parse | Corpus,
+        facets: TSVtypes,
+        filename: str,
+        output_folder: Optional[str] = None,
+        choose: Literal['all', 'auto', 'ask'] = 'auto',
+        interval_index: bool = False,
+        unfold: bool = False,
+        test: bool = False,
+        zipped: bool = True,
+        overwrite: bool = True,
+        raise_exception: bool = False,
+        write_or_remove_errors_file: bool = True,
+        log_level=None
 ):
     logger = get_logger('ms3.transform', level=log_level)
     dfs, returned_facets = [], []
@@ -413,8 +421,35 @@ def transform_to_package(
         zipped=zipped,
         frictionless=True,
         descriptor_extension="json",
-        validate=True,
+        raise_exception=raise_exception,
+        write_or_remove_errors_file=write_or_remove_errors_file,
         logger=logger
+    )
+
+
+def corpus2default_package(
+        corpus_obj: Corpus,
+        raise_exception: bool = False,
+        write_or_remove_errors_file: bool = True,
+        log_level='i'):
+    """Convenience function for creating a frictionless datapackage for and in a Corpus repository, with the repository name,
+    including exactly those facets that have been previously extracted as TSV files (and not excluded from the current view).
+    """
+    corpus_obj.parse_tsv()
+    tsv_facets = [facet for facet in corpus_obj.count_files(detected=False).columns if facet not in ("scores", "unknown")]
+    if len(tsv_facets) == 0:
+        print("No TSV files found. Consider using ms3 extract to create TSV files first.")
+        return
+    facets = ['metadata'] + tsv_facets
+    print(f"Creating package containing the facets {facets}...")
+    transform_to_package(
+        ms3_object=corpus_obj,
+        facets=facets,
+        filename=corpus_obj.name,
+        output_folder=corpus_obj.corpus_path,
+        raise_exception=raise_exception,
+        write_or_remove_errors_file=write_or_remove_errors_file,
+        log_level=log_level
     )
 
 
