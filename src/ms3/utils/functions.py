@@ -34,9 +34,8 @@ from typing_extensions import Self
 
 from ms3.logger import update_cfg, LogCapturer, function_logger
 from ms3._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
-from ms3._version import __version__
 from .constants import rgba, MS3_HTML, SCORE_EXTENSIONS, FORM_LEVEL_REGEX, FORM_LEVEL_CAPTURE_REGEX, FORM_LEVEL_SPLIT_REGEX, FORM_TOKEN_ABBREVIATIONS, \
-    STANDARD_NAMES_OR_GIT, STANDARD_COLUMN_ORDER, METADATA_COLUMN_ORDER, DCML_REGEX, STANDARD_NAMES, MS3_RGB, LEGACY_COLUMNS
+    STANDARD_NAMES_OR_GIT, STANDARD_COLUMN_ORDER, METADATA_COLUMN_ORDER, DCML_REGEX, STANDARD_NAMES, MS3_RGB, LEGACY_COLUMNS, DEFAULT_CREATOR_METADATA
 
 
 class map_dict(dict):
@@ -2124,17 +2123,8 @@ def make_csvw_jsonld(title: str,
     if description is not None:
         result["dc:description"] = description
     result["dc:created"] = datetime.now().replace(microsecond=0).isoformat()
-    result["dc:creator"] = [{
-        "@context": "https://schema.org/",
-        "@type": "SoftwareApplication",
-        "@id": "https://github.com/johentsch/ms3",
-        "name": "ms3",
-        "description": "A parser for MuseScore 3 files.",
-        "author": {"name": "Johannes Hentschel",
-                   "@id": "https://orcid.org/0000-0002-1986-9545",
-                   },
-        "softwareVersion": __version__,
-    }]
+
+    result["dc:creator"] = [DEFAULT_CREATOR_METADATA]
     if isinstance(urls, str):
         result["url"] = urls,
     else:

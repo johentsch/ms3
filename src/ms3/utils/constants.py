@@ -3,6 +3,8 @@ from collections import namedtuple
 
 import webcolors
 
+from ms3._version import __version__
+
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -281,3 +283,14 @@ CSS2MS3 = {c[4:]: c for c in MS3_COLORS}
 CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
 COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
 rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
+DEFAULT_CREATOR_METADATA = {
+        "@context": "https://schema.org/",
+        "@type": "SoftwareApplication",
+        "@id": "https://github.com/johentsch/ms3",
+        "name": "ms3",
+        "description": "A parser for MuseScore 3 files and data factory for annotated music corpora.",
+        "author": {"name": "Johannes Hentschel",
+                   "@id": "https://orcid.org/0000-0002-1986-9545",
+                   },
+        "softwareVersion": __version__,
+    }

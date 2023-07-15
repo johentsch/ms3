@@ -16,6 +16,7 @@ from ms3._typing import ScoreFacet, TSVtypes, TSVtype
 from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, \
     eval_string_to_nested_list, write_tsv, resolve_facets_param, write_validation_errors_to_file
 from ms3.logger import function_logger
+from .constants import DEFAULT_CREATOR_METADATA
 
 FIELDS_WITHOUT_MISSING_VALUES = (
     'mc',
@@ -114,6 +115,7 @@ def assemble_resource_descriptor(
         filepath: str,
         schema: str | dict,
         innerpath: Optional[str] = None,
+        **kwargs
 ):
     is_zipped = filepath.endswith(".zip")
     if is_zipped:
@@ -138,6 +140,8 @@ def assemble_resource_descriptor(
         },
         "schema": schema
     })
+    if kwargs:
+        descriptor.update(kwargs)
     return descriptor
 
 
@@ -279,6 +283,7 @@ def make_resource_descriptor(
         filepath: Optional[str] = None,
         innerpath: Optional[str] = None,
         include_index_levels: bool = False,
+        **kwargs,
 ) -> dict:
     """ Given a dataframe and information about resource name and type and relative paths, create a frictionless
     resource descriptor.
@@ -294,7 +299,8 @@ def make_resource_descriptor(
             Can be a path to a ZIP file, in which case the resource is stored in the ZIP file at ``innerpath``.
         innerpath:
             If ``filepath`` is a ZIP file, the resource is stored in the ZIP file at ``innerpath``. Defaults to "<piece_name>.<facet>.tsv".
-
+        **kwargs
+            Additional keyword arguments written as metadata into the descriptor.
     Returns:
         A frictionless resource descriptor dictionary.
     """
@@ -314,7 +320,8 @@ def make_resource_descriptor(
         filepath=filepath,
         schema=schema,
         innerpath=innerpath,
-        logger=logger
+        logger=logger,
+        **kwargs,
     )
 
 
@@ -328,6 +335,7 @@ def make_and_store_resource_descriptor(
         innerpath: Optional[str] = None,
         descriptor_extension: Literal["json", "yaml"] = "json",
         include_index_levels: bool = False,
+        **kwargs,
 ) -> str:
     """Make a resource descriptor for a given dataframe, store it to disk, and return the filepath.
 
@@ -341,7 +349,8 @@ def make_and_store_resource_descriptor(
             Can be a path to a ZIP file, in which case the resource is stored in the ZIP file at ``innerpath``.
         innerpath:
             If ``filepath`` is a ZIP file, the resource is stored in the ZIP file at ``innerpath``. Defaults to "<piece_name>.<facet>.tsv".
-
+        **kwargs
+            Additional keyword arguments written as metadata into the descriptor.
     Returns:
         The path to the stored descriptor file.
     """
@@ -355,6 +364,8 @@ def make_and_store_resource_descriptor(
         filepath=filepath,
         innerpath=innerpath,
         include_index_levels=include_index_levels,
+        logger=logger,
+        **kwargs
     )
     if descriptor['path'].endswith(".zip"):
         filepath =  descriptor['innerpath']
@@ -412,6 +423,7 @@ def make_and_store_and_validate_resource_descriptor(
         include_index_levels: bool = False,
         raise_exception: bool = True,
         write_or_remove_errors_file: bool = True,
+        **kwargs
 ) -> fl.Report:
     """Make a resource descriptor for a given dataframe, store it to disk, and return a validation report.
 
@@ -433,7 +445,8 @@ def make_and_store_and_validate_resource_descriptor(
         raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
         write_or_remove_errors_file:
             If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
-
+        **kwargs
+            Additional keyword arguments written as metadata into the descriptor.
 
     Returns:
         A frictionless validation report. ``report.valid`` returns a boolean that is True if successfully validated.
@@ -447,11 +460,14 @@ def make_and_store_and_validate_resource_descriptor(
         innerpath=innerpath,
         descriptor_extension=descriptor_extension,
         include_index_levels=include_index_levels,
+        logger=logger,
+        **kwargs
     )
     return validate_descriptor_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
+        logger=logger,
     )
 
 
@@ -553,12 +569,14 @@ def store_dataframe_resource(
         innerpath=innerpath,
         descriptor_extension=descriptor_extension,
         include_index_levels=include_index_levels,
+        creator=DEFAULT_CREATOR_METADATA, # custom metadata field for descriptor, passed as kwarg
         logger=logger
     )
     validate_descriptor_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
+        logger=logger
     )
     return descriptor_path
 
@@ -627,6 +645,7 @@ def store_dataframes_package(
         package_descriptor["resources"].append(resource_descriptor)
     if not frictionless:
         return
+    package_descriptor["creator"] = DEFAULT_CREATOR_METADATA # custom metadata field
     package_descriptor_filepath = f"{piece_name}.datapackage.{descriptor_extension}"
     package_descriptor_path = os.path.join(directory, package_descriptor_filepath)
     store_as_json_or_yaml(

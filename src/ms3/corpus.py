@@ -2598,16 +2598,10 @@ class Corpus(LoggedClass):
                                 facet=facet_param,
                                 zipped=False,
                                 frictionless=frictionless,
-                                validate=False,
+                                raise_exception=False,
+                                write_or_remove_errors_file=True,
                                 logger=self.logger
                             )
-                            if frictionless:
-                                _ = validate_descriptor_path(
-                                    descriptor_path=descriptor_or_resource_path,
-                                    raise_exception=False,
-                                    write_or_remove_errors_file=True
-                                )
-
                         paths.append(descriptor_or_resource_path)
         if output_metadata:
             if not markdown:
