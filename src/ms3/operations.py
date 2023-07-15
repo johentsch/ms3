@@ -347,7 +347,7 @@ def transform_to_resources(
         overwrite: bool = True,
         raise_exception: bool = False,
         write_or_remove_errors_file: bool = True,
-        log_level=None
+        log_level="i"
 ):
     logger = get_logger('ms3.transform', level=log_level)
     for df, facet, output_folder, prefix, msg in _transform(
@@ -390,7 +390,7 @@ def transform_to_package(
         overwrite: bool = True,
         raise_exception: bool = False,
         write_or_remove_errors_file: bool = True,
-        log_level=None
+        log_level="i"
 ):
     logger = get_logger('ms3.transform', level=log_level)
     dfs, returned_facets = [], []
@@ -435,13 +435,14 @@ def corpus2default_package(
     """Convenience function for creating a frictionless datapackage for and in a Corpus repository, with the repository name,
     including exactly those facets that have been previously extracted as TSV files (and not excluded from the current view).
     """
+    logger = get_logger('ms3.corpus2default_package', level=log_level)
     corpus_obj.parse_tsv()
     tsv_facets = [facet for facet in corpus_obj.count_files(detected=False).columns if facet not in ("scores", "unknown")]
     if len(tsv_facets) == 0:
-        print("No TSV files found. Consider using ms3 extract to create TSV files first.")
+        logger.error("No TSV files found. Consider using ms3 extract to create TSV files first.")
         return
     facets = ['metadata'] + tsv_facets
-    print(f"Creating package containing the facets {facets}...")
+    logger.info(f"Creating package containing the facets {facets}...")
     transform_to_package(
         ms3_object=corpus_obj,
         facets=facets,
@@ -449,7 +450,7 @@ def corpus2default_package(
         output_folder=corpus_obj.corpus_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
-        log_level=log_level
+        log_level=log_level,
     )
 
 

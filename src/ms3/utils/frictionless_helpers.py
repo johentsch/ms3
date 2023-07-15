@@ -383,7 +383,7 @@ def validate_descriptor_path(
         validation_tasks, error_lists = zip(*((pformat(task), [err.message for err in task.errors]) for task in report.tasks))
         all_errors = sum(error_lists, [])
         errors_block = '\n'.join(all_errors)
-        logger.error(
+        logger.warning(
             f"Validation of {descriptor_path} failed with {len(all_errors)} validation errors:\n{errors_block}",
             extra={"message_id": (32,)}
         )
