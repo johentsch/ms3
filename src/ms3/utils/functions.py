@@ -5349,7 +5349,12 @@ def write_validation_errors_to_file(
         header: Optional[str] = None,
 ):
     if header is None:
-        header = f"To reproduce execute: frictionless validate \"{os.path.basename(errors_file)}\""
+        header = f"Validation error encountered after file creation"
     if write_messages_to_file_or_remove(errors_file, errors, header):
         logger.info(f"Written validation errors to {errors_file}.")
 
+
+def replace_extension(filepath: str, new_extension: str) -> str:
+    if new_extension[0] != '.':
+        new_extension = '.' + new_extension
+    return os.path.splitext(filepath)[0] + new_extension

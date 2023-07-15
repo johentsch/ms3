@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 import pandas as pd
 import numpy as np
 
-from ms3.utils.frictionless_helpers import store_dataframe_resource, validate_descriptor_path, replace_extension
+from ms3.utils.frictionless_helpers import store_dataframe_resource
 from ms3.utils.functions import compute_path_from_file
 
 from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name

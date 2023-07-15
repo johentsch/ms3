@@ -13,8 +13,8 @@ import pandas as pd
 import yaml
 
 from ms3._typing import ScoreFacet, TSVtypes, TSVtype
-from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, function_logger, safe_frac, safe_int, str2inttuple, int2bool, File, \
-    eval_string_to_nested_list, write_tsv, resolve_facets_param, write_validation_errors_to_file
+from .functions import TSV_COLUMN_TITLES, TSV_COLUMN_DESCRIPTIONS, TSV_DTYPES, TSV_COLUMN_CONVERTERS, safe_frac, safe_int, str2inttuple, int2bool, File, \
+    eval_string_to_nested_list, write_tsv, resolve_facets_param, write_validation_errors_to_file, replace_extension
 from ms3.logger import function_logger
 from .constants import DEFAULT_CREATOR_METADATA
 
@@ -144,11 +144,6 @@ def assemble_resource_descriptor(
         descriptor.update(kwargs)
     return descriptor
 
-
-def replace_extension(filepath: str, new_extension: str) -> str:
-    if new_extension[0] != '.':
-        new_extension = '.' + new_extension
-    return os.path.splitext(filepath)[0] + new_extension
 
 def make_json_path(file: File) -> str:
     return os.path.join(file.directory, f"{file.piece}.resource.json")
@@ -401,9 +396,11 @@ def validate_descriptor_path(
     if write_or_remove_errors_file:
         # the following call removes the .errors file if the validation was successful
         errors_file = replace_extension(descriptor_path, '.errors')
+        header = f"To reproduce: frictionless validate {os.path.basename(descriptor_path)}"
         write_validation_errors_to_file(
             errors_file=errors_file,
             errors=validation_tasks,
+            header=header,
             logger=logger)
     if not report.valid and raise_exception:
         raise fl.FrictionlessException("\n".join(all_errors))
