@@ -2064,13 +2064,34 @@ and {loc_after} before the subsequent {nxt_name}.""")
 ####################### END OF CLASS DEFINITION #######################
 #######################################################################
 class ParsedParts(LoggedClass):
+    """
+           Storing found parts object from a BeautifulSoup file
+
+           Args:
+               soup: bs4.BeautifulSoup,
+                   BeautifulSoup object to parse
+               **logger_cfg:obj:`dict`, optional
+                   The following options are available:
+                   'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+                   'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+                   'file': PATH_TO_LOGFILE to store all log messages under the given path.
+           """
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('ParsedParts', logger_cfg)
         self.parts_data: Dict[str, bs4.Tag] = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
 
     @property
     def staff2part(self) -> dict[list, str]:
-        """Returns the dict in the format {[2, 3]: 'part_1'} for staves 2 and 3 of part 1"""
+        """
+        Allows users to determine the corresponding part based on the staff number
+
+        Example:
+            Returns {[2, 3]: 'part_1'} for staves 2 and 3 of part 1
+
+        Returns:
+            dict[list, str]: the dictionary mapping parts to staves
+
+        """
         staff2part = {}
         for key_part, part in self.parts_data.items():
             staves = [f"staff_{staff['id']}" for staff in part.find_all('Staff')]
@@ -2080,16 +2101,25 @@ class ParsedParts(LoggedClass):
     def __repr__(self):
         return pformat(self.parts_data, sort_dicts=False)
 
+"""Instrument Defaults is a csv file that includes all possible instruments and their properties: 'id', 'longName',
+    'shortName', 'trackName', 'instrumentId', 'part_trackName', 'ChannelName', 'ChannelValue'"""
 INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None})
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
     """
-    Allows users to set an instrument by 'id', 'longName', 'shortName',
-       'trackName', 'instrumentId', 'part_trackName'
+    Allows users to point to an instrument not only with a 'trackName', but also with 'id', 'longName', 'shortName',
+       'instrumentId', 'part_trackName'
+
+    Returns:
+        Dict[str, dict]: dictionary mapping any of the possible fields ('id', 'longName', 'shortName', trackName',
+       'instrumentId', 'part_trackName') corresponding to an instrument into complete information about the instrument
+       ('id',  'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName', 'ChannelName', 'ChannelValue')
     """
     enlarged_dict = dict(INSTRUMENT_DEFAULTS.T)
+    # we drop "ChannelName", "ChannelValue" because they are not unique for the instrument, so they can't be keys
     for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.drop(["ChannelName", "ChannelValue"]).to_dict().items():
         added_value = INSTRUMENT_DEFAULTS.T[cur_key]
+        # additional_key takes values from 'id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'
         for additional_key in cur_value.values():
             if not additional_key is None:
                 if type(additional_key) == str:
@@ -2101,8 +2131,9 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
 
 
 class Instrumentation(LoggedClass):
-    """Easy way to read and write the instrumentation of a score, that is
-    'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'."""
+      """Easy way to read and write the instrumentation of a score, that is
+    'id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+                                       'ChannelName', 'ChannelValue'."""
 
 
     key2default_instrumentation = get_enlarged_default_dict()
@@ -2119,7 +2150,14 @@ class Instrumentation(LoggedClass):
 
 
     def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
-        """Returns the dict of self.fields_names info for every part  {[staff_2, staff_3]: 'part_1'} for staves 2 and 3 of part 1"""
+        """
+        Stores tags references for each staff
+
+        Returns: the dictionary in the format {'staff_1': {'id': None, 'longName': None, 'shortName': None,
+        'trackName': None, 'instrumentId': None, 'part_trackName': None, 'ChannelName', 'ChannelValue'},
+        'staff_2': {...}, ...} containing the BeautifulSoup tags
+
+        """
         tag_dict = {}
         for key_part, part in self.parsed_parts.parts_data.items():
             instrument_tag = part.Instrument
@@ -2142,6 +2180,14 @@ class Instrumentation(LoggedClass):
 
     @property
     def fields(self):
+        """
+        Extracts information from the tag and stores it for each staff
+
+        Returns: the dictionary in the format {'staff_1': {'id': None, 'longName': None, 'shortName': None,
+        'trackName': None, 'instrumentId': None, 'part_trackName': None, 'ChannelName', 'ChannelValue'},
+        'staff_2': {...}, ...} containing the information extracted from tags
+
+        """
         result = {}
         for key, instr_data in self.soup_references_data.items():
             result[key] = {}
@@ -2157,6 +2203,15 @@ class Instrumentation(LoggedClass):
         return result
 
     def get_instrument_name(self, staff_name: Union[str, int]):
+        """
+        Allows users accessing the instrument trackname attributed to the staff staff_name
+        Args:
+            staff_name: a number or a string in the format 'staff_1' defining the staff of interest
+
+        Returns:
+            str: trackName extracted from tag for the staff staff_name
+
+        """
         if type(staff_name) == int:
             staff_name = f'staff_{staff_name}'
         fields_data = self.fields
@@ -2166,6 +2221,16 @@ class Instrumentation(LoggedClass):
             return fields_data[staff_name]['trackName']
 
     def set_instrument(self, staff_id: Union[str, int], trackname):
+        """
+        Modifies the instrument and all its corresponding information in the soup source file
+
+        Args:
+            staff_id: an integer number i or a string in the format 'staff_i' defining the staff of interest
+            trackname: key defining the new value of the instrument, can be one of ('id', 'longName', 'shortName', trackName',
+       'instrumentId', 'part_trackName')
+
+        """
+        # preprocessing and verification of correctness of staff_id
         available_staves = list(self.parsed_parts.staff2part.keys())
         if not isinstance(staff_id, str):
             try:
@@ -2178,12 +2243,15 @@ class Instrumentation(LoggedClass):
             raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
         changed_part = self.parsed_parts.staff2part[staff_id]
         self.logger.debug(f"References to tags before the instrument was changed: {self.soup_references()}")
+
+        # preprocessing and verification of correctness of trackname
         trackname_norm = trackname.lower().strip('.')
         if trackname_norm not in self.key2default_instrumentation:
             trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
             self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}?", extra=dict(message_id=(30,)))
         new_values = self.key2default_instrumentation[trackname_norm]
 
+        # checking that the current changes will not affect other staves
         staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
                               part_value == changed_part and staff_key != staff_id])  # which staves share this part
         if len(staves_within_part) > 0:
@@ -2193,6 +2261,7 @@ class Instrumentation(LoggedClass):
                 damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
                 self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
 
+        # modification of fields
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
