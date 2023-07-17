@@ -2131,7 +2131,7 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
 
 
 class Instrumentation(LoggedClass):
-      """Easy way to read and write the instrumentation of a score, that is
+    """Easy way to read and write the instrumentation of a score, that is
     'id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
                                        'ChannelName', 'ChannelValue'."""
 

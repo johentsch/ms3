@@ -1,1 +1,1 @@
-__version__ = "1.2.10.post0.dev75+gdec86fc.dirty"
+__version__ = "1.2.12.post0.dev109+gb1407ba5"
