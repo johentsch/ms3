@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
 from inspect import stack
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple, List, Set
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -52,6 +52,10 @@ class MessageType(Enum):
     UNFOLDING_REPEATS_FAILED_WARNING = 26
     DCML_DEFAULT_CORRECTION_WARNING = 27
     WRONGLY_ENCODED_POSITION_WARNING = 28
+    FIRST_BAR_MISSING_TEMPO_MARK_WARNING = 29
+    CORRECTED_INSTRUMENT_TRACKNAME_WARNING = 30
+    INCONSISTENT_INSTRUMENT_CHANGE_WITHIN_PART = 31
+    FRICTIONLESS_VALIDATION_ERROR_WARNING = 32
 
 
 
@@ -78,7 +82,7 @@ class LoggedClass():
         Current logger that the object is using.
     parser : {'bs4'}
         The only XML parser currently implemented is BeautifulSoup 4.
-    paths, files, fnames, fexts, logger_names : :obj:`dict`
+    paths, files, pieces, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
 
@@ -255,10 +259,10 @@ def resolve_log_path_argument(path, name, logger):
     if path is not None:
         path = resolve_dir(path)
         if os.path.isdir(path):
-            fname = name + ".log"
-            log_file = os.path.join(path, fname)
+            piece = name + ".log"
+            log_file = os.path.join(path, piece)
         else:
-            path_component, fname = os.path.split(path)
+            path_component, piece = os.path.split(path)
             if os.path.isdir(path_component):
                 log_file = path
             else:
@@ -279,8 +283,8 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
         # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated function without passing logger=<logger>:\n{last_8}")
         set_level = 0 if level is None else level
-        logging.basicConfig(level=set_level)
-        logger.debug(f"set logging.basicConfig(level={set_level})")
+        logger.debug(f"Setting top-level logger 'ms3' to level {set_level}")
+        logger.setLevel(set_level)
     is_head_logger = logger.parent.name == 'ms3'
     adding_file_handler = path is not None
     adding_any_handlers = is_head_logger or adding_file_handler
@@ -452,3 +456,10 @@ def normalize_logger_name(name: str) -> str:
             components = components[:-1]
             break
     return '.'.join(components)
+
+def get_ignored_warning_ids(logger: logging.Logger) -> Set[tuple]:
+    try:
+        existing_filter = next(filter for filter in logger.filters if isinstance(filter, WarningFilter))
+        return set(existing_filter.ignored_warnings)
+    except StopIteration:
+        return set()

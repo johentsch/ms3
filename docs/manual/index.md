@@ -102,20 +102,20 @@ IDs are tuples that are used to identify corpora, pieces and files:
 
 * `'corpus_name'` identifies a corpus, a collection of pieces.
   * `ms3.Parse[corpus_name] -> Corpus`.
-* `'fname'` identifies a piece by its file name without any suffixes.
-  * `ms3.Corpus[fname] -> Piece`
-  * `ms3.Parse[(corpus_name, fname)] -> Piece`
+* `'piece'` identifies a piece by its file name without any suffixes.
+  * `ms3.Corpus[piece] -> Piece`
+  * `ms3.Parse[(corpus_name, piece)] -> Piece`
 * Integers identify individual files and are unique within a Corpus.
   * `ms3.Piece[i] -> File`
-  * `ms3.Corpus[(fname, i)] -> File`
-  * `ms3.Parse[(corpus_name, fname, i)] -> File`
+  * `ms3.Corpus[(piece, i)] -> File`
+  * `ms3.Parse[(corpus_name, piece, i)] -> File`
   
-#### The importance of the `fname` ID
+#### The importance of the `piece` ID
   
-The piece IDs `fname` relate to the file names in this way: `fname[suffix].ext`.
+The piece IDs `piece` relate to the file names in this way: `piece[suffix].ext`.
 In order to correctly match files together that belong together, without doing
-complicated string matching, `ms3` relies on a list of fnames that it will
-expect to be present in a column called `fname` in a file called `metadata.tsv`
+complicated string matching, `ms3` relies on a list of pieces that it will
+expect to be present in a column called `piece` in a file called `metadata.tsv`
 (see below). Generally, this should be the first column in these files, 
 used as index.
 
@@ -130,11 +130,11 @@ it is likely because no `metadata.tsv` is present. In this case, use the option
 (metadata_tsv)=
 ### The important role of metadata
 
-As mentioned above, `ms3` relies on the `fname` as ID of a piece and uses
+As mentioned above, `ms3` relies on the `piece` as ID of a piece and uses
 it to identify the various files belonging to it although they may come 
 with additional suffixes (e.g. `_reviewed`) and be scattered all over the
 corpus. Importantly, it uses and expects a file called `metadata.tsv` that
-lists all piece IDs of the corpus in a column called `fname`. Scores and
+lists all piece IDs of the corpus in a column called `piece`. Scores and
 other files whose names do not begin with any of strings in that column 
 are excluded. Files, on the other hand, that begin with any of the strings
 are recognized to belong to this piece and to have a suffix, if they do.
@@ -1906,9 +1906,9 @@ The {{ numeral }} expressed as {ref}`scale degree <fifths>`.
 
 If not otherwise specified, metadata fields are of type {obj}`str`.
 
-(fname)=
+(piece)=
 
-#### **fname**
+#### **piece**
 
 {obj}`str`
 

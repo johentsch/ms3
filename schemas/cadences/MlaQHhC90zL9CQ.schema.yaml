@@ -1,0 +1,172 @@
+fields:
+  - name: piece
+    type: string
+    title: Piece identifier
+    description: Name identifier (filename without suffixes) of a piece
+  - name: i
+    type: integer
+    title: Index
+    description: An integer serving as row ID
+  - name: mc
+    type: integer
+    title: Measure Count
+    description: Running count of encoded <Measure> tags which do not necessarily
+      express a full measure (e.g. in case of an anacrusis).
+    constraints:
+      required: true
+  - name: mn
+    type: string
+    title: Measure Number
+    description: Measure number as printed in the score, computed from mc, dont_count
+      and numbering_offset.
+  - name: quarterbeats
+    type: string
+    title: Offset from Beginning
+    description: Distance of an event from the piece's beginning. By default, only
+      second endings are taken into account to reflect the proportions of a simply
+      playthrough without repeats.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: duration_qb
+    type: number
+    title: Duration in ♩
+    description: A float corresponding to duration * 4
+  - name: mc_onset
+    type: string
+    title: Offset within Encoded Measure
+    description: Distance of an event from the beginning of the <Measure> tag.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: mn_onset
+    type: string
+    title: Offset within Logical Measure
+    description: Distance from the beginning of the logical measure. Relevant, for
+      example, to compute the metric position of an event.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: timesig
+    type: string
+    title: Time Signature
+    description: Given as string, e.g. "4/4".
+  - name: staff
+    type: integer
+    title: Staff
+    description: Number of the staff where an event occurs, 1 designating the top
+      staff.
+  - name: voice
+    type: integer
+    title: Notational Layer
+    description: A number between 1-4 where 1 is MuseScore's default layer (blue),
+      2 the second layer in green with downward stems, etc.
+  - name: label
+    type: string
+    title: Label
+    description: String corresponding to the entire annotation label.
+  - name: globalkey
+    type: string
+    title: Global Key
+    description: The key of the entire piece as note name, lowercase designating a
+      minor key.
+  - name: localkey
+    type: string
+    title: Local Key
+    description: The key that a Roman numeral is relative to, expressed as a Roman
+      numeral relative to the global key.
+  - name: pedal
+    type: string
+    title: Pedal Point
+    description: Specified as Roman numeral.
+  - name: chord
+    type: string
+    title: Chord
+    description: The part of an annotation label that corresponds to the actual chord
+      label.
+  - name: special
+    type: string
+    title: Special Label
+    description: Column where special labels such as "Fr6" or "Ger65" are stored which
+      are converted internally to Roman numerals.
+  - name: numeral
+    type: string
+    title: Roman Numeral
+    description: The Roman numeral part of a DCML label, lowercase for all chords
+      with a minor third.
+  - name: form
+    type: string
+    title: Chord Category
+    description: '%, o, +, M, +M'
+  - name: figbass
+    type: string
+    title: Chord Inversion
+    description: 7, 65, 43, 2, 64, 6 or empty for root position.
+  - name: changes
+    type: string
+    title: Changes
+    description: Alterations, suspensions, additions, and omissions, written within
+      parentheses in the chord label.
+  - name: relativeroot
+    type: string
+    title: Relative Root
+    description: The Roman numeral following the / in applied chords. Can itself include
+      a /. For example, V/V if the label pertains to the major scale on the second
+      scale degree.
+  - name: cadence
+    type: string
+    title: Cadence
+    description: PAC, IAC, EC, DC, PC, HC, and HC subtypes such as HC.SIM
+  - name: phraseend
+    type: string
+    title: Phrase Annotation
+    description: The phrase annotation part of a DCML label, can be {, }, or }{. In
+      an older version, the only label was \\
+  - name: chord_type
+    type: string
+    title: Chord Type
+    description: '''M'', ''m'', ''o'', ''+'', ''mm7'', ''Mm7'', ''MM7'', ''mM7'',
+      ''o7'', ''%7'', ''+7'', ''+M7'''
+  - name: globalkey_is_minor
+    type: boolean
+    title: Global Key is Minor
+    description: Boolean that is 1 if the piece is in minor and 0 if it is in major.
+  - name: localkey_is_minor
+    type: boolean
+    title: Local Key is Minor
+    description: Boolean that is 1 if the local key is minor and 0 if it is major.
+  - name: chord_tones
+    type: string
+    title: Chord Tones
+    description: Tones expressed by the label, as fifth intervals relative to the
+      local tonic.
+    constraints:
+      pattern: ^[([]?(?:-?\d+\s*,?\s*)*[])]?$
+  - name: added_tones
+    type: string
+    title: Added Tones
+    description: Chord tones considered as added, expressed as fifth intervals relative
+      to the local tonic.
+    constraints:
+      pattern: ^[([]?(?:-?\d+\s*,?\s*)*[])]?$
+  - name: root
+    type: integer
+    title: Root
+    description: Pertaining to MuseScore encoding.
+  - name: bass_note
+    type: integer
+    title: Bass Note
+    description: Loweste note designated by the chord label, expressed as fifth intervals
+      relative to the local tonic.
+  - name: volta
+    type: integer
+    title: Volta
+    description: Number of an ending bracket, given as integer.
+  - name: alt_label
+    type: string
+    title: Alternative Label
+    description: Another interpretation of the same chord which the annotator finds
+      equally or slightly less convincing.
+primaryKey:
+  - piece
+  - i
+facet: cadences
+identifier: MlaQHhC90zL9CQ
+filepath: cadences/MlaQHhC90zL9CQ.schema.yaml

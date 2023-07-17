@@ -35,6 +35,9 @@
 .. |mc| replace:: :ref:`mc <mc>`
 .. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
 .. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
+.. |metronome_base| replace:: :ref:`metronome_base <metronome_base>`
+.. |metronome_number| replace:: :ref:`metronome_number <metronome_number>`
+.. |metronome_visible| replace:: :ref:`metronome_visible <metronome_visible>`
 .. |midi| replace:: :ref:`midi <midi>`
 .. |mn| replace:: :ref:`mn <mn>`
 .. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
@@ -72,15 +75,19 @@
 """
 
 import re, sys, warnings
+from pprint import pformat
 from copy import copy
-from fractions import Fraction as frac
+from fractions import Fraction
 from collections import defaultdict, ChainMap # for merging dictionaries
 from itertools import zip_longest
 from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection, Hashable
-from functools import lru_cache
+from functools import cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
+import difflib
 import pandas as pd
+import numpy as np
+import os
 from bs4 import NavigableString
 
 from .annotations import Annotations
@@ -88,16 +95,26 @@ from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, compute_mn_playthrough, decode_harmonies, fifths2name, \
-    DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX, \
     make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough_info, \
-    make_playthrough2mc, midi2octave, MS3_VERSION, ordinal_suffix, resolve_dir, rgba2attrs, \
+    make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name, unfold_measures_table, unfold_repeats
+from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
+from ms3._version import __version__
 
 NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',
     'metNoteQuarterUp': '𝅘𝅥',
     'metNote8thUp': '𝅘𝅥𝅮',
-    'metAugmentationDot': '.'
+    'metAugmentationDot': '.',
+    "": "𝅝",
+    "": "𝅗𝅥",
+    "": "𝅘𝅥",
+    "": "𝅘𝅥𝅮",
+    "": "𝅘𝅥𝅯",
+    "": "𝅘𝅥𝅰",
+    "": "𝅘𝅥𝅱",
+    "": "𝅘𝅥𝅲",
+    "": ".",
 }
 
 
@@ -111,20 +128,20 @@ class _MSCX_bs4(LoggedClass):
 
     """
 
-    durations = {"measure": frac(1),
-                 "breve": frac(2),  # in theory, of course, they could have length 1.5
-                 "long": frac(4),   # and 3 as well and other values yet
-                 "whole": frac(1),
-                 "half": frac(1 / 2),
-                 "quarter": frac(1 / 4),
-                 "eighth": frac(1 / 8),
-                 "16th": frac(1 / 16),
-                 "32nd": frac(1 / 32),
-                 "64th": frac(1 / 64),
-                 "128th": frac(1 / 128),
-                 "256th": frac(1 / 256),
-                 "512th": frac(1 / 512),
-                 "1024th": frac(1 / 1024)}
+    durations = {"measure": Fraction(1),
+                 "breve": Fraction(2),  # in theory, of course, they could have length 1.5
+                 "long": Fraction(4),   # and 3 as well and other values yet
+                 "whole": Fraction(1),
+                 "half": Fraction(1, 2),
+                 "quarter": Fraction(1, 4),
+                 "eighth": Fraction(1, 8),
+                 "16th": Fraction(1, 16),
+                 "32nd": Fraction(1, 32),
+                 "64th": Fraction(1, 64),
+                 "128th": Fraction(1, 128),
+                 "256th": Fraction(1, 256),
+                 "512th": Fraction(1, 512),
+                 "1024th": Fraction(1, 1024)}
 
     def __init__(self, mscx_src, read_only=False, logger_cfg={}):
         """
@@ -159,14 +176,16 @@ class _MSCX_bs4(LoggedClass):
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
-        self._prelims = None
-        self._style = None
+        self._instrumentation: Instrumentation = None
+        self._prelims: Prelims = None
+        self._style: Style = None
         self.staff2drum_map: Dict[int, pd.DataFrame] = {}
         """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
         note and instrument features. The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut']. 
         When creating note tables, the 'name' column will be populated with the names here rather than note names.
         """
         self.parse_measures()
+        self.perform_checks()
 
 
 
@@ -231,12 +250,15 @@ class _MSCX_bs4(LoggedClass):
         staff_ids = tuple(self.measure_nodes.keys())
         chord_id = 0
         # For every measure: bundle the <Measure> nodes from every staff
-        for mc, measure_stack in enumerate(
-                zip(
+        mc = self.first_mc - 1 # replace the previous enumerate() loop so we can filter out multimeasure rests which seem to be redundant additional tags
+        for measure_stack in zip(
                     *[[measure_node for measure_node in measure_dict.values()] for measure_dict in
                       self.measure_nodes.values()]
-                ),
-                start=self.first_mc):
+                ):
+            if measure_stack[0].find('multiMeasureRest') is not None:
+                self.logger.debug(f"Skipping multimeasure rest that follows MC {mc} in the encoding: {measure_stack}.")
+                continue
+            mc += 1
             if not self.read_only:
                 self.tags[mc] = {}
             # iterate through staves and collect information about each <Measure> node
@@ -251,9 +273,9 @@ class _MSCX_bs4(LoggedClass):
                 for voice_id, voice_node in enumerate(voice_nodes, start=1):
                     if not self.read_only:
                         self.tags[mc][staff_id][voice_id] = defaultdict(list)
-                    current_position = frac(0)
-                    duration_multiplier = 1
-                    multiplier_stack = [1]
+                    current_position = Fraction(0)
+                    duration_multiplier = Fraction(1)
+                    multiplier_stack = [Fraction(1)]
                     tremolo_type = None
                     tremolo_component = 0
                     # iterate through children of <voice> which constitute the note level of one notational layer
@@ -265,7 +287,7 @@ class _MSCX_bs4(LoggedClass):
                             'staff': staff_id,
                             'voice': voice_id,
                             'mc_onset': current_position,
-                            'duration': frac(0)}
+                            'duration': Fraction(0)}
 
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
@@ -317,10 +339,10 @@ class _MSCX_bs4(LoggedClass):
                         elif event_name == 'Rest':
                             event['duration'], dot_multiplier = bs4_rest_duration(event_node, duration_multiplier)
                         elif event_name == 'location':  # <location> tags move the position counter
-                            event['duration'] = frac(event_node.fractions.string)
+                            event['duration'] = Fraction(event_node.fractions.string)
                         elif event_name == 'Tuplet':
                             multiplier_stack.append(duration_multiplier)
-                            duration_multiplier = duration_multiplier * frac(int(event_node.normalNotes.string),
+                            duration_multiplier = duration_multiplier * Fraction(int(event_node.normalNotes.string),
                                                                              int(event_node.actualNotes.string))
                         elif event_name == 'endTuplet':
                             duration_multiplier = multiplier_stack.pop()
@@ -349,10 +371,40 @@ class _MSCX_bs4(LoggedClass):
                                     event.update(thoroughbass_cols)
                                     if duration is not None:
                                         event['thoroughbass_duration'] = duration
+
+                            def safe_update_event(key, value):
+                                """Update event dict unless key is already present."""
+                                nonlocal event, current_position, staff_id, event_name, text_including_html
+                                if key and key in event:
+                                    self.logger.warning(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} already contained a '{key}': {event[key]} "
+                                                        f"so I did not overwrite it with {value!r}.")
+                                else:
+                                    event[key] = value
+
                             for text_tag in event_node.find_all('text'):
+                                column_name = None # the key to be written to the `event` row dict after the if-else block
                                 parent_name = text_tag.parent.name
-                                text = text_tag2str(text_tag)
-                                if parent_name == 'Lyrics':
+                                text_including_html = text_tag2str(text_tag)
+                                text_excluding_html = text_tag2str_recursive(text_tag)
+                                if parent_name == 'Fingering':
+                                    # fingerings occur within <Note> tags, if they are to be extracted, they should go into the notes table
+                                    continue
+                                if parent_name == 'Tempo':
+                                    tempo_tag = text_tag.parent
+                                    quarters_per_second = float(tempo_tag.tempo.string)
+                                    safe_update_event('qpm', round(quarters_per_second * 60))
+                                    safe_update_event('tempo', text_excluding_html)
+                                    metronome_match = re.match(r"^(.+)=(([0-9]+(?:\.[0-9]*)?))$", text_excluding_html)
+                                    if metronome_match:
+                                        base, value = metronome_match.group(1), metronome_match.group(2)
+                                        safe_update_event('metronome_base', base)
+                                        safe_update_event('metronome_number', float(value))
+                                    try:
+                                        metronome_visible = int(tempo_tag.visible.string)
+                                    except AttributeError:
+                                        metronome_visible = 1
+                                    safe_update_event('metronome_visible', metronome_visible)
+                                elif parent_name == 'Lyrics':
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find('no')
                                     if no_tag is None:
@@ -365,20 +417,18 @@ class _MSCX_bs4(LoggedClass):
                                     if syllabic_tag is not None:
                                         match syllabic_tag.string:
                                             case 'begin':
-                                                text = text + '-'
+                                                text_including_html = text_including_html + '-'
                                             case 'middle':
-                                                text = '-' + text + '-'
+                                                text_including_html = '-' + text_including_html + '-'
                                             case 'end':
-                                                text = '-' + text
+                                                text_including_html = '-' + text_including_html
                                             case other:
                                                 logger.warning(f"<syllabic> tag came with the value '{syllabic_tag.string}', not begin|middle|end.")
-
+                                    safe_update_event(column_name, text_including_html)
                                 else:
-                                    column_name = parent_name + '_text'
-                                if column_name in event:
-                                    self.logger.warning(f"Event already contained a '{column_name}': {event[column_name]}")
-                                else:
-                                    event[column_name] = text
+                                    self.logger.debug(f"MC {mc}@{current_position}, staff {staff_id}, {event_name!r} contained a <text> tag within a <{parent_name}> tag, "
+                                                      f"which I did not know how to handle. I stored it in the column {parent_name}_text.")
+                                    column_name = safe_update_event(parent_name + '_text', text_including_html)
                             event_list.append(event)
 
                         if not self.read_only:
@@ -416,6 +466,26 @@ class _MSCX_bs4(LoggedClass):
         self.update_metadata()
 
 
+    def perform_checks(self):
+        """Perform a series of checks after parsing and emit warnings registered by the ms3 check command (and,
+        by extension, by ms3 review, too)."""
+        # check if the first measure includes a metronome mark
+        events = self._events
+        first_bar_event_types = events.loc[events.mc == 1, "event"]
+        if 'Tempo' not in first_bar_event_types.values:
+            msg = "No metronome mark found in the very first measure"
+            tempo_selector = (events.event == 'Tempo').fillna(False)
+            if tempo_selector.sum() == 0:
+                msg += " nor anywhere else in the score."
+            else:
+                all_tempo_mark_mcs = events.loc[tempo_selector, ["mc", "staff", "voice", "tempo",]]
+                msg += ". Later in the score:\n" + all_tempo_mark_mcs.to_string(index=False)
+            msg += "\n* Please add one at the very beginning and hide it if it's not from the original print edition.\n" \
+                   "* Make sure to choose the rhythmic unit that corresponds to beats in this piece and to set another mark " \
+                   "wherever that unit changes.\n* The tempo marks can be rough estimates, maybe cross-checked with a recording."
+            self.logger.warning(msg, extra=dict(message_id=(29,)))
+
+
 
 
     def store_score(self, filepath: str) -> bool:
@@ -449,7 +519,8 @@ class _MSCX_bs4(LoggedClass):
         Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|,
         |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
         |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
-        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
+        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |metronome_base|, |metronome_number|,
+        |metronome_visible|, |lyrics:1|, |Ottava:15mb|
 
         Args:
           mode:
@@ -574,12 +645,25 @@ class _MSCX_bs4(LoggedClass):
             return self._fl
         return
 
+    def get_instrumentation(self) -> Dict[str, str]:
+        """Returns a {staff_<i>_instrument -> instrument_name} dict."""
+        return {staff: instrument['trackName'] for staff, instrument in self.instrumentation.fields.items()}
+
     @property
-    @lru_cache
+    @cache
     def has_voltas(self) -> bool:
         """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
         measures = self.ml()
         return measures.volta.notna().any()
+
+    @property
+    def instrumentation(self):
+        if self._instrumentation is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._instrumentation = Instrumentation(self.soup, name=self.logger.name)
+        return self._instrumentation
+
 
 
     def measures(self,
@@ -720,7 +804,7 @@ class _MSCX_bs4(LoggedClass):
             self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
-    @lru_cache()
+    @cache
     def offset_dict(self,
                     all_endings: bool = False,
                     unfold: bool = False,
@@ -965,21 +1049,7 @@ class _MSCX_bs4(LoggedClass):
         if params['system_text']:
             main_cols.append('system_text')
         if params['tempo']:
-            main_cols.extend(['tempo', 'qpm'])
-            if 'Tempo/tempo' in df.columns:
-                text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
-                existing_cols = [c for c in text_cols if c in df.columns]
-                tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
-                if 'Tempo/text/sym' in df.columns:
-                    replace_symbols = defaultdict(lambda: '')
-                    replace_symbols.update(NOTE_SYMBOL_MAP)
-                    symbols = df['Tempo/text/sym'].str.split(expand=True)\
-                                                  .apply(lambda S: S.str.strip()\
-                                                  .map(replace_symbols))\
-                                                  .sum(axis=1)
-                    tempo_text = symbols + tempo_text
-                new_cols['tempo'] = tempo_text
-                new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+            main_cols.extend(['tempo', 'qpm', 'metronome_base', 'metronome_number', 'metronome_visible'])
         if params['thoroughbass']:
             if 'thoroughbass_level_1' in df.columns:
                 tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
@@ -1004,7 +1074,7 @@ class _MSCX_bs4(LoggedClass):
             additional_cols.extend([c for c in df.columns if feature in c and c not in main_cols])
         return df[main_cols + additional_cols]
 
-    @lru_cache()
+    @cache
     def get_playthrough_mcs(self) -> Optional[pd.Series]:
         measures = self.ml()  # measures table without quarterbeats
         playthrough_mcs = make_playthrough2mc(measures, logger=self.logger)
@@ -1066,7 +1136,7 @@ class _MSCX_bs4(LoggedClass):
             mn = int(m.group(1))
             volta = ord(m.group(2)) - 96 # turn 'a' into 1, 'b' into 2 etc.
         try:
-            mn_onset = frac(mn_onset)
+            mn_onset = Fraction(mn_onset)
         except:
             self.logger.error(f"The mn_onset {mn_onset} could not be interpreted as a fraction.")
             raise
@@ -1209,7 +1279,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 data['last_mn_unfolded'] = None
             data['length_qb_unfolded'] = round(unfolded_measures.duration_qb.sum(), 2)
         if self.has_voltas:
-            data['volta_mcs'] = tuple(tuple(tuple(mcs) for mcs in group.values()) for group in self.volta_structure.values())
+            data['volta_mcs'] = list(list(list(mcs) for mcs in group.values()) for group in self.volta_structure.values())
 
         # labels
         all_labels = self.get_raw_labels()
@@ -1235,7 +1305,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             data['annotated_key'] = annotated_key
 
         data['musescore'] = self.version
-        data['ms3_version'] = MS3_VERSION
+        data['ms3_version'] = __version__
 
         # notes
         notes = self.nl()
@@ -1263,6 +1333,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             ambitus[staff]['max_midi'] = int(max_midi)
             ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        # for including the metadata as one line in metadata.tsv the function utils.metadata2series() is used
+        # which updates `data` with the items of all part dictionaries, removing they key 'parts' afterwards
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:
                 part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
@@ -1380,8 +1452,8 @@ because it precedes the label to be deleted which is the voice's last onset, {mc
 #                         raise NotImplementedError(
 #     f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
                     if prv_n_locs > 0:
-                        cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
-                        prv_loc_dur = frac(prv_elements[-1]['duration'])
+                        cur_loc_dur = Fraction(elements[element_names.index('location')]['duration'])
+                        prv_loc_dur = Fraction(prv_elements[-1]['duration'])
                         prv_loc_tag = prv_elements[-1]['tag']
                         new_loc_dur = prv_loc_dur + cur_loc_dur
                         prv_loc_tag.fractions.string = str(new_loc_dur)
@@ -1416,10 +1488,10 @@ f"Location tag is not the last element in MC {mc}, mc_onset {nxt_onset}, staff {
                         if element_names[-1] != 'location':
                             raise NotImplementedError(
 f"Location tag is not the last element in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
-                        neg_loc_dur = frac(elements[element_names.index('location')]['duration'])
+                        neg_loc_dur = Fraction(elements[element_names.index('location')]['duration'])
                         assert neg_loc_dur < 0, f"""Location tag in MC {mc}, mc_onset {nxt_onset}, staff {staff}, voice {voice}
 should be negative but is {neg_loc_dur}."""
-                        pos_loc_dur = frac(elements[-1]['duration'])
+                        pos_loc_dur = Fraction(elements[-1]['duration'])
                         new_loc_value = neg_loc_dur + pos_loc_dur
                         new_tag = self.new_location(new_loc_value)
                         nxt_elements[0]['tag'].insert_before(new_tag)
@@ -1524,7 +1596,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
             return False
 
-        mc_onset = frac(mc_onset)
+        mc_onset = Fraction(mc_onset)
         label_name = kwargs['decoded'] if 'decoded' in kwargs else label
         if voice not in self.tags[mc][staff]:
             # Adding label to an unused voice that has to be created
@@ -1676,7 +1748,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         tag = self.new_label(label, before=before, after=after, within=within, **kwargs)
         remember = [dict(
                         name = 'Harmony',
-                        duration = frac(0),
+                        duration = Fraction(0),
                         tag = tag
                     )]
         if loc_before is not None:
@@ -1742,7 +1814,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
             self.logger.error(f"Staff {staff}, MC {mc} has no voice {voice}.")
             return False
         measure = self.tags[mc][staff][voice]
-        mc_onset = frac(mc_onset)
+        mc_onset = Fraction(mc_onset)
         if mc_onset not in measure:
             self.logger.error(f"Staff {staff}, MC {mc}, voice {voice} has no event on mc_onset {mc_onset}.")
             return False
@@ -1863,9 +1935,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
     def color_notes(self,
                     from_mc: int,
-                    from_mc_onset: frac,
+                    from_mc_onset: Fraction,
                     to_mc: Optional[int] = None,
-                    to_mc_onset: Optional[frac] = None,
+                    to_mc_onset: Optional[Fraction] = None,
                     midi: List[int] = [],
                     tpc: List[int] = [],
                     inverse: bool = False,
@@ -1875,7 +1947,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
                     color_g: Optional[int] = None,
                     color_b: Optional[int] = None,
                     color_a: Optional[int] = None,
-                    ) -> Tuple[List[frac], List[frac]]:
+                    ) -> Tuple[List[Fraction], List[Fraction]]:
         """ Colors all notes occurring in a particular score segment in one particular color, or
         only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
 
@@ -1991,6 +2063,230 @@ and {loc_after} before the subsequent {nxt_name}.""")
 #######################################################################
 ####################### END OF CLASS DEFINITION #######################
 #######################################################################
+class ParsedParts(LoggedClass):
+    """
+           Storing found parts object from a BeautifulSoup file
+
+           Args:
+               soup: bs4.BeautifulSoup,
+                   BeautifulSoup object to parse
+               **logger_cfg:obj:`dict`, optional
+                   The following options are available:
+                   'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+                   'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+                   'file': PATH_TO_LOGFILE to store all log messages under the given path.
+           """
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('ParsedParts', logger_cfg)
+        self.parts_data: Dict[str, bs4.Tag] = {f"part_{i}": part for i, part in enumerate(soup.find_all('Part'), 1)}
+
+    @property
+    def staff2part(self) -> dict[list, str]:
+        """
+        Allows users to determine the corresponding part based on the staff number
+
+        Example:
+            Returns {[2, 3]: 'part_1'} for staves 2 and 3 of part 1
+
+        Returns:
+            dict[list, str]: the dictionary mapping parts to staves
+
+        """
+        staff2part = {}
+        for key_part, part in self.parts_data.items():
+            staves = [f"staff_{staff['id']}" for staff in part.find_all('Staff')]
+            staff2part.update(dict.fromkeys(staves, key_part))
+        return staff2part
+
+    def __repr__(self):
+        return pformat(self.parts_data, sort_dicts=False)
+
+"""Instrument Defaults is a csv file that includes all possible instruments and their properties: 'id', 'longName',
+    'shortName', 'trackName', 'instrumentId', 'part_trackName', 'ChannelName', 'ChannelValue'"""
+INSTRUMENT_DEFAULTS = pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"), index_col=0).replace({np.nan: None})
+
+def get_enlarged_default_dict() -> Dict[str, dict]:
+    """
+    Allows users to point to an instrument not only with a 'trackName', but also with 'id', 'longName', 'shortName',
+       'instrumentId', 'part_trackName'
+
+    Returns:
+        Dict[str, dict]: dictionary mapping any of the possible fields ('id', 'longName', 'shortName', trackName',
+       'instrumentId', 'part_trackName') corresponding to an instrument into complete information about the instrument
+       ('id',  'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName', 'ChannelName', 'ChannelValue')
+    """
+    enlarged_dict = dict(INSTRUMENT_DEFAULTS.T)
+    # we drop "ChannelName", "ChannelValue" because they are not unique for the instrument, so they can't be keys
+    for cur_key, cur_value in INSTRUMENT_DEFAULTS.T.drop(["ChannelName", "ChannelValue"]).to_dict().items():
+        added_value = INSTRUMENT_DEFAULTS.T[cur_key]
+        # additional_key takes values from 'id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName'
+        for additional_key in cur_value.values():
+            if not additional_key is None:
+                if type(additional_key) == str:
+                    additional_key = additional_key.lower().strip('.')
+                if additional_key in enlarged_dict:
+                    continue
+                enlarged_dict[additional_key] = added_value
+    return enlarged_dict
+
+
+class Instrumentation(LoggedClass):
+    """Easy way to read and write the instrumentation of a score, that is
+    'id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+                                       'ChannelName', 'ChannelValue'."""
+
+
+    key2default_instrumentation = get_enlarged_default_dict()
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Instrumentation', logger_cfg)
+        self.part_tracknames = INSTRUMENT_DEFAULTS['part_trackName']
+        self.soup = soup
+        self.instrumentation_fields = ["id", 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+                                       'ChannelName', 'ChannelValue']
+        self.parsed_parts = ParsedParts(soup)
+        self.soup_references_data = self.soup_references()  # store references to XML tags
+
+
+
+
+    def soup_references(self) -> dict[str, dict[str, bs4.Tag]]:
+        """
+        Stores tags references for each staff
+
+        Returns: the dictionary in the format {'staff_1': {'id': None, 'longName': None, 'shortName': None,
+        'trackName': None, 'instrumentId': None, 'part_trackName': None, 'ChannelName', 'ChannelValue'},
+        'staff_2': {...}, ...} containing the BeautifulSoup tags
+
+        """
+        tag_dict = {}
+        for key_part, part in self.parsed_parts.parts_data.items():
+            instrument_tag = part.Instrument
+            staves: Dict[str, bs4.Tag] = [f"staff_{(staff['id'])}" for staff in part.find_all('Staff')]
+            channel_info = part.Channel
+            channel_name = None if "name" not in channel_info.attrs.keys() else channel_info["name"]
+            cur_dict = {"id": instrument_tag["id"], "ChannelName": channel_name, "ChannelValue": channel_info.program}
+            for name in self.instrumentation_fields:
+                if name not in cur_dict.keys():
+                    if name == "part_trackName":
+                        tag = part.trackName
+                    else:
+                        tag = instrument_tag.find(name)
+                    if name == "trackName" and (tag is None or tag.get_text() == ""): # this corresponds to the current behaviour of bs4_parser.get_part_info
+                        instrument_tag.trackName.string = part.trackName.string
+                        tag = instrument_tag.find(name)
+                    cur_dict[name] = tag
+            tag_dict.update({key_staff: cur_dict for key_staff in staves})
+        return tag_dict
+
+    @property
+    def fields(self):
+        """
+        Extracts information from the tag and stores it for each staff
+
+        Returns: the dictionary in the format {'staff_1': {'id': None, 'longName': None, 'shortName': None,
+        'trackName': None, 'instrumentId': None, 'part_trackName': None, 'ChannelName', 'ChannelValue'},
+        'staff_2': {...}, ...} containing the information extracted from tags
+
+        """
+        result = {}
+        for key, instr_data in self.soup_references_data.items():
+            result[key] = {}
+            for key_instr_data, tag in instr_data.items():
+                if type(tag) == bs4.element.Tag and tag is not None:
+                    if key_instr_data == "ChannelValue":
+                        value = tag['value']
+                    else:
+                        value = tag.get_text()
+                else:
+                    value = tag
+                result[key][key_instr_data] = value
+        return result
+
+    def get_instrument_name(self, staff_name: Union[str, int]):
+        """
+        Allows users accessing the instrument trackname attributed to the staff staff_name
+        Args:
+            staff_name: a number or a string in the format 'staff_1' defining the staff of interest
+
+        Returns:
+            str: trackName extracted from tag for the staff staff_name
+
+        """
+        if type(staff_name) == int:
+            staff_name = f'staff_{staff_name}'
+        fields_data = self.fields
+        if staff_name not in self.parsed_parts.staff2part.keys() or staff_name not in fields_data:
+            raise KeyError(f"No data for staff '{staff_name}'")
+        else:
+            return fields_data[staff_name]['trackName']
+
+    def set_instrument(self, staff_id: Union[str, int], trackname):
+        """
+        Modifies the instrument and all its corresponding information in the soup source file
+
+        Args:
+            staff_id: an integer number i or a string in the format 'staff_i' defining the staff of interest
+            trackname: key defining the new value of the instrument, can be one of ('id', 'longName', 'shortName', trackName',
+       'instrumentId', 'part_trackName')
+
+        """
+        # preprocessing and verification of correctness of staff_id
+        available_staves = list(self.parsed_parts.staff2part.keys())
+        if not isinstance(staff_id, str):
+            try:
+                staff_id = int(staff_id)
+            except Exception:
+                raise ValueError(f"{staff_id!r} cannot be interpreted as staff ID which needs to be int or str, not {type(staff_id)}. "
+                                 f"Use one of {available_staves}.")
+            staff_id = f'staff_{staff_id}'
+        if staff_id not in available_staves:
+            raise KeyError(f"Don't recognize key '{staff_id}'. Use one of {available_staves}.")
+        changed_part = self.parsed_parts.staff2part[staff_id]
+        self.logger.debug(f"References to tags before the instrument was changed: {self.soup_references()}")
+
+        # preprocessing and verification of correctness of trackname
+        trackname_norm = trackname.lower().strip('.')
+        if trackname_norm not in self.key2default_instrumentation:
+            trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
+            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}?", extra=dict(message_id=(30,)))
+        new_values = self.key2default_instrumentation[trackname_norm]
+
+        # checking that the current changes will not affect other staves
+        staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
+                              part_value == changed_part and staff_key != staff_id])  # which staves share this part
+        if len(staves_within_part) > 0:
+            different_values_set = np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[0]  # staves of the same part with different instruments
+            if len(different_values_set) > 0:
+                damaged_staves = staves_within_part[different_values_set]
+                damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
+                self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
+
+        # modification of fields
+        for field_to_change in self.instrumentation_fields:
+            value = new_values[field_to_change]
+            self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
+            if field_to_change == "id":
+                self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
+            elif field_to_change == "ChannelName":
+                self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+            elif field_to_change == "ChannelValue":
+                self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
+            else:
+                if self.soup_references_data[staff_id][field_to_change] is not None:
+                    self.soup_references_data[staff_id][field_to_change].string = value
+                    self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
+                elif value is not None:
+                    new_tag = self.soup.new_tag(field_to_change)
+                    new_tag.string = value
+                    self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
+                    self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+            self.soup_references_data = self.soup_references()  # update references
+        self.logger.debug(f"References to tags after the instrument was changed: {self.soup_references()}")
+
+    def __repr__(self):
+        return pformat(self.fields, sort_dicts=False)
+
+
 
 class Metatags:
     """Easy way to read and write any style information in a parsed MSCX score."""
@@ -2088,17 +2384,24 @@ class Prelims(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__('Prelims', logger_cfg)
         self.soup = soup
-        first_measure = soup.find('Measure')
-        try:
-            self.vbox = next(sib for sib in first_measure.previous_siblings if sib.name == 'VBox')
-        except StopIteration:
+        part = soup.find('Part')
+        first_staff = part.find_next_sibling('Staff')
+        vbox_nodes = first_staff.find_all('VBox')
+        if len(vbox_nodes) == 0:
             self.vbox = self.soup.new_tag('VBox')
-            self.logger.debug('Inserted <VBox> before first <Measure> tag.')
+            first_staff.insert(0, self.vbox)
+            self.logger.debug('Inserted <VBox> at the beginning of the first staff.')
+        else:
+            self.vbox = vbox_nodes[0]
+            if len(vbox_nodes) > 1:
+                self.logger.warning(f"First staff starts off with more than one VBox. Picked the first one.")
+
 
 
 
     @property
     def text_tags(self) -> Dict[str, bs4.Tag]:
+        """Returns a {key->tag} dict reflecting the <Text> tags currently present in the first <VBox>."""
         tag_dict = {}
         for text_tag in self.vbox.find_all('Text'):
             style = text_tag.find('style')
@@ -2113,7 +2416,8 @@ class Prelims(LoggedClass):
         return tag_dict
 
     @property
-    def fields(self):
+    def fields(self) -> Dict[str, str]:
+        """Returns a {key->value} dict reflecting the currently set <text> values."""
         result = {}
         for key, tag in self.text_tags.items():
             value, _ = tag2text(tag)
@@ -2142,11 +2446,15 @@ class Prelims(LoggedClass):
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
         # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
-        value_as_paragraph = bs4.BeautifulSoup(new_value, 'lxml').find('p')
-        if value_as_paragraph is not None:
-            text_contents = value_as_paragraph.contents
-            for tag in text_contents:
-                text_tag.append(copy(tag))
+        new_value_as_html_body = bs4.BeautifulSoup(new_value, 'lxml').find('body')
+        new_value_as_p_tag = new_value_as_html_body.find('p')
+        if new_value_as_p_tag is None:
+            # if the created HTML contains a <p> tag, the new value (with tags or without) has been wrapped
+            iter_contents = new_value_as_html_body.contents
+        else:
+            iter_contents = new_value_as_p_tag.contents
+        for tag_or_string in iter_contents:
+            text_tag.append(copy(tag_or_string))
         clean_tag.append(text_tag)
         text_tags = self.text_tags
         if existing_value is None:
@@ -2155,7 +2463,7 @@ class Prelims(LoggedClass):
                 following_present_key = next(k for k in self.keys[following_key_index:] if k in text_tags)
                 following_tag = text_tags[following_present_key]
                 following_tag.insert_before(clean_tag)
-                self.logger.info(f"Inserted {key} before existing {following_key_index}.")
+                self.logger.info(f"Inserted {key} before existing {self.keys[following_key_index]}.")
             except StopIteration:
                 self.vbox.append(clean_tag)
                 self.logger.info(f"Appended {key} as last tag of the VBox (after {text_tags.keys()}).")
@@ -2223,7 +2531,7 @@ def make_spanner_cols(df: pd.DataFrame,
     #### caused some spanners to continue until the end of the piece because endings were missing when selecting based
     #### on the subtype column (endings don't specify subtype). After fixing this, there were still mistakes, particularly for slurs, because:
     #### 1. endings can be missing, 2. endings can occur in a different voice than they should, 3. endings can be
-    #### expressed with different values than the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
+    #### expressed with different values than the beginning (all three cases found in ms3/tests/test_local_files/MS3/stabat_03_coloured.mscx)
     #### Therefore, the new algorithm ends spanners simply after their given duration.
 
     cols = {
@@ -2288,7 +2596,7 @@ def make_spanner_cols(df: pd.DataFrame,
                 ),
             )
             duration_df.iloc[:, 0] = duration_df.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(Fraction)          # nxt_f
         custom_text_col = f"Spanner/{spanner_type}/beginText"
         add_custom_text_cols = custom_text_col in df and df[custom_text_col].notna().any()
         if add_custom_text_cols:
@@ -2460,21 +2768,21 @@ def recurse_node(node, prepend=None, exclude_children=None):
 
 
 def bs4_chord_duration(node: bs4.Tag,
-                       duration_multiplier: Union[float, int] = 1) -> Tuple[frac, frac]:
+                       duration_multiplier: Fraction = Fraction(1)) -> Tuple[Fraction, Fraction]:
     duration_type_tag = node.find('durationType')
     if duration_type_tag is None:
-        return frac(0), frac(0)
+        return Fraction(0), Fraction(0)
     durationtype = duration_type_tag.string
     if durationtype == 'measure' and node.find('duration'):
-        nominal_duration = frac(node.find('duration').string)
+        nominal_duration = Fraction(node.find('duration').string)
     else:
         nominal_duration = _MSCX_bs4.durations[durationtype]
     dots = node.find('dots')
-    dotmultiplier = sum([frac(1 / 2) ** i for i in range(int(dots.string) + 1)]) if dots else 1
+    dotmultiplier = sum([Fraction(1, 2) ** i for i in range(int(dots.string) + 1)]) if dots else Fraction(1)
     return nominal_duration * duration_multiplier * dotmultiplier, dotmultiplier
 
 
-def bs4_rest_duration(node, duration_multiplier=1):
+def bs4_rest_duration(node, duration_multiplier=Fraction(1)):
     return bs4_chord_duration(node, duration_multiplier)
 
 
@@ -2500,7 +2808,7 @@ def decode_harmony_tag(tag):
     return label
 
 
-############ Functions for writing BeautifulSoup to MSCX file
+# region Functions for writing BeautifulSoup to MSCX file
 
 def escape_string(s):
     return str(s).replace('&', '&amp;')\
@@ -2562,6 +2870,7 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+# endregion Functions for writing BeautifulSoup to MSCX file
 
 def text_tag2str(tag: bs4.Tag) -> str:
     """Transforms a <text> tag into a string that potentially includes written-out HTML tags."""
@@ -2578,6 +2887,30 @@ def text_tag2str(tag: bs4.Tag) -> str:
             components.append(str(c))
     txt = ''.join(components)
     return txt
+
+
+def text_tag2str_components(tag: bs4.Tag) -> List[str]:
+    """Recursively traverses a <text> tag and returns all string components, effectively removing all HTML markup."""
+    components = []
+    for c in tag.contents:
+        if isinstance(c, str):
+            s = c.replace(' ', '')
+            for symbol, replacement in NOTE_SYMBOL_MAP.items():
+                s = s.replace(symbol, replacement)
+            components.append(s)
+        else:
+            # <i></i> or <sym></sym> other text markup within the string
+            components.extend(text_tag2str_components(c))
+    return components
+
+def text_tag2str_recursive(tag: bs4.Tag,
+                           join_char: str = "") -> str:
+    """Gets all string components from a <text> tag and joins them with join_char."""
+    components = text_tag2str_components(tag)
+    return join_char.join(components)
+
+
+
 
 
 def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
@@ -2673,13 +3006,13 @@ def thoroughbass_item(item_tag: bs4.Tag) -> str:
     return result + continuation_line
 
 
-def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[frac]]:
+def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[Fraction]]:
     """Turns a <FiguredBass> tag into a list of components strings, one per level, and duration."""
     ticks_tag = thoroughbass_tag.find('ticks')
     if ticks_tag is None:
         duration = None
     else:
-        duration = frac(ticks_tag.string)
+        duration = Fraction(ticks_tag.string)
     components = []
     for item_tag in thoroughbass_tag.find_all('FiguredBassItem'):
         components.append(thoroughbass_item(item_tag))

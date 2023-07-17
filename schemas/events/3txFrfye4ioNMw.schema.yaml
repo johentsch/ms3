@@ -1,0 +1,554 @@
+fields:
+  - name: piece
+    type: string
+    title: Piece identifier
+    description: Name identifier (filename without suffixes) of a piece
+  - name: i
+    type: integer
+    title: Index
+    description: An integer serving as row ID
+  - name: mc
+    type: integer
+    title: Measure Count
+    description: Running count of encoded <Measure> tags which do not necessarily
+      express a full measure (e.g. in case of an anacrusis).
+    constraints:
+      required: true
+  - name: mn
+    type: string
+    title: Measure Number
+    description: Measure number as printed in the score, computed from mc, dont_count
+      and numbering_offset.
+  - name: quarterbeats
+    type: string
+    title: Offset from Beginning
+    description: Distance of an event from the piece's beginning. By default, only
+      second endings are taken into account to reflect the proportions of a simply
+      playthrough without repeats.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: duration_qb
+    type: number
+    title: Duration in ♩
+    description: A float corresponding to duration * 4
+  - name: mc_onset
+    type: string
+    title: Offset within Encoded Measure
+    description: Distance of an event from the beginning of the <Measure> tag.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: mn_onset
+    type: string
+    title: Offset within Logical Measure
+    description: Distance from the beginning of the logical measure. Relevant, for
+      example, to compute the metric position of an event.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: event
+    type: string
+  - name: timesig
+    type: string
+    title: Time Signature
+    description: Given as string, e.g. "4/4".
+  - name: staff
+    type: integer
+    title: Staff
+    description: Number of the staff where an event occurs, 1 designating the top
+      staff.
+  - name: voice
+    type: integer
+    title: Notational Layer
+    description: A number between 1-4 where 1 is MuseScore's default layer (blue),
+      2 the second layer in green with downward stems, etc.
+  - name: duration
+    type: string
+    title: Duration
+    description: As fraction of a whole note.
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: gracenote
+    type: string
+    title: Grace Note
+    description: Name given to a type of grace note in the MuseScore encoding, e.g.
+      "grace16"
+  - name: scalar
+    type: string
+    title: Scalar
+    description: Decimal value reflecting all dots and n-tuplets modifying the duration
+      of a note/rest. Yields the actual duration when multiplied with "nominal_duration".
+    constraints:
+      pattern: \d+(?:\/\d+)?
+  - name: chord_id
+    type: integer
+    title: Chord ID
+    description: Row in the chords table.
+  - name: Beam
+    type: string
+  - name: Beam/Fragment/y1
+    type: string
+  - name: Beam/Fragment/y2
+    type: string
+  - name: Beam/StemDirection
+    type: string
+  - name: Chord/Articulation/direction
+    type: string
+  - name: Chord/Articulation/offset
+    type: string
+  - name: Chord/Articulation/offset:x
+    type: string
+  - name: Chord/Articulation/offset:y
+    type: string
+  - name: Chord/Articulation/subtype
+    type: string
+  - name: Chord/BeamMode
+    type: string
+  - name: Chord/Spanner/Slur
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o1
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o1:x
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o1:y
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o2
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o2:x
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o2:y
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o3
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o3:x
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o3:y
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o4
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o4:x
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/o4:y
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/offset
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/offset:x
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/offset:y
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment:no
+    type: string
+  - name: Chord/Spanner/Slur/up
+    type: string
+  - name: Chord/Spanner/next/location
+    type: string
+  - name: Chord/Spanner/next/location/fractions
+    type: string
+  - name: Chord/Spanner/next/location/measures
+    type: string
+  - name: Chord/Spanner/prev/location/fractions
+    type: string
+  - name: Chord/Spanner/prev/location/grace
+    type: string
+  - name: Chord/Spanner/prev/location/measures
+    type: string
+  - name: Chord/Spanner:type
+    type: string
+  - name: Chord/Stem/userLen
+    type: string
+  - name: Chord/Stem/visible
+    type: string
+  - name: Chord/StemDirection
+    type: string
+  - name: Chord/acciaccatura
+    type: string
+  - name: Chord/dots
+    type: string
+  - name: Chord/durationType
+    type: string
+  - name: Chord/staffMove
+    type: string
+  - name: Clef/concertClefType
+    type: string
+  - name: Clef/transposingClefType
+    type: string
+  - name: Dynamic/offset
+    type: string
+  - name: Dynamic/offset:x
+    type: string
+  - name: Dynamic/offset:y
+    type: string
+  - name: Dynamic/style
+    type: string
+  - name: Dynamic/subtype
+    type: string
+  - name: Dynamic/velocity
+    type: string
+  - name: Rest/NoteDot/visible
+    type: string
+  - name: Rest/Spanner/prev/location/fractions
+    type: string
+  - name: Rest/Spanner/prev/location/measures
+    type: string
+  - name: Rest/Spanner:type
+    type: string
+  - name: Rest/dots
+    type: string
+  - name: Rest/duration
+    type: string
+  - name: Rest/durationType
+    type: string
+  - name: Rest/offset
+    type: string
+  - name: Rest/offset:x
+    type: string
+  - name: Rest/offset:y
+    type: string
+  - name: Rest/visible
+    type: string
+  - name: Spanner/HairPin/Segment/autoplace
+    type: string
+  - name: Spanner/HairPin/Segment/off2
+    type: string
+  - name: Spanner/HairPin/Segment/off2:x
+    type: string
+  - name: Spanner/HairPin/Segment/off2:y
+    type: string
+  - name: Spanner/HairPin/Segment/offset
+    type: string
+  - name: Spanner/HairPin/Segment/offset:x
+    type: string
+  - name: Spanner/HairPin/Segment/offset:y
+    type: string
+  - name: Spanner/HairPin/Segment/subtype
+    type: string
+  - name: Spanner/HairPin/placement
+    type: string
+  - name: Spanner/HairPin/subtype
+    type: string
+  - name: Spanner/next/location/fractions
+    type: string
+  - name: Spanner/next/location/measures
+    type: string
+  - name: Spanner/prev/location/fractions
+    type: string
+  - name: Spanner/prev/location/measures
+    type: string
+  - name: Spanner:type
+    type: string
+  - name: StaffText/family
+    type: string
+  - name: StaffText/offset
+    type: string
+  - name: StaffText/offset:x
+    type: string
+  - name: StaffText/offset:y
+    type: string
+  - name: StaffText/style
+    type: string
+  - name: StaffText/text
+    type: string
+  - name: StaffText/text/font
+    type: string
+  - name: StaffText/text/font:face
+    type: string
+  - name: StaffText/text/i
+    type: string
+  - name: StaffText_text
+    type: string
+  - name: Symbol/name
+    type: string
+  - name: Symbol/offset
+    type: string
+  - name: Symbol/offset:x
+    type: string
+  - name: Symbol/offset:y
+    type: string
+  - name: Tempo/family
+    type: string
+  - name: Tempo/offset
+    type: string
+  - name: Tempo/offset:x
+    type: string
+  - name: Tempo/offset:y
+    type: string
+  - name: Tempo/tempo
+    type: string
+  - name: Tempo/text/b
+    type: string
+  - name: Tempo/text/font
+    type: string
+  - name: Tempo/text/font:face
+    type: string
+  - name: Tempo_text
+    type: string
+  - name: location/fractions
+    type: string
+  - name: Fermata/subtype
+    type: string
+  - name: Rest/BeamMode
+    type: string
+  - name: Spanner/Ottava/beginText
+    type: string
+  - name: Spanner/Ottava/continueText
+    type: string
+  - name: Spanner/Ottava/endHookHeight
+    type: string
+  - name: Spanner/Ottava/lineWidth
+    type: string
+  - name: Spanner/Ottava/subtype
+    type: string
+  - name: StaffText/text/b
+    type: string
+  - name: Beam/autoplace
+    type: string
+  - name: Chord/Arpeggio/autoplace
+    type: string
+  - name: Chord/Arpeggio/offset
+    type: string
+  - name: Chord/Arpeggio/offset:x
+    type: string
+  - name: Chord/Arpeggio/offset:y
+    type: string
+  - name: Chord/Arpeggio/subtype
+    type: string
+  - name: Chord/Arpeggio/timeStretch
+    type: string
+  - name: Chord/Articulation/anchor
+    type: string
+  - name: Chord/Articulation/autoplace
+    type: string
+  - name: Chord/Articulation/visible
+    type: string
+  - name: Chord/Spanner/Slur/SlurSegment/autoplace
+    type: string
+  - name: Chord/Spanner/next/location/staves
+    type: string
+  - name: Chord/Spanner/next/location/voices
+    type: string
+  - name: Chord/Spanner/prev/location/staves
+    type: string
+  - name: Chord/Spanner/prev/location/voices
+    type: string
+  - name: Dynamic/autoplace
+    type: string
+  - name: Dynamic/dynType
+    type: string
+  - name: Dynamic/family
+    type: string
+  - name: Dynamic/placement
+    type: string
+  - name: Dynamic/size
+    type: string
+  - name: Dynamic/text
+    type: string
+  - name: Dynamic/text/font
+    type: string
+  - name: Dynamic/text/font:face
+    type: string
+  - name: Dynamic/text/i
+    type: string
+  - name: Dynamic/text/i/font
+    type: string
+  - name: Dynamic/text/i/font:face
+    type: string
+  - name: Dynamic_text
+    type: string
+  - name: Fermata/timeStretch
+    type: string
+  - name: Rest/autoplace
+    type: string
+  - name: Rest/small
+    type: string
+  - name: Rest/staffMove
+    type: string
+  - name: Spanner/HairPin/beginText
+    type: string
+  - name: Spanner/HairPin/dashGapLength
+    type: string
+  - name: Spanner/HairPin/dashLineLength
+    type: string
+  - name: Spanner/HairPin/endText
+    type: string
+  - name: Spanner/HairPin/lineVisible
+    type: string
+  - name: Spanner/Pedal/Segment/autoplace
+    type: string
+  - name: Spanner/Pedal/Segment/color
+    type: string
+  - name: Spanner/Pedal/Segment/color:a
+    type: string
+  - name: Spanner/Pedal/Segment/color:b
+    type: string
+  - name: Spanner/Pedal/Segment/color:g
+    type: string
+  - name: Spanner/Pedal/Segment/color:r
+    type: string
+  - name: Spanner/Pedal/Segment/off2
+    type: string
+  - name: Spanner/Pedal/Segment/off2:x
+    type: string
+  - name: Spanner/Pedal/Segment/off2:y
+    type: string
+  - name: Spanner/Pedal/Segment/offset
+    type: string
+  - name: Spanner/Pedal/Segment/offset:x
+    type: string
+  - name: Spanner/Pedal/Segment/offset:y
+    type: string
+  - name: Spanner/Pedal/Segment/subtype
+    type: string
+  - name: Spanner/Pedal/Segment/visible
+    type: string
+  - name: Spanner/Pedal/beginText
+    type: string
+  - name: Spanner/Pedal/color
+    type: string
+  - name: Spanner/Pedal/color:a
+    type: string
+  - name: Spanner/Pedal/color:b
+    type: string
+  - name: Spanner/Pedal/color:g
+    type: string
+  - name: Spanner/Pedal/color:r
+    type: string
+  - name: Spanner/Pedal/endHookType
+    type: string
+  - name: Spanner/Pedal/endText
+    type: string
+  - name: Spanner/Pedal/visible
+    type: string
+  - name: StaffText/autoplace
+    type: string
+  - name: StaffText/placement
+    type: string
+  - name: StaffText/size
+    type: string
+  - name: Tempo/autoplace
+    type: string
+  - name: Tempo/followText
+    type: string
+  - name: Tempo/text
+    type: string
+  - name: Tempo/text/b/font
+    type: string
+  - name: Tempo/text/b/font:face
+    type: string
+  - name: Tempo/text/sym
+    type: string
+  - name: Tempo/visible
+    type: string
+  - name: Beam/noSlope
+    type: string
+  - name: Chord/Arpeggio/userLen1
+    type: string
+  - name: Chord/Arpeggio/userLen2
+    type: string
+  - name: Chord/Articulation/minDistance
+    type: string
+  - name: Chord/Stem/offset
+    type: string
+  - name: Chord/Stem/offset:x
+    type: string
+  - name: Chord/Stem/offset:y
+    type: string
+  - name: Dynamic/frameFgColor
+    type: string
+  - name: Dynamic/frameFgColor:a
+    type: string
+  - name: Dynamic/frameFgColor:b
+    type: string
+  - name: Dynamic/frameFgColor:g
+    type: string
+  - name: Dynamic/frameFgColor:r
+    type: string
+  - name: Dynamic/frameWidth
+    type: string
+  - name: Dynamic/minDistance
+    type: string
+  - name: Number_text
+    type: string
+  - name: Segment/leadingSpace
+    type: string
+  - name: Spanner/HairPin/Segment/minDistance
+    type: string
+  - name: StaffText/minDistance
+    type: string
+  - name: SystemText/offset
+    type: string
+  - name: SystemText/offset:x
+    type: string
+  - name: SystemText/offset:y
+    type: string
+  - name: SystemText/style
+    type: string
+  - name: SystemText/swing
+    type: string
+  - name: SystemText/swing:ratio
+    type: string
+  - name: SystemText/swing:unit
+    type: string
+  - name: SystemText/text
+    type: string
+  - name: SystemText/text/b
+    type: string
+  - name: SystemText_text
+    type: string
+  - name: Tuplet/Number/style
+    type: string
+  - name: Tuplet/Number/text
+    type: string
+  - name: Tuplet/actualNotes
+    type: string
+  - name: Tuplet/baseNote
+    type: string
+  - name: Tuplet/minDistance
+    type: string
+  - name: Tuplet/normalNotes
+    type: string
+  - name: Tuplet/offset
+    type: string
+  - name: Tuplet/offset:x
+    type: string
+  - name: Tuplet/offset:y
+    type: string
+  - name: Tuplet/p1
+    type: string
+  - name: Tuplet/p1:x
+    type: string
+  - name: Tuplet/p1:y
+    type: string
+  - name: endTuplet
+    type: string
+  - name: Breath/offset
+    type: string
+  - name: Breath/offset:x
+    type: string
+  - name: Breath/offset:y
+    type: string
+  - name: Breath/symbol
+    type: string
+  - name: Chord/grace16
+    type: string
+  - name: Tuplet/bracketType
+    type: string
+  - name: Tuplet/direction
+    type: string
+  - name: Tuplet/numberType
+    type: string
+  - name: Tuplet/p2
+    type: string
+  - name: Tuplet/p2:x
+    type: string
+  - name: Tuplet/p2:y
+    type: string
+  - name: Spanner
+    type: string
+  - name: StaffText/text/font:size
+    type: string
+  - name: Tempo/text/font:size
+    type: string
+primaryKey:
+  - piece
+  - i
+facet: events
+identifier: 3txFrfye4ioNMw
+filepath: events/3txFrfye4ioNMw.schema.yaml

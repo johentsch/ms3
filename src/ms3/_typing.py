@@ -13,7 +13,7 @@ FileList: TypeAlias = List['File']
 Category: TypeAlias = Literal[
     'corpora',
     'folders',
-    'fnames',
+    'pieces',
     'files',
     'suffixes',
     'facets',

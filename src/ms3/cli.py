@@ -1,51 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Command line interface for ms3.
+Command line interface for ms3. This module includes the argument parsers for the various commands and has one function
+<command>_cmd() per <command> which takes the parsed arguments namespace and dispatches them to the appropriate function
+in the ms3.operations module, using a couple of helper functions to that aim.
 """
 
 import argparse, os
-from datetime import datetime
-from typing import Optional
+import re
+from collections import defaultdict
+from typing import Optional, List
 
-import pandas as pd
-
-from ms3 import Parse
-from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION
+from ms3 import Parse, make_coloring_reports_and_warnings, compute_path_from_file
+from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score, transform_to_resources, transform_to_package
+from ms3.utils import convert_folder, resolve_dir, capture_parse_logs, write_warnings_to_file
 from ms3.logger import get_logger, inspect_loggers
+from ms3._version import __version__
 
 __author__ = "johentsch"
 __copyright__ = "École Polytechnique Fédérale de Lausanne"
 __license__ = "gpl3"
 
-def gather_extract_params(args):
+def gather_extract_params(args) -> List[str]:
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords))
               if arg]
-    if args.metadata is not None:
+    if args.metadata is not None and not (args.metadata == False):
         params.append('metadata')
     return params
 
-
-
-
-def make_suffixes(args, include_metadata: bool = False):
-    params = gather_extract_params(args)
-    if args.suffix is None:
-        suffixes = {}
-    else:
-        l_suff = len(args.suffix)
-        if l_suff == 0:
-            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
-        elif l_suff == 1:
-            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
-        else:
-            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    if not include_metadata and "metadata_suffix" in suffixes:
-        del (suffixes["metadata_suffix"])
-    return suffixes
 
 
 def add_cmd(args,
@@ -78,7 +62,9 @@ def check_cmd(args,
     _ = check(p,
               ignore_labels=args.ignore_labels,
               ignore_scores=args.ignore_scores,
-              assertion=args.fail)
+              assertion=args.fail,
+              ignore_metronome=args.ignore_metronome,
+              )
     return p
 
 
@@ -92,13 +78,18 @@ def compare_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    n_changed, n_unchanged = compare(p,
+    revision = None if args.compare == '' else args.compare
+    try:
+        n_changed, n_unchanged = compare(p,
                                  facet=args.use,
                                  ask=args.ask,
-                                 revision_specifier=args.compare,
+                                 revision_specifier=revision,
                                  flip=args.flip,
                                  logger=p.logger
                                  )
+    except TypeError:
+        logger.error(f"No files to compare. Try adding the flag -a to parse files even if they are not included in a metdata.tsv file.")
+        return
     logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
     if output:
         corpus2paths = store_scores(p,
@@ -140,33 +131,28 @@ def convert_cmd(args):
                    parallel=not args.iterative,
                    logger=update_logger)
 
-def empty(args):
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, file_paths=args.file, **logger_cfg)
-    p.parse_scores(parallel=False)
-    p.detach_labels()
-    p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
-    ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    if args.out is not None:
-        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
+def empty(args, parse_obj: Optional[Parse] = None):
+    if parse_obj is None:
+        p = make_parse_obj(args, parse_scores=True)
     else:
-        p.store_scores(ids=ids, overwrite=True)
+        p = parse_obj
+    p.detach_labels()
+    p.store_parsed_scores(only_changed=True,
+                          root_dir=args.out,
+                          suffix=args.suffix,
+                          overwrite=True,
+                          )
 
 
 def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
-        p = make_parse_obj(args, parse_scores=True)
+        p = make_parse_obj(args)
     else:
         p = parse_obj
     params = gather_extract_params(args)
     if len(params) == 0:
         print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    suffixes = make_suffixes(args)
-    silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
     extract(p,
             root_dir=args.out,
             notes_folder=args.notes,
@@ -179,10 +165,11 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
             form_labels_folder=args.form_labels,
             metadata_suffix=args.metadata,
             simulate=args.test,
+            parallel=not args.iterative,
             unfold=args.unfold,
             interval_index=args.interval_index,
-            silence_label_warnings=silence_label_warnings,
-            **suffixes)
+            corpuswise=args.corpuswise,
+            )
 
 def metadata(args, parse_obj: Optional[Parse] = None):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
@@ -196,11 +183,13 @@ def metadata(args, parse_obj: Optional[Parse] = None):
     p.parse_scores(parallel=False)
     modified_score_files = p.update_score_metadata_from_tsv(write_empty_values=args.empty,
                                                             remove_unused_fields=args.remove,
-                                                            write_text_fields=args.prelims)
+                                                            write_text_fields=args.prelims,
+                                                            update_instrumentation=args.instrumentation,)
     if len(modified_score_files) == 0:
         print("Nothing to update.")
         return
     corpus2paths = store_scores(p,
+                                only_changed=True,
                                 root_dir=args.out,
                                 folder='.',
                                 simulate=args.test,
@@ -214,40 +203,30 @@ def metadata(args, parse_obj: Optional[Parse] = None):
 #     print(args.dir)
 
 
-def transform(args, parse_obj: Optional[Parse] = None):
-    logger = get_logger('ms3.transform', level=args.level)
+
+def transform_cmd(args):
     params = gather_extract_params(args)
     if len(params) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    suffixes = make_suffixes(args, include_metadata=True)
-    if parse_obj is None:
-        p = make_parse_obj(args, parse_tsv=True, facets=params)
-    else:
-        p = parse_obj
-
-
-    for param in params:
-        sfx = suffixes.get(f"{param}_suffix", '')
-        tsv_name = f"concatenated_{param}{sfx}.tsv"
-        if args.out is None:
-            path = tsv_name
-        else:
-            path = os.path.join(args.out, tsv_name)
-        if param == 'metadata':
-            df = p.metadata()
-        else:
-            df = p.get_facets(param, flat=True, interval_index=args.interval_index, unfold=args.unfold)
-        df = df.reset_index(drop=False)
-        if df is None or len(df.index) == 0:
-            logger.info(f"No {param} data found. Maybe you haven't run ms3 extract?")
-            continue
-        if args.test:
-            logger.info(f"Would have written {path}.")
-        else:
-            write_tsv(df, path)
-            logger.info(f"{path} written.")
+    parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
+    filename = os.path.basename(args.dir)
+    func = transform_to_resources if args.resources else transform_to_package
+    # noinspection PyTypeChecker
+    func(
+        ms3_object=parse_obj,
+        facets=params,
+        filename=filename,
+        output_folder=args.out,
+        choose='auto',
+        interval_index=args.interval_index,
+        unfold=args.unfold,
+        test=args.test,
+        zipped=not args.uncompressed,
+        overwrite=args.safe,
+        log_level=args.level
+    )
 
 
 def update_cmd(args, parse_obj: Optional[Parse] = None):
@@ -288,8 +267,6 @@ def check_dir(d):
     return resolve_dir(d)
 
 
-
-
 def review_cmd(args,
                parse_obj: Optional[Parse] = None,
                ) -> None:
@@ -299,37 +276,34 @@ def review_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
+    accumulated_warnings = []
 
-    # create file for warnings
-    out_dir = '.' if args.out is None else args.out
-    warnings_file = os.path.join(out_dir, 'warnings.log')
-    header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
-    header = f"{header}\n{'=' * len(header)}\n\n"
-    with open(warnings_file, 'w', encoding='utf-8') as f:
-        f.write(header)
-
-    # call ms3 check
+    # call ms3 check, collecting all warnings issued while parsing
     if args.ignore_scores + args.ignore_labels < 2:
         what = '' if args.ignore_scores else 'SCORES'
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        test_passes = check(p,
-                            ignore_labels=args.ignore_labels,
-                            ignore_scores=args.ignore_scores,
-                            assertion=False,
-                            parallel=False,
-                            warnings_file=warnings_file)
+        warning_strings = check(
+            p,
+            ignore_labels=args.ignore_labels,
+            ignore_scores=args.ignore_scores,
+            assertion=False,
+            parallel=False,
+            ignore_metronome=args.ignore_metronome,
+        )
+        accumulated_warnings.extend(warning_strings)
+        test_passes = len(warning_strings) == 0
         p.parse_tsv()
     else:
+        test_passes = True
         p.parse(parallel=False)
     if p.n_parsed_scores == 0:
         msg = "NO SCORES PARSED, NOTHING TO DO."
         if not args.all:
-            msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
+            msg += "\nI was disregarding all files whose file names are not listed in the column 'piece' of a 'metadata.tsv' file. " \
                    "Add -a if you want me to include all scores."
         print(msg)
-        os.remove(warnings_file)
         return
 
     # call ms3 extract
@@ -340,27 +314,34 @@ def review_cmd(args,
 
     # color out-of-label tones
     print("COLORING OUT-OF-LABEL TONES...")
-    review_reports = p.color_non_chord_tones()
-    if len(review_reports) > 0:
-        dataframes, keys = [], []
-        for (corpus_name, fname), tuples in review_reports.items():
-            for file, df in tuples:
-                dataframes.append(df)
-                keys.append((corpus_name, file.rel_path))
-                report_path = os.path.join(file.corpus_path, 'reviewed', file.fname + '_reviewed.tsv')
-                write_tsv(df, report_path)
-        report = pd.concat(dataframes, keys=keys)
-        warning_selection = (report.count_ratio > args.threshold) & report.chord_tones.notna()
-        if warning_selection.sum() > 0:
-            test_passes = False
-            filtered_report = report[warning_selection].droplevel(-1)
-            pretty_report = filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio'])
-            logger.warning(pretty_report,
-                           extra={'message_id': (19,)})
-            with open(warnings_file, 'a', encoding='utf-8') as f:
-                f.write(f"Chord labels where the ratio of colored notes vs. all notes in a segment lies above {args.threshold}:\n")
-                f.write(pretty_report + "\n")
-            logger.info(f"Added the {warning_selection.sum()} labels to {warnings_file}.")
+    with capture_parse_logs(p.logger) as captured_warnings:
+        test_passes = make_coloring_reports_and_warnings(p, out_dir=args.out, threshold=args.threshold) and test_passes
+        accumulated_warnings.extend(captured_warnings.content_list)
+
+    # attribute warnings to pieces based on logger names
+    logger2pieceID = {corpus.logger_names[piece]: (c, piece) for c, corpus in p.corpus_objects.items() for piece in corpus.keys()}
+    piece2warnings = defaultdict(list)
+    for warning_strings in accumulated_warnings:
+        warning_lines = warning_strings.splitlines()
+        first_line = warning_lines[0]
+        match = re.search(r"(ms3\.Parse\..+) --", first_line)
+        if match is None:
+            logger.warning(f"This warning contains no ms3 logger name, skipping: {warning_strings}")
+            continue
+        warning_lines[0] = first_line[:match.end()]  # cut off the warning's header everything following the logger name because paths to source code are system-dependent
+        pieceID = logger2pieceID[match.group(1)]
+        piece2warnings[pieceID].append('\n'.join(warning_lines))
+
+
+    # write all warnings to piece-specific warnings files and remove existing files where no warnings were captured
+    for pieceID, score_files in p.get_files('scores', unparsed=False, flat=True, include_empty=False).items():
+        file = score_files[0]
+        warnings_path = compute_path_from_file(file, root_dir=args.out, folder='reviewed')
+        warnings_file = os.path.join(warnings_path, file.piece + file.suffix + '.warnings')
+        write_warnings_to_file(
+            warnings_file=warnings_file,
+            warnings=piece2warnings[pieceID],
+            logger=logger)
 
     # call ms3 compare
     if args.compare is not None:
@@ -382,15 +363,18 @@ def review_cmd(args,
     changed = sum(map(len, corpus2paths.values()))
     logger.info(f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}.")
     if test_passes:
-        logger.info(f"Parsed scores passed all tests. Removed {warnings_file}")
-        os.remove(warnings_file)
+        logger.info(f"Parsed scores passed all tests.")
     else:
-        msg = f"Not all tests have passed. Please check the relevant warnings in {warnings_file}"
+        msg = f"Not all tests have passed. Please check the relevant warnings in the generated .warnings files."
         if args.fail:
             assert test_passes, msg
         else:
             logger.info(msg)
-
+    out_dir = '.' if args.out is None else args.out
+    warnings_file = os.path.join(out_dir, 'warnings.log')
+    if os.path.isfile(warnings_file):
+        logger.info(f"Removing deprecated warnings file: {warnings_file}")
+        os.remove(warnings_file)
 
 
 
@@ -413,7 +397,7 @@ def make_parse_obj(args, parse_scores=False, parse_tsv=False, facets=None):
     print(f"""CREATING PARSE OBJECT WITH THE FOLLOWING PARAMETERS:
 Parse('{args.dir}',
      recursive={not args.nonrecursive},
-     only_metadata_fnames={not args.all},
+     only_metadata_pieces={not args.all},
      include_convertible={ms is not None},
      exclude_review={not args.reviewed},
      file_re={file_re_str},
@@ -426,7 +410,7 @@ Parse('{args.dir}',
 """)
     parse_obj = Parse(args.dir,
                       recursive=not args.nonrecursive,
-                      only_metadata_fnames=not args.all,
+                      only_metadata_pieces=not args.all,
                       include_convertible=ms is not None,
                       exclude_review=not args.reviewed,
                       file_re=args.include,
@@ -437,7 +421,7 @@ Parse('{args.dir}',
                       ms=ms,
                       **logger_cfg)
     if facets is not None:
-        facets = [f for f in facets if f != 'metadata']
+        facets = [f"{f}$" for f in facets if f != 'metadata']
         if len(facets) > 0:
             parse_obj.view.include('facets', *facets)
     if parse_scores:
@@ -466,7 +450,7 @@ def get_arg_parser():
     parse_args.add_argument('-n', '--nonrecursive', action='store_true',
                             help='Treat DIR as single corpus even if it contains corpus directories itself.')
     parse_args.add_argument('-a', '--all', action='store_true',
-                            help="By default, only files listed in the 'fname' column of a 'metadata.tsv' file are parsed. With "
+                            help="By default, only files listed in the 'piece' column of a 'metadata.tsv' file are parsed. With "
                                  "this option, all files will be parsed.")
     parse_args.add_argument('-i', '--include', metavar="REGEX",
                                 help="Select only files whose names include this string or regular expression.")
@@ -499,6 +483,8 @@ def get_arg_parser():
                               help="Don't check DCML labels for syntactic correctness.")
     check_args.add_argument('--fail', action='store_true', help="If you pass this argument the process will deliberately fail with an AssertionError "
                                                                 "when there are any mistakes.")
+    check_args.add_argument('--ignore_metronome', action='store_true', help="Pass this flag if you want the check to pass (not fail) even if there is a warning about a missing "
+                                                                            "metronome mark in the first bar of the score.")
 
     compare_args = argparse.ArgumentParser(add_help=False)
     compare_args.add_argument('--flip', action='store_true',
@@ -532,9 +518,6 @@ def get_arg_parser():
     extract_args.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
                                 help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
                                      "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
-    extract_args.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
-                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
-                                     "in which they are listed above (capital letter arguments).")
     extract_args.add_argument('-p', '--positioning', action='store_true',
                                 help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_args.add_argument('--raw', action='store_false',
@@ -543,6 +526,7 @@ def get_arg_parser():
                                 help="Unfold the repeats for all stored DataFrames.")
     extract_args.add_argument('--interval_index', action='store_true',
                                 help="Prepend a column with [start, end) intervals to the TSV files.")
+    extract_args.add_argument('--corpuswise', action='store_true', help="Parse one corpus after the other rather than all at once.")
 
     select_facet_args = argparse.ArgumentParser(add_help=False)
     select_facet_args.add_argument('--ask', action='store_true',
@@ -561,7 +545,7 @@ def get_arg_parser():
 
 The library offers you the following commands. Add the flag -h to one of them to learn about its parameters. 
 ''')
-    parser.add_argument('--version', action='version', version=MS3_VERSION)
+    parser.add_argument('--version', action='version', version=__version__)
     subparsers = parser.add_subparsers(help='The action that you want to perform.', dest='action')
 
 
@@ -624,6 +608,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
     # empty_parser.add_argument('--type', default=1,
     #                            help="Only remove particular types of harmony labels.")
+    empty_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_clean',
+                            help='Suffix of the new scores with removed labels. Defaults to _clean.')
     empty_parser.set_defaults(func=empty)
 
     extract_parser = subparsers.add_parser('extract',
@@ -641,6 +627,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     metadata_parser.add_argument('-p', '--prelims', action='store_true',
                                  help="Pass this flag if, in addition to updating metadata fields, you also want score headers to be updated "
                                       "from the columns title_text, subtitle_text, composer_text, lyricist_text, part_name_text.")
+    metadata_parser.add_argument('--instrumentation', action='store_true',
+                                 help="Pass this flag to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.")
     metadata_parser.add_argument('--empty', action='store_true',
                                   help="Set this flag to also allow empty values to be used for overwriting existing ones.")
     metadata_parser.add_argument('--remove', action='store_true',
@@ -659,7 +647,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                               help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
                                    "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
                                    "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
-    review_parser.add_argument('--threshold', default=0.6,
+    review_parser.add_argument('--threshold', default=0.6, type=float,
                                   help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
                                        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to 0.6 (3:2).")
     review_parser.set_defaults(func=review_cmd)
@@ -695,7 +683,12 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                 help="Unfold the repeats for all concatenated DataFrames.")
     transform_parser.add_argument('--interval_index', action='store_true',
                               help="Prepend a column with [start, end) intervals to the TSV files.")
-    transform_parser.set_defaults(func=transform)
+    transform_parser.add_argument('--resources', action='store_true',
+                                  help="Store the concatenated DataFrames as TSV files with resource descriptors rather than in a ZIP with a package descriptor.")
+    transform_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
+    transform_parser.add_argument('--uncompressed', action='store_true',
+                                  help="Store the transformed files as uncompressed TSVs rather than writing them into a ZIP file.")
+    transform_parser.set_defaults(func=transform_cmd)
 
 
 

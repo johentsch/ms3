@@ -1,5 +1,5 @@
 import re
-from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator, overload
 
 import sys, os
 from collections import Counter, defaultdict
@@ -11,7 +11,7 @@ from .logger import LoggedClass
 from .piece import Piece
 from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet, Facet
 from .utils import get_musescore, get_first_level_corpora, pretty_dict, resolve_dir, \
-    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata, File
+    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_piece_index_for_metadata, File
 from .view import View, create_view_from_parameters, DefaultView
 
 
@@ -37,7 +37,7 @@ class Parse(LoggedClass):
     def __init__(self,
                  directory: Optional[Union[str, Collection[str]]] = None,
                  recursive: bool = True,
-                 only_metadata_fnames: bool = True,
+                 only_metadata_pieces: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
@@ -53,7 +53,7 @@ class Parse(LoggedClass):
         Args:
           directory: Path to scan for corpora.
           recursive: Pass False if you don't want to scan ``directory`` for subcorpora, but force making it a corpus instead.
-          only_metadata_fnames:
+          only_metadata_pieces:
               The default view excludes piece names that are not listed in the corpus' metadata.tsv file (e.g. when none was found).
               Pass False to include all pieces regardless. This might be needed when setting ``recursive`` to False.
           include_convertible:
@@ -94,7 +94,7 @@ class Parse(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
 
         self._views: dict = {}
-        initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+        initial_view = create_view_from_parameters(only_metadata_pieces=only_metadata_pieces,
                                                    include_convertible=include_convertible,
                                                    include_tsv=include_tsv,
                                                    exclude_review=exclude_review,
@@ -162,7 +162,7 @@ class Parse(LoggedClass):
 
     @property
     def n_orphans(self) -> int:
-        """Number of files that are always disregarded because they could not be attributed to any of the fnames."""
+        """Number of files that are always disregarded because they could not be attributed to any of the pieces."""
         return sum(len(corpus.ix2orphan_file) for _, corpus in self)
 
     @property
@@ -182,7 +182,7 @@ class Parse(LoggedClass):
 
     @property
     def n_pieces(self) -> int:
-        """Number of all available pieces ('fnames'), independent of the view."""
+        """Number of all available pieces ('pieces'), independent of the view."""
         return sum(corpus.n_pieces for _, corpus in self)
 
     @property
@@ -232,7 +232,7 @@ class Parse(LoggedClass):
     def add_corpus(self,
                    directory: str,
                    corpus_name: Optional[str] = None,
-                   only_metadata_fnames: Optional[bool] = None,
+                   only_metadata_pieces: Optional[bool] = None,
                    include_convertible: Optional[bool] = None,
                    include_tsv: Optional[bool] = None,
                    exclude_review: Optional[bool] = None,
@@ -264,9 +264,9 @@ class Parse(LoggedClass):
         if corpus_name is None:
             corpus_name = os.path.basename(directory).strip(r"\/")
         logger_cfg['name'] = self.logger.name + '.' + corpus_name.replace('.', '')
-        view_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re, only_metadata_fnames, include_tsv, exclude_review, include_convertible))
+        view_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re, only_metadata_pieces, include_tsv, exclude_review, include_convertible))
         if view_params:
-            initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+            initial_view = create_view_from_parameters(only_metadata_pieces=only_metadata_pieces,
                                                        include_convertible=include_convertible,
                                                        include_tsv=include_tsv,
                                                        exclude_review=exclude_review,
@@ -278,13 +278,8 @@ class Parse(LoggedClass):
             self._views[initial_view.name] = initial_view
         else:
             initial_view = self.get_view()
-        try:
-            corpus = Corpus(directory=directory, view=initial_view, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
-        except AssertionError:
-            self.logger.debug(f"{directory} contains no parseable files.")
-            return
-        corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
-        if len(corpus.files) == 0:
+        corpus = self.make_corpus(directory, initial_view, **logger_cfg)
+        if corpus is None or len(corpus.files) == 0:
             self.logger.info(f"No parseable files detected in {directory}. Skipping...")
             return
         if corpus_name is None:
@@ -299,12 +294,18 @@ class Parse(LoggedClass):
         self.corpus_paths[corpus_name] = directory
         self.corpus_objects[corpus_name] = corpus
 
-
-
+    def make_corpus(self, directory, initial_view, **logger_cfg) -> Optional[Corpus]:
+        try:
+            corpus = Corpus(directory=directory, view=initial_view, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
+        except AssertionError:
+            self.logger.debug(f"{directory} contains no parseable files.")
+            return
+        corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
+        return corpus
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
-                only_metadata_fnames: Optional[bool] = None,
+                only_metadata_pieces: Optional[bool] = None,
                 include_convertible: Optional[bool] = None,
                 include_tsv: Optional[bool] = None,
                 exclude_review: Optional[bool] = None,
@@ -333,7 +334,7 @@ class Parse(LoggedClass):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
         L = locals()
-        arguments = ('only_metadata_fnames', 'include_convertible', 'include_tsv', 'exclude_review', 'file_re', 'folder_re', 'exclude_re', 'paths')
+        arguments = ('only_metadata_pieces', 'include_convertible', 'include_tsv', 'exclude_review', 'file_re', 'folder_re', 'exclude_re', 'paths')
         corpus_config = {arg: L[arg] for arg in arguments if L[arg] is not None}
         if 'level' not in logger_cfg:
             logger_cfg['level'] = self.logger.getEffectiveLevel()
@@ -347,7 +348,7 @@ class Parse(LoggedClass):
         subdir_corpora = sorted(get_first_level_corpora(directory, logger=self.logger))
         n_corpora = len(subdir_corpora)
         if n_corpora == 0:
-            self.logger.debug(f"Treating {directory} as corpus.")
+            self.logger.debug(f"Treating {directory} as corpus because none of its children seems to be a corpus.")
             self.add_corpus(directory,
                             **corpus_config)
         else:
@@ -424,7 +425,7 @@ class Parse(LoggedClass):
                 raise ValueError(f"corpus_name needs to be a folder contained in the first path, but '{corpus_name}' isn't.")
             self.add_corpus(first_path)
             # corpus = self.get_corpus(corpus_name)
-            # new_view = create_view_from_parameters(only_metadata_fnames=False, exclude_review=False, paths=paths)
+            # new_view = create_view_from_parameters(only_metadata_pieces=False, exclude_review=False, paths=paths)
             # corpus.set_view(new_view)
 
     def color_non_chord_tones(self,
@@ -434,14 +435,14 @@ class Parse(LoggedClass):
                               choose: Literal['all', 'auto', 'ask'] = 'all', ) -> Dict[CorpusFnameTuple, List[FileDataframeTuple]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name):
-            fname2reports = corpus.color_non_chord_tones(color_name,
+            piece2reports = corpus.color_non_chord_tones(color_name,
                                                     view_name=view_name,
                                                     force=force,
                                                     choose=choose)
-            result.update({(corpus_name, fname): report for fname, report in fname2reports.items()})
+            result.update({(corpus_name, piece): report for piece, report in piece2reports.items()})
         return result
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
@@ -452,17 +453,15 @@ class Parse(LoggedClass):
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
         keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
         for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
-        for score in self._parsed_mscx.values():
-            score.change_labels_cfg(labels_cfg=updated)
-        ids = list(self._labellists.keys())
-        if len(ids) > 0:
-            self._extract_and_cache_dataframes(ids=ids, labels=True)
+        for corpus_name, corpus in self:
+            corpus.change_labels_cfg(labels_cfg=self.labels_cfg)
 
     def compare_labels(self,
                        key: str = 'detached',
@@ -536,8 +535,8 @@ class Parse(LoggedClass):
         """
         extension_counters = {corpus_name: corpus.count_extensions(view_name, include_metadata=include_metadata) for corpus_name, corpus in self.iter_corpora(view_name)}
         if per_piece:
-            return {(corpus_name, fname): dict(cnt) for corpus_name, fname2cnt in extension_counters.items() for fname, cnt in fname2cnt.items()}
-        return {corpus_name: dict(sum(fname2cnt.values(), Counter())) for corpus_name, fname2cnt in extension_counters.items()}
+            return {(corpus_name, piece): dict(cnt) for corpus_name, piece2cnt in extension_counters.items() for piece, cnt in piece2cnt.items()}
+        return {corpus_name: dict(sum(piece2cnt.values(), Counter())) for corpus_name, piece2cnt in extension_counters.items()}
 
 
     def count_files(self,
@@ -567,6 +566,10 @@ class Parse(LoggedClass):
 
     def count_unparsed_tsvs(self, view_name: Optional[str] = None) -> int:
         return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
+
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(corpus.count_pieces(view_name=view_name) for _, corpus in self.iter_corpora(view_name=view_name))
 
     def create_missing_metadata_tsv(self,
                                     view_name: Optional[str] = None) -> None:
@@ -676,6 +679,21 @@ class Parse(LoggedClass):
                                            concatenate=concatenate,
                                            )
 
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat, include_empty, concatenate: Literal[True]) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat: Literal[True], include_empty, concatenate: Literal[False]) -> Dict[CorpusFnameTuple,
+                                                                                                                                                            List[FileDataframeTuple]]:
+        ...
+
+    @overload
+    def get_facets(self, facets, view_name, force, choose, unfold, interval_index, flat: Literal[False], include_empty, concatenate: Literal[False]) -> Dict[CorpusFnameTuple,
+                                                                                                                                                             Dict[str,
+                                                                                                                                                                  List[FileDataframeTuple]]]:
+        ...
+
     def get_facets(self,
                    facets: ScoreFacets = None,
                    view_name: Optional[str] = None,
@@ -698,7 +716,26 @@ class Parse(LoggedClass):
                                            include_empty=include_empty,
                                            concatenate=concatenate,
                                            )
-
+    @overload
+    def get_files(self, facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty=False,
+                  ) -> Dict[CorpusFnameTuple, FileDict]:
+        ...
+    @overload
+    def get_files(self, facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = True,
+                  include_empty=False,
+                  ) -> Dict[CorpusFnameTuple, FileList]:
+        ...
     def get_files(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
                   parsed: bool = True,
@@ -720,10 +757,10 @@ class Parse(LoggedClass):
 
 
 
-    def get_piece(self, corpus_name: str, fname: str) -> Piece:
+    def get_piece(self, corpus_name: str, piece: str) -> Piece:
         """Returns an existing Piece object."""
         assert corpus_name in self.corpus_objects, f"'{corpus_name}' is not an existing corpus. Choose from {list(self.corpus_objects.keys())}"
-        return self.corpus_objects[corpus_name].get_piece(fname)
+        return self.corpus_objects[corpus_name].get_piece(piece)
 
     def get_view(self,
                  view_name: Optional[str] = None,
@@ -789,7 +826,7 @@ class Parse(LoggedClass):
             if filtering_report != '':
                 msg += '\n\n' + filtering_report
         if self.n_orphans > 0:
-            msg += f"\n\nThere are {self.n_orphans} orphans that could not be attributed to any of the respective corpus's fnames"
+            msg += f"\n\nThere are {self.n_orphans} orphans that could not be attributed to any of the respective corpus's pieces"
             if show_discarded:
                 msg += ':'
                 for name, corpus in self:
@@ -853,7 +890,7 @@ class Parse(LoggedClass):
             self.logger.info(f"{reached}/{goal} labels successfully added.")
 
 
-    def iter_corpora(self, view_name: Optional[str] = None) -> Generator[Tuple[str, Corpus], None, None]:
+    def iter_corpora(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Corpus]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
         for corpus_name, corpus in view.filter_by_token('corpora', self):
@@ -864,10 +901,17 @@ class Parse(LoggedClass):
                     corpus.set_view(**{view_name: view})
             yield corpus_name, corpus
 
+    def iter_independent_corpora(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Corpus]]:
+        """Like iter_corpora() but creating new Corpus objects that are not stored in this Parse object to avoid
+        filling up memory when parsing many files."""
+        initial_view = self.get_view(view_name)
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            yield corpus_name, self.make_corpus(directory=corpus.corpus_path, initial_view=initial_view)
+
     def iter_pieces(self) -> Tuple[CorpusFnameTuple, Piece]:
         for corpus_name, corpus in self:
-            for fname, piece in corpus:
-                yield (corpus_name, fname), piece
+            for piece, piece_obj in corpus:
+                yield (corpus_name, piece), piece_obj
 
     def keys(self) -> List[str]:
         """Return the names of all corpus objects."""
@@ -985,7 +1029,8 @@ class Parse(LoggedClass):
                                        choose: Literal['all', 'auto', 'ask'] = 'all',
                                        write_empty_values: bool = False,
                                        remove_unused_fields: bool = False,
-                                       write_text_fields: bool = False
+                                       write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -1001,6 +1046,8 @@ class Parse(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score headers.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
@@ -1012,7 +1059,8 @@ class Parse(LoggedClass):
                                                              choose=choose,
                                                              write_empty_values=write_empty_values,
                                                              remove_unused_fields=remove_unused_fields,
-                                                             write_text_fields=write_text_fields)
+                                                             write_text_fields=write_text_fields,
+                                                             update_instrumentation=update_instrumentation)
             updated_scores.extend(modified)
         return updated_scores
 
@@ -1095,10 +1143,10 @@ class Parse(LoggedClass):
             if method == 'get_facet':
                 kwargs['concatenate'] = False
             corpus_result = corpus_method(view_name=view_name, **kwargs)
-            for fname, piece_result in corpus_result.items():
+            for piece, piece_result in corpus_result.items():
                 if method == 'get_facet':
                     piece_result = [piece_result]
-                result[(corpus_name, fname)] = piece_result
+                result[(corpus_name, piece)] = piece_result
         if concatenate:
             keys, dataframes = [], []
             flat = 'flat' not in kwargs or kwargs['flat']
@@ -1106,12 +1154,12 @@ class Parse(LoggedClass):
                 add_index_level = any(len(piece_result) > 1 for piece_result in result.values())
             else:
                 add_index_level = any(len(file_dataframe_tuples) > 1 for piece_result in result.values() for file_dataframe_tuples in piece_result.values())
-            for corpus_fname, piece_result in result.items():
+            for corpus_piece, piece_result in result.items():
                 if flat:
                     n_tuples = len(piece_result)
                     if n_tuples == 0:
                         continue
-                    keys.append(corpus_fname)
+                    keys.append(corpus_piece)
                     if n_tuples == 1:
                         if add_index_level:
                             file, df = piece_result[0]
@@ -1129,7 +1177,7 @@ class Parse(LoggedClass):
                         n_tuples = len(file_dataframe_tuples)
                         if n_tuples == 0:
                             continue
-                        keys.append(corpus_fname + (facet,))
+                        keys.append(corpus_piece + (facet,))
                         if n_tuples == 1:
                             if add_index_level:
                                 file, df = file_dataframe_tuples[0]
@@ -1160,7 +1208,7 @@ class Parse(LoggedClass):
                     else:
                         raise
                 nlevels = result.index.nlevels
-                level_names = ['corpus', 'fname']
+                level_names = ['corpus', 'piece']
                 if not flat:
                     level_names.append('facet')
                 if len(level_names) < nlevels - 1:
@@ -1176,27 +1224,27 @@ class Parse(LoggedClass):
     def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
+            piece2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+            result[corpus_name] = sum(piece2files.values(), [])
         return result
 
 
     def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
+            piece2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
+            result[corpus_name] = sum(piece2files.values(), [])
         return result
 
     def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+            piece2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
             if flat:
-                result[corpus_name] = sum(fname2files.values(), [])
+                result[corpus_name] = sum(piece2files.values(), [])
             else:
                 dd = defaultdict(list)
-                for fname, typ2files in fname2files.items():
+                for piece, typ2files in piece2files.items():
                     for typ, files in typ2files.items():
                         dd[typ].extend(files)
                 result[corpus_name] = dict(dd)
@@ -1205,12 +1253,12 @@ class Parse(LoggedClass):
     def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+            piece2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
             if flat:
-                result[corpus_name] = sum(fname2files.values(), [])
+                result[corpus_name] = sum(piece2files.values(), [])
             else:
                 dd = defaultdict(list)
-                for fname, typ2files in fname2files.items():
+                for piece, typ2files in piece2files.items():
                     for typ, files in typ2files.items():
                         dd[typ].extend(files)
                 result[corpus_name] = dict(dd)
@@ -1249,7 +1297,7 @@ class Parse(LoggedClass):
 
     def score_metadata(self, view_name: Optional[str] = None) -> pd.DataFrame:
         metadata_dfs = {corpus_name: corpus.score_metadata(view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'piece'])
         return metadata
 
     def metadata(self,
@@ -1257,40 +1305,51 @@ class Parse(LoggedClass):
                  choose: Optional[Literal['auto', 'ask']] = None) -> pd.DataFrame:
         metadata_dfs = {corpus_name: corpus.metadata(view_name=view_name, choose=choose)
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'piece'])
         return metadata
 
     def metadata_tsv(self, view_name: Optional[str] = None) -> pd.DataFrame:
-        """Concatenates the 'metadata.tsv' (as they come) files for all corpora with a [corpus, fname] MultiIndex. If
-        you need metadata that filters out fnames according to the current view, use :meth:`metadata`.
+        """Concatenates the 'metadata.tsv' (as they come) files for all corpora with a [corpus, piece] MultiIndex. If
+        you need metadata that filters out pieces according to the current view, use :meth:`metadata`.
         """
-        metadata_dfs = {corpus_name: enforce_fname_index_for_metadata(corpus.metadata_tsv)
+        metadata_dfs = {corpus_name: enforce_piece_index_for_metadata(corpus.metadata_tsv)
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)
                         if corpus.metadata_tsv is not None
                         }
-        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        updated_metadata_dfs = {}
+        for corpus_name, df in metadata_dfs.items():
+            try:
+                rel_path_col = next(col for col in ('subdirectory', 'rel_paths') if col in df.columns)
+            except StopIteration:
+                raise ValueError(f"Metadata is expected to come with a column called 'subdirectory' or (previously) 'rel_paths'.")
+            subdirectories = ['/'.join((corpus_name, subdirectory)) for subdirectory in df[rel_path_col]]
+            df.loc[:, rel_path_col] = subdirectories
+            if 'rel_path' in df.columns:
+                rel_paths = ['/'.join((corpus_name, rel_path)) for rel_path in df['rel_path']]
+                df.loc[:, 'rel_path'] = rel_paths
+        metadata = pd.concat(metadata_dfs, names=['corpus', 'piece'])
         return metadata
 
-
-
-    def store_extracted_facets(self,
-                               view_name: Optional[str] = None,
-                               root_dir: Optional[str] = None,
-                               measures_folder: Optional[str] = None, measures_suffix: str = '',
-                               notes_folder: Optional[str] = None, notes_suffix: str = '',
-                               rests_folder: Optional[str] = None, rests_suffix: str = '',
-                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
-                               labels_folder: Optional[str] = None, labels_suffix: str = '',
-                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
-                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
-                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
-                               events_folder: Optional[str] = None, events_suffix: str = '',
-                               chords_folder: Optional[str] = None, chords_suffix: str = '',
-                               metadata_suffix: Optional[str] = None, markdown: bool = True,
-                               simulate: bool = False,
-                               unfold: bool = False,
-                               interval_index: bool = False,
-                               silence_label_warnings: bool = False):
+    def store_extracted_facets(
+            self,
+            view_name: Optional[str] = None,
+            root_dir: Optional[str] = None,
+            measures_folder: Optional[str] = None,
+            notes_folder: Optional[str] = None,
+            rests_folder: Optional[str] = None,
+            notes_and_rests_folder: Optional[str] = None,
+            labels_folder: Optional[str] = None,
+            expanded_folder: Optional[str] = None,
+            form_labels_folder: Optional[str] = None,
+            cadences_folder: Optional[str] = None,
+            events_folder: Optional[str] = None,
+            chords_folder: Optional[str] = None,
+            metadata_suffix: Optional[str] = None,
+            markdown: bool = True,
+            simulate: bool = False,
+            unfold: bool = False,
+            interval_index: bool = False,
+    ):
         """  Store facets extracted from parsed scores as TSV files.
 
         Args:
@@ -1300,8 +1359,6 @@ class Parse(LoggedClass):
 
           measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
               Specify directory where to store the corresponding TSV files.
-          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
-              Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
           metadata_suffix:
               Specify a suffix to update the 'metadata{suffix}.tsv' file for each corpus. For the main file, pass ''
           markdown:
@@ -1313,19 +1370,30 @@ class Parse(LoggedClass):
               By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
               playthrough, including correct positioning of first and second endings.
           interval_index:
-          silence_label_warnings:
 
         Returns:
 
         """
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            corpus.store_extracted_facets(view_name=view_name, root_dir=root_dir, measures_folder=measures_folder, measures_suffix=measures_suffix, notes_folder=notes_folder, notes_suffix=notes_suffix,
-                                          rests_folder=rests_folder, rests_suffix=rests_suffix, notes_and_rests_folder=notes_and_rests_folder,
-                                          notes_and_rests_suffix=notes_and_rests_suffix, labels_folder=labels_folder, labels_suffix=labels_suffix, expanded_folder=expanded_folder,
-                                          expanded_suffix=expanded_suffix, form_labels_folder=form_labels_folder, form_labels_suffix=form_labels_suffix,
-                                          cadences_folder=cadences_folder, cadences_suffix=cadences_suffix, events_folder=events_folder, events_suffix=events_suffix,
-                                          chords_folder=chords_folder, chords_suffix=chords_suffix, metadata_suffix=metadata_suffix, markdown=markdown, simulate=simulate,
-                                          unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings)
+            corpus.store_extracted_facets(
+                view_name=view_name,
+                root_dir=root_dir,
+                measures_folder=measures_folder,
+                notes_folder=notes_folder,
+                rests_folder=rests_folder,
+                notes_and_rests_folder=notes_and_rests_folder,
+                labels_folder=labels_folder,
+                expanded_folder=expanded_folder,
+                form_labels_folder=form_labels_folder,
+                cadences_folder=cadences_folder,
+                events_folder=events_folder,
+                chords_folder=chords_folder,
+                metadata_suffix=metadata_suffix,
+                markdown=markdown,
+                simulate=simulate,
+                unfold=unfold,
+                interval_index=interval_index,
+            )
 
     def store_parsed_scores(self,
                             view_name: Optional[str] = None,
@@ -1346,7 +1414,7 @@ class Parse(LoggedClass):
           folder:
 
               * Different behaviours are available. Note that only the third option ensures that file paths are distinct for
-                files that have identical fnames but are located in different subdirectories of the same corpus.
+                files that have identical pieces but are located in different subdirectories of the same corpus.
               * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
               * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
               * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the ``root_dir``.
@@ -1479,8 +1547,8 @@ class Parse(LoggedClass):
             if len(item) == 1:
                 return self.get_corpus(item[0])
             if len(item) == 2:
-                corpus_name, fname_or_ix = item
-                return self.get_corpus(corpus_name)[fname_or_ix]
+                corpus_name, piece_or_ix = item
+                return self.get_corpus(corpus_name)[piece_or_ix]
             corpus_name, *remainder = item
             return self.get_corpus(corpus_name)[tuple(remainder)]
 

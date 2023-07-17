@@ -1,5 +1,6 @@
-from functools import lru_cache
+from functools import cache
 from logging import Logger
+from pprint import pformat
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional, Set
 
 import os, re
@@ -9,23 +10,21 @@ from collections import Counter, defaultdict
 
 import pandas as pd
 import numpy as np
-from git import Repo, InvalidGitRepositoryError
-from gitdb.exc import BadName
 
-from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger, normalize_logger_name
+from ms3.utils.frictionless_helpers import store_dataframe_resource
+from ms3.utils.functions import compute_path_from_file
+
+from .logger import LoggedClass, get_logger, get_log_capture_handler, normalize_logger_name
 from .piece import Piece
 from .score import Score, compare_two_score_objects
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, \
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FacetArguments, \
     Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
-from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
-    load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough_info, METADATA_COLUMN_ORDER, path2type, \
-    pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
-    store_csvw_jsonld, scan_directory
+from .utils import File, column_order, get_musescore, join_tsvs, load_tsv, path2type, \
+    pretty_dict, resolve_dir, update_labels_cfg, write_metadata, available_views2str, prepare_metadata_for_writing, \
+    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, \
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_piece_index_for_metadata, \
+    scan_directory
+from .utils.constants import METADATA_COLUMN_ORDER, LATEST_MUSESCORE_VERSION
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -41,7 +40,7 @@ class Corpus(LoggedClass):
 
     def __init__(self, directory: str,
                  view: View = None,
-                 only_metadata_fnames: bool = True,
+                 only_metadata_pieces: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
@@ -95,7 +94,7 @@ class Corpus(LoggedClass):
 
         self._views: dict = {}
         if view is None:
-            initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+            initial_view = create_view_from_parameters(only_metadata_pieces=only_metadata_pieces,
                                                        include_convertible=include_convertible,
                                                        include_tsv=include_tsv,
                                                        exclude_review=exclude_review,
@@ -107,7 +106,7 @@ class Corpus(LoggedClass):
             self._views[None] = initial_view
         else:
             legacy_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re))
-            not_default = not only_metadata_fnames or not include_tsv or not exclude_review or include_convertible
+            not_default = not only_metadata_pieces or not include_tsv or not exclude_review or include_convertible
             if legacy_params or not_default:
                 self.logger.warning(f"If you pass an existing view, other view-related parameters are ignored.")
             self._views[None] = view
@@ -143,7 +142,7 @@ class Corpus(LoggedClass):
 
 
         self._pieces: Dict[str, Piece] = {}
-        """{fname -> :class:`Piece`} The objects holding together information for the same piece
+        """{piece -> :class:`Piece`} The objects holding together information for the same piece
         from various files. 
         """
 
@@ -153,8 +152,8 @@ class Corpus(LoggedClass):
         self.metadata_ix: int = None
         """The index of the 'metadata.tsv' file for the corpus."""
 
-        self.ix2fname: Dict[int, str] = {}
-        """{ix -> fname} dict for associating files with the piece they have been matched to.
+        self.ix2pname: Dict[int, str] = {}
+        """{ix -> piece name} dict for associating files with the piece they have been matched to.
         None for indices that could not be matched, e.g. metadata.
         """
 
@@ -182,9 +181,9 @@ class Corpus(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
-    def fnames(self) -> List[str]:
-        """All fnames including those of scores that are not listed in metadata.tsv"""
-        return self.get_all_fnames()
+    def pnames(self) -> List[str]:
+        """All piece names including those of scores that are not listed in metadata.tsv"""
+        return self.get_all_pnames()
 
     @property
     def ix2file(self) -> dict:
@@ -259,7 +258,7 @@ class Corpus(LoggedClass):
 
     @property
     def n_pieces(self) -> int:
-        """Number of all available pieces ('fnames'), independent of the view."""
+        """Number of all available pieces ('pieces'), independent of the view."""
         return len(self._pieces)
 
     @property
@@ -272,12 +271,12 @@ class Corpus(LoggedClass):
 
     def add_dir(self,
                 directory: str,
-                filter_other_fnames: bool = False,
+                filter_other_pieces: bool = False,
                 file_re: str = r".*",
                 folder_re: str = r".*",
                 exclude_re: str = r"^(\.|_)",
                 ) -> FileList:
-        """Add additional files pertaining to the already existing fnames of the corpus.
+        """Add additional files pertaining to the already existing pieces of the corpus.
 
         If you want to use a directory with other pieces, create another :obj:`Corpus` object or combine several
         corpora in a :obj:`Parse` object.
@@ -285,9 +284,9 @@ class Corpus(LoggedClass):
         Args:
           directory:
               Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus's
-              fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
-          filter_other_fnames:
-              Set to True if you want to filter out all fnames that were not matched up with one of the added files.
+              pieces will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
+          filter_other_pieces:
+              Set to True if you want to filter out all pieces that were not matched up with one of the added files.
               This can be useful if you're loading TSV files with labels and want to parse only the scores for which
               you have added labels.
           file_re, folder_re:
@@ -306,9 +305,9 @@ class Corpus(LoggedClass):
                                              exclude_re=exclude_re))
         added_files = self.add_file_paths(all_file_paths)
         self.logger.debug(f"{len(added_files)} files added to the corpus.")
-        if filter_other_fnames:
+        if filter_other_pieces:
             new_view = self.view.copy()
-            new_view.include('fnames', *(re.escape(f.fname) for f in added_files))
+            new_view.include('pieces', *(re.escape(f.piece) for f in added_files))
             self.set_view(new_view)
         return added_files
 
@@ -476,17 +475,17 @@ class Corpus(LoggedClass):
                     drop_zero: bool = True,
                     view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
         assert detected + parsed > 0, "At least one parameter needs to be True"
-        fname2counts = {}
+        piece2counts = {}
         prefix = detected + parsed == 2
-        for fname, piece in self.iter_pieces(view_name=view_name):
+        for pname, piece_obj in self.iter_pieces(view_name=view_name):
             if detected:
-                type_count = piece.count_detected(view_name=view_name, include_empty=True, prefix=prefix)
+                type_count = piece_obj.count_detected(view_name=view_name, include_empty=True, prefix=prefix)
                 if not parsed:
-                    fname2counts[fname] = type_count
+                    piece2counts[pname] = type_count
             if parsed:
-                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True, prefix=prefix)
+                parsed_count = piece_obj.count_parsed(view_name=view_name, include_empty=True, prefix=prefix)
                 if not detected:
-                    fname2counts[fname] = parsed_count
+                    piece2counts[pname] = parsed_count
             if detected & parsed:
                 alternating_counts = {}
                 for (k1, v1), (k2, v2) in zip_longest(type_count.items(), parsed_count.items(), fillvalue=(None, None)):
@@ -494,10 +493,10 @@ class Corpus(LoggedClass):
                         alternating_counts[k1] = v1
                     if k2 is not None:
                         alternating_counts[k2] = v2
-                fname2counts[fname] = alternating_counts
+                piece2counts[pname] = alternating_counts
         if as_dict:
-            return fname2counts
-        df = pd.DataFrame.from_dict(fname2counts, orient='index')
+            return piece2counts
+        df = pd.DataFrame.from_dict(piece2counts, orient='index')
         if prefix:
             try:
                 df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
@@ -514,7 +513,7 @@ class Corpus(LoggedClass):
                             types=True,
                             parsed=True,
                             view_name: Optional[str] = None) -> pd.Series:
-        """The sum of _.count_files() but returning zero-filled Series if no fnames have been selected."""
+        """The sum of _.count_files() but returning zero-filled Series if no pieces have been selected."""
         file_count = self.count_files(detected=types, parsed=parsed, drop_zero=False, view_name=view_name)
         if len(file_count) == 0 and types and parsed:
             return pd.Series(0, index=self.default_count_index)
@@ -550,13 +549,13 @@ class Corpus(LoggedClass):
             file_type = path2type(full_path, logger=self.logger)
             if current_subdir.startswith('..') and file_type == 'scores':
                 self.logger.info(f"The score {rel_path} lies outside the corpus folder {self.corpus_path}. "
-                                    f"In case this is the only score detected for fname '{file_name}', this will result in "
+                                    f"In case this is the only score detected for piece '{file_name}', this will result in "
                                     f"an invalid relative path in the metadata.tsv file, i.e. one that will not exist on other systems.")
             F = File(
                 ix=len(self.files),
                 type=file_type,
                 file=file,
-                fname=file_name,
+                piece=file_name,
                 fext=file_ext,
                 subdir=current_subdir,
                 corpus_path=self.corpus_path,
@@ -572,10 +571,10 @@ class Corpus(LoggedClass):
         return newly_added
 
     def collect_fnames_from_scores(self) -> None:
-        """Construct sorted list of fnames from all detected scores."""
+        """Construct sorted list of pieces from all detected scores."""
         files_df = self.files_df
         detected_scores = files_df.loc[files_df.type == 'scores']
-        self.score_fnames = sorted(detected_scores.fname.unique())
+        self.score_fnames = sorted(detected_scores.piece.unique())
 
     def create_metadata_tsv(self,
                             suffix='',
@@ -613,36 +612,36 @@ class Corpus(LoggedClass):
 
 
 
-    def create_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
-        """Creates and stores one :obj:`Piece` object per fname."""
-        if fnames is None:
-            fnames = self.get_all_fnames()
-        elif isinstance(fnames, str):
-            fnames = [fnames]
-        for fname in fnames:
-            if fname in self._pieces:
-                self.logger.debug(f"Piece({fname}) existed already, skipping...")
+    def create_pieces(self, pnames: Union[Collection[str], str] = None) -> None:
+        """Creates and stores one :obj:`Piece` object per piece."""
+        if pnames is None:
+            pnames = self.get_all_pnames()
+        elif isinstance(pnames, str):
+            pnames = [pnames]
+        for pname in pnames:
+            if pname in self._pieces:
+                self.logger.debug(f"Piece({pname}) existed already, skipping...")
                 continue
             logger_cfg = dict(self.logger_cfg)
-            logger_name = self.logger.name + '.' + fname.replace('.', '')
+            logger_name = self.logger.name + '.' + pname.replace('.', '')
             logger_cfg['name'] = logger_name
-            piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
+            piece = Piece(pname, view=self.get_view(), labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
             piece.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
-            self._pieces[fname] = piece
-            self.logger_names[fname] = logger_name
+            self._pieces[pname] = piece
+            self.logger_names[pname] = logger_name
         if self.metadata_tsv is not None:
             try:
-                fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in self.metadata_tsv.columns)
+                piece_col = next(col for col in ('piece', 'fname', 'fnames', 'name', 'names') if col in self.metadata_tsv.columns)
             except StopIteration:
                 file = self.files[self.metadata_ix]
-                self.logger.warning(f"Could not attribute metadata to Pieces because {file.rel_path} has no 'fname' column.")
+                self.logger.warning(f"Could not attribute metadata to Pieces because {file.rel_path} has no 'piece' column.")
                 return
             metadata_rows = self.metadata_tsv.to_dict(orient='records')
             for row in metadata_rows:
-                fname = row[fname_col]
-                if pd.isnull(fname):
+                pname = row[piece_col]
+                if pd.isnull(pname):
                     continue
-                piece = self.get_piece(fname)
+                piece = self.get_piece(pname)
                 piece._tsv_metadata = row
 
 
@@ -662,7 +661,7 @@ class Corpus(LoggedClass):
                     ix=len(self.files),
                     type = file_type,
                     file=file,
-                    fname=file_name,
+                    piece=file_name,
                     fext=file_ext,
                     subdir=current_subdir,
                     corpus_path=self.corpus_path,
@@ -694,8 +693,8 @@ class Corpus(LoggedClass):
         missing = []
         all_available_files = []
         selected_ixs = []
-        fname2files = self.get_files(facet, view_name=view_name, choose='all', flat=True, include_empty=False)
-        for peace, files in fname2files.items():
+        piece2files = self.get_files(facet, view_name=view_name, choose='all', flat=True, include_empty=False)
+        for peace, files in piece2files.items():
             if len(files) == 0:
                 missing.append(peace)
             elif len(files) == 1:
@@ -770,22 +769,22 @@ class Corpus(LoggedClass):
                       ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
         view_name_display = self.view_name if view_name is None else view_name
         result = {}
-        for fname, piece in self.iter_pieces(view_name):
-            file, df = piece.extract_facet(facet=facet,
+        for piece, piece_obj in self.iter_pieces(view_name):
+            file, df = piece_obj.extract_facet(facet=facet,
                                            view_name=view_name,
                                            force=force,
                                            choose=choose,
                                            unfold=unfold,
                                            interval_index=interval_index)
             if df is None:
-                self.logger.info(f"The view '{view_name_display}' does not comprise a score for '{fname}' from which to "
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score for '{piece}' from which to "
                                  f"extract {facet}.")
             else:
-                result[fname] = df if concatenate else (file, df)
+                result[piece] = df if concatenate else (file, df)
         if concatenate:
             if len(result) > 0:
                 df = pd.concat(result.values(), keys=result.keys())
-                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
@@ -812,15 +811,15 @@ class Corpus(LoggedClass):
         if force:
             self.check_number_of_unparsed_scores(view_name, choose)
         result = {}
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.extract_facets(facets=selected_facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            type2file = piece_obj.extract_facets(facets=selected_facets,
                                              view_name=view_name,
                                              force=force,
                                              choose=choose,
                                              unfold=unfold,
                                              interval_index=interval_index,
                                              flat=flat)
-            result[piece.name] = type2file
+            result[piece_obj.name] = type2file
         return result
 
     @property
@@ -846,9 +845,9 @@ class Corpus(LoggedClass):
             file = new_files[0]
         self.load_metadata_file(file)
 
-    @lru_cache()
-    def fnames_in_metadata(self, metadata_ix: Optional[int] = None) -> List[str]:
-        """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
+    @cache
+    def pieces_in_metadata(self, metadata_ix: Optional[int] = None) -> List[str]:
+        """pieces (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply
         self.metadata_ix and serves caching of the results for multiple metadata.tsv files.
         """
@@ -859,7 +858,7 @@ class Corpus(LoggedClass):
                     available = [file for ix, file in self.ix2metadata_file.items() if ix in self._ix2parsed]
                     if len(available) > 0:
                         msg += f" However, the following metadata files are available: {available}"
-                if self.view.fnames_not_in_metadata:
+                if self.view.pieces_not_in_metadata:
                     self.logger.info(msg)
                 else:
                     self.logger.warning(msg)
@@ -873,30 +872,30 @@ class Corpus(LoggedClass):
             return []
         metadata_df = self._ix2parsed[metadata_ix]
         try:
-            fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in metadata_df.columns)
-            return sorted(str(fname) for fname in metadata_df[fname_col].unique() if not pd.isnull(fname))
+            piece_col = next(col for col in ('piece', 'fname', 'fnames', 'name', 'names') if col in metadata_df.columns)
+            return sorted(str(piece) for piece in metadata_df[piece_col].unique() if not pd.isnull(piece))
         except StopIteration:
             file = self.files[metadata_ix]
-            self.logger.warning(f"The file {file.rel_path} is missing a column called 'fname' or 'fnames':\n{metadata_df.columns}")
+            self.logger.warning(f"The file {file.rel_path} is missing a column called 'piece' or 'pieces':\n{metadata_df.columns}")
             return []
 
-    def fnames_not_in_metadata(self) -> List[str]:
-        """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
+    def pieces_not_in_metadata(self) -> List[str]:
+        """pieces (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are not listed in the 'metadata.tsv' file for this corpus.
         """
-        metadata_fnames = self.fnames_in_metadata(self.metadata_ix)
+        metadata_pieces = self.pieces_in_metadata(self.metadata_ix)
         # view = self.get_view(view_name)
-        # filtered_score_fnames = view.filtered_tokens('fnames', self.score_fnames)
-        if len(metadata_fnames) == 0:
+        # filtered_score_pieces = view.filtered_tokens('pieces', self.score_pieces)
+        if len(metadata_pieces) == 0:
             return self.score_fnames
         return [f for f in self.score_fnames
-                if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
+                if not (f in metadata_pieces or any(f.startswith(md_piece) for md_piece in metadata_pieces))
                 ]
 
     def get_changed_scores(self,
                            view_name: Optional[str] = None,
                            include_empty: bool = False) -> Dict[str, List[FileScoreTuple]]:
-        result = {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
+        result = {piece: piece_obj.get_changed_scores(view_name) for piece, piece_obj in self.iter_pieces(view_name)}
         if include_empty:
             return result
         return {k: v for k, v in result.items() if len(v) > 0}
@@ -944,21 +943,21 @@ class Corpus(LoggedClass):
         """Retrieves exactly one DataFrame per piece, if available."""
         view_name_display = self.view_name if view_name is None else view_name
         result = {}
-        for fname, piece in self.iter_pieces(view_name):
-            file, df = piece.get_facet(facet=facet,
+        for piece, piece_obj in self.iter_pieces(view_name):
+            file, df = piece_obj.get_facet(facet=facet,
                                        view_name=view_name,
                                        choose=choose,
                                        unfold=unfold,
                                        interval_index=interval_index)
             if df is None:
-                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{fname}' from which to "
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{piece}' from which to "
                                  f"retrieve {facet}.")
             else:
-                result[fname] = df if concatenate else (file, df)
+                result[piece] = df if concatenate else (file, df)
         if concatenate:
             if len(result) > 0:
                 df = pd.concat(result.values(), keys=result.keys())
-                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
@@ -1001,8 +1000,8 @@ class Corpus(LoggedClass):
         if force:
             self.check_number_of_unparsed_scores(view_name, choose)
         result = {}
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            facet2parsed = piece.get_facets(facets=selected_facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            facet2parsed = piece_obj.get_facets(facets=selected_facets,
                                          view_name=view_name,
                                          force=force,
                                          choose=choose,
@@ -1015,7 +1014,7 @@ class Corpus(LoggedClass):
                     facet2parsed = {facet: parsed for facet, parsed in facet2parsed.items() if len(parsed) > 0}
                 if len(facet2parsed) == 0:
                     continue
-            result[piece.name] = facet2parsed
+            result[piece_obj.name] = facet2parsed
         return result
 
     def check_number_of_unparsed_scores(self, view_name, choose):
@@ -1047,8 +1046,8 @@ class Corpus(LoggedClass):
                 self.disambiguate_facet(facet, ask_for_input=True)
             choose = 'auto'
         result = {}
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            facet2files = piece.get_files(facets=facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            facet2files = piece_obj.get_files(facets=facets,
                                         view_name=view_name,
                                         parsed=parsed,
                                         unparsed=unparsed,
@@ -1060,8 +1059,8 @@ class Corpus(LoggedClass):
                     facet2files = {facet: files for facet, files in facet2files.items() if len(files) > 0}
                 if len(facet2files) == 0:
                     continue
-            result[piece.name] = facet2files
-            result[piece.name] = facet2files
+            result[piece_obj.name] = facet2files
+            result[piece_obj.name] = facet2files
         return result
 
     def get_all_parsed(self, facets: FacetArguments = None,
@@ -1080,8 +1079,8 @@ class Corpus(LoggedClass):
         if force:
             self.check_number_of_unparsed_scores(view_name, choose)
         result = {}
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            facet2parsed = piece.get_all_parsed(facets=selected_facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            facet2parsed = piece_obj.get_all_parsed(facets=selected_facets,
                                               view_name=view_name,
                                               force=force,
                                               choose=choose,
@@ -1092,49 +1091,49 @@ class Corpus(LoggedClass):
                     facet2parsed = {facet: parsed for facet, parsed in facet2parsed.items() if len(parsed) > 0}
                 if len(facet2parsed) == 0:
                     continue
-            result[piece.name] = facet2parsed
+            result[piece_obj.name] = facet2parsed
         return result
 
-    def get_all_fnames(self,
-                       fnames_in_metadata: bool = True,
-                       fnames_not_in_metadata: bool = True) -> List[str]:
-        """ fnames (file names without extension and suffix) serve as IDs for pieces. Use
+    def get_all_pnames(self,
+                       pieces_in_metadata: bool = True,
+                       pieces_not_in_metadata: bool = True) -> List[str]:
+        """ pieces (file names without extension and suffix) serve as IDs for pieces. Use
         this function to retrieve the comprehensive list, ignoring views.
 
         Args:
-          fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus, if present
-          fnames_not_in_metadata: fnames that are not listed in the 'metadata.tsv' file for this corpus
+          pieces_in_metadata: pieces that are listed in the 'metadata.tsv' file for this corpus, if present
+          pieces_not_in_metadata: pieces that are not listed in the 'metadata.tsv' file for this corpus
 
         Returns:
           The file names included in 'metadata.tsv' and/or those of all other scores.
         """
         result = []
-        if fnames_in_metadata:
-            result.extend(self.fnames_in_metadata(self.metadata_ix))
-        if fnames_not_in_metadata:
-            result.extend(self.fnames_not_in_metadata())
+        if pieces_in_metadata:
+            result.extend(self.pieces_in_metadata(self.metadata_ix))
+        if pieces_not_in_metadata:
+            result.extend(self.pieces_not_in_metadata())
         return sorted(result)
 
-    def get_fnames(self, view_name: Optional[str] = None) -> List[str]:
-        """Retrieve fnames included in the current or selected view."""
-        return [fname for fname, _ in self.iter_pieces(view_name)]
+    def get_pieces(self, view_name: Optional[str] = None) -> List[str]:
+        """Retrieve pieces included in the current or selected view."""
+        return [piece for piece, _ in self.iter_pieces(view_name)]
 
-    def get_piece(self, fname) -> Piece:
-        """Returns the :obj:`Piece` object for fname."""
-        assert fname in self._pieces, f"'{fname}' is not a piece in this corpus."
-        return self._pieces[fname]
+    def get_piece(self, pname) -> Piece:
+        """Returns the :obj:`Piece` object for piece."""
+        assert pname in self._pieces, f"'{pname}' is not a piece in this corpus."
+        return self._pieces[pname]
 
 
     def get_present_facets(self, view_name: Optional[str] = None) -> List[str]:
         view = self.get_view(view_name)
-        selected_fnames = []
-        if view.fnames_in_metadata:
-            selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
-        if view.fnames_not_in_metadata:
-            selected_fnames.extend(self.fnames_not_in_metadata())
+        selected_pieces = []
+        if view.pieces_in_metadata:
+            selected_pieces.extend(self.pieces_in_metadata(self.metadata_ix))
+        if view.pieces_not_in_metadata:
+            selected_pieces.extend(self.pieces_not_in_metadata())
         result: Set[str] = set()
-        for fname, piece in self:
-            detected_facets = piece.count_detected(include_empty=False, prefix=False)
+        for piece, piece_obj in self:
+            detected_facets = piece_obj.count_detected(include_empty=False, prefix=False)
             result.update(detected_facets.keys())
         return list(result)
 
@@ -1190,8 +1189,8 @@ class Corpus(LoggedClass):
                    f"{n_pieces} pieces.\n\n"
             msg += counts_df.to_string()
         else:
-            metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
-            included_selector = counts_df.index.isin(metadata_fnames)
+            metadata_pieces = set(self.pieces_in_metadata(self.metadata_ix))
+            included_selector = counts_df.index.isin(metadata_pieces)
             if included_selector.all():
                 msg += f"All {n_pieces} pieces are listed in 'metadata.tsv':\n\n"
                 msg += counts_df.to_string()
@@ -1207,7 +1206,7 @@ class Corpus(LoggedClass):
                 msg += counts_df[not_included].to_string()
         n_changed_scores = 0
         detached_key_counter = Counter()
-        for fname, tuples in parsed_scores.items():
+        for piece, tuples in parsed_scores.items():
             for file, score in tuples:
                 n_changed_scores += score.mscx.changed
                 detached_key_counter.update(score._detached_annotations.keys())
@@ -1224,7 +1223,7 @@ class Corpus(LoggedClass):
         if filtering_report != '':
             msg += '\n' + filtering_report
         if self.n_orphans > 0:
-            msg += f"\n\nThe corpus contains {self.n_orphans} orphans that could not be attributed to any of the fnames"
+            msg += f"\n\nThe corpus contains {self.n_orphans} orphans that could not be attributed to any of the pieces"
             if show_discarded:
                 msg += f":\n{list(self.ix2orphan_file.values())}"
             else:
@@ -1240,14 +1239,14 @@ class Corpus(LoggedClass):
                    unfold: bool = False,
                    interval_index: bool = False) -> Iterator[FileDataframeTuple]:
         view_name_display = self.view_name if view_name is None else view_name
-        for fname, piece in self.iter_pieces(view_name):
-            file, df = piece.get_facet(facet=facet,
+        for pname, piece_obj in self.iter_pieces(view_name):
+            file, df = piece_obj.get_facet(facet=facet,
                                        view_name=view_name,
                                        choose=choose,
                                        unfold=unfold,
                                        interval_index=interval_index)
             if df is None:
-                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{fname}' from which to "
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{pname}' from which to "
                                  f"retrieve {facet}.")
             else:
                 yield file, df
@@ -1260,7 +1259,7 @@ class Corpus(LoggedClass):
                     interval_index: bool = False,
                     include_files: bool = False,
                     ) -> Iterator:
-        """ Iterate through (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet.
+        """ Iterate through (piece, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet.
 
         Args:
           facets:
@@ -1271,15 +1270,15 @@ class Corpus(LoggedClass):
           include_files:
 
         Returns:
-          (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).
+          (piece, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (piece).
         """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         if choose == 'ask':
             for facet in selected_facets:
                 self.disambiguate_facet(facet, ask_for_input=True)
             choose = 'auto'
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            facet2parsed = piece.get_facets(facets=selected_facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            facet2parsed = piece_obj.get_facets(facets=selected_facets,
                                             view_name=view_name,
                                             force=True,
                                             choose=choose,
@@ -1291,7 +1290,7 @@ class Corpus(LoggedClass):
                 result = [tup for facet in selected_facets for tup in facet2parsed[facet]]
             else:
                 result = [df for facet in selected_facets for file, df in facet2parsed[facet]]
-            yield (fname, *result)
+            yield (piece, *result)
 
     def iter_parsed(self,
                     facet: Facet = None,
@@ -1310,8 +1309,8 @@ class Corpus(LoggedClass):
             choose = 'auto'
         if force:
             self.check_number_of_unparsed_scores(view_name, choose)
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            for file, parsed in piece.iter_parsed(facet=facet,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            for file, parsed in piece_obj.iter_parsed(facet=facet,
                                                   view_name=view_name,
                                                   force=force,
                                                   choose=choose,
@@ -1325,12 +1324,12 @@ class Corpus(LoggedClass):
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through (name, corpus) tuples under the current or specified view."""
         view = self.get_view(view_name)
-        view.reset_filtering_data(categories='fnames')
-        param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
+        view.reset_filtering_data(categories='pieces')
+        param_sum = view.pieces_in_metadata + view.pieces_not_in_metadata
         if param_sum == 0:
             # all excluded, need to update filter counts accordingly
-            key = 'fnames'
-            discarded_items, *_ = list(zip(*view.filter_by_token('fnames', self)))
+            key = 'pieces'
+            discarded_items, *_ = list(zip(*view.filter_by_token('pieces', self)))
             view._discarded_items[key].update(discarded_items)
             filtering_counts = view._last_filtering_counts[key]
             filtering_counts[[0,1]] = filtering_counts[[1, 0]] # swapping counts for included & discarded in the array
@@ -1340,31 +1339,33 @@ class Corpus(LoggedClass):
             discarded_items = []
             differentiate_by_presence_in_metadata = param_sum == 1
             if differentiate_by_presence_in_metadata:
-                selected_fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
-            filter_incomplete_facets = not view.fnames_with_incomplete_facets
+                selected_pieces = self.pieces_in_metadata(self.metadata_ix) if view.pieces_in_metadata else self.pieces_not_in_metadata()
+            filter_incomplete_facets = not view.pieces_with_incomplete_facets
             if filter_incomplete_facets:
-                selected_facets = set(self.get_present_facets(view_name))
-                selected_facets = selected_facets.intersection(set(view.selected_facets))
-                selected_facets = tuple(selected_facets)
-            for fname, piece in view.filter_by_token('fnames', self):
-                if len(piece.count_detected()) == 0:
-                    # no facets to show, probably due to other filters; do not include in 'fnames' filter counts
+                selected_facets = view.selected_facets
+                if len(selected_facets) == len(View.available_facets):
+                    # No facets have been excluded from the view, therefore the completeness criterion is based
+                    # on which facets the corpus has rather than which ones have been selected
+                    selected_facets = self.get_present_facets(view_name)
+            for piece, piece_obj in view.filter_by_token('pieces', self):
+                if len(piece_obj.count_detected()) == 0:
+                    # no facets to show, probably due to other filters; do not include in 'pieces' filter counts
                     continue
-                metadata_check = not differentiate_by_presence_in_metadata or fname in selected_fnames
-                facet_check = not filter_incomplete_facets or piece.all_facets_present(view_name=view_name,
+                metadata_check = not differentiate_by_presence_in_metadata or piece in selected_pieces
+                facet_check = not filter_incomplete_facets or piece_obj.all_facets_present(view_name=view_name,
                                                                                        selected_facets=selected_facets)
                 if metadata_check and facet_check:
-                    if view_name not in piece._views:
+                    if view_name not in piece_obj._views:
                         if view_name is None:
-                            piece.set_view(view)
+                            piece_obj.set_view(view)
                         else:
-                            piece.set_view(**{view_name: view})
-                    yield fname, piece
+                            piece_obj.set_view(**{view_name: view})
+                    yield piece, piece_obj
                 else:
-                    discarded_items.append(fname)
+                    discarded_items.append(piece)
                     n_kept -= 1
                     n_discarded += 1
-            key = 'fnames'
+            key = 'pieces'
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
             view._discarded_items[key].update(discarded_items)
 
@@ -1384,29 +1385,29 @@ class Corpus(LoggedClass):
         facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {AnnotationsFacet.__args__}"
         assert choose != 'all', "Only one set of annotations can be added under a given key."
-        if git_revision is None:
-            fname2tuples = self.get_all_parsed(facets=facet,
+        if not git_revision:
+            piece2tuples = self.get_all_parsed(facets=facet,
                                 view_name=view_name,
                                 force=force,
                                 choose=choose,
                                 flat=True,
                                 )
-            fname2tuple = {fname: tuples[0] for fname, tuples in fname2tuples.items()}
+            piece2tuple = {piece: tuples[0] for piece, tuples in piece2tuples.items()}
             revision_str = ''
         else:
-            fname2tuple = self.get_facet_at_git_revision(facet=facet,
+            piece2tuple = self.get_facet_at_git_revision(facet=facet,
                                                           git_revision=git_revision,
                                                           view_name=view_name,
                                                           choose=choose)
             revision_str = f" @ git revision {git_revision}"
-        n_pieces = len(fname2tuple)
+        n_pieces = len(piece2tuple)
         if n_pieces == 0:
             self.logger.debug(f"No parsed '{facet}' TSV files found{revision_str}.")
         else:
             plural = 's' if n_pieces > 1 else ''
             self.logger.debug(f"Parsed '{facet}' file{revision_str} added to {n_pieces} piece{plural}.")
-        for fname, (file, df) in fname2tuple.items():
-            self[fname].load_annotation_table_into_score(df=df,
+        for piece, (file, df) in piece2tuple.items():
+            self[piece].load_annotation_table_into_score(df=df,
                                                          view_name=view_name,
                                                          choose=choose,
                                                          key=key,
@@ -1463,16 +1464,16 @@ class Corpus(LoggedClass):
 
     def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
         """Loads the TSV file at the given path and stores it as metadata. If the file is called 'metadata.tsv' it will
-        be treated as the corpus' main file for determining fnames. Otherwise it is expected to be named 'metadata{suffix}.tsv'
+        be treated as the corpus' main file for determining pieces. Otherwise it is expected to be named 'metadata{suffix}.tsv'
         and the suffix will be used as name for an additionally created view.
         """
-        if not file.fname.startswith('metadata') and not allow_prefixed:
+        if not file.piece.startswith('metadata') and not allow_prefixed:
             self.logger.info(f"The file {file.rel_path} has a prefix and is disregarded as metadata file.")
             self.ix2metadata_file[file.ix] = file
             return
-        if not file.fname.endswith('metadata'):
-            match = re.search('metadata', file.fname)
-            suffix = file.fname[match.end():]
+        if not file.piece.endswith('metadata'):
+            match = re.search('metadata', file.piece)
+            suffix = file.piece[match.end():]
             file.suffix = suffix
         else:
             suffix = ''
@@ -1480,7 +1481,7 @@ class Corpus(LoggedClass):
         try:
             metadata_df = load_tsv(file.full_path)
         except Exception as e:
-            self.logger.warning(f"Parsing {file.rel_path} as metadata failed with the exception '{e}'")
+            self.logger.warning(f"load_tsv({file.full_path!r}) failed with the exception '{e}'")
             return
         if len(metadata_df) == 0:
             self.logger.warning(f"Parsed metadata file {file.rel_path} was empty.")
@@ -1499,10 +1500,10 @@ class Corpus(LoggedClass):
             if view_name != '':
                 view_name += '_'
             view_name += string2identifier(suffix)
-        fnames = self.fnames_in_metadata(file.ix)
-        fnames = [re.escape(fname) for fname in fnames]
-        new_view = DefaultView(view_name, only_metadata_fnames=False)
-        new_view.include('fnames', *fnames)
+        pieces = self.pieces_in_metadata(file.ix)
+        pieces = [re.escape(piece) for piece in pieces]
+        new_view = DefaultView(view_name, only_metadata_pieces=False)
+        new_view.include('pieces', *pieces)
         action = 'Replaced' if view_name in self.view_names else 'Added'
         self.set_view(**{view_name: new_view})
         self.logger.debug(f"{action} view '{view_name}' corresponding to {file.rel_path}.")
@@ -1553,13 +1554,13 @@ class Corpus(LoggedClass):
             self.change_logger_cfg(level=level)
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
-        fname2files = self.get_files('scores', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
-        selected_files = sum(fname2files.values(), start=[])
+        piece2files = self.get_files('scores', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
+        selected_files = sum(piece2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
             self.logger.debug(f"Nothing to parse.")
             return
-        selected_scores_df = pd.concat([pd.DataFrame(files) for files in fname2files.values()], keys=fname2files.keys())
+        selected_scores_df = pd.concat([pd.DataFrame(files) for files in piece2files.values()], keys=piece2files.keys())
         self.logger.debug(f"Selected scores to parse:\n{selected_scores_df.set_index('ix')['rel_path'].to_string()}")
         exts = selected_scores_df.fext.value_counts()
 
@@ -1585,7 +1586,7 @@ class Corpus(LoggedClass):
         ) for ix in selected_scores_df.ix]
 
         ### collect argument tuples for calling parse_musescore_file
-        parse_this = [(file, self.logger, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
+        parse_this = [(file, self.logger, self.labels_cfg, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
         try:
             if parallel:
                 pool = mp.Pool(mp.cpu_count())
@@ -1604,7 +1605,7 @@ class Corpus(LoggedClass):
                 successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
             successful = len(successful_results)
             for ix, score in successful_results.items():
-                self.get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
+                self.get_piece(self.ix2pname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
                     quantifier = f"The score has" if target == 1 else f"All {target} scores have"
@@ -1657,8 +1658,8 @@ class Corpus(LoggedClass):
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        fname2files = self.get_files('tsv', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
-        selected_files = sum(fname2files.values(), start=[])
+        piece2files = self.get_files('tsv', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
+        selected_files = sum(piece2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
             self.logger.debug(f"Nothing to parse.")
@@ -1684,7 +1685,7 @@ class Corpus(LoggedClass):
             successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
         successful = len(successful_results)
         for ix, df in successful_results.items():
-            self.get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
+            self.get_piece(self.ix2pname[ix]).add_parsed_tsv(ix, df)
         if successful > 0:
             if successful == target:
                 quantifier = f"The TSV file" if target == 1 else f"All {target} TSV files"
@@ -1697,42 +1698,42 @@ class Corpus(LoggedClass):
 
     def register_files_with_pieces(self,
                                    files: Optional[FileList] = None,
-                                   fnames: Optional[Union[Collection[str], str]] = None) -> None:
-        """Iterates through the ``files`` and tries to match it with the ``fnames`` and registered matched
+                                   pnames: Optional[Union[Collection[str], str]] = None) -> None:
+        """Iterates through the ``files`` and tries to match it with the ``pieces`` and registered matched
         :obj:`File` objects with the corresponding :obj:`Piece` objects (unless already registered).
 
-        By default, the method uses this object's :attr:`files` and :attr:`fnames`. To match with a Piece, the file name
-        (without extension) needs to start with the Piece's ``fname``; otherwise, it will be stored under
+        By default, the method uses this object's :attr:`files` and :attr:`pieces`. To match with a Piece, the file name
+        (without extension) needs to start with the Piece's ``piece``; otherwise, it will be stored under
         :attr:`ix2orphan_file`.
 
         Args:
           files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.
-          fnames: Fnames of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
+          pnames: Names of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
         """
-        if fnames is None:
-            fnames = self.fnames
-        elif isinstance(fnames, str):
-            fnames = [fnames]
-        fnames = sorted(fnames, key=len, reverse=True)
-        # sort so that longest fnames come first for preventing errors when detecting suffixes
-        if len(fnames) == 0:
+        if pnames is None:
+            pnames = self.pnames
+        elif isinstance(pnames, str):
+            pnames = [pnames]
+        pnames = sorted(pnames, key=len, reverse=True)
+        # sort so that longest pieces come first for preventing errors when detecting suffixes
+        if len(pnames) == 0:
             self.logger.info(f"Corpus contains neither scores nor metadata.")
             return
         if files is None:
             files = self.files
         for file in files:
             # try to associate all detected files with one of the created pieces and
-            # store the mapping in :attr:`ix2fname`
+            # store the mapping in :attr:`ix2pname`
             piece_name = None
-            if file.fname in fnames:
-                piece_name = file.fname
+            if file.piece in pnames:
+                piece_name = file.piece
             else:
-                for fname in fnames:
-                    if file.fname.startswith(fname):
-                        piece_name = fname
+                for pname in pnames:
+                    if file.piece.startswith(pname):
+                        piece_name = pname
                         break
             if piece_name is None:
-                if 'metadata' in file.fname:
+                if 'metadata' in file.piece:
                     self.load_metadata_file(file)
                 else:
                     self.logger.debug(f"Could not associate {file.file} with any of the pieces. Stored as orphan.")
@@ -1743,7 +1744,7 @@ class Corpus(LoggedClass):
                 if registration_result is None:
                     self.logger.debug(f"Skipping '{file.rel_path}' because it had already been registered with Piece('{piece_name}').")
                 elif registration_result:
-                    self.ix2fname[file.ix] = piece_name
+                    self.ix2pname[file.ix] = piece_name
                     self.logger_names[file.ix] = piece.logger.name
                 else:
                     self.logger.warning(f"Stored '{file.rel_path}' as orphan because it could not be registered with Piece('{piece_name}')")
@@ -1752,28 +1753,28 @@ class Corpus(LoggedClass):
     def metadata(self,
                  view_name: Optional[str] = None,
                  choose: Optional[Literal['auto', 'ask']] = None) -> pd.DataFrame:
-        """Returns metadata.tsv but only for fnames included in the current or indicated view. If no TSV file is present,
+        """Returns metadata.tsv but only for pieces included in the current or indicated view. If no TSV file is present,
         get metadata from the current scores.
         """
-        rows = [piece.metadata() for fname, piece in self.iter_pieces(view_name)]
+        rows = [piece_obj.metadata() for piece, piece_obj in self.iter_pieces(view_name)]
         metadata = pd.DataFrame(rows)
         if len(metadata) == 0:
             return metadata
-        metadata = enforce_fname_index_for_metadata(metadata)
+        metadata = enforce_piece_index_for_metadata(metadata)
         return column_order(metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
         # tsv_metadata, score_metadata = None, None
-        # if view.fnames_in_metadata:
-        #     tsv_fnames = [fname for fname in self.fnames_in_metadata(self.metadata_ix) if view.check_token('fnames', fname)]
-        #     tsv_metadata = enforce_fname_index_for_metadata(self.metadata_tsv)
-        #     tsv_metadata = tsv_metadata.loc[tsv_fnames]
-        #     print(f"tsv_fnames: {tsv_fnames}")
-        # if view.fnames_not_in_metadata:
-        #     score_fnames = [fname for fname in self.fnames_not_in_metadata() if view.check_token('fnames', fname)]
-        #     rows = [self.get_piece(fname).score_metadata(view_name=view_name, choose=choose)
-        #             for fname in score_fnames]
+        # if view.pieces_in_metadata:
+        #     tsv_pieces = [piece for piece in self.pieces_in_metadata(self.metadata_ix) if view.check_token('pieces', piece)]
+        #     tsv_metadata = enforce_piece_index_for_metadata(self.metadata_tsv)
+        #     tsv_metadata = tsv_metadata.loc[tsv_pieces]
+        #     print(f"tsv_pieces: {tsv_pieces}")
+        # if view.pieces_not_in_metadata:
+        #     score_pieces = [piece for piece in self.pieces_not_in_metadata() if view.check_token('pieces', piece)]
+        #     rows = [self.get_piece(piece).score_metadata(view_name=view_name, choose=choose)
+        #             for piece in score_pieces]
         #     if len(rows) > 0:
-        #         score_metadata = pd.DataFrame(rows).set_index('fname')
-        #     print(f"score_fnames: {score_fnames}")
+        #         score_metadata = pd.DataFrame(rows).set_index('piece')
+        #     print(f"score_pieces: {score_pieces}")
         # n_dataframes = (tsv_metadata is not None) + (score_metadata is not None)
         # if n_dataframes == 0:
         #     return pd.DataFrame()
@@ -1788,19 +1789,19 @@ class Corpus(LoggedClass):
     def score_metadata(self,
                        view_name: Optional[str] = None,
                        choose: Literal['auto', 'ask'] = 'auto'):
-        fnames, rows = [], []
-        for fname, piece in self.iter_pieces(view_name=view_name):
+        pieces, rows = [], []
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
             try:
-                row = piece.score_metadata(view_name=view_name, choose=choose)
+                row = piece_obj.score_metadata(view_name=view_name, choose=choose)
                 if row is not None:
                     rows.append(row)
-                    fnames.append(fname)
+                    pieces.append(piece)
             except ValueError:
-                print(fname)
-                print(piece.score_metadata())
+                print(piece)
+                print(piece_obj.score_metadata())
                 raise
         if len(rows) > 0:
-            df = pd.DataFrame(rows).set_index('fname')
+            df = pd.DataFrame(rows).set_index('piece')
             return column_order(df, METADATA_COLUMN_ORDER, sort=False).sort_index()
         return pd.DataFrame()
 
@@ -1819,11 +1820,11 @@ class Corpus(LoggedClass):
             if view.name != view_name:
                 view.name = view_name
             self._views[view_name] = view
-        for fname, piece in self:
+        for piece, piece_obj in self:
             if active is not None:
-                piece.set_view(active)
+                piece_obj.set_view(active)
             for view_name, view in views.items():
-                piece.set_view(**{view_name:view})
+                piece_obj.set_view(**{view_name:view})
 
     def switch_view(self, view_name: str,
                     show_info: bool = True,
@@ -1840,10 +1841,10 @@ class Corpus(LoggedClass):
         if new_name in self._views:
             del(self._views[new_name])
         if propagate:
-            for fname, piece in self:
-                active_view = piece.get_view()
+            for piece, piece_obj in self:
+                active_view = piece_obj.get_view()
                 if active_view.name != new_name or active_view != new_view:
-                    piece.set_view(new_view)
+                    piece_obj.set_view(new_view)
         if show_info:
             self.info()
 
@@ -1882,8 +1883,8 @@ class Corpus(LoggedClass):
                       above: bool = False,
                       safe: bool = True) -> FileList:
         altered_files = []
-        for fname, piece in self.iter_pieces():
-            for file, score in piece.iter_parsed('scores'):
+        for piece, piece_obj in self.iter_pieces():
+            for file, score in piece_obj.iter_parsed('scores'):
                 successfully_moved = score.move_labels_to_layer(staff=staff,
                                                                 voice=voice,
                                                                 harmony_layer=harmony_layer,
@@ -1922,8 +1923,8 @@ class Corpus(LoggedClass):
         assert self.ms is not None, "Set the attribute 'ms' to your MuseScore 3 executable to update scores."
         up2date_paths = []
         latest_version = LATEST_MUSESCORE_VERSION.split('.')
-        for fname, piece in self.iter_pieces():
-            for file, score in piece.iter_parsed('scores'):
+        for piece, piece_obj in self.iter_pieces():
+            for file, score in piece_obj.iter_parsed('scores'):
                 logger = self.ix_logger(file.ix)
                 new_path = make_file_path(file, root_dir=root_dir, folder=folder, suffix=suffix, fext='.mscx')
                 up2date_paths.append(new_path)
@@ -1944,7 +1945,7 @@ class Corpus(LoggedClass):
                         new_files = self.add_file_paths([new_path])
                         updated_file = new_files[0]
                     new_score = Score(new_path)
-                    piece.add_parsed_score(updated_file.ix, new_score)
+                    piece_obj.add_parsed_score(updated_file.ix, new_score)
                     compare_two_score_objects(score, new_score, logger=logger)
                 else:
                     updated_file = file
@@ -1975,8 +1976,8 @@ class Corpus(LoggedClass):
           List of paths that have been overwritten.
         """
         paths = []
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            paths.extend(piece.update_tsvs_on_disk(facets=facets,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            paths.extend(piece_obj.update_tsvs_on_disk(facets=facets,
                                                    view_name=view_name,
                                                    force=force,
                                                    choose=choose))
@@ -2018,76 +2019,6 @@ class Corpus(LoggedClass):
 
 
 
-    def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
-        """Concatenate DataFrames contained in a {ID -> df} dictionary.
-
-        Parameters
-        ----------
-        dict_of_dataframes : :obj:`dict`
-            {ID -> DataFrame}
-        id_index : :obj:`bool`, optional
-            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
-            'rel_paths', 'fnames', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
-        third_level_name : :obj:`str`, optional
-
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
-        """
-        d = {k: v for k, v in dict_of_dataframes.items() if v.shape[0] > 0}
-        if len(d) == 0:
-            self.logger.info(f"Nothing to concatenate:\n{dict_of_dataframes}")
-            return
-        if id_index:
-            result = pd.concat(d.values(), keys=d.keys())
-            result.index.names = ['key', 'i', third_level_name]
-        else:
-            levels = [(self.rel_paths[key][i], self.fnames[key][i]) for key, i in d.keys()]
-            result = pd.concat(d.values(), keys=levels)
-            result.index.names = ['rel_paths', 'fnames', third_level_name]
-        return result
-
-
-    def _concat_lists(self, which, id_index=False, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        """ Boiler plate for concatenating DataFrames with the same type of information.
-
-        Parameters
-        ----------
-        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests', 'form_labels'}
-        id_index : :obj:`bool`, optional
-            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
-            'rel_paths', 'fnames', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
-        keys
-        ids
-
-        Returns
-        -------
-
-        """
-        d = self.extract_facets(keys, flat=False, unfold=unfold, interval_index=interval_index, **{which: True})
-        d = d[which] if which in d else {}
-        msg = {
-            'cadences': 'cadence lists',
-            'chords': '<chord> tables',
-            'events': 'event tables',
-            'expanded': 'expandable annotation tables',
-            'labels': 'annotation tables',
-            'measures': 'measure lists',
-            'notes': 'note lists',
-            'notes_and_rests': 'note and rest lists',
-            'rests': 'rest lists',
-            'form_labels': 'form label tables'
-        }
-        if len(d) == 0:
-            if keys is None and ids is None:
-                self.logger.info(f'This Corpus object does not include any {msg[which]}.')
-            else:
-                self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
-            return pd.DataFrame()
-        return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
-
-
-
 
     def insert_detached_labels(self,
                                view_name: Optional[str] = None,
@@ -2125,7 +2056,7 @@ class Corpus(LoggedClass):
             By default, warnings are thrown when there already exists a label at a position (and in a notational
             layer) where a new one is attached. Pass False to deactivate these warnings.
         """
-        reached, goal = 0, 0
+        reached, goal, i = 0, 0, 0
         for i, (file, score) in enumerate(self.iter_parsed('scores', view_name=view_name), 1):
             r, g = score.attach_labels(key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
             self.logger.debug(f"{r}/{g} labels successfully added to {file}")
@@ -2135,7 +2066,7 @@ class Corpus(LoggedClass):
         return reached, goal
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Corpus.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
@@ -2146,17 +2077,15 @@ class Corpus(LoggedClass):
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
         keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
         for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
-        for score in self._parsed_mscx.values():
-            score.change_labels_cfg(labels_cfg=updated)
-        ids = list(self._labellists.keys())
-        if len(ids) > 0:
-            self._extract_and_cache_dataframes(ids=ids, labels=True)
+        for piece, piece_obj in self:
+            piece_obj.change_labels_cfg(labels_cfg=self.labels_cfg)
 
 
     def check_labels(self, keys=None, ids=None):
@@ -2187,7 +2116,7 @@ class Corpus(LoggedClass):
                                             choose=choose,):
             report = score.color_non_chord_tones(color_name=color_name)
             if report is not None:
-                result[file.fname].append((file, report))
+                result[file.piece].append((file, report))
         return dict(result)
 
     def compare_labels(self,
@@ -2219,8 +2148,8 @@ class Corpus(LoggedClass):
           Number of scores in which no label has chnged.
         """
         changed, unchanged = 0, 0
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            c, u = piece.compare_labels(key=key,
+        for piece, piece_obj in self.iter_pieces(view_name=view_name):
+            c, u = piece_obj.compare_labels(key=key,
                                         new_color=new_color,
                                         old_color=old_color,
                                         detached_is_newer=detached_is_newer,
@@ -2300,11 +2229,14 @@ class Corpus(LoggedClass):
     def count_extensions(self, view_name: Optional[str] = None, include_metadata: bool = False):
         """"""
         selected_files = self.get_files(view_name=view_name, flat=True)
-        result = {fname: Counter(file.fext for file in files) for fname, files in selected_files.items()}
+        result = {piece: Counter(file.fext for file in files) for piece, files in selected_files.items()}
         if include_metadata and 'metadata' not in result:
             result['metadata'] = Counter(file.fext for file in self.ix2metadata_file.values())
         return result
 
+    def count_pieces(self, view_name: Optional[str] = None) -> int:
+        """Number of selected pieces under the given view."""
+        return sum(1 for _ in self.iter_pieces(view_name=view_name))
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
         file_dict = self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
@@ -2328,8 +2260,8 @@ class Corpus(LoggedClass):
             return sum(file_dict.values(), [])
         else:
             result = defaultdict(list)
-            for fname, piece in self.iter_pieces(view_name=view_name):
-                file_dict = piece._get_parsed_tsv_files(view_name=view_name, flat=False)
+            for piece, piece_obj in self.iter_pieces(view_name=view_name):
+                file_dict = piece_obj._get_parsed_tsv_files(view_name=view_name, flat=False)
                 for facet, files in file_dict.items():
                     result[facet].extend(files)
             return dict(result)
@@ -2340,8 +2272,8 @@ class Corpus(LoggedClass):
             return sum(file_dict.values(), [])
         else:
             result = defaultdict(list)
-            for fname, piece in self.iter_pieces(view_name=view_name):
-                file_dict = piece._get_unparsed_tsv_files(view_name=view_name, flat=False)
+            for piece, piece_obj in self.iter_pieces(view_name=view_name):
+                file_dict = piece_obj._get_unparsed_tsv_files(view_name=view_name, flat=False)
                 for facet, files in file_dict.items():
                     result[facet].extend(files)
             return dict(result)
@@ -2462,18 +2394,18 @@ class Corpus(LoggedClass):
         if choose == 'ask':
             self.disambiguate_facet(facet, ask_for_input=True)
             choose = 'auto'
-        fname2files = self.get_files(facets=facet,
+        piece2files = self.get_files(facets=facet,
                                      view_name=view_name,
                                      flat=True
                                      )
-        fname2selected = {}
-        for fname, files in fname2files.items():
+        piece2selected = {}
+        for piece, files in piece2files.items():
             parsed_files = [file for file in files if file.ix in self.ix2parsed]
             unparsed_files = [file for file in files if file.ix not in parsed_files]
             n_parsed = len(parsed_files)
             n_unparsed = len(unparsed_files)
             if n_parsed == 1:
-                fname2selected[fname] = parsed_files[0]
+                piece2selected[piece] = parsed_files[0]
             else:
                 if n_parsed == 0:
                     if n_unparsed > 1:
@@ -2492,31 +2424,31 @@ class Corpus(LoggedClass):
                                                   logger=self.logger)
                 if selected is None:
                     continue
-                fname2selected[fname] = selected
-        fname2tuples = {}
-        for fname, file in fname2selected.items():
+                piece2selected[piece] = selected
+        piece2tuples = {}
+        for piece, file in piece2selected.items():
             new_file, parsed = parse_tsv_file_at_git_revision(file, git_revision, self.corpus_path, logger=self.ix_logger(file.ix))
             if parsed is None:
                 self.logger.warning(f"Could not retrieve {file.rel_path} @ '{git_revision}'.")
             else:
-                fname2tuples[fname] = (new_file, parsed)
+                piece2tuples[piece] = (new_file, parsed)
         if concatenate:
-            if len(fname2tuples) > 0:
-                dfs = [df for file, df in fname2tuples.values()]
-                df = pd.concat(dfs, keys=fname2tuples.keys())
-                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+            if len(piece2tuples) > 0:
+                dfs = [df for file, df in piece2tuples.values()]
+                df = pd.concat(dfs, keys=piece2tuples.keys())
+                df.index.rename(['piece', "i"], inplace=True)
                 return df
             else:
                 return pd.DataFrame()
-        return fname2tuples
+        return piece2tuples
 
 
     def get_parsed_at_index(self, ix: int) -> Optional[ParsedFile]:
         parsed = self.ix2parsed
         if ix in parsed:
             return parsed[ix]
-        if ix in self.ix2fname:
-            piece = self.get_piece(self.ix2fname[ix])
+        if ix in self.ix2pname:
+            piece = self.get_piece(self.ix2pname[ix])
             try:
                 return piece._get_parsed_at_index(ix)
             except RuntimeError:
@@ -2579,21 +2511,23 @@ class Corpus(LoggedClass):
     def store_extracted_facets(self,
                                view_name: Optional[str] = None,
                                root_dir: Optional[str] = None,
-                               measures_folder: Optional[str] = None, measures_suffix: str = '',
-                               notes_folder: Optional[str] = None, notes_suffix: str = '',
-                               rests_folder: Optional[str] = None, rests_suffix: str = '',
-                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
-                               labels_folder: Optional[str] = None, labels_suffix: str = '',
-                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
-                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
-                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
-                               events_folder: Optional[str] = None, events_suffix: str = '',
-                               chords_folder: Optional[str] = None, chords_suffix: str = '',
-                               metadata_suffix: Optional[str] = None, markdown: bool = True,
+                               measures_folder: Optional[str] = None,
+                               notes_folder: Optional[str] = None,
+                               rests_folder: Optional[str] = None,
+                               notes_and_rests_folder: Optional[str] = None,
+                               labels_folder: Optional[str] = None,
+                               expanded_folder: Optional[str] = None,
+                               form_labels_folder: Optional[str] = None,
+                               cadences_folder: Optional[str] = None,
+                               events_folder: Optional[str] = None,
+                               chords_folder: Optional[str] = None,
+                               metadata_suffix: Optional[str] = None,
+                               markdown: bool = True,
                                simulate: bool = False,
                                unfold: bool = False,
                                interval_index: bool = False,
-                               silence_label_warnings: bool = False) -> List[str]:
+                               frictionless: bool = True,
+                               ) -> List[str]:
         """  Store facets extracted from parsed scores as TSV files.
 
         Args:
@@ -2601,8 +2535,6 @@ class Corpus(LoggedClass):
           root_dir:
           measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
               Specify directory where to store the corresponding TSV files.
-          measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
-              Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
           metadata_suffix:
               Specify a suffix to update the 'metadata{suffix}.tsv' file for this corpus. For the main file, pass ''
           markdown:
@@ -2614,39 +2546,35 @@ class Corpus(LoggedClass):
               By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
               playthrough, including correct positioning of first and second endings.
           interval_index:
-          silence_label_warnings:
+          frictionless:
+            If True (default), the file is written together with a frictionless resource descriptor JSON file
+            whose column schema is used to validate the stored TSV file.
+
 
         Returns:
-
+            A list of file stored to disk. If ``frictionless=True`` (default), it will be the list of descriptor file paths describing the stored TSV files (i.e.,
+            the list contains one file for every two files written to disk). Otherwise, it will be the list of TSV file paths.
         """
         l = locals()
         df_types = [t for t in Score.dataframe_types if t != 'metadata']
         folder_vars = [t + '_folder' for t in df_types]
-        suffix_vars = [t + '_suffix' for t in df_types]
         folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
         output_metadata = metadata_suffix is not None
         if len(folder_params) == 0 and not output_metadata:
             self.logger.warning("Pass at least one parameter to store files.")
             return []
         facets = list(folder_params.keys())
-        suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
-        self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         paths = []
         target = len(facets) * n_scores
 
-        # if the view is default (no additional filters have been set), write one CSVW metadata file per facet
-        view = self.get_view(view_name)
-        store_tsv_metadata = view.is_default(relax_for_cli=True)
-        if store_tsv_metadata:
-            self.logger.debug(f"Found that the view '{view.name}' has default settings. Will create csv-metadata.json file(s).")
-            column_combinations = defaultdict(set)
-            facet2files = defaultdict(list)
-            facet2path = dict()
+        # (deprecated for now) if the view is default (no additional filters have been set), write one CSVW metadata file per facet
+        #view = self.get_view(view_name)
+        self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         if target > 0:
-            for piece_name, piece in self.iter_pieces(view_name=view_name):
-                for file, facet2dataframe in piece.iter_extracted_facets(facets,
+            for piece, piece_obj in self.iter_pieces(view_name=view_name):
+                for file, facet2dataframe in piece_obj.iter_extracted_facets(facets,
                                                                      view_name=view_name,
                                                                      unfold=unfold,
                                                                      interval_index=interval_index):
@@ -2654,37 +2582,27 @@ class Corpus(LoggedClass):
                         if df is None:
                             continue
                         folder = folder_params[facet]
-                        suffix = suffix_params[facet]
-                        file_path = make_file_path(file,
-                                                   root_dir=root_dir,
-                                                   folder=folder,
-                                                   suffix=suffix)
+                        directory = compute_path_from_file(file, root_dir=root_dir, folder=folder)
+                        piece_name = file.piece
+                        if unfold:
+                            piece_name += '_unfolded'
+                        facet_param = 'harmonies' if facet == 'expanded' else facet
                         if simulate:
+                            file_path = os.path.join(directory, f"{piece}.{facet_param}.tsv")
                             self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
                         else:
-                            write_tsv(df, file_path, logger=self.logger)
-                            self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
-                            if store_tsv_metadata:
-                                column_combinations[facet].add(tuple(df.columns))
-                                path_comp, file_comp = os.path.split(file_path)
-                                facet2files[facet].append(file_comp)
-                                facet2path[facet] = path_comp
-                        paths.append(file_path)
-        if store_tsv_metadata:
-            for facet, files in facet2files.items():
-                clmn_combinations = column_combinations[facet]
-                if len(clmn_combinations) > 1:
-                    columns = []
-                    for clmns in clmn_combinations:
-                        if len(clmns) > len(columns):
-                            columns = clmns
-                    self.logger.info(f"The '{facet}' TSVs have varying numbers of columns which means that the 'csv-metadata.json' "
-                                        f"will not apply exactly to all of them. It describes the maximum number of columns, {len(columns)}")
-                else:
-                    columns = next(clmns for clmns in clmn_combinations)
-                corpus_name = self.name
-                json_path = store_csvw_jsonld(corpus_name, facet2path[facet], facet, columns=columns, files=files)
-                self.logger.info(f"Created metadata for '{facet}' TSVs: {json_path}")
+                            descriptor_or_resource_path = store_dataframe_resource(
+                                df=df,
+                                directory=directory,
+                                piece_name=piece_name,
+                                facet=facet_param,
+                                zipped=False,
+                                frictionless=frictionless,
+                                raise_exception=False,
+                                write_or_remove_errors_file=True,
+                                logger=self.logger
+                            )
+                        paths.append(descriptor_or_resource_path)
         if output_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_tsv_from_parsed_scores(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
@@ -2756,6 +2674,7 @@ class Corpus(LoggedClass):
                                        write_empty_values: bool = False,
                                        remove_unused_fields: bool = False,
                                        write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -2771,19 +2690,24 @@ class Corpus(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score headers.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
         """
         updated_scores = []
-        for fname, piece in self.iter_pieces(view_name):
-            modified = piece.update_score_metadata_from_tsv(view_name=view_name,
+        for piece, piece_obj in self.iter_pieces(view_name):
+            modified = piece_obj.update_score_metadata_from_tsv(view_name=view_name,
                                                             force=force,
                                                             choose=choose,
                                                             write_empty_values=write_empty_values,
                                                             remove_unused_fields=remove_unused_fields,
-                                                            write_text_fields=write_text_fields)
+                                                            write_text_fields=write_text_fields,
+                                                            update_instrumentation=update_instrumentation)
             updated_scores.extend(modified)
+        if len(updated_scores) > 0:
+            self.update_metadata_tsv_from_parsed_scores(markdown_file=None)
         return updated_scores
 
     #
@@ -2832,13 +2756,13 @@ class Corpus(LoggedClass):
           Paths of the stored files.
         """
         file_paths = []
-        for fname, piece in self.iter_pieces(view_name):
+        for piece, piece_obj in self.iter_pieces(view_name):
             if only_changed:
-                score_iterator = piece.get_changed_scores(view_name)
+                score_iterator = piece_obj.get_changed_scores(view_name)
             else:
-                score_iterator = piece.get_parsed_scores(view_name)
+                score_iterator = piece_obj.get_parsed_scores(view_name)
             for file, score in score_iterator:
-                path = piece.store_parsed_score_at_ix(ix=file.ix,
+                path = piece_obj.store_parsed_score_at_ix(ix=file.ix,
                                                       root_dir=root_dir,
                                                       folder=folder,
                                                       suffix=suffix,
@@ -2856,7 +2780,7 @@ class Corpus(LoggedClass):
                     file_to_register = self.get_file_from_path(path)
                 else:
                     file_to_register = new_files[0]
-                piece.add_parsed_score(file_to_register.ix, score)
+                piece_obj.add_parsed_score(file_to_register.ix, score)
         return file_paths
 
     #
@@ -2889,7 +2813,7 @@ class Corpus(LoggedClass):
     #     ----------
     #     allow_suffix : :obj:`bool`, optional
     #         If set to True, this would also update the metadata for currently parsed MuseScore files
-    #         corresponding to the columns 'rel_paths' and 'fnames' + [ANY SUFFIX]. For example,
+    #         corresponding to the columns 'rel_paths' and 'pieces' + [ANY SUFFIX]. For example,
     #         the row ('MS3', 'bwv846') would also update the metadata of 'MS3/bwv846_reviewed.mscx'.
     #
     #     Returns
@@ -2906,14 +2830,14 @@ class Corpus(LoggedClass):
     #         self.logger.debug("No parsed metadata found.")
     #         return
     #     old = metadata
-    #     if old.index.names != ['rel_paths', 'fnames']:
+    #     if old.index.names != ['rel_paths', 'pieces']:
     #         try:
-    #             old = old.set_index(['rel_paths', 'fnames'])
+    #             old = old.set_index(['rel_paths', 'pieces'])
     #         except KeyError:
-    #             self.logger.warning(f"Corpusd metadata do not contain the columns 'rel_paths' and 'fnames' "
+    #             self.logger.warning(f"Corpusd metadata do not contain the columns 'rel_paths' and 'pieces' "
     #                                 f"needed to match information on identical files.")
     #             return []
-    #     new = self.metadata_from_parsed(from_tsv=False).set_index(['rel_paths', 'fnames'])
+    #     new = self.metadata_from_parsed(from_tsv=False).set_index(['rel_paths', 'pieces'])
     #     excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
     #                      'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
     #     old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
@@ -2931,13 +2855,13 @@ class Corpus(LoggedClass):
     #     l = len(updates)
     #     ids = []
     #     if l > 0:
-    #         for (rel_path, fname), new_dict in updates.items():
-    #             matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)
+    #         for (rel_path, piece), new_dict in updates.items():
+    #             matches = self.piece2ids(piece=piece, rel_path=rel_path, allow_suffix=allow_suffix)
     #             match_ids = [id for id in matches.keys() if id in self._parsed_mscx]
     #             n_files_to_update = len(match_ids)
     #             if n_files_to_update == 0:
     #                 self.logger.debug(
-    #                     f"rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.")
+    #                     f"rel_path={rel_path}, piece={piece} does not correspond to a currently parsed MuseScore file.")
     #                 continue
     #             for id in match_ids:
     #                 for name, val in new_dict.items():
@@ -2957,23 +2881,23 @@ class Corpus(LoggedClass):
         return self.__dict__
 
 
-    def __getitem__(self, fname_or_ix: Union[str, int]) -> Union[Piece, ParsedFile]:
-        if isinstance(fname_or_ix, str):
-            return self.get_piece(fname_or_ix)
-        if isinstance(fname_or_ix, int):
-            return self.get_parsed_at_index(fname_or_ix)
-        if isinstance(fname_or_ix, tuple):
-            if len(fname_or_ix) == 1:
-                return self.get_piece(fname_or_ix[0])
-            fname, ix = fname_or_ix
-            return self.get_piece(fname)[ix]
-        raise TypeError(f"Index needs to be fname (str) or ix (int), not {fname_or_ix} ({type(fname_or_ix)})")
+    def __getitem__(self, piece_or_ix: Union[str, int]) -> Union[Piece, ParsedFile]:
+        if isinstance(piece_or_ix, str):
+            return self.get_piece(piece_or_ix)
+        if isinstance(piece_or_ix, int):
+            return self.get_parsed_at_index(piece_or_ix)
+        if isinstance(piece_or_ix, tuple):
+            if len(piece_or_ix) == 1:
+                return self.get_piece(piece_or_ix[0])
+            piece, ix = piece_or_ix
+            return self.get_piece(piece)[ix]
+        raise TypeError(f"Index needs to be piece (str) or ix (int), not {piece_or_ix} ({type(piece_or_ix)})")
 
 
     def __iter__(self) -> Iterator[Tuple[str, Piece]]:
-        """  Iterate through all (fname, Piece) tuples, regardless of any Views.
+        """  Iterate through all (piece, Piece) tuples, regardless of any Views.
 
-        Yields: (fname, Piece) tuples
+        Yields: (piece, Piece) tuples
         """
         yield from self._pieces.items()
 
@@ -2992,6 +2916,7 @@ class Corpus(LoggedClass):
 
 def parse_musescore_file(file: File,
                          logger: Logger,
+                         labels_cfg: dict = {},
                          logger_cfg: dict = {},
                          read_only: bool = False,
                          ms: Optional[str]= None) -> Score:
@@ -3014,7 +2939,7 @@ def parse_musescore_file(file: File,
 
     logger.debug(f"Attempting to parse {file}")
     try:
-        score = Score(path, read_only=read_only, ms=ms, **logger_cfg)
+        score = Score(path, read_only=read_only, labels_cfg=labels_cfg, ms=ms, **logger_cfg)
         if score is None:
             logger.debug(f"Encountered errors when parsing {file}")
         else:

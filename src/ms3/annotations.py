@@ -1,12 +1,13 @@
 import sys
 import warnings
-from functools import lru_cache
+from functools import cache
 from inspect import stack
 
 import pandas as pd
 
-from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
-    name2format, resolve_dir, rgb2format, column_order, update_cfg, FORM_DETECTION_REGEX
+from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, \
+    name2format, resolve_dir, rgb2format, column_order, update_cfg
+from .utils.constants import DCML_REGEX, DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -75,7 +76,7 @@ class Annotations(LoggedClass):
         if df is not None:
             self.df = df.copy()
         else:
-            assert tsv_path is not None, "Name a TSV file to be loaded."
+            assert tsv_path is not None, "Name a TSV file to be loaded or pass a DataFrame."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep)
         sorting_cols = ['mc', 'mn', 'mc_onset', 'staff']
         sorting_cols = [self.cols[c] if c in self.cols else c for c in sorting_cols]
@@ -328,7 +329,7 @@ class Annotations(LoggedClass):
             res = column_order(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
-    @lru_cache()
+    @cache
     def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, chord_tones=True, relative_to_global=False, absolute=False, all_in_c=False,  **kwargs):
         """ Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
@@ -432,7 +433,7 @@ class Annotations(LoggedClass):
 
     def infer_types(self, regex_dict=None):
         if 'harmony_layer' not in self.df.columns:
-            harmony_layer_col = pd.Series(1, index=self.df.index, dtype='object', name='harmony_layer')
+            harmony_layer_col = pd.Series(0, index=self.df.index, dtype='object', name='harmony_layer')
             self.df = pd.concat([self.df, harmony_layer_col], axis=1)
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'harmony_layer'] = 2
@@ -471,7 +472,7 @@ class Annotations(LoggedClass):
         self.df.loc[starts_with_dot, label_col] = self.df.loc[starts_with_dot, label_col].str[1:]
 
 
-    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=positioning, decode=decode)
         if decode and 'harmony_layer' in df.columns:
             df.drop(columns='harmony_layer', inplace=True)

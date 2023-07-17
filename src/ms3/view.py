@@ -26,14 +26,14 @@ class View(LoggedClass):
     categories = (
         'corpora',
         'folders',
-        'fnames',
+        'pieces',
         'files',
         'suffixes',
         'facets',
         'paths',
     )
     available_facets = ('scores',) + Score.dataframe_types + ('unknown',)
-    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet', 'path'),
+    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'piece', 'file', 'suffix', 'facet', 'path'),
                                    categories))
     tsv_regex = re.compile(r"\.tsv$", re.IGNORECASE)
     convertible_regex = Score.make_extension_regex(native=False, convertible=True, tsv=False)
@@ -41,7 +41,7 @@ class View(LoggedClass):
 
     def __init__(self,
                  view_name: Optional[str] = 'all',
-                 only_metadata_fnames: bool = False,
+                 only_metadata_pieces: bool = False,
                  include_convertible: bool = True,
                  include_tsv: bool = True,
                  exclude_review: bool = False,
@@ -65,9 +65,9 @@ class View(LoggedClass):
         """{criterion -> {excluded_name -> n_excluded}} dict for keeping track of which file was discarded based on which criterion.
         """
         # booleans
-        self.fnames_in_metadata: bool = True
-        self.fnames_not_in_metadata: bool = not only_metadata_fnames
-        self.fnames_with_incomplete_facets = True
+        self.pieces_in_metadata: bool = True
+        self.pieces_not_in_metadata: bool = not only_metadata_pieces
+        self.pieces_with_incomplete_facets = True
         # properties
         self.name = view_name
         self.include_convertible = include_convertible
@@ -96,24 +96,24 @@ class View(LoggedClass):
         self._name = new_name
 
     @property
-    def only_metadata_fnames(self) -> bool:
-        return self.fnames_in_metadata and not self.fnames_not_in_metadata
+    def only_metadata_pieces(self) -> bool:
+        return self.pieces_in_metadata and not self.pieces_not_in_metadata
 
-    @only_metadata_fnames.setter
-    def only_metadata_fnames(self, value):
-        self.fnames_in_metadata = True
-        self.fnames_not_in_metadata = False
+    @only_metadata_pieces.setter
+    def only_metadata_pieces(self, value):
+        self.pieces_in_metadata = True
+        self.pieces_not_in_metadata = False
 
     def is_default(self,
                    relax_for_cli: bool = False) -> bool:
-        """Checks includes and excludes that may influence the selection of fnames. Returns True if the settings
-        do not filter out any fnames. Only if ``relax_for_cli`` is set to True, the filters :attr:`include_convertible`
+        """Checks includes and excludes that may influence the selection of pieces. Returns True if the settings
+        do not filter out any pieces. Only if ``relax_for_cli`` is set to True, the filters :attr:`include_convertible`
         and :attr:`exclude_review` are permitted, too."""
         # define the expected number of filter regexes per category (ignore 'corpora' and 'facets')
         default_excluding_lengths = {
             'suffixes': 0,
             'folders': 0,
-            'fnames': 0,
+            'pieces': 0,
             'files': 0,
             'paths': 0
         }
@@ -121,7 +121,7 @@ class View(LoggedClass):
             if self.exclude_review:
                 default_excluding_lengths.update({
                     'folders': 1,
-                    'fnames': 1,
+                    'pieces': 1,
                     'files': 1
                 })
             default_excluding_lengths['files'] += not self.include_convertible
@@ -131,18 +131,18 @@ class View(LoggedClass):
 # exclude_review: {not self.exclude_review or relax_for_cli}
 # include_convertible: {self.include_convertible or relax_for_cli}
 # no paths excluded: {len(self.excluded_file_paths) == 0}
-# fnames in metadata: {self.fnames_in_metadata}
-# not in metadata excluded: {self.fnames_not_in_metadata or relax_for_cli}
-# incomplete facets: {self.fnames_with_incomplete_facets}""")
+# pieces in metadata: {self.pieces_in_metadata}
+# not in metadata excluded: {self.pieces_not_in_metadata or relax_for_cli}
+# incomplete facets: {self.pieces_with_incomplete_facets}""")
         return (
             all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys()) and
             all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items()) and
             len(self.excluded_file_paths) == 0 and
-            self.fnames_in_metadata and
-            self.fnames_with_incomplete_facets and
+            self.pieces_in_metadata and
+            self.pieces_with_incomplete_facets and
             (relax_for_cli or (
                     self.include_convertible and
-                    self.fnames_not_in_metadata
+                    self.pieces_not_in_metadata
             ))
           )
 
@@ -155,14 +155,14 @@ class View(LoggedClass):
         new_view.excluding = deepcopy(self.excluding)
         new_view.update_facet_selection()
         new_view.excluded_file_paths = list(self.excluded_file_paths)
-        new_view.fnames_in_metadata = self.fnames_in_metadata
-        new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
-        new_view.fnames_with_incomplete_facets = self.fnames_with_incomplete_facets
+        new_view.pieces_in_metadata = self.pieces_in_metadata
+        new_view.pieces_not_in_metadata = self.pieces_not_in_metadata
+        new_view.pieces_with_incomplete_facets = self.pieces_with_incomplete_facets
         return new_view
 
     def update_config(self,
                       view_name: Optional[str] = None,
-                      only_metadata_fnames: Optional[bool] = None,
+                      only_metadata_pieces: Optional[bool] = None,
                       include_convertible: Optional[bool] = None,
                       include_tsv: Optional[bool] = None,
                       exclude_review: Optional[bool] = None,
@@ -177,7 +177,7 @@ class View(LoggedClass):
 
         Args:
           view_name: New name of the view.
-          only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.
+          only_metadata_pieces: Whether or not pieces that are not included in a metadata.tsv should be excluded.
           include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.
           include_tsv: Whether or not TSV files should be included.
           exclude_review: Whether or not files and folder that include 'review' should be excluded.
@@ -194,8 +194,8 @@ class View(LoggedClass):
         Returns:
 
         """
-        for param, value in zip(('view_name', 'only_metadata_fnames', 'include_convertible', 'include_tsv', 'exclude_review'),
-                                (view_name, only_metadata_fnames, include_convertible, include_tsv, exclude_review)
+        for param, value in zip(('view_name', 'only_metadata_pieces', 'include_convertible', 'include_tsv', 'exclude_review'),
+                                (view_name, only_metadata_pieces, include_convertible, include_tsv, exclude_review)
                                 ):
             if value is None:
                 continue
@@ -216,7 +216,7 @@ class View(LoggedClass):
                 regexes = [re.escape(os.path.basename(p)) for p in resolved_paths]
                 self.include('files', *regexes)
         if folder_paths is not None:
-            resolved_paths = resolve_paths_argument(file_paths, files=False)
+            resolved_paths = resolve_paths_argument(folder_paths, files=False)
             if len(resolved_paths) > 0:
                 self.include('paths', *resolved_paths)
         if len(logger_cfg) > 0:
@@ -249,14 +249,14 @@ class View(LoggedClass):
     @property
     def exclude_review(self):
         return all(self.review_regex in self.excluding[what_to_exclude]
-                   for what_to_exclude in ('files', 'fnames', 'folders'))
+                   for what_to_exclude in ('files', 'pieces', 'folders'))
 
     @exclude_review.setter
     def exclude_review(self, yes: bool):
         if yes:
-            self.exclude(('files', 'fnames', 'folders'), self.review_regex)
+            self.exclude(('files', 'pieces', 'folders'), self.review_regex)
         else:
-            self.unexclude(('files', 'fnames', 'folders'), self.review_regex)
+            self.unexclude(('files', 'pieces', 'folders'), self.review_regex)
 
     def check_token(self, category: Category, token: str) -> bool:
         """Checks if a string pertaining to a certain category should be included in the view or not."""
@@ -413,19 +413,17 @@ class View(LoggedClass):
 
     def info(self, return_str=False):
         msg_components = []
-        if self.fnames_in_metadata + self.fnames_not_in_metadata == 0:
+        if self.pieces_in_metadata + self.pieces_not_in_metadata == 0:
             msg = f"This view is called '{self.name}'. It excludes everything because both its attributes " \
-                   f"fnames_in_metadata and fnames_not_in_metadata are set to False."
+                   f"pieces_in_metadata and pieces_not_in_metadata are set to False."
             if return_str:
                 return msg
             print(msg)
             return
-        if not self.fnames_in_metadata:
-            msg_components.append("excludes fnames that are contained in the metadata")
-        if not self.fnames_not_in_metadata:
-            msg_components.append("excludes fnames that are not contained in the metadata")
-        if not self.fnames_with_incomplete_facets:
-            msg_components.append("excludes pieces that do not have at least one file per selected facet")
+        if not self.pieces_in_metadata:
+            msg_components.append("excludes pieces that are contained in the metadata")
+        if not self.pieces_not_in_metadata:
+            msg_components.append("excludes pieces that are not contained in the metadata")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
         if not self.include_tsv:
@@ -436,7 +434,7 @@ class View(LoggedClass):
                        for what_to_include, regexes in self.including.items()}
         excluded_re = {what_to_exclude: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_exclude, regexes in self.excluding.items()}
-        for what_to_exclude, re_strings in included_re.items():
+        for what_to_include, re_strings in included_re.items():
             n_included = len(re_strings)
             if n_included == 0:
                 continue
@@ -447,7 +445,7 @@ class View(LoggedClass):
             else:
                 included = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 included += f" ({n_included - 10} more, see filtering_report()))"
-            msg_components.append(f"includes only {what_to_exclude} containing {included}")
+            msg_components.append(f"includes only {what_to_include} containing {included}")
         for what_to_exclude, re_strings in excluded_re.items():
             n_excluded = len(re_strings)
             if n_excluded == 0:
@@ -460,6 +458,8 @@ class View(LoggedClass):
                 excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 excluded += f" ({n_excluded - 10} more, see filtering_report())"
             msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
+        if not self.pieces_with_incomplete_facets:
+            msg_components.append(f"excludes pieces that do not have at least one file per selected facet ({', '.join(self.selected_facets)})")
         if len(self.excluded_file_paths) > 0:
             msg_components.append(f"excludes {len(self.excluded_file_paths)} files based on user input")
         msg = f"This view is called '{self.name}'. It "
@@ -569,14 +569,14 @@ class DefaultView(View):
 
     def __init__(self,
                  view_name: Optional[str] = 'default',
-                 only_metadata_fnames: bool = True,
+                 only_metadata_pieces: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
                  **logger_cfg
                  ):
         super().__init__(view_name=view_name,
-                         only_metadata_fnames=only_metadata_fnames,
+                         only_metadata_pieces=only_metadata_pieces,
                          include_convertible=include_convertible,
                          include_tsv=include_tsv,
                          exclude_review=exclude_review,
@@ -587,7 +587,7 @@ class DefaultView(View):
                    relax_for_cli: bool = False) -> bool:
         default_excluding_lengths = {
             'folders': 1,
-            'fnames': 1,
+            'pieces': 1,
             'files': 2,
             'suffixes': 0,
         }
@@ -599,23 +599,23 @@ class DefaultView(View):
 # exclude_review: {self.exclude_review}
 # include_convertible: {not self.include_convertible or relax_for_cli}
 # no paths excluded: {len(self.excluded_file_paths) == 0}
-# fnames in metadata: {self.fnames_in_metadata}
-# not in metadata excluded: {not self.fnames_not_in_metadata or relax_for_cli}
-# incomplete facets: {self.fnames_with_incomplete_facets}""")
+# pieces in metadata: {self.pieces_in_metadata}
+# not in metadata excluded: {not self.pieces_not_in_metadata or relax_for_cli}
+# incomplete facets: {self.pieces_with_incomplete_facets}""")
         return (
                 all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys()) and
                 all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items()) and
                 len(self.excluded_file_paths) == 0 and
-                self.fnames_in_metadata and
-                self.fnames_with_incomplete_facets and
+                self.pieces_in_metadata and
+                self.pieces_with_incomplete_facets and
                 (relax_for_cli or (
                         not self.include_convertible and
-                        not self.fnames_not_in_metadata
+                        not self.pieces_not_in_metadata
                 ))
         )
 
 
-def create_view_from_parameters(only_metadata_fnames: bool = True,
+def create_view_from_parameters(only_metadata_pieces: bool = True,
                                 include_convertible: bool = False,
                                 include_tsv: bool = True,
                                 exclude_review: bool = True,
@@ -627,12 +627,12 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                                 ) -> View:
     """From the arguments of an __init__ method, create either a DefaultView or a custom view."""
     no_legacy_params = all(param is None for param in (file_paths, file_re, folder_re, exclude_re))
-    all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
+    all_default = only_metadata_pieces and include_tsv and exclude_review and not include_convertible
     if no_legacy_params and all_default:
         return DefaultView(level=level)
     ferocious_name = get_ferocious_name()
     view = View(ferocious_name,
-                only_metadata_fnames=only_metadata_fnames,
+                only_metadata_pieces=only_metadata_pieces,
                 include_convertible=include_convertible,
                 include_tsv=include_tsv,
                 exclude_review=exclude_review,

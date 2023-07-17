@@ -33,11 +33,6 @@ What is it?
 
 ``ms3`` is a parser for MuseScore files, serving as data factory for annotated music corpora.
 
-What does it do?
-================
-
-Here comes a list of functionalities to help you decide if this library could be useful for you. It
-
 * parses MuseScore 3 and 4 files, dispensing with lossy conversion to musicXML. The file formats in question are
 
   * uncompressed ``*.mscx`` files,

@@ -12,7 +12,8 @@ from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, update_labels_cfg, compute_path_from_file, store_dataframe_resource
+from .utils.constants import AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -23,9 +24,9 @@ class Piece(LoggedClass):
 
     _deprecated_elements = ["get_dataframe"]
 
-    def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
+    def __init__(self, pname: str, view: View = None, labels_cfg={}, ms=None, **logger_cfg):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
-        self.name = fname
+        self.name = pname
         available_types = ('scores',) + Score.dataframe_types
         self.facet2files: Dict[str, FileList] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
@@ -63,20 +64,21 @@ class Piece(LoggedClass):
         """If the :class:`~.corpus.Corpus` has :attr:`~.corpus.Corpus.metadata_tsv`, this field will contain the
         {column: value} pairs of the row pertaining to this piece.
         """
-        # self.score_obj: Score = None
-        # self.score_metadata: pd.Series = None
-        # """:obj:`pandas.Series`
-        # Metadata from :attr:`.Score.metadata`, transformed by :func:`.utils.metadata2series`.
-        # """
-        # self.measures: pd.DataFrame = None
-        # self.notes: pd.DataFrame = None
-        # self.rests: pd.DataFrame = None
-        # self.notes_and_rests: pd.DataFrame = None
-        # self.labels: pd.DataFrame = None
-        # self.expanded: pd.DataFrame = None
-        # self.events: pd.DataFrame = None
-        # self.chords: pd.DataFrame = None
-        # self.form_labels: pd.DataFrame = None
+
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'harmony_layer': None,
+            'positioning': False,
+            'decode': True,
+            'column_name': 'label',
+            'color_format': None,
+        }
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
+        :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
+        """
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
     def all_facets_present(self, view_name: Optional[str] = None,
                            selected_facets: Optional[Facets] = None) -> bool:
@@ -107,7 +109,7 @@ class Piece(LoggedClass):
         if not result:
             missing = [f for f in facets if f not in present_facets]
             plural = 's are' if len(missing) > 1 else ' is'
-            self.logger.debug(f"The following facet{plural} are not present under the view '{view.name}': {missing}")
+            self.logger.debug(f"The following facet{plural} not present under the view '{view.name}': {missing}")
         return result
 
     @property
@@ -160,7 +162,7 @@ class Piece(LoggedClass):
             return None
         meta_dict = score.mscx.metadata
         meta_dict['subdirectory'] = file.subdir
-        meta_dict['fname'] = self.name
+        meta_dict['piece'] = self.name
         meta_dict['rel_path'] = file.rel_path
         if as_dict:
             return meta_dict
@@ -430,43 +432,26 @@ class Piece(LoggedClass):
         if inferred_type in ('labels', 'expanded'):
             self.ix2annotations = Annotations(df = parsed_tsv)
 
-    # def make_annotation_objects(self, view_name: Optional[str] = None, label_col='label'):
-    #     selected_files = self.get_files_of_types(['labels', 'expanded'], unparsed=False, view_name=view_name)
-    #     try:
-    #         self._parsed_tsv[id] = df
-    #         if 'label' in cols and label_col in df.columns:
-    #             tsv_type = 'labels'
-    #         else:
-    #             tsv_type = infer_tsv_type(df)
-    #
-    #         if tsv_type is None:
-    #             logger.debug(
-    #                 f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
-    #             self._tsv_types[id] = 'other'
-    #         else:
-    #             self._tsv_types[id] = tsv_type
-    #             if tsv_type == 'metadata':
-    #                 self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-    #                 logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
-    #             else:
-    #                 self._dataframes[tsv_type][id] = self._parsed_tsv[id]
-    #                 if tsv_type in ['labels', 'expanded']:
-    #                     if label_col in df.columns:
-    #                         logger_cfg = dict(self.logger_cfg)
-    #                         logger_cfg['name'] = self.logger_names[(key, i)]
-    #                         self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-    #                                                             logger_cfg=logger_cfg, level=level)
-    #                         logger.debug(
-    #                             f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
-    #                     else:
-    #                         logger.info(
-    #                             f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-    #             Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
-    #                 else:
-    #                     logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
-    #
-    #     except Exception as e:
-    #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
+    def change_labels_cfg(self, labels_cfg=(), staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
+        """ Update :obj:`Piece.labels_cfg` and retrieve new 'labels' tables accordingly.
+
+        Parameters
+        ----------
+        labels_cfg : :obj:`dict`
+            Using an entire dictionary or, to change only particular options, choose from:
+        staff, voice, harmony_layer, positioning, decode, column_name
+            Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
+        """
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        labels_cfg = dict(labels_cfg)
+        for k in keys:
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
+        for score in self.ix2parsed_score.values():
+            score.change_labels_cfg(labels_cfg=self.labels_cfg)
 
     def compare_labels(self,
                        key: str = 'detached',
@@ -855,12 +840,12 @@ class Piece(LoggedClass):
         elif choose == 'all' and 'scores' in needs_choice:
             # check if any scores can be differentiated solely by means of their file extension
             several_score_files = result['scores'].values()
-            subdir_fnames = [(file.subdir, file.fname) for file in several_score_files]
-            if len(set(subdir_fnames)) < len(subdir_fnames):
-                duplicates = {tup: [] for tup, cnt in Counter(subdir_fnames).items() if cnt > 1}
+            subdir_pieces = [(file.subdir, file.piece) for file in several_score_files]
+            if len(set(subdir_pieces)) < len(subdir_pieces):
+                duplicates = {tup: [] for tup, cnt in Counter(subdir_pieces).items() if cnt > 1}
                 for file in several_score_files:
-                    if (file.subdir, file.fname) in duplicates:
-                        duplicates[(file.subdir, file.fname)].append(file.rel_path)
+                    if (file.subdir, file.piece) in duplicates:
+                        duplicates[(file.subdir, file.piece)].append(file.rel_path)
                 display_duplicates = '\n'.join(str(sorted(files)) for files in duplicates.values())
                 self.logger.warning(f"The following scores are lying in the same subfolder and have the same name:\n{display_duplicates}.\n"
                                     f"TSV files extracted from them will be overwriting each other. Consider excluding certain "
@@ -1281,7 +1266,7 @@ class Piece(LoggedClass):
         file = self.ix2file[ix]
         if file.type == 'scores':
             logger_cfg = dict(self.logger_cfg)
-            score = Score(file.full_path, ms=self.ms, **logger_cfg)
+            score = Score(file.full_path, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
             if score is None:
                 self.logger.warning(f"Parsing {file.rel_path} failed.")
             else:
@@ -1356,7 +1341,7 @@ class Piece(LoggedClass):
                                               **cols)
 
 
-    def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
+    def register_file(self, file: File, reject_incongruent_pnames: bool = True) -> bool:
         ix = file.ix
         if ix in self.ix2file:
             existing_file = self.ix2file[ix]
@@ -1365,12 +1350,12 @@ class Piece(LoggedClass):
                 return None
             else:
                 self.logger.debug(f"File '{existing_file.rel_path}' replaced with '{file.rel_path}'")
-        if file.fname != self.name:
-            if file.fname.startswith(self.name):
-                file.suffix = file.fname[len(self.name):]
+        if file.piece != self.name:
+            if file.piece.startswith(self.name):
+                file.suffix = file.piece[len(self.name):]
                 self.logger.debug(f"Recognized suffix '{file.suffix}' for {file.file}.")
-            elif reject_incongruent_fnames:
-                if self.name in file.fname:
+            elif reject_incongruent_pnames:
+                if self.name in file.piece:
                     self.logger.info(f"{file.file} seems to come with a prefix w.r.t. '{self.name}' and is ignored.")
                     return False
                 else:
@@ -1380,17 +1365,20 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def store_extracted_facet(self,
-                              facet: ScoreFacet,
-                              root_dir: Optional[str] = None,
-                              folder: Optional[str] = None,
-                              suffix: str = '',
-                              view_name: Optional[str] = None,
-                              force: bool = False,
-                              choose: Literal['all', 'auto', 'ask'] = 'all',
-                              unfold: bool = False,
-                              interval_index: bool = False
-                              ):
+    def store_extracted_facet(
+            self,
+            facet: ScoreFacet,
+            root_dir: Optional[str] = None,
+            folder: Optional[str] = None,
+            view_name: Optional[str] = None,
+            force: bool = False,
+            choose: Literal['all', 'auto', 'ask'] = 'all',
+            unfold: bool = False,
+            interval_index: bool = False,
+            frictionless: bool = True,
+            raise_exception: bool = True,
+            write_or_remove_errors_file: bool = True,
+    ):
         """
         Extract a facet from one or several available scores and store the results as TSV files, the paths of which
         are computed from the respective score's location.
@@ -1408,12 +1396,20 @@ class Piece(LoggedClass):
                 For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
               * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
                 ``root_dir``.
-          suffix: String to append to the file's fname.
           view_name:
           force:
           choose:
           unfold:
           interval_index:
+          frictionless:
+            If True (default), the file is written together with a frictionless resource descriptor JSON file
+            whose column schema is used to validate the stored TSV file.
+          raise_exception:  If True (default) raise if the resource is not valid. Only relevant when frictionless=True (i.e., by default).
+          write_or_remove_errors_file:
+            If True (default) write a .errors file if the resource is not valid, otherwise remove it if it exists. Only relevant when frictionless=True (i.e., by default).
+
+
+
 
         Returns:
 
@@ -1431,11 +1427,23 @@ class Piece(LoggedClass):
                                                    choose=choose,
                                                    flat=True)
         for file, df in extracted_facet:
-            file_path = make_file_path(file=file,
-                                  root_dir=root_dir,
-                                  folder=folder,
-                                  suffix=suffix)
-            write_tsv(df, file_path, logger=self.logger)
+            piece_name = file.piece
+            if unfold:
+                piece_name += f"_unfolded"
+            directory = compute_path_from_file(
+                file,
+                root_dir=root_dir,
+                folder=folder)
+            store_dataframe_resource(
+                df=df,
+                directory=directory,
+                piece_name=piece_name,
+                facet=facet,
+                zipped=False,
+                frictionless=frictionless,
+                raise_exception=raise_exception,
+                write_or_remove_errors_file=write_or_remove_errors_file,
+                logger=self.logger)
 
     # def store_parsed_scores(self,
     #                         view_name: Optional[str] = None,
@@ -1463,7 +1471,7 @@ class Piece(LoggedClass):
                                  overwrite: bool = False,
                                  simulate=False) -> Optional[str]:
         """
-        Creates a MuseScore 3 file from the Score object at the given index.
+        Creates a MuseScore file from the Score object at the given index.
 
         Args:
           ix:
@@ -1519,13 +1527,14 @@ class Piece(LoggedClass):
             self.info()
 
     def update_score_metadata_from_tsv(self,
-                              view_name: Optional[str] = None,
-                              force: bool = False,
-                              choose: Literal['all', 'auto', 'ask'] = 'all',
-                              write_empty_values: bool = False,
-                              remove_unused_fields: bool = False,
-                              write_text_fields: bool = False,
-                              ) -> List[File]:
+                                       view_name: Optional[str] = None,
+                                       force: bool = False,
+                                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                                       write_empty_values: bool = False,
+                                       remove_unused_fields: bool = False,
+                                       write_text_fields: bool = False,
+                                       update_instrumentation: bool = False,
+                                       ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
         Args:
@@ -1540,20 +1549,22 @@ class Piece(LoggedClass):
           write_text_fields:
               If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
               ``lyricist_text``, and ``part_name_text`` into the score header.
+          update_instrumentation:
+              Set to True to update the score's instrumentation based on changed values from 'staff_<i>_instrument' columns.
 
         Returns:
           List of File objects of those scores of which the XML structure has been modified.
         """
-        row_dict = self.tsv_metadata
-        if row_dict is None:
+        if self.tsv_metadata is None:
             self.logger.info(f"No metadata available for updating scores.")
             return []
         updated_scores = []
-        ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['fname']
+        ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['piece']
         for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
-            current_metadata = score.mscx.parsed.metatags.fields
-            current_metadata.update(score.mscx.parsed.prelims.fields)
-            row_dict = {column: value for column, value in row_dict.items()
+            MSCX = score.mscx.parsed
+            current_metadata = MSCX.metatags.fields
+            current_metadata.update(MSCX.prelims.fields)
+            row_dict = {column: value for column, value in self.tsv_metadata.items()
                         if column not in ignore_columns and not re.match(r"^staff_\d", column)}
             unused_fields = [field for field in current_metadata.keys() if field not in row_dict and field not in MUSESCORE_METADATA_FIELDS]
             if write_empty_values:
@@ -1577,20 +1588,38 @@ class Piece(LoggedClass):
                         continue
                     if value == '' and not write_empty_values:
                         continue
-                    score.mscx.parsed.prelims[field] = value
+                    MSCX.prelims[field] = value
                     self.logger.debug(f"{file.rel_path}: {field} set to '{value}'.")
                     changed = True
             for field, value in metadata_fields.items():
                 specifier = 'New field' if field in fields_to_be_created else 'Field'
                 self.logger.debug(f"{file.rel_path}: {specifier} '{field}' set to {value}.")
-                score.mscx.parsed.metatags[field] = value
+                MSCX.metatags[field] = value
                 changed = True
             if remove_unused_fields:
                 for field in unused_fields:
-                    score.mscx.parsed.metatags.remove(field)
+                    MSCX.metatags.remove(field)
                     self.logger.debug(f"{file.rel_path}: Field {field} removed.")
                     changed = True
+            if update_instrumentation:
+                current_values = MSCX.get_instrumentation()
+                to_be_updated = {}
+                for column, value in self.tsv_metadata.items():
+                    if (m := re.match(r"^(staff_\d+)_instrument", column)) is None:
+                        continue
+                    staff_id = m.group(1)
+                    if pd.isnull(value):
+                        self.logger.warning(f"{file.full_path}: Instrumentation for staff {staff_id} is empty.")
+                    if value != current_values[staff_id]:
+                        to_be_updated[staff_id] = value
+                if len(to_be_updated) > 0:
+                    changed = True
+                    self.logger.debug(f"This instrumentation will be written into the score:\n{to_be_updated}")
+                    for staff, instrument in to_be_updated.items():
+                        self.logger.debug(f"{staff}: {current_values[staff]} => {instrument}")
+                        MSCX.instrumentation.set_instrument(staff, instrument)
             if changed:
+                MSCX.update_metadata()
                 score.mscx.changed = True
                 updated_scores.append(file)
             else:

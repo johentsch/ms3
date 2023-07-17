@@ -49,34 +49,37 @@ intuitive interface for engraving music, but its native XML format does not expl
 events such as notes and rests. Hence the need for a parser that extracts the implicit information and stores it in an
 interoperable format. 
 
-Despite being one of the most wide-spread score encoding formats, current score parsers 
+Despite being one of the most widespread score encoding formats, current score parsers 
 [e.g., @Cancino-Chacon2022_PartituraPythonPackage; @Cuthbert2010_Music21ToolkitComputerAided; @Pugin2014_VerovioLibraryEngraving], 
-do not handle it without first performing a lossy conversion to the musicXML format.
+do not handle it without first performing a lossy conversion to the musicXML format[^1].
 The Python library `ms3` fills this gap. It loads the XML tree of a MuseScore file into working memory, 
-computes the temporal positions of all encoded elements, and transforms those requested by the user
-into [DataFrames](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe), i.e., feature
-matrices. The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to
-enable version control and processing with other software. The most typical aspects that users extract from a score are
+computes the temporal positions of all encoded elements, and transforms those requested by the user into DataFrames [@Petersohn2021_DataframeSystemsTheory]. 
+The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to enable processing with other software
+and facilitate version control[^2]. The most typical aspects that users extract from a score are
 tables containing notes, measures (bars), metadata, and text labels, in particular those representing analytical annotations.
-Moreover, `ms3` allows the user to remove and insert analytical labels from and into scores and to write back the modified
-scores. This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
+Moreover, `ms3` allows the user to transform scores by removing analytical labels after their extraction or by (re-)inserting annotations from 
+TSV files (whether previously extracted or generated from scratch). 
+This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
 into a score arbitrary textual labels, to then have `ms3` extract them with their temporal positions for further
-analysis. It comes with a commandline interface that makes its data extraction, translocation, and validation
-functionalities accessible for productive every-day workflows.
+analysis. It comes with a command line interface that makes its data extraction, transformation, and validation
+functionalities accessible for productive everyday workflows.
+
+[^1]: For example, musicXML's implicit encoding of temporal positions is limited to those where a note or rest event occurs. When converting MuseScore XML to musicXML, all score elements occurring between two such events are misplaced.    
+[^2]: Version control is facilitated by the TSV files because, unlike the original XML source, they present score information with timestamps.
 
 `ms3` has already been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus
 [@Neuwirth2018_AnnotatedBeethovenCorpus], the Annotated Mozart Sonatas [@Hentschel2021_AnnotatedMozartSonatas],
-and an annotated corpus of 19th century piano music [@Hentschelunderreview_AnnotatedCorpusTonal]. It has been successful
+and an annotated corpus of 19th century piano music [@Hentschelinpress_AnnotatedCorpusTonal]. It has been successful
 in formatting training and validation data for a chord inference algorithm and for inserting its analytical outputs
-into the respective scores [@McLeod:21; @McLeod].
+into the respective scores [@Mcleod2021_ModularSystemHarmonic].
 Moreover, the library is at the heart of a semi-automated annotation workflow running on GitHub
-[@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency of the music corpus analysis library
-DiMCAT [@Hentschel2022_DiMCATDIgitalMusicology].
+[@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency on the music corpus analysis library
+DiMCAT [@Hentschelinpress_IntroducingDiMCATProcessing].
 
 # Acknowledgements
 
 Development of this software tool was supported by the Swiss National Science Foundation within the project “Distant
 Listening – The Development of Harmony over Three Centuries (1700–2000)” (Grant no. 182811). This project is being
-conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr. Claude Latour.
+conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr Claude Latour.
 
 # References

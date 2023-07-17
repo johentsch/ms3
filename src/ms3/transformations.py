@@ -629,19 +629,23 @@ def labels2global_tonic(df, cols={}, inplace=False):
         return res
 
 
-def make_chord_col(at, cols=None):
+def make_chord_col(df, cols=None):
+    """The 'chord' column contains the chord part of a DCML label, i.e. without indications of key, pedal, cadence, or
+    phrase. This function can re-create this column, e.g. if the feature columns were changed. To that aim, the function
+    takes a DataFrame and the column names that it adds together, creating new strings. Column names
+    'changes' and 'relativeroot', if present, are treated specially (see the code)."""
     if cols is None:
         cols = ['numeral', 'form', 'figbass', 'changes', 'relativeroot']
-    cols = [c for c in cols if c in at.columns]
+    cols = [c for c in cols if c in df.columns]
     summing_cols = [c for c in cols if c not in ('changes', 'relativeroot')]
     if len(summing_cols) == 1:
-        chord_col = at[summing_cols[0]].fillna('').astype('string')
+        chord_col = df[summing_cols[0]].fillna('').astype('string')
     else:
-        chord_col = at[summing_cols].fillna('').astype('string').sum(axis=1)
+        chord_col = df[summing_cols].fillna('').astype('string').sum(axis=1)
     if 'changes' in cols:
-        chord_col += ('(' + at.changes.astype('string') + ')').fillna('')
+        chord_col += ('(' + df.changes.astype('string') + ')').fillna('')
     if 'relativeroot' in cols:
-        chord_col += ('/' + at.relativeroot.astype('string')).fillna('')
+        chord_col += ('/' + df.relativeroot.astype('string')).fillna('')
     return chord_col.rename('chord')
 
 
