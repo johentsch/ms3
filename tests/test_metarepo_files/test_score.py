@@ -12,7 +12,7 @@ from ms3 import Score, assert_dfs_equal
 def assert_store_scores_identical(sc_obj, suffix):
     original_mscx = sc_obj.full_paths['mscx']
     original_path = sc_obj.paths['mscx']
-    original_piece_name = sc_obj.piece_names['mscx']
+    original_piece_name = sc_obj.fnames['mscx']
     piece_name = f"{original_piece_name}{suffix}.mscx"
     tmp_persist = os.path.join(original_path, piece_name)
     try:
