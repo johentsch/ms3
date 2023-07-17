@@ -11,8 +11,9 @@ from typing import Optional
 
 from ms3 import Parse, make_coloring_reports_and_warnings
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION, compute_path_from_file, capture_parse_logs
+from ms3.utils import convert_folder, resolve_dir, write_tsv, compute_path_from_file, capture_parse_logs
 from ms3.logger import get_logger, inspect_loggers
+from ._version import __version__
 
 __author__ = "johentsch"
 __copyright__ = "École Polytechnique Fédérale de Lausanne"
@@ -571,7 +572,7 @@ def get_arg_parser():
 
 The library offers you the following commands. Add the flag -h to one of them to learn about its parameters. 
 ''')
-    parser.add_argument('--version', action='version', version=MS3_VERSION)
+    parser.add_argument('--version', action='version', version=__version__)
     subparsers = parser.add_subparsers(help='The action that you want to perform.', dest='action')
 
 

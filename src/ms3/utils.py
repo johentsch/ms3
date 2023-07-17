@@ -31,8 +31,8 @@ from typing_extensions import Self
 
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
+from ._version import __version__
 
-MS3_VERSION = '1.2.10'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -2150,7 +2150,7 @@ def make_csvw_jsonld(title: str,
         "author": {"name": "Johannes Hentschel",
                    "@id": "https://orcid.org/0000-0002-1986-9545",
                    },
-        "softwareVersion": MS3_VERSION,
+        "softwareVersion": __version__,
     }]
     if isinstance(urls, str):
         result["url"] = urls,
