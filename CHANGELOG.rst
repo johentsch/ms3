@@ -21,9 +21,9 @@ Breaking changes
   * The possibility to assign custom suffixes to the extracted facets has been replaced by default suffixes separated
     by a full stop. For example, the notes for the MuseScore file ``MS3/filename.mscx`` will be extracted to
     ``notes/filename.notes.tsv`` by default.
-  * Every extracted TSV file comes with a JSON descriptor file following the `frictionless specification
-<https://specs.frictionlessdata.io/`__ for metadata. This replaces the ``csv-metadata.json`` files that were following
-    the `CSV on the Web <https://csvw.org/>`__ specification.
+  * Every extracted TSV file comes with a JSON descriptor file following the
+    `frictionless specification <https://specs.frictionlessdata.io/>`__ for metadata. This replaces the
+    ``csv-metadata.json`` files that were following the `CSV on the Web <https://csvw.org/>`__ specification.
   * The frictionless schemas used in the JSON descriptor files are stored in the ``schemas`` folder of the ms3
     package in YAML format. Their filenames are truncated hashes computed from the included column/field names and
     they are stored in a folder pertaining to the facet in question. This comes with the advantage that schemas do not
@@ -32,7 +32,7 @@ Breaking changes
   * Validation errors are written into ``.errors`` files stored next to the resource descriptor in question.
 
 * The command ``ms3 transform``, by default, outputs the concatenated facets as a single ZIP file that comes with a
-  `frictionless DataPackage descriptor <https://specs.frictionlessdata.io/`__ (for the parameters added to the
+  `frictionless DataPackage descriptor <https://specs.frictionlessdata.io/>`__ (for the parameters added to the
   command, see below). The concatenated files are now named ``<corpus_name>.<facet>.tsv`` (previously
   ``concatenated_<facet>.tsv``).
 
@@ -42,7 +42,7 @@ New features
 
 * It is now possible to batch-edit the instrumentation in many scores at once by changing the relevant column(s) in
   ``metadata.tsv`` and calling ``ms3 metadata --instrumentation``.
-* Since ``ms3 transform`` now outputs zipped `frictionless DataPackages <https://specs.frictionlessdata.io/`__ by
+* Since ``ms3 transform`` now outputs zipped `frictionless DataPackages <https://specs.frictionlessdata.io/>`__ by
   default (meaning that all concatenated facets are described in the same package descriptor JSON file), it comes with
   additional parameters:
 
@@ -76,7 +76,8 @@ Internal changes
 Other
 -----
 
-This version contains the final version of the paper _A parser for MuseScore 3 files and data factory for annotated music corpora_
+This version contains the final version of the paper *A parser for MuseScore 3 files and data factory for annotated
+music corpora*
 for publication in the Journal of Open Source Software (JOSS).
 
 Version 1.2.12
