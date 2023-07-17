@@ -2,6 +2,97 @@
 Changelog
 =========
 
+Version 2.0.0
+=============
+
+Breaking changes
+----------------
+
+* Renamed MultiIndex levels:
+
+  * The column ``fname`` has been renamed to ``piece``. This concerns especially ``metadata.tsv`` where it is used as
+    index, but also the MultiIndex of concatenated facets such as those  output by ``Parse.get_facet()`` or ``ms3
+    transform``.
+  * The last (right-most) index level, which used to be called ``<facet>_i`` in some cases, is now consistently called
+    ``i``.
+
+* When extracting TSV files:
+
+  * The possibility to assign custom suffixes to the extracted facets has been replaced by default suffixes separated
+    by a full stop. For example, the notes for the MuseScore file ``MS3/filename.mscx`` will be extracted to
+    ``notes/filename.notes.tsv`` by default.
+  * Every extracted TSV file comes with a JSON descriptor file following the `frictionless specification
+<https://specs.frictionlessdata.io/`__ for metadata. This replaces the ``csv-metadata.json`` files that were following
+    the `CSV on the Web <https://csvw.org/>`__ specification.
+  * The frictionless schemas used in the JSON descriptor files are stored in the ``schemas`` folder of the ms3
+    package in YAML format. Their filenames are truncated hashes computed from the included column/field names and
+    they are stored in a folder pertaining to the facet in question. This comes with the advantage that schemas do not
+    have to be written out in every descriptor: Instead, the ``schema`` field contains the URL of the schema file,
+    allowing to update the schema specifications at a later point, e.g. with added or more elaborate descriptions.
+  * Validation errors are written into ``.errors`` files stored next to the resource descriptor in question.
+
+* The command ``ms3 transform``, by default, outputs the concatenated facets as a single ZIP file that comes with a
+  `frictionless DataPackage descriptor <https://specs.frictionlessdata.io/`__ (for the parameters added to the
+  command, see below). The concatenated files are now named ``<corpus_name>.<facet>.tsv`` (previously
+  ``concatenated_<facet>.tsv``).
+
+
+New features
+------------
+
+* It is now possible to batch-edit the instrumentation in many scores at once by changing the relevant column(s) in
+  ``metadata.tsv`` and calling ``ms3 metadata --instrumentation``.
+* Since ``ms3 transform`` now outputs zipped `frictionless DataPackages <https://specs.frictionlessdata.io/`__ by
+  default (meaning that all concatenated facets are described in the same package descriptor JSON file), it comes with
+  additional parameters:
+
+  * ``--unzipped`` to output the package as uncompressed TSV files rather than as single ZIP file.
+  * ``--resources`` to create a frictionless resource descriptor per concatenated facet instead of a package descriptor.
+  * ``--safe`` to prevent overwriting existing files.
+
+* The ``ms3 extract`` command now has a ``--corpuswise`` option allowing to parse and extract one corpus after the
+  other, avoiding the need to parse all scores at once and keep them in memory before beginning the extraction.
+* The parser throws a warning if a score does not have a metronome mark at the beginning (which can be hidden). This is
+  to encourage the inclusion of information on the basic beat unit (in 6/8 meter, e.g., the metronome unit is typically
+  a dotted quarter) and pace to every score for better comparability.
+
+Bugfixes
+--------
+
+* For the ``IGNORED_WARNINGS`` file.
+* For the ``--threshold`` argument of the ``ms3 review`` command.
+* Writing and reading the ``volta_mcs`` column of ``metadata.tsv``.
+* #60, #63, #78, #79
+
+Internal changes
+----------------
+
+* ``utils.py`` has been turned into a Python package containing the mocules ``constants``, ``functions``, and
+  ``frictionless``.
+* Not using the ``frac`` alias for ``fractions.Fraction`` anymore.
+* The version number is not manually stored as a constant, instead it is automatically written into ``_version.py``
+  upon initialization.
+
+Other
+-----
+
+This version contains the final version of the paper _A parser for MuseScore 3 files and data factory for annotated music corpora_
+for publication in the Journal of Open Source Software (JOSS).
+
+Version 1.2.12
+==============
+
+This last version of ms3 1.x uses the _version.py file introduced in 8f40b16.
+
+Version 1.2.11
+==============
+
+* stops writing the version of ms3 into the `.warnings` files to avoid merge conflicts
+* bugfixes for
+  * handling IGNORED_WARNINGS
+  * ms3 review command
+  * overview table written to README
+
 Version 1.2.10
 ==============
 
