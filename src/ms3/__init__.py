@@ -17,6 +17,11 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
+version_file_path = os.path.join(os.path.dirname(__file__), "_version.py")
+# store version in the "once canonical place" (https://stackoverflow.com/a/7071358)
+with open(version_file_path, "w") as f:
+    f.write(f'__version__ = "{__version__}"')
+
 from .score import Score
 from .annotations import Annotations
 from .parse import Parse
