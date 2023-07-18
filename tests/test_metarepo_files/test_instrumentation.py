@@ -174,11 +174,11 @@ TEST_CASES = {
     "BWV_0815.mscx": {
         (1, 'harpsichord'): {1: 'harpsichord', 2: 'harpsichord'},
         (2, 'hch'): {1: 'harpsichord', 2: 'harpsichord'},
-        (2, 'hchhh'): {1: 'harpsichord', 2: 'harpsichord'}
     },
     "K281-3.mscx": {
         (1, 'piano'): {1: 'piano', 2: 'piano'},
-        (2, 'Pno.'): {1: 'piano', 2: 'piano'}
+        (2, 'Pno.'): {1: 'piano', 2: 'piano'},
+        (2, 'Pno'): {1: 'piano'}
     },
     "Brahms Op. 99iv.mscx": {
         (1, 'keyboard.piano'): {1: 'piano'},
