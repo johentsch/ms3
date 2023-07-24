@@ -2147,6 +2147,7 @@ class Instrumentation(LoggedClass):
                                        'ChannelName', 'ChannelValue', 'useDrumset', 'clef', 'group', 'staff_type_name', 'defaultClef']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
+        self.updated = defaultdict()
 
 
 
@@ -2264,15 +2265,24 @@ class Instrumentation(LoggedClass):
             staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
                                   part_value == changed_part and staff_key != staff_id])  # which staves share this part
             if len(staves_within_part) > 0:
-                different_values_set = np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[0]  # staves of the same part with different instruments
-                if len(different_values_set) > 0:
-                    damaged_staves = staves_within_part[different_values_set]
-                    damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
-                    self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
+                damaged_upd_staves = \
+                list(filter(None, [staff_key if new_values["id"] != self.updated[staff_key] else None for staff_key in set(staves_within_part) & self.updated.keys()]))
+                if len(damaged_upd_staves) > 0:
+                    damaged_dict = {elem: self.updated[elem] for elem in damaged_upd_staves}
+                    damaged_dict[staff_id] = new_values["id"]
+                    self.logger.warning(f'''You are trying to assign instruments {pformat(damaged_dict, width=1)} but they are belonging to the same part.
+                    In order to assign two different instruments, you would have to split them in two parts in MuseScore.
+                    For now, I'm assigning '{new_values["id"]}' to all of them.''', extra=dict(message_id=(33,)))
+                else:
+                    different_values_set = \
+                    np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[
+                        0]  # staves of the same part with different instruments
+                    if len(different_values_set) > 0:
+                        damaged_staves = staves_within_part[different_values_set]
+                        damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
+                        self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
 
             # modification of fields
-            # staff_data = self.parsed_parts.parts_data[changed_part].find("Staff", {"id": staff_id.split("_")[-1]})
-            # staff_type = staff_data.StaffType
             staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
             staff_type = [elem.StaffType for elem in staff_data]
             for field_to_change in self.instrumentation_fields:
@@ -2324,6 +2334,7 @@ class Instrumentation(LoggedClass):
                         self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
                 self.soup_references_data = self.soup_references()  # update references
         self.logger.debug(f"References to tags after the instrument was changed: {self.soup_references()}")
+        self.updated.update({staff_id: new_values['id']})
 
     def __repr__(self):
         return pformat(self.fields, sort_dicts=False)
