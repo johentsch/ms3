@@ -47,12 +47,12 @@ def add_quarterbeats_col(df: pd.DataFrame,
                          offset_dict: Union[pd.Series, dict],
                          interval_index: bool = False) -> pd.DataFrame:
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
-        the column corresponds to the values given in the offset_dict..
+        the column corresponds to the values given in the offset_dict.
 
     Parameters
     ----------
     df : :obj:`pandas.DataFrame`
-        DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
+        DataFrame with an ``mc`` or ``mc_playthrough`` column, and an ``mc_onset`` column.
     offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
