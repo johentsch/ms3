@@ -471,8 +471,12 @@ class _MSCX_bs4(LoggedClass):
         by extension, by ms3 review, too)."""
         # check if the first measure includes a metronome mark
         events = self._events
-        first_bar_event_types = events.loc[events.mc == 1, "event"]
-        if 'Tempo' not in first_bar_event_types.values:
+        first_two_mcs_event_types = events.loc[events.mc.isin((1,2)), "event"]
+        metronome_mark_missing = True
+        if 'Tempo' in first_two_mcs_event_types.values:
+            metronome_mark_missing = False
+        # here we could insert logic for treating incipit measure groups differently
+        if metronome_mark_missing:
             msg = "No metronome mark found in the very first measure"
             tempo_selector = (events.event == 'Tempo').fillna(False)
             if tempo_selector.sum() == 0:
