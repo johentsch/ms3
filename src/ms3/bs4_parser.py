@@ -2324,7 +2324,7 @@ class Instrumentation(LoggedClass):
                 damaged_dict[staff_id] = new_values["id"]
                 self.logger.warning(f'''You are trying to assign instruments {pformat(damaged_dict, width=1)} but they are belonging to the same part.
                 In order to assign two different instruments, you would have to split them in two parts in MuseScore.
-                For now, I'm assigning '{new_values["id"]}' to all of them.''', extra=dict(message_id=(33,)))
+                For now, I'm assigning '{new_values["id"]}' to all of them.''', extra=dict(message_id=(31,)))
             else:
                 different_values_set = \
                 np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[
