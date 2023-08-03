@@ -2165,7 +2165,7 @@ class Instrumentation(LoggedClass):
         for key_part, part in self.parsed_parts.parts_data.items():
             instrument_tag = part.Instrument
             staves_list = part.find_all('Staff')
-            staves: Dict[str, bs4.Tag] = [f"staff_{(staff['id'])}" for staff in staves_list]
+            staves = [f"staff_{(staff['id'])}" for staff in staves_list]
             staves_dict = {}
             for key_staff, data_staff in zip(staves, staves_list):
                 staff_type = data_staff.StaffType
