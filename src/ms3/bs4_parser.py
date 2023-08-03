@@ -2229,6 +2229,46 @@ class Instrumentation(LoggedClass):
         else:
             return fields_data[staff_name]['trackName']
 
+    def add_versions(self, new_values, version):
+        """
+        Adds version in the format I, II etc
+        Args:
+            new_values: the distionary of fields to update
+            version: the string containing version
+
+        Returns:
+            the dictionary with updated names with versions
+        """
+        for version_key in ['trackName', 'longName', 'shortName']:
+            version_value = new_values[version_key]
+            if version_value is not None:
+                new_values[version_key] = f"{version_value} {version.upper()}"
+        return new_values
+
+    def modify_drumset_tags(self, staff_type, value, changed_part, field_to_change):
+        """
+        Sets tags specific for Drumset instruments
+        Args:
+            staff_type: the tags containing info of the field
+            value: new value of the field
+            changed_part: the index of part to update
+            field_to_change: the name of field to update
+
+        """
+        for elem in staff_type:
+            tag = elem.find(field_to_change)
+            if value is not None:
+                if tag is not None:
+                    tag.string = value
+                else:
+                    new_tag = self.soup.new_tag(field_to_change)
+                    new_tag.string = value
+                    elem.append(new_tag)
+                    self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+            else:
+                if tag is not None:
+                    tag.extract()
+
     def set_instrument(self, staff_id: Union[str, int], trackname):
         """
         Modifies the instrument and all its corresponding information in the soup source file
@@ -2255,86 +2295,77 @@ class Instrumentation(LoggedClass):
 
         # preprocessing and verification of correctness of trackname
         trackname_norm = trackname.lower().strip('.')
+        # add splitting by I or II etc and then adapt other names to it
+        split_trackname = trackname_norm.split()
+        version = split_trackname[-1] if set(split_trackname[-1]) == {"i"} else None
+        if version is not None:
+            trackname_norm = " ".join(split_trackname[:-1])
         if trackname_norm not in self.key2default_instrumentation:
             trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
-            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}?", extra=dict(message_id=(30,)))
+            trackname_old = self.fields[staff_id]['trackName'].lower().strip('.')
+            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? I use the fields of old trackName {trackname_old}", extra=dict(message_id=(30,)))
+            if trackname_old not in self.key2default_instrumentation:
+                trackname_old = self.fields[staff_id]['part_trackName'].lower().strip('.')
+            new_values = self.key2default_instrumentation[trackname_old]
         else:
             new_values = self.key2default_instrumentation[trackname_norm]
+            self.updated.update({staff_id: new_values['id']})
+        if version is not None:
+            new_values = self.add_versions(new_values, version)
 
-            # checking that the current changes will not affect other staves
-            staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
-                                  part_value == changed_part and staff_key != staff_id])  # which staves share this part
-            if len(staves_within_part) > 0:
-                damaged_upd_staves = \
-                list(filter(None, [staff_key if new_values["id"] != self.updated[staff_key] else None for staff_key in set(staves_within_part) & self.updated.keys()]))
-                if len(damaged_upd_staves) > 0:
-                    damaged_dict = {elem: self.updated[elem] for elem in damaged_upd_staves}
-                    damaged_dict[staff_id] = new_values["id"]
-                    self.logger.warning(f'''You are trying to assign instruments {pformat(damaged_dict, width=1)} but they are belonging to the same part.
-                    In order to assign two different instruments, you would have to split them in two parts in MuseScore.
-                    For now, I'm assigning '{new_values["id"]}' to all of them.''', extra=dict(message_id=(33,)))
-                else:
-                    different_values_set = \
-                    np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[
-                        0]  # staves of the same part with different instruments
-                    if len(different_values_set) > 0:
-                        damaged_staves = staves_within_part[different_values_set]
-                        damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
-                        self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
+        # checking that the current changes will not affect other staves
+        staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
+                              part_value == changed_part and staff_key != staff_id])  # which staves share this part
+        if len(staves_within_part) > 0:
+            damaged_upd_staves = \
+            list(filter(None, [staff_key if new_values["id"] != self.updated[staff_key] else None for staff_key in set(staves_within_part) & self.updated.keys()]))
+            if len(damaged_upd_staves) > 0:
+                damaged_dict = {elem: self.updated[elem] for elem in damaged_upd_staves}
+                damaged_dict[staff_id] = new_values["id"]
+                self.logger.warning(f'''You are trying to assign instruments {pformat(damaged_dict, width=1)} but they are belonging to the same part.
+                In order to assign two different instruments, you would have to split them in two parts in MuseScore.
+                For now, I'm assigning '{new_values["id"]}' to all of them.''', extra=dict(message_id=(33,)))
+            else:
+                different_values_set = \
+                np.where([new_values["id"] != self.fields[staff_key]["id"] for staff_key in staves_within_part])[
+                    0]  # staves of the same part with different instruments
+                if len(different_values_set) > 0:
+                    damaged_staves = staves_within_part[different_values_set]
+                    damaged_dict = {elem: self.fields[elem]['id'] for elem in damaged_staves}
+                    self.logger.warning(f"The change of {staff_id} to {new_values['id']} will also affect staves {damaged_staves} with instruments: \n {pformat(damaged_dict, width=1)}", extra=dict(message_id=(31,)))
 
-            # modification of fields
-            staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
-            staff_type = [elem.StaffType for elem in staff_data]
-            for field_to_change in self.instrumentation_fields:
-                value = new_values[field_to_change]
-                self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
-                if field_to_change == "id":
-                    self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
-                elif field_to_change == "ChannelName":
-                    self.parsed_parts.parts_data[changed_part].Channel["name"] = value
-                elif field_to_change == "ChannelValue":
-                    self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
-                elif field_to_change == "group":
-                    for elem in staff_type:
-                        elem['group'] = value
-                elif field_to_change == "staff_type_name":
-                    for elem in staff_type:
-                        tag = elem.find("name")
-                        if value is not None:
-                            if tag is not None:
-                                tag.string = value
-                            else:
-                                new_tag = self.soup.new_tag("name")
-                                new_tag.string = value
-                                elem.append(new_tag)
-                                self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
-                        else:
-                            elem.extract("name")
-                elif field_to_change == "defaultClef":
-                    for elem in staff_data:
-                        tag = elem.find(field_to_change)
-                        if value is not None:
-                            if tag is not None:
-                                tag.string = value
-                            else:
-                                new_tag = self.soup.new_tag(field_to_change)
-                                new_tag.string = value
-                                elem.append(new_tag)
-                                self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
-                        else:
-                            elem.extract(field_to_change)
-                else:
-                    if self.soup_references_data[staff_id][field_to_change] is not None:
-                        self.soup_references_data[staff_id][field_to_change].string = value
-                        self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
-                    elif value is not None:
-                        new_tag = self.soup.new_tag(field_to_change)
-                        new_tag.string = value
-                        self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
-                        self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
-                self.soup_references_data = self.soup_references()  # update references
+        # modification of fields
+        staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
+        staff_type = [elem.StaffType for elem in staff_data]
+        for field_to_change in self.instrumentation_fields:
+            value = new_values[field_to_change]
+            self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
+            if field_to_change == "id":
+                self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
+            elif field_to_change == "ChannelName":
+                self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+            elif field_to_change == "ChannelValue":
+                self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
+            elif field_to_change == "group":
+                for elem in staff_type:
+                    elem['group'] = value
+            elif field_to_change == "staff_type_name":
+                self.modify_drumset_tags(staff_type, value, changed_part, "name")
+            elif field_to_change == "defaultClef":
+                self.modify_drumset_tags(staff_data, value, changed_part, field_to_change)
+            elif field_to_change == "clef" and self.soup_references_data[staff_id][field_to_change] is not None and value is None:
+                self.soup_references_data[staff_id][field_to_change].extract()
+            else:
+                if self.soup_references_data[staff_id][field_to_change] is not None:
+                    self.soup_references_data[staff_id][field_to_change].string = value
+                    self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
+                elif value is not None:
+                    new_tag = self.soup.new_tag(field_to_change)
+                    new_tag.string = value
+                    self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
+                    self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
+            self.soup_references_data = self.soup_references()  # update references
         self.logger.debug(f"References to tags after the instrument was changed: {self.soup_references()}")
-        self.updated.update({staff_id: new_values['id']})
 
     def __repr__(self):
         return pformat(self.fields, sort_dicts=False)
