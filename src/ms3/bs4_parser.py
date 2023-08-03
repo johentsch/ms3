@@ -2229,21 +2229,22 @@ class Instrumentation(LoggedClass):
         else:
             return fields_data[staff_name]['trackName']
 
-    def add_versions(self, new_values, version):
+    def add_suffix(self, new_values, suffix):
         """
-        Adds version in the format I, II etc
+        Adds suffix of the instrument
         Args:
-            new_values: the distionary of fields to update
-            version: the string containing version
+            new_values: the dictionary of fields to update
+            suffix: the string containing version
 
         Returns:
             the dictionary with updated names with versions
         """
+        update_dict = new_values.copy()
         for version_key in ['trackName', 'longName', 'shortName']:
             version_value = new_values[version_key]
             if version_value is not None:
-                new_values[version_key] = f"{version_value} {version.upper()}"
-        return new_values
+                update_dict[version_key] = f"{version_value} {suffix}"
+        return update_dict
 
     def modify_drumset_tags(self, staff_type, value, changed_part, field_to_change):
         """
@@ -2295,23 +2296,25 @@ class Instrumentation(LoggedClass):
 
         # preprocessing and verification of correctness of trackname
         trackname_norm = trackname.lower().strip('.')
-        # add splitting by I or II etc and then adapt other names to it
-        split_trackname = trackname_norm.split()
-        version = split_trackname[-1] if set(split_trackname[-1]) == {"i"} else None
-        if version is not None:
-            trackname_norm = " ".join(split_trackname[:-1])
         if trackname_norm not in self.key2default_instrumentation:
-            trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
-            trackname_old = self.fields[staff_id]['trackName'].lower().strip('.')
-            self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? I use the fields of old trackName {trackname_old}", extra=dict(message_id=(30,)))
-            if trackname_old not in self.key2default_instrumentation:
-                trackname_old = self.fields[staff_id]['part_trackName'].lower().strip('.')
-            new_values = self.key2default_instrumentation[trackname_old]
+            # add splitting by suffix and then adapt other names to it
+            split_trackname = trackname_norm.split()
+            trackname_without_suffix = " ".join(split_trackname[:-1])
+            if trackname_without_suffix in self.key2default_instrumentation:
+                suffix = split_trackname[-1]
+                new_values = self.add_suffix(self.key2default_instrumentation[trackname_without_suffix], suffix)
+                self.updated.update({staff_id: new_values['id']})
+            else:
+                # if there is no data for the trackname to update
+                trackname_norm = difflib.get_close_matches(trackname_norm, list(self.key2default_instrumentation.keys()), n=1)[0]
+                trackname_old = self.fields[staff_id]['trackName'].lower().strip('.')
+                self.logger.warning(f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? I use the fields of old trackName {trackname_old}", extra=dict(message_id=(30,)))
+                if trackname_old not in self.key2default_instrumentation:
+                    trackname_old = self.fields[staff_id]['part_trackName'].lower().strip('.')
+                new_values = self.key2default_instrumentation[trackname_old]
         else:
             new_values = self.key2default_instrumentation[trackname_norm]
             self.updated.update({staff_id: new_values['id']})
-        if version is not None:
-            new_values = self.add_versions(new_values, version)
 
         # checking that the current changes will not affect other staves
         staves_within_part = np.array([staff_key for staff_key, part_value in self.parsed_parts.staff2part.items() if
