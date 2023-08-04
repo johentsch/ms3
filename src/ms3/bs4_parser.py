@@ -2364,7 +2364,7 @@ class Instrumentation(LoggedClass):
                     self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
                 elif value is not None:
                     new_tag = self.soup.new_tag(field_to_change)
-                    new_tag.string = value
+                    new_tag.string = str(value)
                     self.parsed_parts.parts_data[changed_part].Instrument.append(new_tag)
                     self.logger.debug(f"Added new {new_tag} with value {value!r} to part {changed_part}")
             self.soup_references_data = self.soup_references()  # update references
