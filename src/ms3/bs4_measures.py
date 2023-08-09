@@ -106,7 +106,7 @@ class MeasureList(LoggedClass):
             fill_value=pd.NA)
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
         if self.ml.jump_fwd.notna().any():
-            self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
+            self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': pd.NA})
         def get_cols(l):
             return {col: self.cols[col] for col in l}
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
