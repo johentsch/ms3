@@ -16,6 +16,7 @@ __pycache__/*
 .DS_Store
 *.mscx,
 *.mscbackup
+_version.py
 
 # Project files
 .ropeproject
