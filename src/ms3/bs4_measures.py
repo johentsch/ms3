@@ -95,12 +95,15 @@ class MeasureList(LoggedClass):
         self.secure = secure
         self.reset_index = reset_index
 
-        self.ml = self.get_unique_measure_list()
+        self.ml = self.get_unique_measure_list() # drops rows for all but the first staff, warning about competing information if secure=True
         info_cols = ['barline', 'breaks', 'dont_count', 'endRepeat', 'jump_bwd', 'jump_fwd', 'len_col', 'markers', 'numbering_offset',
                    'play_until', 'sigD_col', 'sigN_col', 'startRepeat', 'volta_start', 'volta_length']
-        for col in [self.cols[col] for col in info_cols]:
-            if not col in self.ml.columns:
-                self.ml[col] = pd.NA
+        # create empty columns for all missing info_cols
+        initial_columns = self.ml.columns.tolist()
+        initial_columns += [c for c in info_cols if c not in initial_columns]
+        self.ml = self.ml.reindex(
+            columns=initial_columns,
+            fill_value=pd.NA)
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
         if self.ml.jump_fwd.notna().any():
             self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
