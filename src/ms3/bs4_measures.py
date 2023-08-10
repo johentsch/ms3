@@ -6,12 +6,11 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from .logger import LoggedClass, function_logger
+from .logger import LoggedClass
 
 # region helper functions
 
 
-@function_logger
 def get_volta_structure(
     measures, mc, volta_start, volta_length, frac_col=None, logger=None
 ) -> Dict[int, Dict[int, List[int]]]:
@@ -54,7 +53,6 @@ def get_volta_structure(
     return res
 
 
-@function_logger
 def keep_one_row_each(
     df,
     compress_col,
@@ -167,9 +165,10 @@ def keep_one_row_each(
     return result.drop(columns=differentiating_col) if drop_differentiating else result
 
 
-def make_actdur_col(df, len_col, timesig_col="timesig", name="act_dur"):
-    actdur = df[len_col]
-    actdur = actdur.fillna(df[timesig_col])
+def make_actdur_col(
+    len_col: pd.Series, timesig_col: pd.Series, name: str = "act_dur"
+) -> pd.Series:
+    actdur = len_col.fillna(timesig_col)
     try:
         return actdur.map(frac).rename(name)
     except Exception:
@@ -177,24 +176,34 @@ def make_actdur_col(df, len_col, timesig_col="timesig", name="act_dur"):
         raise
 
 
-def make_keysig_col(df, keysig_col, name="keysig"):
+def make_keysig_col(
+    df: pd.DataFrame, keysig_col: str = "keysig_col", name: str = "keysig"
+) -> pd.Series:
     if keysig_col in df:
         return df[keysig_col].fillna(method="ffill").fillna(0).astype(int).rename(name)
     return pd.Series(0, index=df.index).rename(name)
 
 
-def make_mn_col(df, dont_count, numbering_offset, name="mn"):
+def make_mn_col(
+    df: pd.DataFrame,
+    dont_count: str = "dont_count",
+    numbering_offset: str = "numbering_offset",
+    name="mn",
+) -> pd.Series:
     """Compute measure numbers where one or two columns can influence the counting.
 
-    Parameters
-    ----------
-    df : :obj:`pd.DataFrame`
-        If no other parameters are given, every row is counted, starting from 1.
-    dont_count : :obj:`str`, optional
-        This column has notna() for measures where the option "Exclude from bar count" is activated, NaN otherwise.
-    numbering_offset : :obj:`str`, optional
-        This column has values of the MuseScore option "Add to bar number", which adds
-        notna() values to this and all subsequent measures.
+    Args:
+        df: If no other parameters are given, every row is counted, starting from 1.
+        dont_count:
+            This column has notna() for measures where the option "Exclude from bar count" is activated,
+            NaN otherwise.
+        numbering_offset:
+            This column has values of the MuseScore option "Add to bar number", which adds
+            notna() values to this and all subsequent measures.
+        name:
+
+    Returns:
+
     """
     if dont_count is None:
         mn = pd.Series(range(1, len(df) + 1), index=df.index)
@@ -209,23 +218,33 @@ def make_mn_col(df, dont_count, numbering_offset, name="mn"):
     return mn.rename(name)
 
 
-@function_logger
-def make_next_col(df, volta_structure={}, sections=True, name="next", logger=None):
+def make_next_col(
+    df: pd.DataFrame,
+    volta_structure: Optional[Dict[int, Dict[int, List[int]]]] = None,
+    sections: bool = True,
+    name="next",
+    logger=None,
+) -> pd.Series:
     """Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC
     (e.g. due to repetitions).
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        Raw measure list.
-    volta_structure : :obj:`dict`, optional
-        This parameter can be computed by get_volta_structure(). It is empty if
-        there are no voltas in the piece.
-    sections : :obj:`bool`, optional
-        By default, pieces containing section breaks (where counting MNs restarts) receive two more columns in the
-        measures table, namely ``section`` and ``ambiguous_mn`` to grant access to MNs as shown in MuseScore.
-        Pass False to not add such columns.
+    Args:
+        df: Raw measure list.
+        volta_structure:
+            This parameter can be computed by get_volta_structure(). It is empty if
+            there are no voltas in the piece.
+        sections:
+            By default, pieces containing section breaks (where counting MNs restarts) receive two more columns in the
+            measures table, namely ``section`` and ``ambiguous_mn`` to grant access to MNs as shown in MuseScore.
+            Pass False to not add such columns.
+        name:
+        logger:
+
+    Returns:
+
     """
+    if volta_structure is None:
+        volta_structure = {}
     if sections and (df["breaks"].fillna("") == "section").sum() == 0:
         sections = False
 
@@ -252,32 +271,24 @@ def make_next_col(df, volta_structure={}, sections=True, name="next", logger=Non
     return nxt_col.rename(name)
 
 
-@function_logger
 def make_offset_col(
     df,
-    mc_col="mc",
-    timesig="timesig",
-    act_dur="act_dur",
-    next_col="next",
-    section_breaks=None,
-    name="mc_offset",
+    mc_col: str = "mc",
+    timesig: str = "timesig",
+    act_dur: str = "act_dur",
+    next_col: str = "next",
+    section_breaks: Optional[str] = None,
+    name: str = "mc_offset",
     logger=None,
-):
+) -> pd.Series:
     """If one MN is composed of two MCs, the resulting column indicates the second MC's offset from the MN's beginning.
 
-    Parameters
-    ----------
-    mc_col, timesig, act_dur, next_col : :obj:`str`, optional
-        Names of the required columns.
-    section_breaks : :obj:`str`, optional
-        If you pass the name of a column, the string 'section' is taken into account
-        as ending a section and therefore potentially ending a repeated part even when
-        the repeat sign is missing.
-
-    Returns
-    -------
-    :obj:`pandas.Series`
-
+    Args:
+        mc_col, timesig, act_dur, next_col: Names of the required columns.
+        section_breaks:
+            If you pass the name of a column, the string 'section' is taken into account
+            as ending a section and therefore potentially ending a repeated part even when
+            the repeat sign is missing.
     """
     nom_dur = df[timesig].map(frac)
     sel = df["act_dur"] < nom_dur
@@ -357,7 +368,12 @@ def make_offset_col(
     return pd.Series(result, name=name, dtype="object").reindex(df.index, fill_value=0)
 
 
-def make_repeat_col(df, startRepeat, endRepeat, name="repeats"):
+def make_repeat_col(
+    df: pd.DataFrame,
+    startRepeat: str = "startRepeat",
+    endRepeat: str = "endRepeat",
+    name="repeats",
+) -> pd.Series:
     repeats = df[startRepeat].copy()
     ends = df[endRepeat]
     sel = dict(
@@ -374,8 +390,13 @@ def make_repeat_col(df, startRepeat, endRepeat, name="repeats"):
     return repeats.rename(name)
 
 
-@function_logger
-def make_timesig_col(df, sigN_col, sigD_col, name="timesig", logger=None):
+def make_timesig_col(
+    df,
+    sigN_col: str = "sigN_col",
+    sigD_col: str = "sigD_col",
+    name="timesig",
+    logger=None,
+) -> pd.Series:
     n = (
         pd.to_numeric(df[sigN_col])
         .astype("Int64")
@@ -414,7 +435,12 @@ def make_timesig_col(df, sigN_col, sigD_col, name="timesig", logger=None):
     return result
 
 
-def make_volta_col(df, volta_structure, mc="mc", name="volta"):
+def make_volta_col(
+    df: pd.DataFrame,
+    volta_structure: Dict[int, Dict[int, List[int]]],
+    mc="mc",
+    name="volta",
+) -> pd.Series:
     """Create the input for `volta_structure` using get_volta_structure()"""
     mc2volta = {
         mc: volta
@@ -425,7 +451,6 @@ def make_volta_col(df, volta_structure, mc="mc", name="volta"):
     return df[mc].map(mc2volta).astype("Int64").rename(name)
 
 
-@function_logger
 def treat_group(mc: int, group: NDArray, logger=None) -> Dict[int, List[int]]:
     """Helper function for make_volta_col()
 
@@ -577,8 +602,9 @@ class MeasureList(LoggedClass):
 
         # drops rows for all but the first staff, warning about competing information if secure=True
         self.ml = self.get_unique_measure_list()
-        self.ml.rename(columns=self.cols, inplace=True)
-        info_cols = [
+        renaming = {v: k for k, v in self.cols.items()}
+        self.ml.rename(columns=renaming, inplace=True)
+        necessary_columns = [
             "barline",
             "breaks",
             "dont_count",
@@ -597,57 +623,73 @@ class MeasureList(LoggedClass):
         ]
         # create empty columns for all missing info_cols
         initial_columns = self.ml.columns.tolist()
-        initial_columns += [c for c in info_cols if c not in initial_columns]
+        initial_columns += [c for c in necessary_columns if c not in initial_columns]
 
         self.ml = self.ml.reindex(columns=initial_columns, fill_value=pd.NA)
         if self.ml.jump_fwd.notna().any():
             self.ml.jump_fwd = self.ml.jump_fwd.replace({"/": pd.NA})
 
-        def get_cols(col_names):
-            return {col: self.cols[col] for col in col_names}
-
-        volta_cols = get_cols(["mc", "volta_start", "volta_length"])
+        volta_cols = {col: col for col in ("mc", "volta_start", "volta_length")}
         if self.cols["volta_frac"] in self.ml.columns:
-            volta_cols["frac_col"] = self.cols["volta_frac"]
+            volta_cols["frac_col"] = "volta_frac"
         self.volta_structure = get_volta_structure(
             self.ml, **volta_cols, logger=self.logger
         )
-        # new_columns = []
-        # new_columns.append(
-        #     make_mn_col(
-        #         self.ml,
-        #         dont_count = 'dont_count',
-        #         'numbering_offset',
-        #         logger=self.logger))
-        # )
-        func_params = {
-            make_mn_col: get_cols(["dont_count", "numbering_offset"]),
-            make_keysig_col: get_cols(["keysig_col"]),
-            make_timesig_col: dict(
-                get_cols(["sigN_col", "sigD_col"]), logger=self.logger
-            ),
-            make_actdur_col: get_cols(["len_col"]),
-            make_repeat_col: get_cols(["startRepeat", "endRepeat"]),
-            make_volta_col: {"volta_structure": self.volta_structure},
-            make_next_col: {
-                "volta_structure": self.volta_structure,
-                "logger": self.logger,
-                "sections": self.sections,
-            },
-            make_offset_col: {
-                "mc_col": self.cols["mc"],
-                "section_breaks": "breaks",
-                "logger": self.logger,
-            },
-        }
-        for func, params in func_params.items():
-            self.add_col(func, **params)
+        new_columns = []
+        new_columns.append(make_mn_col(self.ml))
+        new_columns.append(make_keysig_col(self.ml))
+        new_columns.append(
+            (timesig_col := make_timesig_col(self.ml, logger=self.logger))
+        )
+        new_columns.append(
+            make_actdur_col(
+                len_col=self.ml["len_col"],
+                timesig_col=timesig_col,
+            )
+        )
+        new_columns.append(
+            make_repeat_col(
+                self.ml,
+            )
+        )
+        new_columns.append(
+            make_volta_col(
+                self.ml,
+                self.volta_structure,
+            )
+        )
+        # the functions computing the final two columns rely on the previous columns, hence we concatenate here:
+        self.ml = pd.concat([self.ml] + new_columns, axis=1)
+        # before adding the final two, where, again, the last relies on the presence of the second last
+        self.ml = pd.concat(
+            [
+                self.ml,
+                make_next_col(
+                    self.ml,
+                    self.volta_structure,
+                    sections=self.sections,
+                    logger=self.logger,
+                ),
+            ],
+            axis=1,
+        )
+        self.ml = pd.concat(
+            [
+                self.ml,
+                make_offset_col(
+                    self.ml,
+                    section_breaks="breaks",
+                    logger=self.logger,
+                ),
+            ],
+            axis=1,
+        )
         if reset_index:
             self.ml.reset_index(drop=True, inplace=True)
-        rn = {
-            self.cols[col]: col for col in ["barline", "dont_count", "numbering_offset"]
-        }
-        self.ml.rename(columns=rn, inplace=True)
+        # rn = {
+        #     self.cols[col]: col for col in ["barline", "dont_count", "numbering_offset"]
+        # }
+        # self.ml.rename(columns=rn, inplace=True)
         cols1 = ["mc", "mn", "keysig", "timesig", "act_dur", "mc_offset", "volta"]
         cols2 = ["numbering_offset", "dont_count"]
         cols3 = ["barline", "breaks", "repeats"]
