@@ -2346,7 +2346,8 @@ class Instrumentation(LoggedClass):
             if field_to_change == "id":
                 self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
             elif field_to_change == "ChannelName":
-                self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+                if value is not None:
+                    self.parsed_parts.parts_data[changed_part].Channel["name"] = value
             elif field_to_change == "ChannelValue":
                 self.parsed_parts.parts_data[changed_part].Channel.program["value"] = value
             elif field_to_change == "group":
@@ -2359,6 +2360,8 @@ class Instrumentation(LoggedClass):
             elif field_to_change == "clef" and self.soup_references_data[staff_id][field_to_change] is not None and value is None:
                 self.soup_references_data[staff_id][field_to_change].extract()
             else:
+                if field_to_change == "useDrumset" and value is not None:
+                    value = int(value)
                 if self.soup_references_data[staff_id][field_to_change] is not None:
                     self.soup_references_data[staff_id][field_to_change].string = value
                     self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
