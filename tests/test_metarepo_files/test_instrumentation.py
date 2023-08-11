@@ -176,7 +176,7 @@ TEST_CASES = {
         (2, 'hch'): {1: 'harpsichord', 2: 'harpsichord'},
     },
     "K281-3.mscx": {
-        (1, 'piano'): {1: 'piano', 2: 'piano'},
+        (1, 'drumset'): {1: 'drumset', 2: 'drumset'},
         (2, 'Pno.'): {1: 'piano', 2: 'piano'},
         (2, 'Pno'): {1: 'piano'}
     },
@@ -199,7 +199,7 @@ def test_instrumentation_after_instrument_change(source_path):
         pytest.skip(f"No test cases defined for {file_name}")
     for (staff_to_modify, new_instrument), staff_id2expected_instrument in TEST_CASES[file_name].items():
         print(f"Creating new Instrumentation object from {source_path}...")
-        soup = get_soup(source_path) # re-parse everytime because soup is mutable
+        soup = get_soup(source_path)  # re-parse everytime because soup is mutable
         tested_object = Instrumentation(soup=soup)
         print(f"INITIAL STATE: {tested_object}")
         print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")

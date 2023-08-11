@@ -2143,7 +2143,7 @@ class Instrumentation(LoggedClass):
         super().__init__('Instrumentation', logger_cfg)
         self.part_tracknames = INSTRUMENT_DEFAULTS['part_trackName']
         self.soup = soup
-        self.instrumentation_fields = ["id", 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName',
+        self.instrumentation_fields = ['id', 'longName', 'shortName', 'trackName', 'instrumentId', 'part_trackName', 'keysig',
                                        'ChannelName', 'ChannelValue', 'useDrumset', 'clef', 'group', 'staff_type_name', 'defaultClef']
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = self.soup_references()  # store references to XML tags
@@ -2203,7 +2203,9 @@ class Instrumentation(LoggedClass):
             for key_instr_data, tag in instr_data.items():
                 if type(tag) == bs4.element.Tag and tag is not None:
                     if key_instr_data == "ChannelValue":
-                        value = tag['value']
+                        value = int(tag['value'])
+                    elif key_instr_data == "useDrumset":
+                        value = int(tag.get_text())
                     else:
                         value = tag.get_text()
                 else:
@@ -2342,6 +2344,8 @@ class Instrumentation(LoggedClass):
         staff_type = [elem.StaffType for elem in staff_data]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
+            if field_to_change in ["useDrumset", "ChannelValue"] and value is not None:
+                value = str(int(value))
             self.logger.debug(f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} to {value!r}")
             if field_to_change == "id":
                 self.parsed_parts.parts_data[changed_part].Instrument[field_to_change] = value
@@ -2357,11 +2361,9 @@ class Instrumentation(LoggedClass):
                 self.modify_drumset_tags(staff_type, value, changed_part, "name")
             elif field_to_change == "defaultClef":
                 self.modify_drumset_tags(staff_data, value, changed_part, field_to_change)
-            elif field_to_change == "clef" and self.soup_references_data[staff_id][field_to_change] is not None and value is None:
+            elif field_to_change in ["clef", "useDrumset"] and self.soup_references_data[staff_id][field_to_change] is not None and value is None:
                 self.soup_references_data[staff_id][field_to_change].extract()
             else:
-                if field_to_change == "useDrumset" and value is not None:
-                    value = int(value)
                 if self.soup_references_data[staff_id][field_to_change] is not None:
                     self.soup_references_data[staff_id][field_to_change].string = value
                     self.logger.debug(f"Updated {field_to_change!r} to {value!r} in part {changed_part}")
