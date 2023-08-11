@@ -1,11 +1,10 @@
 import os
 
-from ms3 import Parse, first_level_subdirs, capture_parse_logs, ignored_warnings2dict
-from ms3.logger import iter_ms3_loggers, get_logger
+from ms3 import Parse, capture_parse_logs, first_level_subdirs, ignored_warnings2dict
+from ms3.logger import get_logger, iter_ms3_loggers
 
 
-class TestEquivalence():
-
+class TestEquivalence:
     def test_parallel(self, directory):
         a = Parse(directory)
         b = Parse(directory)
@@ -24,28 +23,32 @@ class TestEquivalence():
         assert a.count_extensions() == c.count_extensions()
         assert len(b.count_extensions()) == 1
 
+
 def assert_all_loggers_level(level):
     for name, logger in iter_ms3_loggers():
-        if not name.startswith('ms3.Parse'):
+        if not name.startswith("ms3.Parse"):
             continue
         eff_level = logger.getEffectiveLevel()
         if eff_level != level:
-            head = get_logger('ms3.Parse')
-            print(f"LOGGER '{logger.name}' SHOULD HAVE LEVEL {level}, not {eff_level}. ms3.Parse: {head}")
+            head = get_logger("ms3.Parse")
+            print(
+                f"LOGGER '{logger.name}' SHOULD HAVE LEVEL {level}, not {eff_level}. ms3.Parse: {head}"
+            )
         assert eff_level == level
         for h in logger.handlers:
             h_level = h.level
             if eff_level != level:
-                print(f"THE {h.__class__} of {logger.name} SHOULD HAVE LEVEL {level}, not {h_level}.")
+                print(
+                    f"THE {h.__class__} of {logger.name} SHOULD HAVE LEVEL {level}, not {h_level}."
+                )
             assert h_level == level
 
 
-class TestLogging():
-
+class TestLogging:
     def test_parallel_log_capture(self, small_directory):
         """Compare log messages emitted when parsing the same thing in parallel or iteratively."""
-        a = Parse(small_directory, level='d')
-        b = Parse(small_directory, level='d')
+        a = Parse(small_directory, level="i")
+        b = Parse(small_directory, level="i")
         with capture_parse_logs(a.logger) as captured_msgs:
             a.parse_scores(parallel=False)
             non_parallel_msgs = captured_msgs.content_list
@@ -62,61 +65,59 @@ class TestLogging():
         assert_all_loggers_level(30)
 
     def test_debug(self, small_directory):
-        p = Parse(small_directory, level='d')
+        p = Parse(small_directory, level="d")
         p.parse()
         _ = p.get_dataframes(expanded=True)
         assert_all_loggers_level(10)
 
-
     def test_info(self, small_directory):
-        p = Parse(small_directory, level='i')
+        p = Parse(small_directory, level="i")
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
         assert_all_loggers_level(20)
-        wrong_msgs = [msg for msg in all_msgs if msg.startswith('DEBUG')]
+        wrong_msgs = [msg for msg in all_msgs if msg.startswith("DEBUG")]
         if len(wrong_msgs) > 0:
-            print('\n'.join(wrong_msgs))
+            print("\n".join(wrong_msgs))
             assert False
 
     def test_warning(self, small_directory):
-        p = Parse(small_directory, level='w')
+        p = Parse(small_directory, level="w")
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
         assert_all_loggers_level(30)
-        wrong_msgs = [msg for msg in all_msgs if msg.startswith('INFO') or msg.startswith('DEBUG')]
+        wrong_msgs = [
+            msg for msg in all_msgs if msg.startswith("INFO") or msg.startswith("DEBUG")
+        ]
         if len(wrong_msgs) > 0:
-            print('\n'.join(wrong_msgs))
+            print("\n".join(wrong_msgs))
             assert False
 
-
     def test_error(self, small_directory):
-        p = Parse(small_directory, level='e')
+        p = Parse(small_directory, level="e")
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
         assert_all_loggers_level(40)
-        wrong_msgs = [msg for msg in all_msgs if 'WARNING' in msg]
+        wrong_msgs = [msg for msg in all_msgs if "WARNING" in msg]
         if len(wrong_msgs) > 0:
-            print('\n'.join(wrong_msgs))
+            print("\n".join(wrong_msgs))
             assert False
 
-
     def test_critical(self, small_directory):
-        p = Parse(small_directory, level='c')
+        p = Parse(small_directory, level="c")
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
         assert_all_loggers_level(50)
         if len(all_msgs) > 0:
-            print('\n'.join(all_msgs))
+            print("\n".join(all_msgs))
             assert False
-
 
     def test_notset(self, small_directory):
         p = Parse(small_directory, level=0)
@@ -125,7 +126,9 @@ class TestLogging():
         assert_all_loggers_level(30)
 
     def test_ignoring_all_warnings(self, directory):
-        ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
+        ignored_warnings_file = os.path.join(
+            directory, "mixed_files", "ALL_WARNINGS_IGNORED"
+        )
         p = Parse(directory)
         p.load_ignored_warnings(ignored_warnings_file)
         with capture_parse_logs(p.logger) as captured_msgs:
@@ -134,7 +137,9 @@ class TestLogging():
             all_msgs = captured_msgs.content_list
         assert len(all_msgs) == 0
 
-    def test_capturing_suppressed_warnings(self, get_all_warnings, get_all_supressed_warnings):
+    def test_capturing_suppressed_warnings(
+        self, get_all_warnings, get_all_supressed_warnings
+    ):
         for usual_warning in get_all_warnings:
             if usual_warning not in get_all_supressed_warnings:
                 print(("NOT FOUND:", usual_warning))
@@ -142,14 +147,20 @@ class TestLogging():
             assert usual_warning in get_all_supressed_warnings
 
     def test_seeing_ignored_warnings(self, directory, get_all_warnings_parsed):
-        ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-        p = Parse(directory, level='d')
+        ignored_warnings_file = os.path.join(
+            directory, "mixed_files", "ALL_WARNINGS_IGNORED"
+        )
+        p = Parse(directory, level="d")
         p.load_ignored_warnings(ignored_warnings_file)
-        with capture_parse_logs(p.logger, level='d') as captured_msgs:
+        with capture_parse_logs(p.logger, level="d") as captured_msgs:
             p.parse()
             _ = p.extract_facets("expanded")
             all_msgs = captured_msgs.content_list
-        ignored = ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
+        ignored = [
+            "\n".join(msg.split("\n\t")[1:])
+            for msg in all_msgs
+            if msg.startswith("IGNORED")
+        ]
         try:
             ignored_parsed = ignored_warnings2dict(ignored)
         except ValueError:
