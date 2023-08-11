@@ -2298,8 +2298,8 @@ class Instrumentation(LoggedClass):
         trackname_norm = trackname.lower().strip('.')
         if trackname_norm not in self.key2default_instrumentation:
             # add splitting by suffix and then adapt other names to it
-            split_trackname = trackname_norm.split()
-            trackname_without_suffix = " ".join(split_trackname[:-1])
+            split_trackname = trackname.split()
+            trackname_without_suffix = " ".join(split_trackname[:-1]).lower().strip('.')
             if trackname_without_suffix in self.key2default_instrumentation:
                 suffix = split_trackname[-1]
                 new_values = self.add_suffix(self.key2default_instrumentation[trackname_without_suffix], suffix)
