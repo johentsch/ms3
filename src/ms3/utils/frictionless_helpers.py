@@ -13,6 +13,7 @@ import frictionless as fl
 import pandas as pd
 import yaml
 from ms3._typing import ScoreFacet, TSVtype, TSVtypes
+from pandas.core.dtypes.common import is_integer_dtype
 
 from .constants import DEFAULT_CREATOR_METADATA
 from .functions import (
@@ -518,11 +519,7 @@ def is_range_index_equivalent(idx: pd.Index) -> bool:
     """Check if a given index is a RangeIndex with the same start, stop, and step as the default RangeIndex."""
     if isinstance(idx, pd.RangeIndex):
         return True
-    if (
-        isinstance(idx, pd.core.indexes.numeric.IntegerIndex)
-        and idx.is_monotonic_increasing
-        and idx[0] == 0
-    ):
+    if is_integer_dtype(idx.dtype) and idx.is_monotonic_increasing and idx[0] == 0:
         return True
     return False
 
