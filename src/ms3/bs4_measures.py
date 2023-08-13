@@ -1,3 +1,5 @@
+import logging
+import os
 from collections import defaultdict
 from fractions import Fraction as frac
 from typing import Dict, List, Optional, Tuple
@@ -7,6 +9,10 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from .logger import LoggedClass
+
+module_logger = logging.getLogger(__name__)
+
+os.environ["PYTHONWARNINGS"] = "once"
 
 # region helper functions
 
@@ -25,6 +31,8 @@ def get_volta_structure(
     Returns:
       {first_mc -> {volta_number -> [MC] } }
     """
+    if logger is None:
+        logger = module_logger
     cols = [mc, volta_start, volta_length]
     sel = measures[volta_start].notna()
     voltas = measures.loc[sel, cols]
@@ -89,6 +97,8 @@ def keep_one_row_each(
         By default, the column that differentiates the `compress_col` is dropped.
         Pass False to prevent that.
     """
+    if logger is None:
+        logger = module_logger
     if ignore_columns is None:
         ignore_columns = [differentiating_col]
     else:
@@ -243,6 +253,8 @@ def make_next_col(
     Returns:
 
     """
+    if logger is None:
+        logger = module_logger
     if volta_structure is None:
         volta_structure = {}
     if sections and (df["breaks"].fillna("") == "section").sum() == 0:
@@ -290,6 +302,8 @@ def make_offset_col(
             as ending a section and therefore potentially ending a repeated part even when
             the repeat sign is missing.
     """
+    if logger is None:
+        logger = module_logger
     nom_dur = df[timesig].map(frac)
     sel = df["act_dur"] < nom_dur
     if sel.sum() == 0:
@@ -397,6 +411,8 @@ def make_timesig_col(
     name="timesig",
     logger=None,
 ) -> pd.Series:
+    if logger is None:
+        logger = module_logger
     n = (
         pd.to_numeric(df[sigN_col])
         .astype("Int64")
@@ -464,6 +480,8 @@ def treat_group(mc: int, group: NDArray, logger=None) -> Dict[int, List[int]]:
     Returns:
 
     """
+    if logger is None:
+        logger = module_logger
     n = group.shape[0]
     mcs, numbers, lengths = group.T
     # check volta numbers
@@ -520,7 +538,7 @@ class MeasureList(LoggedClass):
     reset_index : :obj:`bool`, default True
         By default, the original index of `df` is replaced. Pass False to keep original index values.
 
-    cols : :obj:`dict`
+    column2xml_tag : :obj:`dict`
         Dictionary of the relevant columns in `df` as present after the parse.
     ml : :obj:`pandas.DataFrame`
         The measure list in the making; the final result.
@@ -528,6 +546,28 @@ class MeasureList(LoggedClass):
         Keys are first MCs of volta groups, values are dictionaries of {volta_no: [mc1, mc2 ...]}
 
     """
+
+    column2xml_tag = {
+        "barline": "voice/BarLine/subtype",
+        "breaks": "LayoutBreak/subtype",
+        "dont_count": "irregular",
+        "endRepeat": "endRepeat",
+        "jump_bwd": "Jump/jumpTo",
+        "jump_fwd": "Jump/continueAt",
+        "keysig_col": "voice/KeySig/accidental",
+        "len_col": "Measure:len",
+        "markers": "Marker/label",
+        "mc": "mc",
+        "numbering_offset": "noOffset",
+        "play_until": "Jump/playUntil",
+        "sigN_col": "voice/TimeSig/sigN",
+        "sigD_col": "voice/TimeSig/sigD",
+        "staff": "staff",
+        "startRepeat": "startRepeat",
+        "volta_start": "voice/Spanner/Volta/endings",
+        "volta_length": "voice/Spanner/next/location/measures",
+        "volta_frac": "voice/Spanner/next/location/fractions",
+    }
 
     def __init__(
         self,
@@ -563,28 +603,7 @@ class MeasureList(LoggedClass):
         self.secure = secure
         self.reset_index = reset_index
         self.volta_structure = {}
-        self.cols = {
-            "barline": "voice/BarLine/subtype",
-            "breaks": "LayoutBreak/subtype",
-            "dont_count": "irregular",
-            "endRepeat": "endRepeat",
-            "jump_bwd": "Jump/jumpTo",
-            "jump_fwd": "Jump/continueAt",
-            "keysig_col": "voice/KeySig/accidental",
-            "len_col": "Measure:len",
-            "markers": "Marker/label",
-            "mc": "mc",
-            "numbering_offset": "noOffset",
-            "play_until": "Jump/playUntil",
-            "sigN_col": "voice/TimeSig/sigN",
-            "sigD_col": "voice/TimeSig/sigD",
-            "staff": "staff",
-            "startRepeat": "startRepeat",
-            "volta_start": "voice/Spanner/Volta/endings",
-            "volta_length": "voice/Spanner/next/location/measures",
-            "volta_frac": "voice/Spanner/next/location/fractions",
-        }
-        col_names = list(self.cols.keys())
+        col_names = list(self.column2xml_tag.keys())
         if any(True for c in columns if c not in col_names):
             wrong = [c for c in columns if c not in col_names]
             plural_s = "s" if len(wrong) > 1 else ""
@@ -592,7 +611,7 @@ class MeasureList(LoggedClass):
                 f"Wrong column name{plural_s} passed: {wrong}. Only {col_names} permitted."
             )
             columns = {k: v for k, v in columns.items() if k in col_names}
-        self.cols.update(columns)
+        self.column2xml_tag.update(columns)
         self.make_ml()
 
     def make_ml(self, section_breaks=True, secure=True, reset_index=True):
@@ -602,7 +621,7 @@ class MeasureList(LoggedClass):
 
         # drops rows for all but the first staff, warning about competing information if secure=True
         self.ml = self.get_unique_measure_list()
-        renaming = {v: k for k, v in self.cols.items()}
+        renaming = {v: k for k, v in self.column2xml_tag.items()}
         self.ml.rename(columns=renaming, inplace=True)
         necessary_columns = [
             "barline",
@@ -630,7 +649,7 @@ class MeasureList(LoggedClass):
             self.ml.jump_fwd = self.ml.jump_fwd.replace({"/": pd.NA})
 
         volta_cols = {col: col for col in ("mc", "volta_start", "volta_length")}
-        if self.cols["volta_frac"] in self.ml.columns:
+        if "volta_frac" in self.ml.columns:
             volta_cols["frac_col"] = "volta_frac"
         self.volta_structure = get_volta_structure(
             self.ml, **volta_cols, logger=self.logger
@@ -724,13 +743,13 @@ class MeasureList(LoggedClass):
         **kwargs: Additional parameter passed on to keep_one_row_each(). Ignored if `secure=False`.
         """
         if not self.secure:
-            return self.df.drop_duplicates(subset=self.cols["mc"]).drop(
-                columns=self.cols["staff"]
+            return self.df.drop_duplicates(subset=self.column2xml_tag["mc"]).drop(
+                columns=self.column2xml_tag["staff"]
             )
         return keep_one_row_each(
             self.df,
-            compress_col=self.cols["mc"],
-            differentiating_col=self.cols["staff"],
+            compress_col=self.column2xml_tag["mc"],
+            differentiating_col=self.column2xml_tag["staff"],
             logger=self.logger,
         )
 
