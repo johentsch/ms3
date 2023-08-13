@@ -620,7 +620,9 @@ class Corpus(LoggedClass):
         df = pd.DataFrame.from_dict(piece2counts, orient="index")
         if prefix:
             try:
-                df.columns = df.columns.str.split("_", n=1, expand=True).swaplevel()
+                df.columns = (
+                    df.columns.astype(str).str.split("_", n=1, expand=True).swaplevel()
+                )
             except TypeError:
                 pass
         if drop_zero:
