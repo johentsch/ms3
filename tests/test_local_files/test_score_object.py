@@ -6,7 +6,7 @@ import tempfile
 
 import ms3
 import pytest
-from ms3.bs4_measures import MeasureList
+from ms3.bs4_measures import MeasureList, make_offset_col
 from ms3.utils import (
     assert_all_lines_equal,
     assert_dfs_equal,
@@ -49,13 +49,15 @@ class TestScore:
 
     @pytest.fixture()
     def measure_list_object(self, score_object):
-        return MeasureList(
-            score_object._measures,
+        ml = MeasureList(
+            score_object.mscx.parsed._measures,
             sections=True,
             secure=True,
             reset_index=True,
             logger_cfg=dict(score_object.logger_cfg),
         )
+        ml.make_ml()
+        return ml
 
     @pytest.fixture()
     def target_measures_table(self, score_object):
@@ -135,6 +137,11 @@ class TestScore:
                 assert_dfs_equal(target_labels, new_labels)
             finally:
                 os.remove(tmp_file.name)
+
+    def test_mc_offset(self, score_object, target_measures_table):
+        target_mc_offset = target_measures_table["mc_offset"]
+        new_mc_offset = make_offset_col(target_measures_table, section_breaks="breaks")
+        assert (target_mc_offset == new_mc_offset).all()
 
     def test_parse_to_measures_table(
         self, score_object, target_measures_table, tmp_path
