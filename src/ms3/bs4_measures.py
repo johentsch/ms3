@@ -296,6 +296,7 @@ def make_offset_col(
     """If one MN is composed of two MCs, the resulting column indicates the second MC's offset from the MN's beginning.
 
     Args:
+        df: Raw measures table that comes with the indicated columns.
         mc_col, timesig, act_dur, next_col: Names of the required columns.
         section_breaks:
             If you pass the name of a column, the string 'section' is taken into account
@@ -304,45 +305,54 @@ def make_offset_col(
     """
     if logger is None:
         logger = module_logger
-    nom_dur = df[timesig].map(Fraction)
-    sel = df["act_dur"] < nom_dur
-    if sel.sum() == 0:
+    nominal_duration = df[timesig].map(Fraction)
+    shorter_than_nominal_mask = df["act_dur"] < nominal_duration
+    if shorter_than_nominal_mask.sum() == 0:
+        logger.debug(
+            "Actual durations do not diverge from nominal durations, hence mc_offset=0 everywhere."
+        )
         return pd.Series(0, index=df.index, name=name)
 
     if (
         section_breaks is not None
-        and len(df[df[section_breaks].fillna("") == "section"]) == 0
+        and (df[section_breaks].fillna("") == "section").sum() == 0
     ):
+        logger.debug(
+            f"No section breaks in column {section_breaks!r} to be taken into account."
+        )
         section_breaks = None
-    cols = [mc_col, next_col]
-    if section_breaks is not None:
-        cols.append(section_breaks)
+
+    columns_to_display = [mc_col, next_col]
+    if section_breaks is None:
+        mc2mc_offset = {}
+    else:
+        columns_to_display.append(section_breaks)
         last_mc = df[mc_col].max()
-        offsets = {
+        mc2mc_offset = {
             m: 0
             for m in df[df[section_breaks].fillna("") == "section"].mc + 1
             if m <= last_mc
         }
-        # offset == 0 is a neutral value but the presence of mc in offsets indicates that it could potentially be an
-        # (incomplete) pickup measure which can be offset even if the previous measure is complete
-    else:
-        offsets = {}
-    nom_durs = dict(df[[mc_col]].join(nom_dur).itertuples(index=False))
-    act_durs = dict(df[[mc_col, act_dur]].itertuples(index=False))
+        # offset == 0 is a neutral value but the presence of mc in mc2mc_offset indicates that it could potentially be
+        # an (incomplete) pickup measure which can be offset even if the previous measure is complete
 
-    def missing(mc):
-        return nom_durs[mc] - act_durs[mc]
+    mc_indexed = df.set_index(mc_col)
+    nominal_duration.index = mc_indexed.index
+    actual_duration = mc_indexed[act_dur]
+
+    def expected_completion(mc) -> Fraction:
+        return nominal_duration[mc] - actual_duration[mc]
 
     def add_offset(mc, val=None):
         if val is None:
-            val = missing(mc)
-        offsets[mc] = val
+            val = expected_completion(mc)
+        mc2mc_offset[mc] = val
 
-    irregular = df.loc[sel, cols]
+    irregular = df.loc[shorter_than_nominal_mask, columns_to_display]
     if irregular[mc_col].iloc[0] == 1:
         # Check whether first MC is an anacrusis and mark accordingly
         if len(irregular) > 1 and irregular[mc_col].iloc[1] == 2:
-            if not missing(1) + act_durs[2] == nom_durs[1]:
+            if not expected_completion(1) + actual_duration[2] == nominal_duration[1]:
                 add_offset(1)
             else:
                 # regular divided measure, no anacrusis
@@ -350,35 +360,35 @@ def make_offset_col(
         else:
             # is anacrusis
             add_offset(1)
-    for t in irregular.itertuples(index=False):
+    for row_values in irregular.itertuples(index=False):
         if section_breaks:
-            mc, nx, sec = t
-            if sec == "section":
-                nxt = [i for i in nx if i <= mc]
-                if len(nxt) == 0:
-                    logger.debug(f"MC {mc} ends a section with an incomplete measure.")
+            mc, next_mcs, break_value = row_values
+            if pd.isnull(break_value) or break_value != "section":
+                next_mcs = list(next_mcs)
             else:
-                nxt = [i for i in nx]
+                next_mcs = [nxt_mc for nxt_mc in next_mcs if nxt_mc <= mc]
+                if len(next_mcs) == 0:
+                    logger.debug(f"MC {mc} ends a section with an incomplete measure.")
         else:
-            mc, nx = t
-            nxt = [i for i in nx]
-        if mc not in offsets:
-            completions = {m: act_durs[m] for m in nxt if m > -1}
-            expected = missing(mc)
-            errors = sum(True for c in completions.values() if c != expected)
+            mc, next_mcs = row_values
+            next_mcs = list(next_mcs)
+        if mc not in mc2mc_offset:
+            completions = {m: actual_duration[m] for m in next_mcs if m > -1}
+            expected = expected_completion(mc)
+            errors = sum(c != expected for c in completions.values())
             if errors > 0:
                 logger.warning(
-                    f"The incomplete MC {mc} (timesig {nom_durs[mc]}, act_dur {act_durs[mc]}) is completed "
-                    f"by {errors} incorrect duration{'s' if errors > 1 else ''} "
+                    f"The incomplete MC {mc} (timesig {nominal_duration[mc]}, act_dur {actual_duration[mc]}) is "
+                    f"completed by {errors} incorrect duration{'s' if errors > 1 else ''} "
                     f"(expected: {expected}):\n{completions}",
                     extra={"message_id": (3, mc)},
                 )
-            for compl in completions.keys():
-                add_offset(compl)
-        elif offsets[mc] == 0:
+            for completion in completions.keys():
+                add_offset(completion)
+        elif mc2mc_offset[mc] == 0:
             add_offset(mc)
     mc2ix = {m: ix for ix, m in df.mc.items()}
-    result = {mc2ix[m]: offset for m, offset in offsets.items()}
+    result = {mc2ix[m]: offset for m, offset in mc2mc_offset.items()}
     return pd.Series(result, name=name, dtype="object").reindex(df.index, fill_value=0)
 
 
