@@ -5694,18 +5694,6 @@ def disambiguate_files(
     )
 
 
-# @function_logger
-# def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], piece: str, file_type: str,
-# choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
-#     files = [tup[0] for tup in tuples_with_file_as_first_element]
-#     selected = disambiguate_files(files, piece=piece, file_type=file_type, choose=choose, logger=logger)
-#     if selected is None:
-#         return
-#     for tup in tuples_with_file_as_first_element:
-#         if tup[0] == selected:
-#             return tup
-
-
 def files2disambiguation_dict(
     files: Collection[File], include_disambiguator: bool = False, logger=None
 ) -> FileDict:

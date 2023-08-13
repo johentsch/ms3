@@ -3,7 +3,6 @@ import os
 import sys
 from contextlib import contextmanager
 from enum import Enum, unique
-from functools import wraps
 from typing import Iterable, List, Set, Tuple
 
 LEVELS = {
@@ -259,61 +258,6 @@ class WarningFilter(logging.Filter):
             return f"WarningFilter('{self.logger.name}', {self.ignored_warnings})"
 
 
-def function_logger(f):
-    """This decorator ensures that the decorated function can use the variable `logger` for logging and
-       makes it possible to pass the function the keyword argument `logger` with either a Logger object or
-       the name of one. If the keyword argument is not passed, the root logger is used.
-
-    Example
-    -------
-    This is how the decorator can be used:
-
-    .. code-block:: python
-
-        from ms3.logger import function_logger
-
-        @function_logger
-        def log_this(msg):
-            logger.warning(msg)
-
-
-        if __name__ == '__main__':
-            log_this('First test', logger='my_logger')
-            log_this('Second Test')
-
-    Output:
-
-    .. code-block:: python
-
-        WARNING my_logger -- function_logger.py (line 5) log_this():
-            First test
-        WARNING root -- function_logger.py (line 5) log_this():
-            Second Test
-
-    """
-
-    @wraps(f)
-    def logged_function_wrapper(*args, **kwargs):
-        lggr = kwargs.pop("logger", None)
-        if lggr is None:
-            lggr = "ms3"
-        if lggr.__class__ == str:
-            logg = get_logger(lggr)
-        else:
-            logg = lggr
-
-        func_globals = f.__globals__
-        saved_values = func_globals.copy()
-        f.__globals__.update({"logger": logg})
-        try:
-            result = f(*args, **kwargs)
-        finally:
-            func_globals = saved_values  # Undo changes.
-        return result
-
-    return logged_function_wrapper
-
-
 def resolve_log_path_argument(path, name, logger):
     log_file = None
     if path is not None:
@@ -346,8 +290,6 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
     if is_top_level:
         # # uncomment if you want to check for what's described in the log message
         # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
-        # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated
-        # function without passing logger=<logger>:\n{last_8}")
         set_level = 0 if level is None else level
         logger.debug(f"Setting top-level logger 'ms3' to level {set_level}")
         logger.setLevel(set_level)
