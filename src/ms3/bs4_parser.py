@@ -1232,7 +1232,6 @@ class _MSCX_bs4(LoggedClass):
         names, octaves = make_note_name_and_octave_columns(
             pd.concat([pitch_info, self._nl.staff], axis=1),
             staff2drums=self.staff2drum_map,
-            logger=self.logger,
         )
         append_cols = [pitch_info, tied, names, octaves]
         self._nl = pd.concat(
