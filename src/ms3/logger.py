@@ -193,9 +193,6 @@ def get_logger(name=None, level=None, path=None, ignored_warnings=[]) -> logging
     """
     The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class.
     """
-    assert (
-        name != "ms3"
-    ), "logged function called without passing logger (or logger name)"  # TODO: remove this
     if isinstance(name, logging.Logger):
         name = name.name
     logger = config_logger(
@@ -356,7 +353,7 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         logger.setLevel(set_level)
     is_head_logger = logger.parent.name == "ms3"
     adding_file_handler = path is not None
-    adding_any_handlers = is_head_logger or adding_file_handler
+    adding_any_handlers = adding_file_handler or is_top_level or is_head_logger
 
     if level is not None:
         if level > 0:
@@ -394,6 +391,11 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
 
     if is_new_logger:
         logger.propagate = not (is_top_level or is_head_logger)
+        # for each newly defined logger we replace the makeRecord method which allows us to add the property
+        # '_message_type_full' to each log record. This enables replacing the LEVEL in the output message with
+        # the message type name defined in the enum class MessageType each time something is logged with
+        # extra={message_id: (<message_id>, ...)} (where ... are arbitrary elements to identify one specific instance,
+        # e.g. a particular measure number)
         original_makeRecord = logger.makeRecord
 
         def make_record_with_extra(
@@ -453,7 +455,7 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         for h in diverging_level:
             h.setLevel(level)
 
-        if is_head_logger:
+        if is_head_logger or is_top_level:
             stream_handlers = [
                 h for h in logger.handlers if h.__class__ == logging.StreamHandler
             ]
@@ -594,3 +596,19 @@ def get_ignored_warning_ids(logger: logging.Logger) -> Set[tuple]:
         return set(existing_filter.ignored_warnings)
     except StopIteration:
         return set()
+
+
+def inspect_logger_parents(inspected_logger):
+    """Print all parents until the first one is found that has at least one handler."""
+    if not isinstance(inspected_logger, logging.Logger):
+        inspected_logger = logging.getLogger(inspected_logger)
+    LL = inspected_logger
+    info_string = f"LOOKING FOR HANDLER OF {LL}"
+    while LL.parent:
+        LL = LL.parent
+        info_string += (
+            f"\nparent: {LL.name} (propagates: {LL.propagate}), handlers: {LL.handlers}"
+        )
+        if LL.handlers:
+            break
+    print(info_string)
