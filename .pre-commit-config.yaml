@@ -35,6 +35,7 @@ repos:
   rev: 5.12.0
   hooks:
   - id: isort
+    args: ["--profile", "black", "--filter-files"]
 
 - repo: https://github.com/ambv/black
   rev: 23.7.0
