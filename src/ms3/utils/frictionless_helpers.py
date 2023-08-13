@@ -404,7 +404,7 @@ def make_and_store_resource_descriptor(
     return descriptor_path
 
 
-def validate_descriptor_path(
+def validate_descriptor_at_path(
     descriptor_path: str,
     raise_exception: bool = True,
     write_or_remove_errors_file: bool = True,
@@ -507,7 +507,7 @@ def make_and_store_and_validate_resource_descriptor(
         logger=logger,
         **kwargs,
     )
-    return validate_descriptor_path(
+    return validate_descriptor_at_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
@@ -618,7 +618,7 @@ def store_dataframe_resource(
         creator=DEFAULT_CREATOR_METADATA,  # custom metadata field for descriptor, passed as kwarg
         logger=logger,
     )
-    validate_descriptor_path(
+    validate_descriptor_at_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
@@ -703,7 +703,7 @@ def store_dataframes_package(
         descriptor_path=package_descriptor_path,
         logger=logger,
     )
-    _ = validate_descriptor_path(
+    _ = validate_descriptor_at_path(
         package_descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
