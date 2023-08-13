@@ -1,67 +1,107 @@
-import os
 import io
 import json
 import logging
+import os
+import platform
 import re
-import sys, platform, shutil, subprocess
+import shutil
+import subprocess
+import sys
 import warnings
 from ast import literal_eval
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from fractions import Fraction as frac
-from functools import reduce, cache
+from functools import cache, reduce
 from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any, overload, Callable, Iterator
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 from zipfile import ZipFile as Zip
 
 import git
-import pandas as pd
 import numpy as np
+import pandas as pd
 import webcolors
 from gitdb.exc import BadName
+from ms3._typing import Facet, FileDataframeTupleMaybe, FileDict, ViewDict
+from ms3.logger import LogCapturer, update_cfg
 from numpy.typing import NDArray
 from pandas._typing import Dtype
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
-from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
+from tqdm import tqdm
 from typing_extensions import Self
 
-from ms3.logger import update_cfg, LogCapturer, function_logger
-from ms3._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
-from .constants import rgba, MS3_HTML, SCORE_EXTENSIONS, FORM_LEVEL_REGEX, FORM_LEVEL_CAPTURE_REGEX, FORM_LEVEL_SPLIT_REGEX, FORM_TOKEN_ABBREVIATIONS, \
-    STANDARD_NAMES_OR_GIT, STANDARD_COLUMN_ORDER, METADATA_COLUMN_ORDER, DCML_REGEX, STANDARD_NAMES, MS3_RGB, LEGACY_COLUMNS, DEFAULT_CREATOR_METADATA
+from .constants import (
+    DCML_REGEX,
+    DEFAULT_CREATOR_METADATA,
+    FORM_LEVEL_CAPTURE_REGEX,
+    FORM_LEVEL_REGEX,
+    FORM_LEVEL_SPLIT_REGEX,
+    FORM_TOKEN_ABBREVIATIONS,
+    LEGACY_COLUMNS,
+    METADATA_COLUMN_ORDER,
+    MS3_HTML,
+    MS3_RGB,
+    SCORE_EXTENSIONS,
+    STANDARD_COLUMN_ORDER,
+    STANDARD_NAMES,
+    STANDARD_NAMES_OR_GIT,
+    rgba,
+)
+
+module_logger = logging.getLogger(__name__)
 
 
 class map_dict(dict):
-    """Such a dictionary can be mapped to a Series to replace its values but leaving the values absent from the dict keys intact."""
+    """Such a dictionary can be mapped to a Series to replace its values but leaving the values absent from the dict
+    keys intact."""
 
     def __missing__(self, key):
         return key
 
 
 def assert_all_lines_equal(before, after, original, tmp_file):
-    """ Compares two multiline strings to test equality."""
-    diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
+    """Compares two multiline strings to test equality."""
+    diff = [
+        (i, bef, aft)
+        for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1)
+        if bef != aft
+    ]
     if len(diff) > 0:
         line_n, left, _ = zip(*diff)
         ln = len(str(max(line_n)))  # length of the longest line number
         left_col = max(len(s) for s in left)  # length of the longest line
         folder, file = os.path.split(original)
-        tmp_persist = os.path.join(folder, '..', file)
+        tmp_persist = os.path.join(folder, "..", file)
         shutil.copy(tmp_file.name, tmp_persist)
-        diff = [('', original, tmp_persist)] + diff
-    assert len(diff) == 0, '\n' + '\n'.join(
-        f"{a:{ln}}  {b:{left_col}}    {c}" for a, b, c in diff)
+        diff = [("", original, tmp_persist)] + diff
+    assert len(diff) == 0, "\n" + "\n".join(
+        f"{a:{ln}}  {b:{left_col}}    {c}" for a, b, c in diff
+    )
 
 
 def assert_dfs_equal(old, new, exclude=[]):
-    """ Compares the common columns of two DataFrames to test equality. Uses: nan_eq()"""
+    """Compares the common columns of two DataFrames to test equality. Uses: nan_eq()"""
     old_l, new_l = len(old), len(new)
     greater_length = max(old_l, new_l)
     if old_l != new_l:
@@ -70,7 +110,9 @@ def assert_dfs_equal(old, new, exclude=[]):
         shorter = old if old_is_shorter else new
         missing_rows = abs(old_l - new_l)
         shorter_cols = shorter.columns
-        patch = pd.DataFrame([['missing row'] * len(shorter_cols)] * missing_rows, columns=shorter_cols)
+        patch = pd.DataFrame(
+            [["missing row"] * len(shorter_cols)] * missing_rows, columns=shorter_cols
+        )
         shorter = pd.concat([shorter, patch], ignore_index=True)
         if old_is_shorter:
             old = shorter
@@ -78,18 +120,29 @@ def assert_dfs_equal(old, new, exclude=[]):
             new = shorter
     # old.index.rename('old_ix', inplace=True)
     # new.index.rename('new_ix', inplace=True)
-    cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
-    diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
-    old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
-    new_bool = pd.DataFrame.from_dict({ix: bool_series for _, ix, bool_series in diff}, orient='index')
+    cols = [
+        col
+        for col in set(old.columns).intersection(set(new.columns))
+        if col not in exclude
+    ]
+    diff = [
+        (i, j, ~nan_eq(o, n))
+        for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())
+    ]
+    old_bool = pd.DataFrame.from_dict(
+        {ix: bool_series for ix, _, bool_series in diff}, orient="index"
+    )
+    new_bool = pd.DataFrame.from_dict(
+        {ix: bool_series for _, ix, bool_series in diff}, orient="index"
+    )
     diffs_per_col = old_bool.sum(axis=0)
 
     def show_diff():
         comp_str = []
-        if 'mc' in old.columns:
-            position_col = 'mc'
-        elif 'last_mc' in old.columns:
-            position_col = 'last_mc'
+        if "mc" in old.columns:
+            position_col = "mc"
+        elif "last_mc" in old.columns:
+            position_col = "last_mc"
         else:
             position_col = None
         for col, n_diffs in diffs_per_col.items():
@@ -98,28 +151,38 @@ def assert_dfs_equal(old, new, exclude=[]):
                     columns = col
                 else:
                     columns = [position_col, col]
-                comparison = pd.concat([old.loc[old_bool[col], columns].reset_index(drop=True).iloc[:20],
-                                        new.loc[new_bool[col], columns].iloc[:20].reset_index(drop=True)],
-                                       axis=1,
-                                       keys=['old', 'new'])
+                comparison = pd.concat(
+                    [
+                        old.loc[old_bool[col], columns]
+                        .reset_index(drop=True)
+                        .iloc[:20],
+                        new.loc[new_bool[col], columns]
+                        .iloc[:20]
+                        .reset_index(drop=True),
+                    ],
+                    axis=1,
+                    keys=["old", "new"],
+                )
                 comp_str.append(
-                    f"{n_diffs}/{greater_length} ({n_diffs / greater_length * 100:.2f} %) rows are different for {col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n")
-        return '\n'.join(comp_str)
+                    f"{n_diffs}/{greater_length} ({n_diffs / greater_length * 100:.2f} %) rows are different for "
+                    f"{col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n"
+                )
+        return "\n".join(comp_str)
 
     assert diffs_per_col.sum() == 0, show_diff()
 
 
 def ambitus2oneliner(ambitus):
-    """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
-    if 'min_midi' in ambitus:
+    """Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
+    if "min_midi" in ambitus:
         return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
-    if 'max_midi' in ambitus:
+    if "max_midi" in ambitus:
         return f"{ambitus['max_midi']}-{ambitus['max_midi']} ({ambitus['max_name']}-{ambitus['max_name']})"
-    return ''
+    return ""
 
 
 def changes2list(changes, sort=True):
-    """ Splits a string of changes into a list of 4-tuples.
+    """Splits a string of changes into a list of 4-tuples.
 
     Example
     -------
@@ -131,7 +194,7 @@ def changes2list(changes, sort=True):
     return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
 
 
-def changes2tpc(changes, numeral, minor=False, root_alterations=False):
+def changes2tpc(changes, numeral, minor=False, root_alterations=False, logger=None):
     """
     Given a numeral and changes, computes the intervals that the changes represent.
     Changes do not express absolute intervals but instead depend on the numeral and the mode.
@@ -150,10 +213,16 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False):
     root_alterations : :obj:`bool`, optional
         Set to True if accidentals of the root should change the result.
     """
+    if logger is None:
+        logger = module_logger
     root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
     # build 2-octave diatonic scale on C major/minor
-    root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
-    tpcs = 2 * [i for i in (0, 2, -3, -1, 1, -4, -2)] if minor else 2 * [i for i in (0, 2, 4, -1, 1, 3, 5)]
+    root = ["I", "II", "III", "IV", "V", "VI", "VII"].index(num_degree.upper())
+    tpcs = (
+        2 * [i for i in (0, 2, -3, -1, 1, -4, -2)]
+        if minor
+        else 2 * [i for i in (0, 2, 4, -1, 1, 3, 5)]
+    )
     tpcs = tpcs[root:] + tpcs[:root]  # starting the scale from chord root
     root = tpcs[0]
     if root_alterations:
@@ -161,14 +230,32 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False):
         tpcs[0] = root
 
     alts = changes2list(changes, sort=False)
-    acc2tpc = lambda accidentals: 7 * (accidentals.count('#') - accidentals.count('b'))
-    return [(full, added, acc, chord_interval,
-             (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root) if not chord_interval in ['3', '5'] else None) for
-            full, added, acc, chord_interval in alts]
+
+    def acc2tpc(accidentals):
+        return 7 * (accidentals.count("#") - accidentals.count("b"))
+
+    return [
+        (
+            full,
+            added,
+            acc,
+            chord_interval,
+            (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root)
+            if chord_interval not in ["3", "5"]
+            else None,
+        )
+        for full, added, acc, chord_interval in alts
+    ]
 
 
-def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
-    """  Checks the labels in ``column`` against ``regex`` and returns those that don't match.
+def check_labels(
+    df,
+    regex,
+    column="label",
+    split_regex=None,
+    return_cols=["mc", "mc_onset", "staff", "voice"],
+):
+    """Checks the labels in ``column`` against ``regex`` and returns those that don't match.
 
     Parameters
     ----------
@@ -191,24 +278,26 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
 
     """
     if split_regex is not None:
-        if split_regex == True:
+        if split_regex:
             check_this = split_alternatives(df, column=column, alternatives_only=True)
         else:
-            check_this = split_alternatives(df, column=column, regex=split_regex, max=1000, alternatives_only=True)
+            check_this = split_alternatives(
+                df, column=column, regex=split_regex, max=1000, alternatives_only=True
+            )
     else:
         check_this = df[[column]]
-    if regex.__class__ != re.compile('').__class__:
+    if regex.__class__ != re.compile("").__class__:
         regex = re.compile(regex, re.VERBOSE)
     not_matched = check_this.apply(lambda c: ~c.str.match(regex).fillna(True))
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
-    res = check_this.where(not_matched, other='.')[select_wrong]
-    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony', regex=True))
+    res = check_this.where(not_matched, other=".")[select_wrong]
+    res = res.apply(lambda c: c.str.replace("^/$", "empty_harmony", regex=True))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
 def color2rgba(c):
-    """ Pass a RGB or RGBA tuple, HTML color or name to convert it to RGBA """
+    """Pass a RGB or RGBA tuple, HTML color or name to convert it to RGBA"""
     if isinstance(c, tuple):
         if len(c) > 3:
             return rgba(*c[:4])
@@ -216,51 +305,58 @@ def color2rgba(c):
             return rgba(*(c + (255,)))
         else:
             return rgba(*c)
-    if c[0] == '#':
+    if c[0] == "#":
         return html_color2rgba(c)
     return color_name2rgba(c)
 
 
-def color_name2format(n, format='rgb'):
-    """ Converts a single CSS3 name into one of 'HTML', 'rgb', or 'rgba'"""
+def color_name2format(n, format="rgb"):
+    """Converts a single CSS3 name into one of 'HTML', 'rgb', or 'rgba'"""
     if pd.isnull(n):
         return n
     if n in webcolors.CSS3_NAMES_TO_HEX:
         html = webcolors.name_to_hex(n)
     elif n in MS3_HTML.values():
         html = next(k for k, v in MS3_HTML.items() if v == n)
-    elif n[0] == '#':
+    elif n[0] == "#":
         html = n
     else:
         return n
-    if format == 'html':
+    if format == "html":
         return html
-    if format == 'rgb':
+    if format == "rgb":
         return webcolors.hex_to_rgb(html)
-    if format == 'rgba':
+    if format == "rgba":
         rgb = webcolors.hex_to_rgb(html)
         return rgba(*(rgb + (255,)))
     return html
 
 
 def color_name2html(n):
-    """ Converts a single CSS3 name into HTML"""
-    return color_name2format(n, format='html')
+    """Converts a single CSS3 name into HTML"""
+    return color_name2format(n, format="html")
 
 
 def color_name2rgb(n):
-    """ Converts a single CSS3 name into RGB"""
-    return color_name2format(n, format='rgb')
+    """Converts a single CSS3 name into RGB"""
+    return color_name2format(n, format="rgb")
 
 
 def color_name2rgba(n):
-    """ Converts a single CSS3 name into RGBA"""
-    return color_name2format(n, format='rgba')
+    """Converts a single CSS3 name into RGBA"""
+    return color_name2format(n, format="rgba")
 
 
-@function_logger
-def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
-    """ For functions where the color can be specified in four different ways (HTML string, CSS name,
+def color_params2rgba(
+    color_name=None,
+    color_html=None,
+    color_r=None,
+    color_g=None,
+    color_b=None,
+    color_a=None,
+    logger=None,
+):
+    """For functions where the color can be specified in four different ways (HTML string, CSS name,
     RGB, or RGBA), convert the given parameters to RGBA.
 
     Parameters
@@ -283,8 +379,13 @@ def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=No
     :obj:`rgba`
         :obj:`namedtuple` with four integers.
     """
-    if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
-        logger.debug(f"None of the parameters have been specified. Returning None.")
+    if logger is None:
+        logger = module_logger
+    if all(
+        pd.isnull(param)
+        for param in [color_name, color_html, color_r, color_g, color_b, color_a]
+    ):
+        logger.debug("None of the parameters have been specified. Returning None.")
         return None
     res = None
     if not pd.isnull(color_r):
@@ -306,15 +407,15 @@ def allnamesequal(name):
     return all(n == name[0] for n in name[1:])
 
 
-def commonprefix(paths, sep='/'):
-    """ Returns common prefix of a list of paths.
+def commonprefix(paths, sep="/"):
+    """Returns common prefix of a list of paths.
     Uses: allnamesequal(), itertools.takewhile()"""
     bydirectorylevels = zip(*[p.split(sep) for p in paths])
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
 def compute_mn(measures: pd.DataFrame) -> pd.Series:
-    """ Compute measure number integers from a measures table.
+    """Compute measure number integers from a measures table.
 
 
     Args:
@@ -323,18 +424,17 @@ def compute_mn(measures: pd.DataFrame) -> pd.Series:
     Returns:
 
     """
-    excluded = measures['dont_count'].fillna(0).astype(bool)
-    offset = measures['numbering_offset']
+    excluded = measures["dont_count"].fillna(0).astype(bool)
+    offset = measures["numbering_offset"]
     mn = (~excluded).cumsum()
     if offset.notna().any():
         offset = offset.fillna(0).astype(int).cumsum()
         mn += offset
-    return mn.rename('mn')
+    return mn.rename("mn")
 
 
-@function_logger
-def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
-    """ Compute measure number strings from an unfolded measures table, such that the first occurrence of a measure
+def compute_mn_playthrough(measures: pd.DataFrame, logger=None) -> pd.Series:
+    """Compute measure number strings from an unfolded measures table, such that the first occurrence of a measure
     number ends on 'a', the second one on 'b' etc.
 
     The function requires the column 'dont_count' in order to correctly number the return of a completing MC after an
@@ -349,6 +449,8 @@ def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
       'mn_playthrough' Series of disambiguated measure number strings. If no measure repeats, the result will be
       equivalent to converting column 'mn' to strings and appending 'a' to all of them.
     """
+    if logger is None:
+        logger = module_logger
     previous_occurrences = defaultdict(lambda: 0)
 
     def get_mn_playthrough(mn):
@@ -357,20 +459,24 @@ def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
 
     mn_playthrough_column = []
     previous_mc, previous_mn = 0, -1
-    for mc, mn, dont_count in measures[['mc', 'mn', 'dont_count']].itertuples(name=None, index=False):
+    for mc, mn, dont_count in measures[["mc", "mn", "dont_count"]].itertuples(
+        name=None, index=False
+    ):
         if mn != previous_mn:
             previous_occurrences[mn] += 1
         if mc < previous_mc and not pd.isnull(dont_count):
             # an earlier MC completes a later one after a repeat
             mn_playthrough = get_mn_playthrough(previous_mn)
-            logger.debug(f"MN {mn} < previous MN {previous_mn}; but since MC {mc} is excluded from barcount, "
-                         f"the repetition has mn_playthrough {mn_playthrough}.")
+            logger.debug(
+                f"MN {mn} < previous MN {previous_mn}; but since MC {mc} is excluded from barcount, "
+                f"the repetition has mn_playthrough {mn_playthrough}."
+            )
         else:
             mn_playthrough = get_mn_playthrough(mn)
         mn_playthrough_column.append(mn_playthrough)
         previous_mn = mn
         previous_mc = mc
-    return pd.Series(mn_playthrough_column, index=measures.index, name='mn_playthrough')
+    return pd.Series(mn_playthrough_column, index=measures.index, name="mn_playthrough")
 
 
 @cache
@@ -378,28 +484,46 @@ def get_major_version_of_musescore_executable(ms) -> Optional[int]:
     try:
         result = subprocess.run([ms, "-v"], capture_output=True, text=True)
         version = result.stdout
-        if version.startswith('MuseScore'):
+        if version.startswith("MuseScore"):
             return int(version[9])
         return
     except Exception:
         return
 
 
-@function_logger
-def convert(old, new, MS='mscore'):
+def convert(
+    old,
+    new,
+    MS="mscore",
+    logger=None,
+):
+    """Calls "MS -fo new old", which converts old to new with the given MuseScore executable."""
+    if logger is None:
+        logger = module_logger
     version = get_major_version_of_musescore_executable(MS)
     if version == 4:
         convert_to_ms4(old=old, new=new, MS=MS, logger=logger)
         return
-    process = [MS, "-fo", new, old]  # [MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS, "-fo", new, old]
+    process = [
+        MS,
+        "-fo",
+        new,
+        old,
+    ]  # [MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS,
+    # "-fo", new, old]
     if subprocess.run(process, capture_output=True, text=True):
         logger.info(f"Converted {old} to {new}")
     else:
         logger.warning("Error while converting " + old)
 
 
-@function_logger
-def convert_to_ms4(old, new, MS='mscore'):
+def convert_to_ms4(old, new, MS="mscore", logger=None):
+    """
+    Calls "MS -fo new old", which converts old to new with the given MuseScore executable. This function offers a
+    workaround for MuseScore 4's half-baked commandline conversion.
+    """
+    if logger is None:
+        logger = module_logger
     version = get_major_version_of_musescore_executable(MS)
     if not (version is None or version == 4):
         if version is None:
@@ -410,7 +534,9 @@ def convert_to_ms4(old, new, MS='mscore'):
     old_path, old_file = os.path.split(old)
     old_piece_name, old_ext = os.path.splitext(old_file)
     if old_ext.lower() not in SCORE_EXTENSIONS:
-        logger.warning(f"Source file '{old}' doesn't have one of the following extensions and is skipped: {SCORE_EXTENSIONS}.")
+        logger.warning(
+            f"Source file '{old}' doesn't have one of the following extensions and is skipped: {SCORE_EXTENSIONS}."
+        )
         return
     if os.path.isdir(new):
         target_folder = new
@@ -418,34 +544,45 @@ def convert_to_ms4(old, new, MS='mscore'):
     else:
         target_folder, target_file = os.path.split(new)
     target_piece_name, target_ext = os.path.splitext(target_file)
-    tmp_needed = target_ext in ('.mscx', '.mscz')
+    tmp_needed = target_ext in (".mscx", ".mscz")
     if tmp_needed:
-        tmp_dir = os.path.join(target_folder, '.ms3_tmp_' + old_file)
+        tmp_dir = os.path.join(target_folder, ".ms3_tmp_" + old_file)
         try:
             os.makedirs(tmp_dir, exist_ok=False)
         except FileExistsError:
-            logger.warning(f"The temporary directory {tmp_dir} exists already and would be overwritten. Delete it first.")
+            logger.warning(
+                f"The temporary directory {tmp_dir} exists already and would be overwritten. Delete it first."
+            )
             return
-        tmp_mscx = os.path.join(tmp_dir, target_piece_name + '.mscx')
+        tmp_mscx = os.path.join(tmp_dir, target_piece_name + ".mscx")
         new = tmp_mscx
     process = [MS, "-fo", new, old]
     result = subprocess.run(process, capture_output=True, text=True)
     if result.returncode == 0:
         if tmp_needed:
-            target_path_without_extension = os.path.join(target_folder, target_piece_name)
+            target_path_without_extension = os.path.join(
+                target_folder, target_piece_name
+            )
             if not os.path.isdir(tmp_dir):
-                logger.warning(f"Temporary directory '{tmp_dir}' did not exist after conversion.")
+                logger.warning(
+                    f"Temporary directory '{tmp_dir}' did not exist after conversion."
+                )
                 return
             if not os.path.isfile(tmp_mscx):
-                logger.warning(f"Conversion of '{old}' did not yield a complete uncompressed MuseScore folder, an .mscx file was missing.")
+                logger.warning(
+                    f"Conversion of '{old}' did not yield a complete uncompressed MuseScore folder, an .mscx file was "
+                    f"missing."
+                )
                 shutil.rmtree(tmp_dir)
                 return
-            if target_ext == '.mscz':
-                zip_file_path = shutil.make_archive(target_path_without_extension, 'zip', tmp_dir)
-                new = target_path_without_extension + '.mscz'
+            if target_ext == ".mscz":
+                zip_file_path = shutil.make_archive(
+                    target_path_without_extension, "zip", tmp_dir
+                )
+                new = target_path_without_extension + ".mscz"
                 shutil.move(zip_file_path, new)
             else:
-                new = target_path_without_extension + '.mscx'
+                new = target_path_without_extension + ".mscx"
                 shutil.move(tmp_mscx, new)
             shutil.rmtree(tmp_dir)
         logger.info(f"Successfully converted {old} => {new}")
@@ -461,10 +598,21 @@ def _convert_kwargs(kwargs):
     return convert(**kwargs)
 
 
-@function_logger
-def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
-                   ms='mscore', overwrite=False, parallel=False):
-    """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
+def convert_folder(
+    directory=None,
+    file_paths=None,
+    target_dir=None,
+    extensions=[],
+    target_extension="mscx",
+    regex=".*",
+    suffix=None,
+    recursive=True,
+    ms="mscore",
+    overwrite=False,
+    parallel=False,
+    logger=None,
+):
+    """Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
     Parameters
     ----------
@@ -482,30 +630,45 @@ def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=
         Give the path to the MuseScore executable on your system. Need only if
         the command 'mscore' does not execute MuseScore on your system.
     """
+    if logger is None:
+        logger = module_logger
     MS = get_musescore(ms, logger=logger)
     assert MS is not None, f"MuseScore not found: {ms}"
-    assert any(arg is not None for arg in (directory, file_paths)), "Pass at least a directory or one path."
+    assert any(
+        arg is not None for arg in (directory, file_paths)
+    ), "Pass at least a directory or one path."
     if isinstance(file_paths, str):
         file_paths = [file_paths]
-    if target_extension[0] == '.':
+    if target_extension[0] == ".":
         target_extension = target_extension[1:]
     conversion_params = []
     # logger.info(f"Traversing {dir} {'' if recursive else 'non-'}recursively...")
     if len(extensions) > 0:
         exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
     else:
-        exclude_re = ''
+        exclude_re = ""
     if target_dir is None:
         target_dir = directory
     new_dirs = {}
     subdir_file_tuples = iter([])
     if directory is not None:
-        subdir_file_tuples = chain(subdir_file_tuples,
-                                   scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive,
-                                                  subdirs=True, exclude_files_only=True, logger=logger))
+        subdir_file_tuples = chain(
+            subdir_file_tuples,
+            scan_directory(
+                directory,
+                file_re=regex,
+                exclude_re=exclude_re,
+                recursive=recursive,
+                subdirs=True,
+                exclude_files_only=True,
+                logger=logger,
+            ),
+        )
     if file_paths is not None:
-        subdir_file_tuples = chain(subdir_file_tuples,
-                                   (os.path.split(resolve_dir(path)) for path in file_paths))
+        subdir_file_tuples = chain(
+            subdir_file_tuples,
+            (os.path.split(resolve_dir(path)) for path in file_paths),
+        )
     for subdir, file in subdir_file_tuples:
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
@@ -514,7 +677,11 @@ def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=
                 new_subdir = subdir
             else:
                 old_subdir = os.path.relpath(subdir, directory)
-                new_subdir = os.path.join(target_dir, old_subdir) if old_subdir != '.' else target_dir
+                new_subdir = (
+                    os.path.join(target_dir, old_subdir)
+                    if old_subdir != "."
+                    else target_dir
+                )
             os.makedirs(new_subdir, exist_ok=True)
             new_dirs[subdir] = new_subdir
         name, _ = os.path.splitext(file)
@@ -527,10 +694,10 @@ def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=
         if overwrite or not os.path.isfile(new):
             conversion_params.append([dict(old=old, new=new, MS=MS, logger=logger)])
         else:
-            logger.debug(new, 'exists already. Pass -o to overwrite.')
+            logger.debug(new, "exists already. Pass -o to overwrite.")
 
     if len(conversion_params) == 0:
-        logger.info(f"No files to convert.")
+        logger.info("No files to convert.")
 
     if parallel:
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -542,8 +709,15 @@ def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=
             convert(old=old, new=new, MS=MS, logger=logger)
 
 
-@function_logger
-def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
+def decode_harmonies(
+    df,
+    label_col="label",
+    keep_layer=True,
+    return_series=False,
+    alt_cols="alt_label",
+    alt_separator="-",
+    logger=None,
+):
     """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
     the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
 
@@ -568,24 +742,30 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     :obj:`pandas.DataFrame` or :obj:`pandas.Series`
         Decoded harmony labels.
     """
+    if logger is None:
+        logger = module_logger
     df = df.copy()
     drop_cols, compose_label = [], []
-    if 'nashville' in df.columns:
+    if "nashville" in df.columns:
         sel = df.nashville.notna()
-        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
-        drop_cols.append('nashville')
-    if 'leftParen' in df.columns:
-        df.leftParen.replace('/', '(', inplace=True)
-        compose_label.append('leftParen')
-        drop_cols.append('leftParen')
-    if 'absolute_root' in df.columns and df.absolute_root.notna().any():
+        df.loc[sel, label_col] = df.loc[sel, "nashville"].astype(str) + df.loc[
+            sel, label_col
+        ].replace("/", "")
+        drop_cols.append("nashville")
+    if "leftParen" in df.columns:
+        df.leftParen.replace("/", "(", inplace=True)
+        compose_label.append("leftParen")
+        drop_cols.append("leftParen")
+    if "absolute_root" in df.columns and df.absolute_root.notna().any():
         sel = df.absolute_root.notna()
-        root_as_note_name = fifths2name(df.loc[sel, 'absolute_root'].to_list(), ms=True, logger=logger)
-        df.absolute_root = df.absolute_root.astype('string')
-        df.loc[sel, 'absolute_root'] = root_as_note_name
-        compose_label.append('absolute_root')
-        drop_cols.append('absolute_root')
-        if 'rootCase' in df.columns:
+        root_as_note_name = fifths2name(
+            df.loc[sel, "absolute_root"].to_list(), ms=True, logger=logger
+        )
+        df.absolute_root = df.absolute_root.astype("string")
+        df.loc[sel, "absolute_root"] = root_as_note_name
+        compose_label.append("absolute_root")
+        drop_cols.append("absolute_root")
+        if "rootCase" in df.columns:
             sel = df.rootCase.notna()
             with warnings.catch_warnings():
                 # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
@@ -599,40 +779,44 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
                         "To retain the old behavior, use either.*"
                     ),
                 )
-                df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
-            drop_cols.append('rootCase')
+                df.loc[sel, "absolute_root"] = df.loc[sel, "absolute_root"].str.lower()
+            drop_cols.append("rootCase")
     if label_col in df.columns:
         compose_label.append(label_col)
-    if 'absolute_base' in df.columns and df.absolute_base.notna().any():
+    if "absolute_base" in df.columns and df.absolute_base.notna().any():
         sel = df.absolute_base.notna()
-        base_as_note_name = fifths2name(df.loc[sel, 'absolute_base'].to_list(), ms=True, logger=logger)
-        df.absolute_base = df.absolute_base.astype('string')
-        df.loc[sel, 'absolute_base'] = base_as_note_name
-        df.absolute_base = '/' + df.absolute_base
-        compose_label.append('absolute_base')
-        drop_cols.append('absolute_base')
-    if 'rightParen' in df.columns:
-        df.rightParen.replace('/', ')', inplace=True)
-        compose_label.append('rightParen')
-        drop_cols.append('rightParen')
-    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
-    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony', regex=True).replace('', pd.NA)
+        base_as_note_name = fifths2name(
+            df.loc[sel, "absolute_base"].to_list(), ms=True, logger=logger
+        )
+        df.absolute_base = df.absolute_base.astype("string")
+        df.loc[sel, "absolute_base"] = base_as_note_name
+        df.absolute_base = "/" + df.absolute_base
+        compose_label.append("absolute_base")
+        drop_cols.append("absolute_base")
+    if "rightParen" in df.columns:
+        df.rightParen.replace("/", ")", inplace=True)
+        compose_label.append("rightParen")
+        drop_cols.append("rightParen")
+    new_label_col = df[compose_label].fillna("").sum(axis=1).astype(str)
+    new_label_col = new_label_col.str.replace(
+        "^/$", "empty_harmony", regex=True
+    ).replace("", pd.NA)
 
     if alt_cols is not None:
         if isinstance(alt_cols, str):
             alt_cols = [alt_cols]
         present = [c for c in alt_cols if c in df.columns]
         if len(present) > 0:
-            alt_joined = pd.Series('', index=new_label_col.index)
+            alt_joined = pd.Series("", index=new_label_col.index)
             for c in present:
-                alt_joined += (alt_separator + df[c]).fillna('')
+                alt_joined += (alt_separator + df[c]).fillna("")
             new_label_col += alt_joined
 
     if return_series:
         return new_label_col
 
-    if 'harmony_layer' in df.columns and not keep_layer:
-        drop_cols.append('harmony_layer')
+    if "harmony_layer" in df.columns and not keep_layer:
+        drop_cols.append("harmony_layer")
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -643,10 +827,10 @@ def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
     return dataframe2markdown(df, name=name)
 
 
-def dataframe2markdown(df: pd.DataFrame,
-                       name: Optional[str] = None) -> MarkdownTableWriter:
-    """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
-    """
+def dataframe2markdown(
+    df: pd.DataFrame, name: Optional[str] = None
+) -> MarkdownTableWriter:
+    """Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string."""
     writer = MarkdownTableWriter()
     writer.table_name = name
     writer.from_dataframe(df)
@@ -654,16 +838,18 @@ def dataframe2markdown(df: pd.DataFrame,
 
 
 def dict2oneliner(d):
-    """ Turns a dictionary into a single-line string without brackets."""
-    return ', '.join(f"{k}: {v}" for k, v in d.items())
+    """Turns a dictionary into a single-line string without brackets."""
+    return ", ".join(f"{k}: {v}" for k, v in d.items())
 
 
-@function_logger
-def resolve_form_abbreviations(token: str,
-                               abbreviations: dict,
-                               mc: Optional[Union[int, str]] = None,
-                               fallback_to_lowercase: bool = True) -> str:
-    """ Checks for each consecutive substring of the token if it matches one of the given abbreviations and replaces
+def resolve_form_abbreviations(
+    token: str,
+    abbreviations: dict,
+    mc: Optional[Union[int, str]] = None,
+    fallback_to_lowercase: bool = True,
+    logger=None,
+) -> str:
+    """Checks for each consecutive substring of the token if it matches one of the given abbreviations and replaces
     it with the corresponding long name. Trailing numbers are separated by a space in this case.
 
     Args:
@@ -675,16 +861,20 @@ def resolve_form_abbreviations(token: str,
     Returns:
 
     """
-    mc_string = '' if mc is None else f"MC {mc}: "
-    if ',' in token:
-        logger.warning(f"{mc_string}'{token}' contains a comma, which might result from a syntax error.")
+    if logger is None:
+        logger = module_logger
+    mc_string = "" if mc is None else f"MC {mc}: "
+    if "," in token:
+        logger.warning(
+            f"{mc_string}'{token}' contains a comma, which might result from a syntax error."
+        )
     sub_component_regex = r"\W+"
     ends_on_numbers_regex = r"\d+$"
     resolved_substrings = []
     for original_substring in re.split(sub_component_regex, token):
         trailing_numbers_match = re.search(ends_on_numbers_regex, original_substring)
         if trailing_numbers_match is None:
-            trailing_numbers = ''
+            trailing_numbers = ""
             substring = original_substring
         else:
             trailing_numbers_position = trailing_numbers_match.start()
@@ -703,16 +893,21 @@ def resolve_form_abbreviations(token: str,
         else:
             resolved = original_substring
         resolved_substrings.append(resolved)
-    return ''.join(substring + separator for substring, separator in zip(resolved_substrings,
-                                                                         re.findall(sub_component_regex, token) + ['']))
+    return "".join(
+        substring + separator
+        for substring, separator in zip(
+            resolved_substrings, re.findall(sub_component_regex, token) + [""]
+        )
+    )
 
 
-@function_logger
-def distribute_tokens_over_levels(levels: Collection[str],
-                                  tokens: Collection[str],
-                                  mc: Optional[Union[int, str]] = None,
-                                  abbreviations: dict = {},
-                                  ) -> Dict[Tuple[str, str], str]:
+def distribute_tokens_over_levels(
+    levels: Collection[str],
+    tokens: Collection[str],
+    mc: Optional[Union[int, str]] = None,
+    abbreviations: dict = {},
+    logger=None,
+) -> Dict[Tuple[str, str], str]:
     """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
     tokens.
 
@@ -726,87 +921,117 @@ def distribute_tokens_over_levels(levels: Collection[str],
       A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
       several trees annotated in parallel.
     """
+    if logger is None:
+        logger = module_logger
     column2value = {}
     reading_regex = r"^((?:[ivx]+\&?)+):"
-    mc_string = '' if mc is None else f"MC {mc}: "
+    mc_string = "" if mc is None else f"MC {mc}: "
     for level_str, token_str in zip(levels, tokens):
-        split_level_info = pd.Series(level_str.split('&'))
+        split_level_info = pd.Series(level_str.split("&"))
         # turn layer indications into a DataFrame with the columns ['level', 'form_tree', and 'reading']
         analytical_layers = split_level_info.str.extract(FORM_LEVEL_REGEX)
         levels_include_reading = analytical_layers.reading.notna().any()
         # reading indications become part of the token and each will be followed by a colon
-        analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
+        analytical_layers.reading = (analytical_layers.reading + ": ").fillna("")
         # propagate information that has been omitted in the second and following indications,
         # e.g. 2a&b -> [2a:, 2b:]; 1aii&iii -> [1aii:, 1aiii:]; 1ai&b -> [1ai:, 1b] (i.e., readings are not propagated)
-        analytical_layers = analytical_layers.fillna(method='ffill')
-        analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
+        analytical_layers = analytical_layers.fillna(method="ffill")
+        analytical_layers.form_tree = analytical_layers.form_tree.fillna("")
         # split token into alternative components, replace special with normal white-space characters, and strip each
         # component from white space and separating commas
-        token_alternatives = [re.sub(r'\s+', ' ', t).strip(' \n,') for t in token_str.split(' - ')]
-        token_alternatives = [t for t in token_alternatives if t != '']
+        token_alternatives = [
+            re.sub(r"\s+", " ", t).strip(" \n,") for t in token_str.split(" - ")
+        ]
+        token_alternatives = [t for t in token_alternatives if t != ""]
         if len(abbreviations) > 0:
-            token_alternatives = [resolve_form_abbreviations(token, abbreviations, mc=mc, logger=logger) for token in token_alternatives]
+            token_alternatives = [
+                resolve_form_abbreviations(token, abbreviations, mc=mc, logger=logger)
+                for token in token_alternatives
+            ]
         if len(token_alternatives) == 1:
             if levels_include_reading:
                 analytical_layers.reading += token_alternatives[0]
-                label = ''
+                label = ""
             else:
                 label = token_alternatives[0]
         else:
             # this section deals with cases where alternative readings are or are not identified by Roman numbers,
             # and deals with the given Roman numbers depending on whether the analytical layers include some as well
-            token_includes_reading = any(re.match(reading_regex, t) is not None for t in token_alternatives)
+            token_includes_reading = any(
+                re.match(reading_regex, t) is not None for t in token_alternatives
+            )
             if token_includes_reading:
                 reading_info = [re.match(reading_regex, t) for t in token_alternatives]
                 reading2token = {}
-                for readings_str, token_component in zip(reading_info[1:], token_alternatives[1:]):
+                for readings_str, token_component in zip(
+                    reading_info[1:], token_alternatives[1:]
+                ):
                     if readings_str is None:
-                        reading = ''
+                        reading = ""
                         reading2token[reading] = token_component
                     else:
-                        token_component = token_component[readings_str.end():].strip(' ')
-                        for roman in readings_str.group(1).split('&'):
+                        match_end = readings_str.end()
+                        token_component = token_component[match_end:].strip(" ")
+                        for roman in readings_str.group(1).split("&"):
                             reading = f"{roman}: "
-                            if levels_include_reading and reading in analytical_layers.reading.values:
-                                column_empty = (analytical_layers == '').all()
+                            if (
+                                levels_include_reading
+                                and reading in analytical_layers.reading.values
+                            ):
+                                column_empty = (analytical_layers == "").all()
                                 show_layers = analytical_layers.loc[:, ~column_empty]
                                 logger.warning(
-                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{show_layers}")
+                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' "
+                                    f"which conflicts with one specified in the level:\n{show_layers}"
+                                )
                             reading2token[reading] = token_component
-                label = ' - '.join(reading + tkn for reading, tkn in reading2token.items())
+                label = " - ".join(
+                    reading + tkn for reading, tkn in reading2token.items()
+                )
                 if levels_include_reading:
                     if reading_info[0] is not None:
                         logger.warning(
-                            f"{mc_string}'{token_str}': The first reading '{reading_info[0].group()}' specifies Roman number in addition to those specified in the level:\n{analytical_layers}")
+                            f"{mc_string}'{token_str}': The first reading '{reading_info[0].group()}' specifies Roman "
+                            f"number in addition to those specified in the level:\n{analytical_layers}"
+                        )
                     analytical_layers.reading += token_alternatives[0]
                 else:
-                    label = token_alternatives[0] + ' - ' + label
+                    label = token_alternatives[0] + " - " + label
             else:
                 # token does not include any Roman numbers and is used as is for all layers
-                analytical_layers.reading += ' - '.join(t for t in token_alternatives)
-                label = ''
+                analytical_layers.reading += " - ".join(t for t in token_alternatives)
+                label = ""
 
-        for (form_tree, level), df in analytical_layers.groupby(['form_tree', 'level'], dropna=False):
-            key = (form_tree, level)  # form_tree becomes first level of the columns' MultiIndex, e.g. 'a' and 'b'
-            if (df.reading == '').all():
+        for (form_tree, level), df in analytical_layers.groupby(
+            ["form_tree", "level"], dropna=False
+        ):
+            key = (
+                form_tree,
+                level,
+            )  # form_tree becomes first level of the columns' MultiIndex, e.g. 'a' and 'b'
+            if (df.reading == "").all():
                 value = label
                 if len(df) > 1:
-                    logger.warning(f"{mc_string}Duplication of level without specifying separate readings:\n{df}")
+                    logger.warning(
+                        f"{mc_string}Duplication of level without specifying separate readings:\n{df}"
+                    )
             else:
-                value = ' - '.join(reading for reading in df.reading.to_list())
-                if label != '':
-                    value += ' - ' + label
+                value = " - ".join(reading for reading in df.reading.to_list())
+                if label != "":
+                    value += " - " + label
             if key in column2value:
-                column2value[key] += ' - ' + value
-                # logger.warning(f"{mc_string}The token '{column2value[key]}' for level {key} was overwritten with '{value}':\nlevels: {level_str}, token: {token}")
+                column2value[key] += " - " + value
+                # logger.warning(f"{mc_string}The token '{column2value[key]}' for level {key} was overwritten with '{
+                # value}':\nlevels: {level_str}, token: {token}")
             else:
                 column2value[key] = value
     return column2value
 
 
-@function_logger
-def expand_single_form_label(label: str, default_abbreviations=True, **kwargs) -> Dict[Tuple[str, str], str]:
-    """ Splits a form label and applies distribute_tokens_over_levels()
+def expand_single_form_label(
+    label: str, default_abbreviations=True, **kwargs
+) -> Dict[Tuple[str, str], str]:
+    """Splits a form label and applies distribute_tokens_over_levels()
 
     Args:
       label: Complete form label including indications of analytical layer(s).
@@ -821,12 +1046,19 @@ def expand_single_form_label(label: str, default_abbreviations=True, **kwargs) -
     extracted_tokens = re.split(FORM_LEVEL_SPLIT_REGEX, label)[1:]
     abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
     abbreviations.update(kwargs)
-    return distribute_tokens_over_levels(extracted_levels, extracted_tokens, abbreviations=abbreviations)
+    return distribute_tokens_over_levels(
+        extracted_levels, extracted_tokens, abbreviations=abbreviations
+    )
 
 
-@function_logger
-def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbreviations=True, **kwargs) -> pd.DataFrame:
-    """ Expands form labels into a hierarchical view of levels in a table.
+def expand_form_labels(
+    fl: pd.DataFrame,
+    fill_mn_until: int = None,
+    default_abbreviations=True,
+    logger=None,
+    **kwargs,
+) -> pd.DataFrame:
+    """Expands form labels into a hierarchical view of levels in a table.
 
     Args:
       fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.
@@ -841,7 +1073,11 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
     Returns:
       A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
     """
-    form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(r"\s", " ", regex=True)
+    if logger is None:
+        logger = module_logger
+    form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(
+        r"\s", " ", regex=True
+    )
     extracted_levels = form_labels.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
     extracted_levels = extracted_levels.unstack().reindex(fl.index)
     extracted_tokens = form_labels.str.split(FORM_LEVEL_SPLIT_REGEX, expand=True)
@@ -850,56 +1086,83 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
     # extracted_tokens[extracted_tokens[0] != '']
     # fl[fl.form_label.str.contains(':&')]
     extracted_tokens = extracted_tokens.drop(columns=0)
-    assert (extracted_tokens.index == extracted_levels.index).all(), "Indices need to be identical after regex extraction."
+    assert (extracted_tokens.index == extracted_levels.index).all(), (
+        "Indices need to be identical after regex " "extraction."
+    )
     result_dict = {}
     abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
     abbreviations.update(kwargs)
-    for mc, (i, lvls), (_, tkns) in zip(fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()):
+    for mc, (i, lvls), (_, tkns) in zip(
+        fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()
+    ):
         level_select, token_select = lvls.notna(), tkns.notna()
         present_levels, present_tokens = lvls[level_select], tkns[token_select]
-        assert level_select.sum() == token_select.sum(), f"MC {mc}: {level_select.sum()} levels\n{present_levels}\nbut {token_select.sum()} tokens:\n{present_tokens}"
-        result_dict[i] = distribute_tokens_over_levels(present_levels, present_tokens, mc=mc, abbreviations=abbreviations, logger=logger)
-    res = pd.DataFrame.from_dict(result_dict, orient='index')
+        assert level_select.sum() == token_select.sum(), (
+            f"MC {mc}: {level_select.sum()} levels\n"
+            f"{present_levels}\nbut {token_select.sum()} tokens:\n"
+            f"{present_tokens}"
+        )
+        result_dict[i] = distribute_tokens_over_levels(
+            present_levels,
+            present_tokens,
+            mc=mc,
+            abbreviations=abbreviations,
+            logger=logger,
+        )
+    res = pd.DataFrame.from_dict(result_dict, orient="index")
     res.columns = pd.MultiIndex.from_tuples(res.columns)
     form_types = res.columns.levels[0]
     if len(form_types) > 1:
         # columns will be MultiIndex
-        if '' in form_types:
+        if "" in form_types:
             # there are labels pertaining to all form_types
-            forms = [f for f in form_types if f != '']
-            pertaining_to_all = res.loc[:, '']
-            distributed_to_all = pd.concat([pertaining_to_all] * len(forms), keys=forms, axis=1)
+            forms = [f for f in form_types if f != ""]
+            pertaining_to_all = res.loc[:, ""]
+            distributed_to_all = pd.concat(
+                [pertaining_to_all] * len(forms), keys=forms, axis=1
+            )
             level_exists = distributed_to_all.columns.isin(res.columns)
             existing_level_names = distributed_to_all.columns[level_exists]
-            res = pd.concat([res.loc[:, forms],
-                             distributed_to_all.loc[:, ~level_exists]],
-                            axis=1)
+            res = pd.concat(
+                [res.loc[:, forms], distributed_to_all.loc[:, ~level_exists]], axis=1
+            )
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
-            check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
+            check_double_attribution = (
+                res[existing_level_names].notna() & potentially_preexistent.notna()
+            )
             if check_double_attribution.any().any():
                 logger.warning(
-                    "Did not distribute levels to all form types because some had already been individually specified.")
-            res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
-        fl_multiindex = pd.concat([fl], keys=[''], axis=1)
+                    "Did not distribute levels to all form types because some had already been individually specified."
+                )
+            res.loc[:, existing_level_names] = res[existing_level_names].fillna(
+                potentially_preexistent
+            )
+        fl_multiindex = pd.concat([fl], keys=[""], axis=1)
         res = pd.concat([fl_multiindex, res.sort_index(axis=1)], axis=1)
     else:
-        if form_types[0] == '':
+        if form_types[0] == "":
             res = pd.concat([fl, res.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
         else:
             res = pd.concat([fl, res.sort_index(axis=1)], axis=1)
-            logger.info(f"Syntax for several form types used for a single one: '{form_types[0]}'")
+            logger.info(
+                f"Syntax for several form types used for a single one: '{form_types[0]}'"
+            )
 
     if fill_mn_until is not None:
         if len(form_types) == 1:
-            mn_col, mn_onset = 'mn', 'mn_onset'
+            mn_col, mn_onset = "mn", "mn_onset"
         else:
-            mn_col, mn_onset = ('', 'mn'), ('', 'mn_onset')
+            mn_col, mn_onset = ("", "mn"), ("", "mn_onset")
         first_mn = fl.mn.min()
         last_mn = fill_mn_until if fill_mn_until > -1 else fl.mn.max()
         all_mns = set(range(first_mn, last_mn + 1))
         missing = all_mns.difference(set(res[mn_col]))
         missing_mn = pd.DataFrame({mn_col: list(missing)}).reindex(res.columns, axis=1)
-        res = pd.concat([res, missing_mn], ignore_index=True).sort_values([mn_col, mn_onset]).reset_index(drop=True)
+        res = (
+            pd.concat([res, missing_mn], ignore_index=True)
+            .sort_values([mn_col, mn_onset])
+            .reset_index(drop=True)
+        )
     return res
 
 
@@ -923,10 +1186,13 @@ def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple:
     ...
 
 
-def add_collections(left: Union[pd.Series, NDArray, list, tuple],
-                    right: Collection,
-                    dtype: Dtype = 'string') -> Union[pd.Series, NDArray, list, tuple]:
-    """Zip-adds together the strings (by default) contained in two collections regardless of their types (think of adding
+def add_collections(
+    left: Union[pd.Series, NDArray, list, tuple],
+    right: Collection,
+    dtype: Dtype = "string",
+) -> Union[pd.Series, NDArray, list, tuple]:
+    """Zip-adds together the strings (by default) contained in two collections regardless of their types (think of
+    adding
     two columns together element-wise). Pass another ``dtype`` if you want the values to be converted to another
     datatype before adding them together.
     """
@@ -959,7 +1225,9 @@ def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple:
     ...
 
 
-def cast2collection(coll: Union[pd.Series, NDArray, list, tuple], func: Callable, *args, **kwargs) -> Union[pd.Series, NDArray, list, tuple]:
+def cast2collection(
+    coll: Union[pd.Series, NDArray, list, tuple], func: Callable, *args, **kwargs
+) -> Union[pd.Series, NDArray, list, tuple]:
     if isinstance(coll, pd.Series):
         return transform(coll, func, *args, **kwargs)
     with warnings.catch_warnings():
@@ -967,9 +1235,7 @@ def cast2collection(coll: Union[pd.Series, NDArray, list, tuple], func: Callable
         warnings.filterwarnings(
             "ignore",
             category=FutureWarning,
-            message=(
-                ".*The default dtype for empty Series.*"
-            ),
+            message=(".*The default dtype for empty Series.*"),
         )
         result_series = func(pd.Series(coll), *args, **kwargs)
     try:
@@ -1003,26 +1269,29 @@ def fifths2acc(fifths: Tuple[int]) -> Tuple[str]:
     ...
 
 
-def fifths2acc(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ Returns accidentals for a stack of fifths that can be combined with a
-        basic representation of the seven steps."""
+def fifths2acc(
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]
+) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+    """Returns accidentals for a stack of fifths that can be combined with a
+    basic representation of the seven steps."""
     try:
         fifths = int(float(fifths))
     except TypeError:
         return cast2collection(coll=fifths, func=fifths2acc)
     acc = (fifths + 1) // 7
-    return abs(acc) * 'b' if acc < 0 else acc * '#'
+    return abs(acc) * "b" if acc < 0 else acc * "#"
 
 
-@function_logger
-def fifths2iv(fifths: int,
-              smallest: bool = False,
-              perfect: str = 'P',
-              major: str = 'M',
-              minor: str = 'm',
-              augmented: str = 'a',
-              diminished: str = 'd') -> str:
-    """ Return interval name of a stack of fifths such that 0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass
+def fifths2iv(
+    fifths: int,
+    smallest: bool = False,
+    perfect: str = "P",
+    major: str = "M",
+    minor: str = "m",
+    augmented: str = "a",
+    diminished: str = "d",
+) -> str:
+    """Return interval name of a stack of fifths such that 0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass
     ``smallest=True``, intervals of a fifth or greater will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
 
 
@@ -1042,7 +1311,19 @@ def fifths2iv(fifths: int,
     int_num = ["4", "1", "5", "2", "6", "3", "7"][fifths_plus_one % 7]
     sharp_wise_quality = augmented
     flat_wise_quality = diminished
-    qualities = (minor, minor, minor, minor, perfect, perfect, perfect, major, major, major, major)
+    qualities = (
+        minor,
+        minor,
+        minor,
+        minor,
+        perfect,
+        perfect,
+        perfect,
+        major,
+        major,
+        major,
+        major,
+    )
     quality = ""
     if smallest and int(int_num) > 4:
         int_num = str(9 - int(int_num))
@@ -1064,29 +1345,39 @@ def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> Optional[str]:
 
 
 @overload
-def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> Optional[pd.Series]:
+def tpc2name(
+    tpc: pd.Series, ms: bool = False, minor: bool = False
+) -> Optional[pd.Series]:
     ...
 
 
 @overload
-def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> Optional[NDArray[str]]:
+def tpc2name(
+    tpc: NDArray[int], ms: bool = False, minor: bool = False
+) -> Optional[NDArray[str]]:
     ...
 
 
 @overload
-def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> Optional[List[str]]:
+def tpc2name(
+    tpc: List[int], ms: bool = False, minor: bool = False
+) -> Optional[List[str]]:
     ...
 
 
 @overload
-def tpc2name(tpc: Tuple[int], ms: bool = False, minor: bool = False) -> Optional[Tuple[str]]:
+def tpc2name(
+    tpc: Tuple[int], ms: bool = False, minor: bool = False
+) -> Optional[Tuple[str]]:
     ...
 
 
-def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-             ms: bool = False,
-             minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
-    """ Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
+def tpc2name(
+    tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    ms: bool = False,
+    minor: bool = False,
+) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
 
     Args:
       tpc: Tonal pitch class(es) to turn into a note name.
@@ -1107,23 +1398,30 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
         tpc = int(float(tpc))
     except TypeError:
         return cast2collection(coll=tpc, func=tpc2name, ms=ms, minor=minor)
-    note_names = ('f', 'c', 'g', 'd', 'a', 'e', 'b') if minor else ('F', 'C', 'G', 'D', 'A', 'E', 'B')
+    note_names = (
+        ("f", "c", "g", "d", "a", "e", "b")
+        if minor
+        else ("F", "C", "G", "D", "A", "E", "B")
+    )
     if ms:
         tpc = tpc - 14
     acc, ix = divmod(tpc + 1, 7)
-    acc_str = abs(acc) * 'b' if acc < 0 else acc * '#'
+    acc_str = abs(acc) * "b" if acc < 0 else acc * "#"
     return f"{note_names[ix]}{acc_str}"
 
 
-def tpc2scale_degree(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                     localkey: str,
-                     globalkey: str,
-                     ) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
-    """ For example, tonal pitch class 3 (fifths, i.e. "A") is scale degree '#3' in the localkey of 'iv' within 'c' minor.
+def tpc2scale_degree(
+    tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    localkey: str,
+    globalkey: str,
+) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """For example, tonal pitch class 3 (fifths, i.e. "A") is scale degree '#3' in the localkey of 'iv' within 'c'
+    minor.
 
     Args:
         fifths: Tonal pitch class(es) to turn into scale degree(s).
-        localkey: Local key in which the pitch classes are situated, as Roman numeral (can include slash notation such as V/ii).
+        localkey: Local key in which the pitch classes are situated, as Roman numeral (can include slash notation
+        such as V/ii).
         globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
 
     Returns:
@@ -1135,13 +1433,17 @@ def tpc2scale_degree(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[i
     except ValueError:
         pass
     if isinstance(tpc, pd.Series):
-        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+        return cast2collection(
+            coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey
+        )
     try:
         tpc = int(float(tpc))
     except TypeError:
-        return cast2collection(coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey)
+        return cast2collection(
+            coll=tpc, func=tpc2scale_degree, localkey=localkey, globalkey=globalkey
+        )
     global_minor = globalkey.islower()
-    if '/' in localkey:
+    if "/" in localkey:
         localkey = resolve_relative_keys(localkey, global_minor)
     localkey_is_minor = localkey.islower()
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
@@ -1151,35 +1453,47 @@ def tpc2scale_degree(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[i
 
 
 @overload
-def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> Optional[str]:
+def fifths2name(
+    fifths: int, midi: Optional[int], ms: bool, minor: bool
+) -> Optional[str]:
     ...
 
 
 @overload
-def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> Optional[pd.Series]:
+def fifths2name(
+    fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool
+) -> Optional[pd.Series]:
     ...
 
 
 @overload
-def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> Optional[NDArray[str]]:
+def fifths2name(
+    fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool
+) -> Optional[NDArray[str]]:
     ...
 
 
 @overload
-def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> Optional[List[str]]:
+def fifths2name(
+    fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool
+) -> Optional[List[str]]:
     ...
 
 
 @overload
-def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Optional[Tuple[str]]:
+def fifths2name(
+    fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool
+) -> Optional[Tuple[str]]:
     ...
 
 
-@function_logger
-def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
-                ms: bool = False,
-                minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+def fifths2name(
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
+    ms: bool = False,
+    minor: bool = False,
+    logger=None,
+) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
     """Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc. This is a wrapper of :func:`tpc2name`, that additionally accepts the argument
        ``midi`` which allows for adding octave information.
@@ -1190,6 +1504,8 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
       ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
       minor: Pass True if the string is to be returned as lowercase.
     """
+    if logger is None:
+        logger = module_logger
     try:
         if pd.isnull(fifths):
             return fifths
@@ -1202,7 +1518,7 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
         if midi is None:
             return names
         octaves = midi2octave(midi, fifths)
-        return add_collections(names, octaves, dtype='string')
+        return add_collections(names, octaves, dtype="string")
     name = tpc2name(fifths, ms=ms, minor=minor)
     if midi is None:
         return name
@@ -1211,8 +1527,8 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
 
 
 def fifths2pc(fifths):
-    """ Turn a stack of fifths into a chromatic pitch class.
-        Uses: map2elements()
+    """Turn a stack of fifths into a chromatic pitch class.
+    Uses: map2elements()
     """
     try:
         fifths = int(float(fifths))
@@ -1239,7 +1555,11 @@ def fifths2rn(fifths, minor=False, auto_key=False):
         return map2elements(fifths, fifths2rn, minor=minor)
     if pd.isnull(fifths):
         return fifths
-    rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
+    rn = (
+        ["VI", "III", "VII", "IV", "I", "V", "II"]
+        if minor
+        else ["IV", "I", "V", "II", "VI", "III", "VII"]
+    )
     sel = fifths + 3 if minor else fifths
     res = _fifths2str(sel, rn)
     if auto_key and is_minor_mode(fifths, minor):
@@ -1249,23 +1569,25 @@ def fifths2rn(fifths, minor=False, auto_key=False):
 
 def fifths2sd(fifths, minor=False):
     """Return scale degree of a stack of fifths such that
-       0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
-       Uses: map2elements(), fifths2str()
+    0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
+    Uses: map2elements(), fifths2str()
     """
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2sd, minor=minor)
     if pd.isnull(fifths):
         return fifths
-    sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
+    sd = (
+        ["6", "3", "7", "4", "1", "5", "2"]
+        if minor
+        else ["4", "1", "5", "2", "6", "3", "7"]
+    )
     if minor:
         fifths += 3
     return _fifths2str(fifths, sd)
 
 
-def _fifths2str(fifths: int,
-                steps: Collection[str],
-                inverted: bool = False) -> str:
-    """ Boiler plate used by fifths2-functions.
+def _fifths2str(fifths: int, steps: Collection[str], inverted: bool = False) -> str:
+    """Boiler plate used by fifths2-functions.
 
     Args:
       fifths: Stack of fifths
@@ -1283,7 +1605,7 @@ def _fifths2str(fifths: int,
 
 
 def get_ms_version(mscx_file):
-    with open(mscx_file, encoding='utf-8') as file:
+    with open(mscx_file, encoding="utf-8") as file:
         for i, l in enumerate(file):
             if i < 2:
                 pass
@@ -1295,8 +1617,9 @@ def get_ms_version(mscx_file):
                     return m.group(1)
 
 
-@function_logger
-def get_musescore(MS: Union[str, Literal['auto', 'win', 'mac']] = 'auto') -> Optional[str]:
+def get_musescore(
+    MS: Union[str, Literal["auto", "win", "mac"]] = "auto", logger=None
+) -> Optional[str]:
     """Tests whether a MuseScore executable can be found on the system.
     Uses: test_binary()
 
@@ -1307,24 +1630,22 @@ def get_musescore(MS: Union[str, Literal['auto', 'win', 'mac']] = 'auto') -> Opt
     Returns:
       Path to the executable if found or None.
     """
+    if logger is None:
+        logger = module_logger
     if MS is None:
         return MS
-    if MS == 'auto':
-        mapping = {
-            'Windows': 'win',
-            'Darwin': 'mac',
-            'Linux': 'mscore'
-        }
+    if MS == "auto":
+        mapping = {"Windows": "win", "Darwin": "mac", "Linux": "mscore"}
         system = platform.system()
         try:
             MS = mapping[system]
         except Exception:
             logger.warning(f"System could not be inferred: {system}")
-            MS = 'mscore'
-    if MS == 'win':
-        program_files = os.environ['PROGRAMFILES']
+            MS = "mscore"
+    if MS == "win":
+        program_files = os.environ["PROGRAMFILES"]
         MS = os.path.join(program_files, r"MuseScore 3\bin\MuseScore3.exe")
-    elif MS == 'mac':
+    elif MS == "mac":
         MS = "/Applications/MuseScore 3.app/Contents/MacOS/mscore"
     return test_binary(MS, logger=logger)
 
@@ -1333,9 +1654,9 @@ def get_path_component(path, after):
     """Returns only the path's subfolders below ``after``. If ``after`` is the last
     component, '.' is returned."""
     dir1, base1 = os.path.split(path)
-    if dir1 in ('', '.', '/', '~'):
+    if dir1 in ("", ".", "/", "~"):
         if base1 == after:
-            return '.'
+            return "."
         return path
     dir2, base2 = os.path.split(dir1)
     if base2 == after:
@@ -1369,32 +1690,30 @@ def get_path_component(path, after):
 #     return length_qb, length_qb_unfolded
 
 
-def group_id_tuples(l):
-    """ Turns a list of (key, ix) into a {key: [ix]}
-
-    """
+def group_id_tuples(list_of_pairs):
+    """Turns a list of (key, ix) into a {key: [ix]}"""
     d = defaultdict(list)
-    for k, i in l:
+    for k, i in list_of_pairs:
         if k is not None:
             d[k].append(i)
     return dict(d)
 
 
-def html2format(df, format='name', html_col='color_html'):
-    """ Converts the HTML column of a DataFrame into 'name', 'rgb , or 'rgba'. """
-    if format == 'name':
+def html2format(df, format="name", html_col="color_html"):
+    """Converts the HTML column of a DataFrame into 'name', 'rgb , or 'rgba'."""
+    if format == "name":
         return df[html_col].map(color_name2html)
-    if format == 'rgb':
+    if format == "rgb":
         return df[html_col].map(color_name2rgb)
-    if format == 'rgba':
+    if format == "rgba":
         return df[html_col].map(color_name2rgba)
 
 
-def html_color2format(h, format='name'):
-    """ Converts a single HTML color into 'name', 'rgb', or  'rgba'."""
+def html_color2format(h, format="name"):
+    """Converts a single HTML color into 'name', 'rgb', or  'rgba'."""
     if pd.isnull(h):
         return h
-    if format == 'name':
+    if format == "name":
         try:
             return webcolors.hex_to_name(h)
         except Exception:
@@ -1402,30 +1721,30 @@ def html_color2format(h, format='name'):
                 return MS3_HTML[h]
             except Exception:
                 return h
-    if format == 'rgb':
+    if format == "rgb":
         return webcolors.hex_to_rgb(h)
-    if format == 'rgba':
+    if format == "rgba":
         rgb = webcolors.hex_to_rgb(h)
         return rgba(*(rgb + (255,)))
 
 
 def html_color2name(h):
-    """ Converts a HTML color into its CSS3 name or itself if there is none."""
-    return html_color2format(h, 'name')
+    """Converts a HTML color into its CSS3 name or itself if there is none."""
+    return html_color2format(h, "name")
 
 
 def html_color2rgb(h):
-    """ Converts a HTML color into RGB."""
-    return html_color2format(h, 'rgb')
+    """Converts a HTML color into RGB."""
+    return html_color2format(h, "rgb")
 
 
 def html_color2rgba(h):
-    """ Converts a HTML color into RGBA."""
-    return html_color2format(h, 'rgba')
+    """Converts a HTML color into RGBA."""
+    return html_color2format(h, "rgba")
 
 
 def interval_overlap(a, b, closed=None):
-    """ Returns the overlap of two pd.Intervals as a new pd.Interval.
+    """Returns the overlap of two pd.Intervals as a new pd.Interval.
 
     Parameters
     ----------
@@ -1446,26 +1765,30 @@ def interval_overlap(a, b, closed=None):
     if closed is None:
         if a.right < b.right:
             right = a.right
-            right_closed = a.closed in ('right', 'both')
+            right_closed = a.closed in ("right", "both")
             other_iv = b
         else:
             right = b.right
-            right_closed = b.closed in ('right', 'both')
+            right_closed = b.closed in ("right", "both")
             other_iv = a
-        if right_closed and right == other_iv.right and other_iv.closed not in ('right', 'both'):
+        if (
+            right_closed
+            and right == other_iv.right
+            and other_iv.closed not in ("right", "both")
+        ):
             right_closed = False
-        left_closed = b.closed in ('left', 'both')
-        if left_closed and a.left == b.left and a.closed not in ('left', 'both'):
+        left_closed = b.closed in ("left", "both")
+        if left_closed and a.left == b.left and a.closed not in ("left", "both"):
             left_closed = False
 
         if left_closed and right_closed:
-            closed = 'both'
+            closed = "both"
         elif left_closed:
-            closed = 'left'
+            closed = "left"
         elif right_closed:
-            closed = 'right'
+            closed = "right"
         else:
-            closed = 'neither'
+            closed = "neither"
     else:
         right = a.right if a.right < b.right else b.right
     return pd.Interval(b.left, right, closed=closed)
@@ -1483,18 +1806,18 @@ def interval_overlap_size(a, b, decimals=3):
     return round(result, decimals)
 
 
-@function_logger
 def is_any_row_equal(df1, df2):
-    """ Returns True if any two rows of the two DataFrames contain the same value tuples. """
-    assert len(df1.columns) == len(df2.columns), "Pass the same number of columns for both DataFrames"
+    """Returns True if any two rows of the two DataFrames contain the same value tuples."""
+    assert len(df1.columns) == len(
+        df2.columns
+    ), "Pass the same number of columns for both DataFrames"
     v1 = set(df1.itertuples(index=False, name=None))
     v2 = set(df2.itertuples(index=False, name=None))
     return v1.intersection(v2)
 
 
 def is_minor_mode(fifths, minor=False):
-    """ Returns True if the scale degree `fifths` naturally has a minor third in the scale.
-    """
+    """Returns True if the scale degree `fifths` naturally has a minor third in the scale."""
     thirds = [-4, -3, -2, -1, 0, 1, 2] if minor else [3, 4, 5, -1, 0, 1, 2]
     third = thirds[(fifths + 1) % 7] - fifths
     return third == -3
@@ -1511,8 +1834,8 @@ def iter_nested(nested):
 
 
 def iter_selection(collectio, selector=None, opposite=False):
-    """ Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
-    elements -- depending on ``opposite`` """
+    """Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
+    elements -- depending on ``opposite``"""
     if selector is None:
         for e in collectio:
             yield e
@@ -1530,14 +1853,14 @@ def iterable2str(iterable):
     if isinstance(iterable, str):
         return iterable
     try:
-        return ', '.join(str(s) for s in iterable)
+        return ", ".join(str(s) for s in iterable)
     except Exception:
         return iterable
 
 
 def contains_metadata(path):
     for _, _, files in os.walk(path):
-        return any(f == 'metadata.tsv' for f in files)
+        return any(f == "metadata.tsv" for f in files)
 
 
 def first_level_subdirs(path):
@@ -1552,37 +1875,46 @@ def first_level_files_and_subdirs(path):
         return subdirs, files
 
 
-@function_logger
-def contains_corpus_indicator(path):
+def contains_corpus_indicator(path, logger=None):
+    if logger is None:
+        logger = module_logger
     for subdir in first_level_subdirs(path):
         if subdir in STANDARD_NAMES_OR_GIT:
-            logger.debug(f"{path} contains a subdirectory called {subdir} and is assumed to be a corpus.")
+            logger.debug(
+                f"{path} contains a subdirectory called {subdir} and is assumed to be a corpus."
+            )
             return True
     return False
 
 
-@function_logger
-def get_first_level_corpora(path: str) -> List[str]:
+def get_first_level_corpora(path: str, logger=None) -> List[str]:
     """Checks the first-level subdirectories of path for indicators of being a corpus. If one of them shows an
     indicator (presence of a 'metadata.tsv' file, or of a '.git' folder or any of the default folder names), returns
     a list of all subdirectories.
     """
+    if logger is None:
+        logger = module_logger
     if path is None or not os.path.isdir(path):
         logger.info(f"{path} is not an existing directory.")
         return
-    subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
+    subpaths = [
+        os.path.join(path, subdir)
+        for subdir in first_level_subdirs(path)
+        if subdir[0] != "."
+    ]
     for subpath in subpaths:
         if contains_metadata(subpath):
-            logger.debug(f"{subpath} recognized as corpus directory because it contains metadata.")
+            logger.debug(
+                f"{subpath} recognized as corpus directory because it contains metadata."
+            )
             return subpaths
         if contains_corpus_indicator(subpath, logger=logger):
             return subpaths
     return []
 
 
-@function_logger
-def join_tsvs(dfs, sort_cols=False):
-    """ Performs outer join on the passed DataFrames based on 'mc' and 'mc_onset', if any.
+def join_tsvs(dfs, sort_cols=False, logger=None):
+    """Performs outer join on the passed DataFrames based on 'mc' and 'mc_onset', if any.
     Uses: functools.reduce(), sort_cols(), sort_note_lists()
 
     Parameters
@@ -1597,12 +1929,14 @@ def join_tsvs(dfs, sort_cols=False):
     -------
 
     """
+    if logger is None:
+        logger = module_logger
     if len(dfs) == 1:
         return dfs[0]
     zero, one, two = [], [], []
     for df in dfs:
-        if 'mc' in df.columns:
-            if 'mc_onset' in df.columns:
+        if "mc" in df.columns:
+            if "mc_onset" in df.columns:
                 two.append(df)
             else:
                 one.append(df)
@@ -1610,14 +1944,18 @@ def join_tsvs(dfs, sort_cols=False):
             zero.append(df)
     join_order = two + one
     if len(zero) > 0:
-        logger.info(f"{len(zero)} DataFrames contain none of the columns 'mc' and 'mc_onset'.")
+        logger.info(
+            f"{len(zero)} DataFrames contain none of the columns 'mc' and 'mc_onset'."
+        )
 
-    pos_cols = ['mc', 'mc_onset']
+    pos_cols = ["mc", "mc_onset"]
 
     def join_tsv(a, b):
         join_cols = [c for c in pos_cols if c in a.columns and c in b.columns]
-        res = pd.merge(a, b, how='outer', on=join_cols, suffixes=('', '_y')).reset_index(drop=True)
-        duplicates = [col for col in res.columns if col.endswith('_y')]
+        res = pd.merge(
+            a, b, how="outer", on=join_cols, suffixes=("", "_y")
+        ).reset_index(drop=True)
+        duplicates = [col for col in res.columns if col.endswith("_y")]
         for d in duplicates:
             left = d[:-2]
             if res[left].isna().any():
@@ -1625,28 +1963,31 @@ def join_tsvs(dfs, sort_cols=False):
         return res.drop(columns=duplicates)
 
     res = reduce(join_tsv, join_order)
-    if 'midi' in res.columns:
+    if "midi" in res.columns:
         res = sort_note_list(res)
     elif len(two) > 0:
         res = res.sort_values(pos_cols)
     else:
-        res = res.sort_values('mc')
+        res = res.sort_values("mc")
     return column_order(res, sort=sort_cols).reset_index(drop=True)
 
 
-def str2inttuple(l: str, strict: bool = True) -> Tuple[int]:
-    l = l.strip('(),')
-    if l == '':
+def str2inttuple(tuple_string: str, strict: bool = True) -> Tuple[int]:
+    tuple_string = tuple_string.strip("(),")
+    if tuple_string == "":
         return tuple()
     res = []
-    for s in l.split(', '):
+    for s in tuple_string.split(", "):
         try:
             res.append(int(s))
         except ValueError:
             if strict:
-                print(f"String value '{s}' could not be converted to an integer, '{l}' not to an integer tuple.")
+                print(
+                    f"String value '{s}' could not be converted to an integer, "
+                    f"'{tuple_string}' not to an integer tuple."
+                )
                 raise
-            if s[0] == s[-1] and s[0] in ("\"", "\'"):
+            if s[0] == s[-1] and s[0] in ('"', "'"):
                 s = s[1:-1]
             try:
                 res.append(int(s))
@@ -1676,9 +2017,6 @@ def safe_int(s) -> Union[int, str]:
         return s
 
 
-
-
-
 def tuple_to_list_recursive(t):
     if isinstance(t, (tuple, list)):
         return [tuple_to_list_recursive(e) for e in t]
@@ -1694,8 +2032,8 @@ def eval_string_to_nested_list(s):
         return s
 
 
-def parse_interval_index_column(df, column=None, closed='left'):
-    """ Turns a column of strings in the form '[0.0, 1.1)' into a :obj:`pandas.IntervalIndex`.
+def parse_interval_index_column(df, column=None, closed="left"):
+    """Turns a column of strings in the form '[0.0, 1.1)' into a :obj:`pandas.IntervalIndex`.
 
     Parameters
     ----------
@@ -1720,293 +2058,313 @@ def parse_interval_index_column(df, column=None, closed='left'):
 
 
 TSV_COLUMN_CONVERTERS = {
-    'added_tones': str2inttuple,
-    'act_dur': safe_frac,
-    'composed_end': safe_int,
-    'composed_start': safe_int,
-    'chord_tones': str2inttuple,
-    'globalkey_is_minor': int2bool,
-    'localkey_is_minor': int2bool,
-    'mc_offset': safe_frac,
-    'mc_onset': safe_frac,
-    'mn_onset': safe_frac,
-    'movementNumber': safe_int,
-    'next': str2inttuple,
-    'nominal_duration': safe_frac,
-    'quarterbeats': safe_frac,
-    'quarterbeats_all_endings': safe_frac,
-    'onset': safe_frac,
-    'duration': safe_frac,
-    'scalar': safe_frac,
-    'volta_mcs': eval_string_to_nested_list,
+    "added_tones": str2inttuple,
+    "act_dur": safe_frac,
+    "composed_end": safe_int,
+    "composed_start": safe_int,
+    "chord_tones": str2inttuple,
+    "globalkey_is_minor": int2bool,
+    "localkey_is_minor": int2bool,
+    "mc_offset": safe_frac,
+    "mc_onset": safe_frac,
+    "mn_onset": safe_frac,
+    "movementNumber": safe_int,
+    "next": str2inttuple,
+    "nominal_duration": safe_frac,
+    "quarterbeats": safe_frac,
+    "quarterbeats_all_endings": safe_frac,
+    "onset": safe_frac,
+    "duration": safe_frac,
+    "scalar": safe_frac,
+    "volta_mcs": eval_string_to_nested_list,
 }
 
 TSV_COLUMN_TITLES = {
-    'absolute_base': 'Int64',
-    'absolute_root': 'Absolute Root',
-    'act_dur': 'Actual Length',
-    'added_tones': 'Added Tones',
-    'alt_label': 'Alternative Label',
-    'barline': 'Barline',
-    'base': 'Base',
-    'bass_note': 'Bass Note',
-    'breaks': 'Breaks',
-    'cadence': 'Cadence',
-    'cadences_id': 'Cadence ID',
-    'changes': 'Changes',
-    'chord': 'Chord',
-    'chord_id': 'Chord ID',
-    'chord_tones': 'Chord Tones',
-    'chord_type': 'Chord Type',
-    'color_a': 'Color Alpha',
-    'color_b': 'Color Blue',
-    'color_g': 'Color Green',
-    'color_html': 'Color HTML',
-    'color_name': 'Color Name',
-    'color_r': 'Color Red',
-    'composed_end': 'Latest Composition Year',
-    'composed_start': 'Earliest Composition Year',
-    'corpus': 'Corpus',
-    'dont_count': 'Exclude from measure count',
-    'duration': 'Duration',
-    'duration_qb': 'Duration in ♩',
-    'expanded_id': 'Label ID',
-    'figbass': 'Chord Inversion',
-    'fname': "Piece identifier",
-    'form': 'Chord Category',
-    'globalkey': 'Global Key',
-    'globalkey_is_minor': 'Global Key is Minor',
-    'gracenote': 'Grace Note',
-    'harmonies_id': 'Label ID',
-    'harmony_layer': 'Harmony Encoding Layer',
-    'i': 'Index',
-    'keysig': 'Key Signature',
-    'label': 'Label',
-    'label_type': 'Label Type',
-    'leftParen': 'Left Parenthesis',
-    'localkey': 'Local Key',
-    'localkey_is_minor': 'Local Key is Minor',
-    'marker': 'Marker',
-    'mc': 'Measure Count',
-    'mc_offset': 'Offset of Encoded Measure',
-    'mc_onset': 'Offset within Encoded Measure',
-    'mc_playthrough': 'Measure Count Unfolded',
-    'midi': 'MIDI pitch',
-    'mn': 'Measure Number',
-    'mn_onset': 'Offset within Logical Measure',
-    'movementNumber': 'Movement Number',
-    'name': 'Name',
-    'nashville': 'Nashville',
-    'next': 'Next Measure Counts',
-    'nominal_duration': 'Nominal Duration',
-    'notes_id': 'Notes ID',
-    'numbering_offset': 'Numbering Offset',
-    'numeral': 'Roman Numeral',
-    'octave': 'Octave',
-    'offset:x': 'Horizontal Offset',
-    'offset:y': 'Vertical Offset',
-    'offset_x': 'Horizontal Offset',
-    'offset_y': 'Vertical Offset',
+    "absolute_base": "Int64",
+    "absolute_root": "Absolute Root",
+    "act_dur": "Actual Length",
+    "added_tones": "Added Tones",
+    "alt_label": "Alternative Label",
+    "barline": "Barline",
+    "base": "Base",
+    "bass_note": "Bass Note",
+    "breaks": "Breaks",
+    "cadence": "Cadence",
+    "cadences_id": "Cadence ID",
+    "changes": "Changes",
+    "chord": "Chord",
+    "chord_id": "Chord ID",
+    "chord_tones": "Chord Tones",
+    "chord_type": "Chord Type",
+    "color_a": "Color Alpha",
+    "color_b": "Color Blue",
+    "color_g": "Color Green",
+    "color_html": "Color HTML",
+    "color_name": "Color Name",
+    "color_r": "Color Red",
+    "composed_end": "Latest Composition Year",
+    "composed_start": "Earliest Composition Year",
+    "corpus": "Corpus",
+    "dont_count": "Exclude from measure count",
+    "duration": "Duration",
+    "duration_qb": "Duration in ♩",
+    "expanded_id": "Label ID",
+    "figbass": "Chord Inversion",
+    "fname": "Piece identifier",
+    "form": "Chord Category",
+    "globalkey": "Global Key",
+    "globalkey_is_minor": "Global Key is Minor",
+    "gracenote": "Grace Note",
+    "harmonies_id": "Label ID",
+    "harmony_layer": "Harmony Encoding Layer",
+    "i": "Index",
+    "keysig": "Key Signature",
+    "label": "Label",
+    "label_type": "Label Type",
+    "leftParen": "Left Parenthesis",
+    "localkey": "Local Key",
+    "localkey_is_minor": "Local Key is Minor",
+    "marker": "Marker",
+    "mc": "Measure Count",
+    "mc_offset": "Offset of Encoded Measure",
+    "mc_onset": "Offset within Encoded Measure",
+    "mc_playthrough": "Measure Count Unfolded",
+    "midi": "MIDI pitch",
+    "mn": "Measure Number",
+    "mn_onset": "Offset within Logical Measure",
+    "movementNumber": "Movement Number",
+    "name": "Name",
+    "nashville": "Nashville",
+    "next": "Next Measure Counts",
+    "nominal_duration": "Nominal Duration",
+    "notes_id": "Notes ID",
+    "numbering_offset": "Numbering Offset",
+    "numeral": "Roman Numeral",
+    "octave": "Octave",
+    "offset:x": "Horizontal Offset",
+    "offset:y": "Vertical Offset",
+    "offset_x": "Horizontal Offset",
+    "offset_y": "Vertical Offset",
     # 'onset':
-    'pedal': 'Pedal Point',
-    'phraseend': 'Phrase Annotation',
-    'piece': 'Piece identifier',
+    "pedal": "Pedal Point",
+    "phraseend": "Phrase Annotation",
+    "piece": "Piece identifier",
     # 'playthrough':
-    'quarterbeats': 'Offset from Beginning',
-    'quarterbeats_all_endings': 'Offset from Beginning (Including Endings)',
-    'regex_match': 'Regular Expression Match',
-    'relativeroot': 'Relative Root',
-    'repeats': 'Repeats',
-    'rightParen': 'Right Parenthesis',
-    'root': 'Root',
-    'rootCase': 'Root Case',
-    'scalar': 'Scalar',
-    'slur': 'Slur',
-    'special': 'Special Label',
-    'staff': 'Staff',
-    'tied': 'Tied Note',
-    'timesig': 'Time Signature',
-    'tpc': 'Tonal Pitch Class',
-    'voice': 'Notational Layer',
+    "quarterbeats": "Offset from Beginning",
+    "quarterbeats_all_endings": "Offset from Beginning (Including Endings)",
+    "regex_match": "Regular Expression Match",
+    "relativeroot": "Relative Root",
+    "repeats": "Repeats",
+    "rightParen": "Right Parenthesis",
+    "root": "Root",
+    "rootCase": "Root Case",
+    "scalar": "Scalar",
+    "slur": "Slur",
+    "special": "Special Label",
+    "staff": "Staff",
+    "tied": "Tied Note",
+    "timesig": "Time Signature",
+    "tpc": "Tonal Pitch Class",
+    "voice": "Notational Layer",
     # 'voices': 'Voices',
-    'volta': 'Volta',
-    'volta_mcs': 'Volta Measure Counts',
+    "volta": "Volta",
+    "volta_mcs": "Volta Measure Counts",
 }
 
 TSV_COLUMN_DESCRIPTIONS = {
-    'absolute_base': 'MuseScore encoding the bass pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc.',
-    'absolute_root': 'MuseScore encoding the root pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc.',
-    'act_dur': 'How long a measure actually lasts, which can deviate from the time signature. Relevant, for example, for pickup measures, split measures, cadenzas.',
-    'added_tones': 'Chord tones considered as added, expressed as fifth intervals relative to the local tonic.',
-    'alt_label': 'Another interpretation of the same chord which the annotator finds equally or slightly less convincing.',
-    'barline': 'Name of non-default barline.',
-    'base': 'Base',
-    'bass_note': 'Loweste note designated by the chord label, expressed as fifth intervals relative to the local tonic.',
-    'breaks': 'Can be "section" or "line".',
-    'cadence': 'PAC, IAC, EC, DC, PC, HC, and HC subtypes such as HC.SIM',
-    'cadences_id': 'Row in the cadence table.',
-    'changes': 'Alterations, suspensions, additions, and omissions, written within parentheses in the chord label.',
-    'chord': 'The part of an annotation label that corresponds to the actual chord label.',
-    'chord_id': 'Row in the chords table.',
-    'chord_tones': 'Tones expressed by the label, as fifth intervals relative to the local tonic.',
-    'chord_type': "'M', 'm', 'o', '+', 'mm7', 'Mm7', 'MM7', 'mM7', 'o7', '%7', '+7', '+M7'",
-    'color_a': 'Value between 0 and 255',
-    'color_b': 'Value between 0 and 255',
-    'color_g': 'Value between 0 and 255',
-    'color_html': 'A hexadicmal RGB value, e.g. #FF0000',
-    'color_name': 'Can be a CSS name or one of the names for MuseScore colors stored in ms3.utils.MS3_HTML',
-    'color_r': 'Value between 0 and 255',
-    'composed_end': 'Latest possible year of composition.',
-    'composed_start': 'Earliest possible year of composition.',
-    'corpus': 'Name of a group of pieces',
-    'dont_count': 'Is 1 if this MC does not increase the measure number counter, according to the MuseScore setting.',
-    'duration': 'As fraction of a whole note.',
-    'duration_qb': 'A float corresponding to duration * 4',
-    'expanded_id': 'Row in the expanded table.',
-    'figbass': '7, 65, 43, 2, 64, 6 or empty for root position.',
-    'fname': 'Name identifier (filename without suffixes) of a piece',
-    'form': '%, o, +, M, +M',
-    'globalkey': 'The key of the entire piece as note name, lowercase designating a minor key.',
-    'globalkey_is_minor': 'Boolean that is 1 if the piece is in minor and 0 if it is in major.',
-    'gracenote': 'Name given to a type of grace note in the MuseScore encoding, e.g. "grace16"',
-    'harmonies_id': 'Row in the expanded table.',
-    'harmony_layer': '0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",\n1: "MuseScore\'s Roman Numeral Annotation format",\n2: "MuseScore\'s Nashville Number format",\n3: "Absolute chord encoded by MuseScore',
-    'i': 'An integer serving as row ID',
-    'keysig': 'Positive integer for number of sharps, negative integer for number of flats.',
-    'label': 'String corresponding to the entire annotation label.',
-    'label_type': 'Previous name of what now is called "regex_match".',
-    'leftParen': 'Pertaining to MuseScore encoding.',
-    'localkey': 'The key that a Roman numeral is relative to, expressed as a Roman numeral relative to the global key.',
-    'localkey_is_minor': 'Boolean that is 1 if the local key is minor and 0 if it is major.',
-    'marker': 'Pertaining to MuseScore encoding.',
-    'mc': 'Running count of encoded <Measure> tags which do not necessarily express a full measure (e.g. in case of an anacrusis).',
-    'mc_offset': 'Distance of a <Measure> from the beginning of the logical measure, expressed as fraction of a whole note. Relevant only for split and anacrusis measures, 0 otherwise.',
-    'mc_onset': 'Distance of an event from the beginning of the <Measure> tag.',
-    'mc_playthrough': 'Has the function of the "mc" column in tables with unfolded repeats where "mc" is not unique.',
-    'midi': 'Value between 0 and 127 where 60 = C4, 61 = C#4/Db4, etc.',
-    'mn': 'Measure number as printed in the score, computed from mc, dont_count and numbering_offset.',
-    'mn_onset': 'Distance from the beginning of the logical measure. Relevant, for example, to compute the metric position of an event.',
-    'movementNumber': 'Metadata field for the number of a movement. Should be specified as integer, not as a Roman number.',
-    'name': '',
-    'nashville': 'Numbering system that specifies the root of a chord as scale degree of the local key, e.g. "1", "b3", "#5", "b7".',
-    'next': 'The "mc" values of all <Measure> tags that can follow this one, specified as a tuple of integers.',
-    'nominal_duration': 'The duration corresponding to a note/rest value without applying any dots or n-tuplets, as fraction of a whole note. Multiplied with "scalar" to yield the actual duration of the note/rest.',
-    'notes_id': 'Row in the notes table.',
-    'numbering_offset': 'An integer to be added to the measure number count, as specified in MuseScore.',
-    'numeral': 'The Roman numeral part of a DCML label, lowercase for all chords with a minor third.',
-    'octave': 'Octave number where 4 is the middle octave (\' in Helmholtz notation).',
-    'offset:x': 'Pertaining to MuseScore encoding.',
-    'offset:y': 'Pertaining to MuseScore encoding.',
-    'offset_x': 'Pertaining to MuseScore encoding.',
-    'offset_y': 'Pertaining to MuseScore encoding.',
+    "absolute_base": "MuseScore encoding the bass pitch class of an absolute chord label, as MuseScore tonal pitch "
+    "class such that C=14, G=15, etc.",
+    "absolute_root": "MuseScore encoding the root pitch class of an absolute chord label, as MuseScore tonal pitch "
+    "class such that C=14, G=15, etc.",
+    "act_dur": "How long a measure actually lasts, which can deviate from the time signature. Relevant, for example, "
+    "for pickup measures, split measures, cadenzas.",
+    "added_tones": "Chord tones considered as added, expressed as fifth intervals relative to the local tonic.",
+    "alt_label": "Another interpretation of the same chord which the annotator finds equally or slightly less "
+    "convincing.",
+    "barline": "Name of non-default barline.",
+    "base": "Base",
+    "bass_note": "Loweste note designated by the chord label, expressed as fifth intervals relative to the local "
+    "tonic.",
+    "breaks": 'Can be "section" or "line".',
+    "cadence": "PAC, IAC, EC, DC, PC, HC, and HC subtypes such as HC.SIM",
+    "cadences_id": "Row in the cadence table.",
+    "changes": "Alterations, suspensions, additions, and omissions, written within parentheses in the chord label.",
+    "chord": "The part of an annotation label that corresponds to the actual chord label.",
+    "chord_id": "Row in the chords table.",
+    "chord_tones": "Tones expressed by the label, as fifth intervals relative to the local tonic.",
+    "chord_type": "'M', 'm', 'o', '+', 'mm7', 'Mm7', 'MM7', 'mM7', 'o7', '%7', '+7', '+M7'",
+    "color_a": "Value between 0 and 255",
+    "color_b": "Value between 0 and 255",
+    "color_g": "Value between 0 and 255",
+    "color_html": "A hexadicmal RGB value, e.g. #FF0000",
+    "color_name": "Can be a CSS name or one of the names for MuseScore colors stored in ms3.utils.MS3_HTML",
+    "color_r": "Value between 0 and 255",
+    "composed_end": "Latest possible year of composition.",
+    "composed_start": "Earliest possible year of composition.",
+    "corpus": "Name of a group of pieces",
+    "dont_count": "Is 1 if this MC does not increase the measure number counter, according to the MuseScore setting.",
+    "duration": "As fraction of a whole note.",
+    "duration_qb": "A float corresponding to duration * 4",
+    "expanded_id": "Row in the expanded table.",
+    "figbass": "7, 65, 43, 2, 64, 6 or empty for root position.",
+    "fname": "Name identifier (filename without suffixes) of a piece",
+    "form": "%, o, +, M, +M",
+    "globalkey": "The key of the entire piece as note name, lowercase designating a minor key.",
+    "globalkey_is_minor": "Boolean that is 1 if the piece is in minor and 0 if it is in major.",
+    "gracenote": 'Name given to a type of grace note in the MuseScore encoding, e.g. "grace16"',
+    "harmonies_id": "Row in the expanded table.",
+    "harmony_layer": '0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; '
+    'prevent through leading dot)",\n1: "MuseScore\'s Roman Numeral Annotation format",'
+    "\n2: \"MuseScore's Nashville "
+    'Number format",\n3: "Absolute chord encoded by MuseScore',
+    "i": "An integer serving as row ID",
+    "keysig": "Positive integer for number of sharps, negative integer for number of flats.",
+    "label": "String corresponding to the entire annotation label.",
+    "label_type": 'Previous name of what now is called "regex_match".',
+    "leftParen": "Pertaining to MuseScore encoding.",
+    "localkey": "The key that a Roman numeral is relative to, expressed as a Roman numeral relative to the global key.",
+    "localkey_is_minor": "Boolean that is 1 if the local key is minor and 0 if it is major.",
+    "marker": "Pertaining to MuseScore encoding.",
+    "mc": "Running count of encoded <Measure> tags which do not necessarily express a full measure (e.g. in case of "
+    "an anacrusis).",
+    "mc_offset": "Distance of a <Measure> from the beginning of the logical measure, expressed as fraction of a whole "
+    "note. Relevant only for split and anacrusis measures, 0 otherwise.",
+    "mc_onset": "Distance of an event from the beginning of the <Measure> tag.",
+    "mc_playthrough": 'Has the function of the "mc" column in tables with unfolded repeats where "mc" is not unique.',
+    "midi": "Value between 0 and 127 where 60 = C4, 61 = C#4/Db4, etc.",
+    "mn": "Measure number as printed in the score, computed from mc, dont_count and numbering_offset.",
+    "mn_onset": "Distance from the beginning of the logical measure. Relevant, for example, to compute the metric "
+    "position of an event.",
+    "movementNumber": "Metadata field for the number of a movement. Should be specified as integer, not as a Roman "
+    "number.",
+    "name": "",
+    "nashville": 'Numbering system that specifies the root of a chord as scale degree of the local key, e.g. "1", '
+    '"b3", "#5", "b7".',
+    "next": 'The "mc" values of all <Measure> tags that can follow this one, specified as a tuple of integers.',
+    "nominal_duration": "The duration corresponding to a note/rest value without applying any dots or n-tuplets, "
+    'as fraction of a whole note. Multiplied with "scalar" to yield the actual duration of the '
+    "note/rest.",
+    "notes_id": "Row in the notes table.",
+    "numbering_offset": "An integer to be added to the measure number count, as specified in MuseScore.",
+    "numeral": "The Roman numeral part of a DCML label, lowercase for all chords with a minor third.",
+    "octave": "Octave number where 4 is the middle octave (' in Helmholtz notation).",
+    "offset:x": "Pertaining to MuseScore encoding.",
+    "offset:y": "Pertaining to MuseScore encoding.",
+    "offset_x": "Pertaining to MuseScore encoding.",
+    "offset_y": "Pertaining to MuseScore encoding.",
     # 'onset':
-    'pedal': 'Specified as Roman numeral.',
-    'phraseend': 'The phrase annotation part of a DCML label, can be {, }, or }{. In an older version, the only label was \\\\',
-    'piece': 'Name identifier (filename without suffixes) of a piece',
+    "pedal": "Specified as Roman numeral.",
+    "phraseend": "The phrase annotation part of a DCML label, can be {, }, or }{. In an older version, the only label "
+    "was \\\\",
+    "piece": "Name identifier (filename without suffixes) of a piece",
     # 'playthrough':
-    'quarterbeats': 'Distance of an event from the piece\'s beginning. By default, only second endings are taken into account to reflect the proportions of a simply playthrough without repeats.',
-    'quarterbeats_all_endings': 'Distance from the piece\'s beginning, taking all endings into account for addressability purposes.',
-    'regex_match': 'The name of the first registered regular expression matching a label. By default, these include "dcml" and "form_labels".',
-    'relativeroot': 'The Roman numeral following the / in applied chords. Can itself include a /. For example, V/V if the label pertains to the major scale on the second scale degree.',
-    'repeats': 'Can be "start", "end", "firstMeasure", "lastMeasure"',
-    'rightParen': 'Pertaining to MuseScore encoding.',
-    'root': 'Pertaining to MuseScore encoding.',
-    'rootCase': 'Pertaining to MuseScore encoding.',
-    'scalar': 'Decimal value reflecting all dots and n-tuplets modifying the duration of a note/rest. Yields the actual duration when multiplied with "nominal_duration".',
-    'slur': 'IDs of active slurs that a chord falls under, as a tuple of integers.',
-    'special': 'Column where special labels such as "Fr6" or "Ger65" are stored which are converted internally to Roman numerals.',
-    'staff': 'Number of the staff where an event occurs, 1 designating the top staff.',
-    'tied': '1 if a note is tied to the following one, -1 if it is being tied to by the previous one, 0 if both.',
-    'timesig': 'Given as string, e.g. "4/4".',
-    'tpc': 'Specified on the line of fifths such that 0 = C, 1 = G, -1 = F, etc.',
-    'voice': 'A number between 1-4 where 1 is MuseScore\'s default layer (blue), 2 the second layer in green with downward stems, etc.',
+    "quarterbeats": "Distance of an event from the piece's beginning. By default, only second endings are taken into "
+    "account to reflect the proportions of a simply playthrough without repeats.",
+    "quarterbeats_all_endings": "Distance from the piece's beginning, taking all endings into account for "
+    "addressability purposes.",
+    "regex_match": "The name of the first registered regular expression matching a label. By default, these include "
+    '"dcml" and "form_labels".',
+    "relativeroot": "The Roman numeral following the / in applied chords. Can itself include a /. For example, "
+    "V/V if the label pertains to the major scale on the second scale degree.",
+    "repeats": 'Can be "start", "end", "firstMeasure", "lastMeasure"',
+    "rightParen": "Pertaining to MuseScore encoding.",
+    "root": "Pertaining to MuseScore encoding.",
+    "rootCase": "Pertaining to MuseScore encoding.",
+    "scalar": "Decimal value reflecting all dots and n-tuplets modifying the duration of a note/rest. Yields the "
+    'actual duration when multiplied with "nominal_duration".',
+    "slur": "IDs of active slurs that a chord falls under, as a tuple of integers.",
+    "special": 'Column where special labels such as "Fr6" or "Ger65" are stored which are converted internally to '
+    "Roman numerals.",
+    "staff": "Number of the staff where an event occurs, 1 designating the top staff.",
+    "tied": "1 if a note is tied to the following one, -1 if it is being tied to by the previous one, 0 if both.",
+    "timesig": 'Given as string, e.g. "4/4".',
+    "tpc": "Specified on the line of fifths such that 0 = C, 1 = G, -1 = F, etc.",
+    "voice": "A number between 1-4 where 1 is MuseScore's default layer (blue), 2 the second layer in green with "
+    "downward stems, etc.",
     # 'voices': 'Voices',
-    'volta': 'Number of an ending bracket, given as integer.',
-    'volta_mcs': 'For each group of alternative endings, a nested list where each inner list contains the "mc" values of the <Measure> tags grouped into one ending.',
+    "volta": "Number of an ending bracket, given as integer.",
+    "volta_mcs": 'For each group of alternative endings, a nested list where each inner list contains the "mc" values '
+    "of the <Measure> tags grouped into one ending.",
 }
 
 TSV_DTYPES = {
-    'absolute_base': 'Int64',
-    'absolute_root': 'Int64',
-    'alt_label': str,
-    'barline': str,
-    'base': 'Int64',
-    'bass_note': 'Int64',
-    'breaks': 'string',
-    'cadence': str,
-    'cadences_id': 'Int64',
-    'changes': str,
-    'chord': str,
-    'chord_id': 'Int64',
-    'chord_type': str,
-    'color_name': str,
-    'color_html': str,
-    'color_r': 'Int64',
-    'color_g': 'Int64',
-    'color_b': 'Int64',
-    'color_a': 'Int64',
-    'corpus': str,
-    'dont_count': 'Int64',
-    'duration_qb': float,
-    'expanded_id': 'Int64',
-    'figbass': str,
-    'fname': str,
-    'form': str,
-    'globalkey': str,
-    'gracenote': str,
-    'harmonies_id': 'Int64',
-    'harmony_layer': str,
-    'i': int,
-    'keysig': 'Int64',
-    'label': str,
-    'label_type': str,
-    'leftParen': str,
-    'localkey': str,
-    'marker': str,
-    'mc': 'Int64',
-    'mc_playthrough': 'Int64',
-    'midi': 'Int64',
-    'mn': str,
-    'name': str,
-    'offset:x': str,
-    'offset_x': str,
-    'offset:y': str,
-    'offset_y': str,
-    'nashville': 'Int64',
-    'notes_id': 'Int64',
-    'numbering_offset': 'Int64',
-    'numeral': str,
-    'octave': 'Int64',
-    'pedal': str,
-    'piece': str,
-    'phraseend': str,
-    'playthrough': 'Int64',
-    'regex_match': str,
-    'relativeroot': str,
-    'repeats': str,
-    'rightParen': str,
-    'root': 'Int64',
-    'rootCase': 'Int64',
-    'slur': str,
-    'special': str,
-    'staff': 'Int64',
-    'tied': 'Int64',
-    'timesig': str,
-    'tpc': 'Int64',
-    'voice': 'Int64',
+    "absolute_base": "Int64",
+    "absolute_root": "Int64",
+    "alt_label": str,
+    "barline": str,
+    "base": "Int64",
+    "bass_note": "Int64",
+    "breaks": "string",
+    "cadence": str,
+    "cadences_id": "Int64",
+    "changes": str,
+    "chord": str,
+    "chord_id": "Int64",
+    "chord_type": str,
+    "color_name": str,
+    "color_html": str,
+    "color_r": "Int64",
+    "color_g": "Int64",
+    "color_b": "Int64",
+    "color_a": "Int64",
+    "corpus": str,
+    "dont_count": "Int64",
+    "duration_qb": float,
+    "expanded_id": "Int64",
+    "figbass": str,
+    "fname": str,
+    "form": str,
+    "globalkey": str,
+    "gracenote": str,
+    "harmonies_id": "Int64",
+    "harmony_layer": str,
+    "i": int,
+    "keysig": "Int64",
+    "label": str,
+    "label_type": str,
+    "leftParen": str,
+    "localkey": str,
+    "marker": str,
+    "mc": "Int64",
+    "mc_playthrough": "Int64",
+    "midi": "Int64",
+    "mn": str,
+    "name": str,
+    "offset:x": str,
+    "offset_x": str,
+    "offset:y": str,
+    "offset_y": str,
+    "nashville": "Int64",
+    "notes_id": "Int64",
+    "numbering_offset": "Int64",
+    "numeral": str,
+    "octave": "Int64",
+    "pedal": str,
+    "piece": str,
+    "phraseend": str,
+    "playthrough": "Int64",
+    "regex_match": str,
+    "relativeroot": str,
+    "repeats": str,
+    "rightParen": str,
+    "root": "Int64",
+    "rootCase": "Int64",
+    "slur": str,
+    "special": str,
+    "staff": "Int64",
+    "tied": "Int64",
+    "timesig": str,
+    "tpc": "Int64",
+    "voice": "Int64",
     # 'voices': 'Int64',
-    'volta': 'Int64',
+    "volta": "Int64",
 }
 
 
-def load_tsv(path,
-             index_col=None,
-             sep='\t',
-             converters={},
-             dtype={},
-             stringtype=False,
-             **kwargs) -> Optional[pd.DataFrame]:
-    """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
+def load_tsv(
+    path, index_col=None, sep="\t", converters={}, dtype={}, stringtype=False, **kwargs
+) -> Optional[pd.DataFrame]:
+    """Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
     Parameters
     ----------
@@ -2039,25 +2397,25 @@ def load_tsv(path,
         types.update(dtype)
 
     if stringtype:
-        types = {col: 'string' if typ == str else typ for col, typ in types.items()}
+        types = {col: "string" if typ == str else typ for col, typ in types.items()}
     try:
-        df = pd.read_csv(path, sep=sep, index_col=index_col,
-                         dtype=types,
-                         converters=conv, **kwargs)
+        df = pd.read_csv(
+            path, sep=sep, index_col=index_col, dtype=types, converters=conv, **kwargs
+        )
     except EmptyDataError:
         return
-    if 'mn' in df:
+    if "mn" in df:
         mn_volta = mn2int(df.mn)
         df.mn = mn_volta.mn
         if mn_volta.volta.notna().any():
-            if 'volta' not in df.columns:
-                df['volta'] = pd.Series(pd.NA, index=df.index).astype('Int64')
+            if "volta" not in df.columns:
+                df["volta"] = pd.Series(pd.NA, index=df.index).astype("Int64")
             df.volta.fillna(mn_volta.volta, inplace=True)
-    if 'interval' in df:
+    if "interval" in df:
         try:
-            iv_index = parse_interval_index_column(df, 'interval')
+            iv_index = parse_interval_index_column(df, "interval")
             df.index = iv_index
-            df = df.drop(columns='interval')
+            df = df.drop(columns="interval")
         except Exception:
             pass
     return df
@@ -2065,19 +2423,26 @@ def load_tsv(path,
 
 @cache
 def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
-    mapping = defaultdict(lambda: 'string')
-    mapping.update({
-        'Int64': 'integer',
-        str: 'string',
-        'string': 'string',
-        float: 'float',
-        int: 'integer',
-        int2bool: 'boolean',
-        safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
-        safe_int: 'integer',
-        str2inttuple: {"base": "string", "format": r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$"},
-    })
-    column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
+    mapping = defaultdict(lambda: "string")
+    mapping.update(
+        {
+            "Int64": "integer",
+            str: "string",
+            "string": "string",
+            float: "float",
+            int: "integer",
+            int2bool: "boolean",
+            safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
+            safe_int: "integer",
+            str2inttuple: {
+                "base": "string",
+                "format": r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$",
+            },
+        }
+    )
+    column2datatype = {
+        col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()
+    }
     column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
     return column2datatype
 
@@ -2085,10 +2450,10 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
 @cache
 def tsv_column2description(col: str) -> Optional[str]:
     mapping = {
-        'mc': 'Measure count.',
-        'mn': 'Measure number.',
-        'mc_onset': "An event's distance (fraction of a whole note) from the beginning of the MC.",
-        'mn_onset': "An event's distance (fraction of a whole note) from the beginning of the MN.",
+        "mc": "Measure count.",
+        "mn": "Measure number.",
+        "mc_onset": "An event's distance (fraction of a whole note) from the beginning of the MC.",
+        "mn_onset": "An event's distance (fraction of a whole note) from the beginning of the MN.",
     }
     if col in mapping:
         return mapping[col]
@@ -2108,17 +2473,19 @@ def tsv_column2csvw_schema(col: str) -> dict:
     return result
 
 
-def make_csvw_jsonld(title: str,
-                     columns: Collection[str],
-                     urls: Union[str, Collection[str]],
-                     description: Optional[str] = None) -> dict:
+def make_csvw_jsonld(
+    title: str,
+    columns: Collection[str],
+    urls: Union[str, Collection[str]],
+    description: Optional[str] = None,
+) -> dict:
     """W3C's CSV on the Web Primer: https://www.w3.org/TR/tabular-data-primer/"""
     result = {
         "@context": ["http://www.w3.org/ns/csvw#", {"@language": "en "}],
         "dc:title": title,
         "dialect": {
             "delimiter": "\t",
-        }
+        },
     }
     if description is not None:
         result["dc:description"] = description
@@ -2126,7 +2493,7 @@ def make_csvw_jsonld(title: str,
 
     result["dc:creator"] = [DEFAULT_CREATOR_METADATA]
     if isinstance(urls, str):
-        result["url"] = urls,
+        result["url"] = (urls,)
     else:
         result["tables"] = [{"url": p} for p in urls]
     result["tableSchema"] = {
@@ -2135,50 +2502,57 @@ def make_csvw_jsonld(title: str,
     return result
 
 
-def store_csvw_jsonld(corpus: str,
-                      folder: str,
-                      facet: str,
-                      columns: Collection[str],
-                      files: Union[str, Collection[str]]) -> str:
+def store_csvw_jsonld(
+    corpus: str,
+    folder: str,
+    facet: str,
+    columns: Collection[str],
+    files: Union[str, Collection[str]],
+) -> str:
     titles = {
         "expanded": "DCML harmony annotations",
         "measures": "Measure tables",
         "notes": "Note tables",
-
     }
     descriptions = {
         "expanded": "One feature matrix per score, containing one line per label. The first columns (until 'label') "
-                    "are the same as in extracted 'labels' tables with the difference that only those harmony labels "
-                    "that match the DCML harmony annotation standard (dcmlab.github.io/standards) are included. Since "
-                    "these follow a specific syntax, they can be split into their components (features) and transformed "
-                    "into scale degrees. For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
-        "measures": "One feature matrix per score, containing one line per stack of <Measure> tags in the score's XML tree. "
-                    "They are counted in the column 'mc' starting from 1, whereas the conventional measure numbers are shown "
-                    "in the column 'mn'. One MN is frequently composed in two (or more) MCs. Furthermore, these tables include "
-                    "special bar lines, repeat signs, first and second endings, irregular measure lengths, as well as the "
-                    "column 'next' which contains follow-up MCs for unfolding a score's repeat structure. For more information, "
-                    "please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "are the same as in extracted 'labels' tables with the difference that only those harmony labels "
+        "that match the DCML harmony annotation standard (dcmlab.github.io/standards) are included. Since "
+        "these follow a specific syntax, they can be split into their components (features) and "
+        "transformed "
+        "into scale degrees. For more information, please refer to the docs at "
+        "https://johentsch.github.io/ms3/columns",
+        "measures": "One feature matrix per score, containing one line per stack of <Measure> tags in the score's XML "
+        "tree. "
+        "They are counted in the column 'mc' starting from 1, whereas the conventional measure numbers "
+        "are shown "
+        "in the column 'mn'. One MN is frequently composed in two (or more) MCs. Furthermore, "
+        "these tables include "
+        "special bar lines, repeat signs, first and second endings, irregular measure lengths, "
+        "as well as the "
+        "column 'next' which contains follow-up MCs for unfolding a score's repeat structure. For more "
+        "information, "
+        "please refer to the docs at https://johentsch.github.io/ms3/columns",
         "notes": "One feature matrix per score, containing one row per note head. Not every row represents an "
-                 "onset because note heads may be tied together (see column 'tied'). "
-                 "For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "onset because note heads may be tied together (see column 'tied'). "
+        "For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
     }
     title = titles[facet] if facet in titles else facet
     title += " for " + corpus
     description = descriptions[facet] if facet in descriptions else None
-    jsonld = make_csvw_jsonld(title=title,
-                              columns=columns,
-                              urls=files,
-                              description=description
-                              )
-    json_path = os.path.join(folder, 'csv-metadata.json')
-    with open(json_path, 'w', encoding='utf-8') as f:
+    jsonld = make_csvw_jsonld(
+        title=title, columns=columns, urls=files, description=description
+    )
+    json_path = os.path.join(folder, "csv-metadata.json")
+    with open(json_path, "w", encoding="utf-8") as f:
         print(json.dumps(jsonld, indent=2), file=f)
     return json_path
 
 
-@function_logger
-def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=None):
-    """ Accepts a measure table without 'quarterbeats' column and computes each MC's offset from the piece's beginning.
+def make_continuous_offset_series(
+    measures, quarters=True, negative_anacrusis=None, logger=None
+):
+    """Accepts a measure table without 'quarterbeats' column and computes each MC's offset from the piece's beginning.
     Deal with voltas before passing the table.
 
     If you need an offset_dict and the measures already come with a 'quarterbeats' column, you can call
@@ -2203,12 +2577,16 @@ def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=No
         length + 2 because it adds the end value twice, once with the next index value, and once with the index 'end'.
         Otherwise the end value would be lost due to the shifting.
     """
-    if 'mc_playthrough' in measures.columns:
-        act_durs = measures.set_index('mc_playthrough').act_dur
-    elif 'mc' in measures.columns:
-        act_durs = measures.set_index('mc').act_dur
+    if logger is None:
+        logger = module_logger
+    if "mc_playthrough" in measures.columns:
+        act_durs = measures.set_index("mc_playthrough").act_dur
+    elif "mc" in measures.columns:
+        act_durs = measures.set_index("mc").act_dur
     else:
-        logger.error("Expected to have at least one column called 'mc' or 'mc_playthrough'.")
+        logger.error(
+            "Expected to have at least one column called 'mc' or 'mc_playthrough'."
+        )
         return pd.Series()
     if quarters:
         act_durs = act_durs * 4
@@ -2216,15 +2594,17 @@ def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=No
     last_val = res.iloc[-1]
     last_ix = res.index[-1] + 1
     res = res.shift(fill_value=0)
-    ending = pd.Series([last_val, last_val], index=[last_ix, 'end'])
+    ending = pd.Series([last_val, last_val], index=[last_ix, "end"])
     res = pd.concat([res, ending])
     if negative_anacrusis is not None:
         res -= abs(frac(negative_anacrusis))
     return res
 
 
-def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = False) -> dict:
-    """ Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
+def make_offset_dict_from_measures(
+    measures: pd.DataFrame, all_endings: bool = False
+) -> dict:
+    """Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
     to their quarterbeat offset from the piece's beginning, used for computing quarterbeats for other facets.
 
     This function is used for the default case. If you need more options, e.g. an offset dict from unfolded
@@ -2240,19 +2620,19 @@ def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = F
       {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
       values for MCs that are part of a first ending (or third or larger) are NA.
     """
-    measures = measures.set_index('mc')
-    if all_endings and 'quarterbeats_all_endings' in measures.columns:
-        col = 'quarterbeats_all_endings'
+    measures = measures.set_index("mc")
+    if all_endings and "quarterbeats_all_endings" in measures.columns:
+        col = "quarterbeats_all_endings"
     else:
-        col = 'quarterbeats'
+        col = "quarterbeats"
     offset_dict = measures[col].to_dict()
     last_row = measures.iloc[-1]
-    offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+    offset_dict["end"] = last_row[col] + 4 * last_row.act_dur
     return offset_dict
 
 
 def make_id_tuples(key, n):
-    """ For a given key, this function returns index tuples in the form [(key, 0), ..., (key, n)]
+    """For a given key, this function returns index tuples in the form [(key, 0), ..., (key, n)]
 
     Returns
     -------
@@ -2263,9 +2643,10 @@ def make_id_tuples(key, n):
     return list(zip(repeat(key), range(n)))
 
 
-@function_logger
-def make_interval_index_from_breaks(S, end_value=None, closed='left', name='interval'):
-    """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
+def make_interval_index_from_breaks(
+    S, end_value=None, closed="left", name="interval", logger=None
+):
+    """Interpret a Series as interval breaks and make an IntervalIndex out of it.
 
     Parameters
     ----------
@@ -2283,6 +2664,8 @@ def make_interval_index_from_breaks(S, end_value=None, closed='left', name='inte
     :obj:`pandas.IntervalIndex`
 
     """
+    if logger is None:
+        logger = module_logger
     breaks = S.to_list()
     if end_value is not None:
         last = breaks[-1]
@@ -2297,7 +2680,9 @@ def make_interval_index_from_breaks(S, end_value=None, closed='left', name='inte
         if len(unsorted) > 0:
             logger.error(f"Breaks are not sorted: {unsorted}")
         else:
-            logger.error(f"Cannot create IntervalIndex from these breaks:\n{breaks}\nException: {e}")
+            logger.error(
+                f"Cannot create IntervalIndex from these breaks:\n{breaks}\nException: {e}"
+            )
         raise
     return iix
 
@@ -2307,25 +2692,30 @@ def make_name_columns(df):
     scale degrees (expressed as fifths) to absolute note names, e.g. in C major: 0 => 'C', 7 => 'C#', -5 => 'Db'
     Uses: transform(), scale_degree2name"""
     new_cols = {}
-    for col in ('root', 'bass_note'):
+    for col in ("root", "bass_note"):
         if col in df.columns:
-            new_cols[f"{col}_name"] = transform(df, scale_degree2name, [col, 'localkey', 'globalkey'])
+            new_cols[f"{col}_name"] = transform(
+                df, scale_degree2name, [col, "localkey", "globalkey"]
+            )
     return pd.DataFrame(new_cols)
 
 
-@function_logger
-def make_playthrough2mc(measures: pd.DataFrame) -> Optional[pd.Series]:
+def make_playthrough2mc(measures: pd.DataFrame, logger=None) -> Optional[pd.Series]:
     """Turns the column 'next' into a mapping of playthrough_mc -> mc."""
-    ml = measures.set_index('mc')
+    if logger is None:
+        logger = module_logger
+    ml = measures.set_index("mc")
     try:
         seq = next2sequence(ml.next, logger=logger)
         if seq is None:
             return
     except Exception as e:
-        logger.warning(f"Computing unfolded sequence of MCs failed with:\n'{e}'",
-                       extra={'message_id': (26,)})
+        logger.warning(
+            f"Computing unfolded sequence of MCs failed with:\n'{e}'",
+            extra={"message_id": (26,)},
+        )
         return
-    mc_playthrough = pd.Series(seq, name='mc_playthrough', dtype='Int64')
+    mc_playthrough = pd.Series(seq, name="mc_playthrough", dtype="Int64")
     if len(mc_playthrough) == 0:
         pass
     elif seq[0] == 1:
@@ -2335,38 +2725,39 @@ def make_playthrough2mc(measures: pd.DataFrame) -> Optional[pd.Series]:
     return mc_playthrough
 
 
-@function_logger
-def make_playthrough_info(measures: pd.DataFrame) -> Optional[Union[pd.DataFrame, pd.Series]]:
+def make_playthrough_info(
+    measures: pd.DataFrame, logger=None
+) -> Optional[Union[pd.DataFrame, pd.Series]]:
     """Turns a measures table into a DataFrame or Series that can be passed as argument to :func:`unfold_repeats`.
     The return type is DataFrame if the unfolded measures table contains an 'mn_playthrough' column, otherwise it
     is equal to the result of :func:`make_playthrough2mc`. Hence, the purpose of the function is to add an
     'mn_playthrough' column to unfolded facets whenever possible.
     """
+    if logger is None:
+        logger = module_logger
     unfolded_measures = unfold_measures_table(measures, logger=logger)
     if unfolded_measures is None:
         return
-    unfolded_measures = unfolded_measures.set_index('mc_playthrough')
-    if 'mn_playthrough' in unfolded_measures.columns:
-        return unfolded_measures[['mc', 'mn_playthrough']]
+    unfolded_measures = unfolded_measures.set_index("mc_playthrough")
+    if "mn_playthrough" in unfolded_measures.columns:
+        return unfolded_measures[["mc", "mn_playthrough"]]
     return unfolded_measures.mc
 
 
 def map2elements(e, f, *args, **kwargs):
-    """ If `e` is an iterable, `f` is applied to all elements.
-    """
+    """If `e` is an iterable, `f` is applied to all elements."""
     if isinstance(e, Iterable) and not isinstance(e, str):
         try:
             return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
         except TypeError:
             if isinstance(e, pd.Index):
-                ### e.g., if a numerical index is transformed to strings
+                # e.g., if a numerical index is transformed to strings
                 return pd.Index(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
 
 
-@function_logger
-def merge_ties(df, return_dropped=False, perform_checks=True):
-    """ In a note list, merge tied notes to single events with accumulated durations.
+def merge_ties(df, return_dropped=False, perform_checks=True, logger=None):
+    """In a note list, merge tied notes to single events with accumulated durations.
         Input dataframe needs columns ['duration', 'tied', 'midi', 'staff']. This
         function does not handle correctly overlapping ties on the same pitch since
         it doesn't take into account the notational layers ('voice').
@@ -2381,6 +2772,8 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
     -------
 
     """
+    if logger is None:
+        logger = module_logger
 
     def merge(df):
         vc = df.tied.value_counts()
@@ -2389,41 +2782,48 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
         ix = df.iloc[0].name
         dur = df.duration.sum()
         drop = df.iloc[1:].index.to_list()
-        return pd.Series({'ix': ix, 'duration': dur, 'dropped': drop})
+        return pd.Series({"ix": ix, "duration": dur, "dropped": drop})
 
     def merge_notes(staff_midi):
-
-        staff_midi['chunks'] = (staff_midi.tied == 1).astype(int).cumsum()
-        t = staff_midi.groupby('chunks', group_keys=False).apply(merge)
-        return t.set_index('ix')
+        staff_midi["chunks"] = (staff_midi.tied == 1).astype(int).cumsum()
+        t = staff_midi.groupby("chunks", group_keys=False).apply(merge)
+        return t.set_index("ix")
 
     if not df.tied.notna().any():
         return df
     df = df.copy()
-    notna = df.loc[df.tied.notna(), ['duration', 'tied', 'midi', 'staff']]
+    notna = df.loc[df.tied.notna(), ["duration", "tied", "midi", "staff"]]
     if perform_checks:
         before = notna.tied.value_counts()
-    new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_notes).sort_index()
+    new_dur = (
+        notna.groupby(["staff", "midi"], group_keys=False)
+        .apply(merge_notes)
+        .sort_index()
+    )
     try:
-        df.loc[new_dur.index, 'duration'] = new_dur.duration
+        df.loc[new_dur.index, "duration"] = new_dur.duration
     except Exception:
         print(new_dur)
     if return_dropped:
-        df.loc[new_dur.index, 'dropped'] = new_dur.dropped
+        df.loc[new_dur.index, "dropped"] = new_dur.dropped
     df = df.drop(new_dur.dropped.sum())
     if perform_checks:
         after = df.tied.value_counts()
-        assert before[1] == after[1], f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
+        assert (
+            before[1] == after[1]
+        ), f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
     return df
 
 
-def merge_chords_and_notes(chords_table: pd.DataFrame,
-                           notes_table: pd.DataFrame) -> pd.DataFrame:
+def merge_chords_and_notes(
+    chords_table: pd.DataFrame, notes_table: pd.DataFrame
+) -> pd.DataFrame:
     """Performs an outer join between a chords table and a notes table, based on the column 'chord_id'. If the chords
     come with an 'event' column, all chord events matched with at least one note will be renamed to 'Note'.
     Markup displayed in individual rows ('Dynamic', 'Spanner', 'StaffText', 'SystemText', 'Tempo', 'FiguredBass'),
     are/remain placed before the note(s) with the same onset.
-    Markup showing up in a Chord event's row (e.g. a Spanner ID) will be duplicated for each note pertaining to that chord,
+    Markup showing up in a Chord event's row (e.g. a Spanner ID) will be duplicated for each note pertaining to that
+                           chord,
     i.e., only for notes in the same staff and voice.
 
     Args:
@@ -2433,22 +2833,34 @@ def merge_chords_and_notes(chords_table: pd.DataFrame,
     Returns:
       Merged DataFrame.
     """
-    notes_columns = ['tied', 'tpc', 'midi', 'name', 'octave', 'chord_id']  # 'gracenote', 'tremolo' would be contained in chords already
+    notes_columns = [
+        "tied",
+        "tpc",
+        "midi",
+        "name",
+        "octave",
+        "chord_id",
+    ]  # 'gracenote', 'tremolo' would be contained in chords already
     present_columns = [col for col in notes_columns if col in notes_table]
-    assert 'chord_id' in present_columns, f"Notes table does not come with a 'chord_id' column needed for merging: {notes_table.columns}"
-    notes = notes_table[present_columns].astype({'chord_id': 'Int64'})
-    amend_events = 'event' in chords_table
-    merged = pd.merge(chords_table, notes, on='chord_id', how='outer', indicator=amend_events)
+    assert "chord_id" in present_columns, (
+        f"Notes table does not come with a 'chord_id' column needed for merging: "
+        f"{notes_table.columns}"
+    )
+    notes = notes_table[present_columns].astype({"chord_id": "Int64"})
+    amend_events = "event" in chords_table
+    merged = pd.merge(
+        chords_table, notes, on="chord_id", how="outer", indicator=amend_events
+    )
     merged = sort_note_list(merged)
     if amend_events:
-        matches_mask = merged._merge == 'both'
-        merged.loc[matches_mask, 'event'] = 'Note'
-        merged.drop(columns='_merge', inplace=True)
+        matches_mask = merged._merge == "both"
+        merged.loc[matches_mask, "event"] = "Note"
+        merged.drop(columns="_merge", inplace=True)
     return merged
 
 
 def metadata2series(d: dict) -> pd.Series:
-    """ Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
+    """Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
     Uses: ambitus2oneliner(), dict2oneliner(), parts_info()
 
     Returns
@@ -2457,13 +2869,13 @@ def metadata2series(d: dict) -> pd.Series:
         A series allowing for storing metadata as a row of a DataFrame.
     """
     d = dict(d)
-    d['TimeSig'] = dict2oneliner(d['TimeSig'])
-    d['KeySig'] = dict2oneliner(d['KeySig'])
-    if 'ambitus' in d:
-        d['ambitus'] = ambitus2oneliner(d['ambitus'])
-    if 'parts' in d:
-        d.update(parts_info(d['parts']))
-        del (d['parts'])
+    d["TimeSig"] = dict2oneliner(d["TimeSig"])
+    d["KeySig"] = dict2oneliner(d["KeySig"])
+    if "ambitus" in d:
+        d["ambitus"] = ambitus2oneliner(d["ambitus"])
+    if "parts" in d:
+        d.update(parts_info(d["parts"]))
+        del d["parts"]
     s = pd.Series(d)
     return s
 
@@ -2493,8 +2905,10 @@ def midi_and_tpc2octave(midi: Tuple[int], tpc: Tuple[int]) -> Tuple[int]:
     ...
 
 
-def midi_and_tpc2octave(midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                        tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
+def midi_and_tpc2octave(
+    midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
     try:
         midi = int(float(midi))
     except TypeError:
@@ -2532,9 +2946,11 @@ def midi2octave(midi: Tuple[int], fifths: Optional[Tuple[int]]) -> Tuple[int]:
     ...
 
 
-def midi2octave(midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                fifths: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
-    """ For a given MIDI pitch, calculate the octave. Middle octave = 4
+def midi2octave(
+    midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    fifths: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
+) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
+    """For a given MIDI pitch, calculate the octave. Middle octave = 4
         Uses: midi_and_tpc2octave(), map2elements()
 
     Parameters
@@ -2567,54 +2983,59 @@ def midi2name(midi):
         if isinstance(midi, Iterable):
             return map2elements(midi, midi2name)
         return midi
-    names = {0: 'C',
-             1: 'C#/Db',
-             2: 'D',
-             3: 'D#/Eb',
-             4: 'E',
-             5: 'F',
-             6: 'F#/Gb',
-             7: 'G',
-             8: 'G#/Ab',
-             9: 'A',
-             10: 'A#/Bb',
-             11: 'B'}
+    names = {
+        0: "C",
+        1: "C#/Db",
+        2: "D",
+        3: "D#/Eb",
+        4: "E",
+        5: "F",
+        6: "F#/Gb",
+        7: "G",
+        8: "G#/Ab",
+        9: "A",
+        10: "A#/Bb",
+        11: "B",
+    }
     return names[midi % 12]
 
 
 def mn2int(mn_series):
-    """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
+    """Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'."""
     try:
-        split = mn_series.fillna('').str.extract(r"(?P<mn>\d+)(?P<volta>[a-g])?")
+        split = mn_series.fillna("").str.extract(r"(?P<mn>\d+)(?P<volta>[a-g])?")
     except Exception:
-        mn_series = pd.DataFrame(mn_series, columns=['mn', 'volta'])
+        mn_series = pd.DataFrame(mn_series, columns=["mn", "volta"])
         try:
-            return mn_series.astype('Int64')
+            return mn_series.astype("Int64")
         except Exception:
             return mn_series
     split.mn = pd.to_numeric(split.mn)
-    split.volta = pd.to_numeric(split.volta.map({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}))
-    return split.astype('Int64')
+    split.volta = pd.to_numeric(
+        split.volta.map({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5})
+    )
+    return split.astype("Int64")
 
 
-def name2format(df, format='html', name_col='color_name'):
-    """ Converts a column with CSS3 names into 'html', 'rgb', or  'rgba'."""
-    if format == 'html':
+def name2format(df, format="html", name_col="color_name"):
+    """Converts a column with CSS3 names into 'html', 'rgb', or  'rgba'."""
+    if format == "html":
         return df[name_col].map(color_name2html)
-    if format == 'rgb':
+    if format == "rgb":
         return df[name_col].map(color_name2rgb)
-    if format == 'rgba':
+    if format == "rgba":
         return df[name_col].map(color_name2rgba)
 
 
-@function_logger
-def name2fifths(nn):
-    """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
-        Uses: split_note_name()
+def name2fifths(nn, logger=None):
+    """Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
+    Uses: split_note_name()
     """
+    if logger is None:
+        logger = module_logger
     if nn.__class__ == int or pd.isnull(nn):
         return nn
-    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': -1, 'G': 1, 'A': 3, 'B': 5}
+    name_tpcs = {"C": 0, "D": 2, "E": 4, "F": -1, "G": 1, "A": 3, "B": 5}
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
     if note_name is None:
         return None
@@ -2622,15 +3043,16 @@ def name2fifths(nn):
     return step_tpc + 7 * accidentals
 
 
-@function_logger
-def name2pc(nn):
-    """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
-        Uses: split_note_name()
+def name2pc(nn, logger=None):
+    """Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
+    Uses: split_note_name()
     """
+    if logger is None:
+        logger = module_logger
     if nn.__class__ == int or pd.isnull(nn):
         logger.warning(f"'{nn}' is not a valid note name.")
         return nn
-    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
+    name_tpcs = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
     if note_name is None:
         return None
@@ -2643,11 +3065,12 @@ def nan_eq(a, b):
     return (a == b) | (pd.isnull(a) & pd.isnull(b))
 
 
-@function_logger
-def next2sequence(next_col: pd.Series) -> Optional[List[int]]:
-    """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
+def next2sequence(next_col: pd.Series, logger=None) -> Optional[List[int]]:
+    """Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
     Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
     """
+    if logger is None:
+        logger = module_logger
     mc = next_col.index[0]
     last_mc = next_col.index[-1]
     max_iter = 10 * last_mc
@@ -2656,8 +3079,10 @@ def next2sequence(next_col: pd.Series) -> Optional[List[int]]:
     nxt = next_col.to_dict()
     while mc != -1 and i < max_iter:
         if mc not in nxt:
-            logger.error(f"Column 'next' contains MC {mc} which the pieces does not have.",
-                         extra={'message_id': (26,)})
+            logger.error(
+                f"Column 'next' contains MC {mc} which the pieces does not have.",
+                extra={"message_id": (26,)},
+            )
             return
         result.append(mc)
         new_mc, *rest = nxt[mc]
@@ -2670,17 +3095,18 @@ def next2sequence(next_col: pd.Series) -> Optional[List[int]]:
     return result
 
 
-@function_logger
-def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
+def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=None):
     """
     Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones', 'volta_mcs] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
 
     """
+    if logger is None:
+        logger = module_logger
     if df is None:
         return df
-    collection_cols = ['next', 'chord_tones', 'added_tones']
-    bool_cols = ['globalkey_is_minor', 'localkey_is_minor', 'has_drumset']
+    collection_cols = ["next", "chord_tones", "added_tones"]
+    bool_cols = ["globalkey_is_minor", "localkey_is_minor", "has_drumset"]
     if coll_columns is not None:
         collection_cols += list(coll_columns)
     if bool_columns is not None:
@@ -2728,19 +3154,15 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
                     "To retain the old behavior, use either.*"
                 ),
             )
-            df.loc[:, bc] = df[bc].astype('boolean').astype('Int64')
+            df.loc[:, bc] = df[bc].astype("boolean").astype("Int64")
         logger.debug(f"Transformed booleans in the column {bc} to integers.")
     return df
 
 
 def ordinal_suffix(n):
-    suffixes = {
-        "1": 'st',
-        "2": 'nd',
-        "3": 'rd'
-    }
+    suffixes = {"1": "st", "2": "nd", "3": "rd"}
     last_digit = str(n)[-1]
-    return suffixes.get(last_digit, 'th')
+    return suffixes.get(last_digit, "th")
 
 
 def parts_info(d):
@@ -2762,17 +3184,16 @@ def parts_info(d):
     """
     res = {}
     for part_dict in d.values():
-        for id in part_dict['staves']:
+        for id in part_dict["staves"]:
             name = f"staff_{id}"
-            res[f"{name}_instrument"] = part_dict['instrument']
-            amb_name = name + '_ambitus'
+            res[f"{name}_instrument"] = part_dict["instrument"]
+            amb_name = name + "_ambitus"
             res[amb_name] = ambitus2oneliner(part_dict[amb_name])
     return res
 
 
-@function_logger
-def path2type(path):
-    """ Determine a file's type by scanning its path for default components in the constant STANDARD_NAMES.
+def path2type(path, logger=None):
+    """Determine a file's type by scanning its path for default components in the constant STANDARD_NAMES.
 
     Parameters
     ----------
@@ -2782,10 +3203,14 @@ def path2type(path):
     -------
 
     """
+    if logger is None:
+        logger = module_logger
     _, fext = os.path.splitext(path)
     if fext.lower() in SCORE_EXTENSIONS:
-        logger.debug(f"Categorized {path} as score based on the file extension {fext!r}.")
-        return 'scores'
+        logger.debug(
+            f"Categorized {path} as score based on the file extension {fext!r}."
+        )
+        return "scores"
     component2type = path_component2file_type_map()
 
     def find_components(s):
@@ -2795,39 +3220,50 @@ def path2type(path):
     if os.path.isfile(path):
         # give preference to folder names before file names
         directory, piece_name = os.path.split(path)
-        if 'metadata' in piece_name:
-            logger.debug(f"Categorized {path} as metadata based on the filename {piece_name!r}.")
-            return 'metadata'
+        if "metadata" in piece_name:
+            logger.debug(
+                f"Categorized {path} as metadata based on the filename {piece_name!r}."
+            )
+            return "metadata"
         found_components, n_found = find_components(directory)
         if n_found == 0:
             found_components, n_found = find_components(piece_name)
     else:
         found_components, n_found = find_components(path)
     if n_found == 0:
-        logger.debug(f"Type could not be inferred from path '{path}'. Letting it default to 'labels'.")
-        return 'labels'
+        logger.debug(
+            f"Type could not be inferred from path '{path}'. Letting it default to 'labels'."
+        )
+        return "labels"
     if n_found == 1:
         typ = component2type[found_components[0]]
-        logger.debug(f"Categorized {path} as {typ} based on the component {found_components[0]!r}.")
+        logger.debug(
+            f"Categorized {path} as {typ} based on the component {found_components[0]!r}."
+        )
         return typ
     else:
         for path_component in reversed(directory.split(os.sep)):
             for comp in component2type.keys():
                 if comp in path_component:
                     typ = component2type[comp]
-                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'; opted for the last one: {typ}")
+                    logger.debug(
+                        f"Multiple components ({', '.join(found_components)}) found in path '{path}'; opted for the "
+                        f"last one: {typ}"
+                    )
                     return typ
-        logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
-        return 'other'
+        logger.warning(
+            f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents."
+        )
+        return "other"
 
 
 @cache
 def path_component2file_type_map() -> dict:
     comp2type = {comp: comp for comp in STANDARD_NAMES}
-    comp2type['MS3'] = 'scores'
-    comp2type['harmonies'] = 'expanded'
-    comp2type['output'] = 'labels'
-    comp2type['infer'] = 'labels'
+    comp2type["MS3"] = "scores"
+    comp2type["harmonies"] = "expanded"
+    comp2type["output"] = "labels"
+    comp2type["infer"] = "labels"
     return comp2type
 
 
@@ -2839,12 +3275,13 @@ def file_type2path_component_map() -> dict:
     return dict(type2comps)
 
 
-def pretty_dict(ugly_dict: dict, heading_key: str = None, heading_value: str = None) -> str:
-    """ Turns a dictionary into a string where the keys are printed in a column, separated by '->'.
-    """
+def pretty_dict(
+    ugly_dict: dict, heading_key: str = None, heading_value: str = None
+) -> str:
+    """Turns a dictionary into a string where the keys are printed in a column, separated by '->'."""
     if heading_key is not None or heading_value is not None:
-        head_key = 'KEY' if heading_key is None else heading_key
-        head_val = '' if heading_value is None else heading_value
+        head_key = "KEY" if heading_key is None else heading_key
+        head_val = "" if heading_value is None else heading_value
         head_val_length = len(head_val) + 4
         d = {head_key: head_val}
         d.update(ugly_dict)
@@ -2863,48 +3300,49 @@ def pretty_dict(ugly_dict: dict, heading_key: str = None, heading_value: str = N
             vs = v.to_string()
         else:
             vs = str(v)
-        if '\n' in vs:
-            lines = vs.split('\n')
-            res.extend([f"{ks if i == 0 else '':{left}} -> {l}" for i, l in enumerate(lines)])
+        if "\n" in vs:
+            lines = vs.split("\n")
+            res.extend(
+                [f"{ks if i == 0 else '':{left}} -> {l}" for i, l in enumerate(lines)]
+            )
         else:
             res.append(f"{ks:{left}} -> {vs}")
     if head_val_length > -1:
-        res.insert(1, '-' * (left + head_val_length))
-    return '\n'.join(res)
+        res.insert(1, "-" * (left + head_val_length))
+    return "\n".join(res)
 
 
 def resolve_dir(d):
-    """ Resolves '~' to HOME directory and turns ``d`` into an absolute path.
-    """
+    """Resolves '~' to HOME directory and turns ``d`` into an absolute path."""
     if d is None:
         return None
     d = str(d)
-    if '~' in d:
+    if "~" in d:
         return os.path.expanduser(d)
     return os.path.abspath(d)
 
 
-def rgb2format(df, format='html', r_col='color_r', g_col='color_g', b_col='color_b'):
-    """ Converts three RGB columns into a color_html or color_name column. """
+def rgb2format(df, format="html", r_col="color_r", g_col="color_g", b_col="color_b"):
+    """Converts three RGB columns into a color_html or color_name column."""
     cols = [r_col, g_col, b_col]
-    if format == 'html':
+    if format == "html":
         html = list(map(rgb_tuple2html, df[cols].itertuples(index=False, name=None)))
-        return pd.Series(html, index=df.index).rename('color_html')
-    if format == 'name':
+        return pd.Series(html, index=df.index).rename("color_html")
+    if format == "name":
         names = list(map(rgb_tuple2name, df[cols].itertuples(index=False, name=None)))
-        return pd.Series(names, index=df.index).rename('color_name')
+        return pd.Series(names, index=df.index).rename("color_name")
 
 
-def rgb_tuple2format(t, format='html'):
-    """ Converts a single RGB tuple into 'HTML' or 'name'."""
+def rgb_tuple2format(t, format="html"):
+    """Converts a single RGB tuple into 'HTML' or 'name'."""
     if pd.isnull(t):
         return t
     if pd.isnull(t[0]):
         return t[0]
     norm = webcolors.normalize_integer_triplet(tuple(int(i) for i in t))
-    if format == 'html':
+    if format == "html":
         return webcolors.rgb_to_hex(norm)
-    if format == 'name':
+    if format == "name":
         try:
             return webcolors.rgb_to_name(norm)
         except Exception:
@@ -2915,13 +3353,13 @@ def rgb_tuple2format(t, format='html'):
 
 
 def rgb_tuple2html(t):
-    """ Converts a single RGB tuple into HTML."""
-    return rgb_tuple2format(t, format='html')
+    """Converts a single RGB tuple into HTML."""
+    return rgb_tuple2format(t, format="html")
 
 
 def rgb_tuple2name(t):
-    """ Converts a single RGB tuple into its CSS3 name or to HTML if there is none."""
-    return rgb_tuple2format(t, format='name')
+    """Converts a single RGB tuple into its CSS3 name or to HTML if there is none."""
+    return rgb_tuple2format(t, format="name")
 
 
 def rgba2attrs(named_tuple):
@@ -2930,23 +3368,24 @@ def rgba2attrs(named_tuple):
 
 def rgba2params(named_tuple):
     attrs = rgba2attrs(named_tuple)
-    return {'color_' + k: v for k, v in attrs.items()}
+    return {"color_" + k: v for k, v in attrs.items()}
 
 
-@function_logger
-def roman_numeral2fifths(rn, global_minor=False):
-    """ Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
-        Uses: split_scale_degree()
+def roman_numeral2fifths(rn, global_minor=False, logger=None):
+    """Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
+    Uses: split_scale_degree()
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(rn):
         return rn
-    if '/' in rn:
+    if "/" in rn:
         resolved = resolve_relative_keys(rn, global_minor)
-        mode = 'minor' if global_minor else 'major'
+        mode = "minor" if global_minor else "major"
         logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
         rn = resolved
-    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
-    rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
+    rn_tpcs_maj = {"I": 0, "II": 2, "III": 4, "IV": -1, "V": 1, "VI": 3, "VII": 5}
+    rn_tpcs_min = {"I": 0, "II": 2, "III": -3, "IV": -1, "V": 1, "VI": -4, "VII": -2}
     accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
     if any(v is None for v in (accidentals, rn_step)):
         return None
@@ -2955,20 +3394,21 @@ def roman_numeral2fifths(rn, global_minor=False):
     return step_tpc + 7 * accidentals
 
 
-@function_logger
-def roman_numeral2semitones(rn, global_minor=False):
-    """ Turn a Roman numeral into a semitone distance from the root (0-11).
-        Uses: split_scale_degree()
+def roman_numeral2semitones(rn, global_minor=False, logger=None):
+    """Turn a Roman numeral into a semitone distance from the root (0-11).
+    Uses: split_scale_degree()
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(rn):
         return rn
-    if '/' in rn:
+    if "/" in rn:
         resolved = resolve_relative_keys(rn, global_minor)
-        mode = 'minor' if global_minor else 'major'
+        mode = "minor" if global_minor else "major"
         logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
         rn = resolved
-    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
-    rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
+    rn_tpcs_maj = {"I": 0, "II": 2, "III": 4, "IV": 5, "V": 7, "VI": 9, "VII": 11}
+    rn_tpcs_min = {"I": 0, "II": 2, "III": 3, "IV": 5, "V": 7, "VI": 8, "VII": 10}
     accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
     if any(v is None for v in (accidentals, rn_step)):
         return None
@@ -2988,7 +3428,9 @@ def scale_degree2name(fifths: pd.Series, localkey: str, globalkey: str) -> pd.Se
 
 
 @overload
-def scale_degree2name(fifths: NDArray[int], localkey: str, globalkey: str) -> NDArray[str]:
+def scale_degree2name(
+    fifths: NDArray[int], localkey: str, globalkey: str
+) -> NDArray[str]:
     ...
 
 
@@ -3002,14 +3444,17 @@ def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tupl
     ...
 
 
-def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                      localkey: str,
-                      globalkey: str) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'e' minor is 'F'.
+def scale_degree2name(
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+    localkey: str,
+    globalkey: str,
+) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+    """For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'e' minor is 'F'.
 
     Args:
         fifths: Scale degree expressed as distance from the tonic in fifths.
-        localkey: Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
+        localkey: Local key in which the scale degree is situated, as Roman numeral (can include slash notation such
+        as V/ii).
         globalkey: Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
 
     Returns:
@@ -3021,13 +3466,17 @@ def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tup
     except ValueError:
         pass
     if isinstance(fifths, pd.Series):
-        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
+        return cast2collection(
+            coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey
+        )
     try:
         fifths = int(float(fifths))
     except TypeError:
-        return cast2collection(coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey)
+        return cast2collection(
+            coll=fifths, func=scale_degree2name, localkey=localkey, globalkey=globalkey
+        )
     global_minor = globalkey.islower()
-    if '/' in localkey:
+    if "/" in localkey:
         localkey = resolve_relative_keys(localkey, global_minor)
     lk_fifths = roman_numeral2fifths(localkey, global_minor)
     gk_fifths = name2fifths(globalkey)
@@ -3035,17 +3484,19 @@ def scale_degree2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tup
     return fifths2name(sd_transposed)
 
 
-@function_logger
-def scan_directory(directory: str,
-                   file_re: str = r".*",
-                   folder_re: str = r".*",
-                   exclude_re: str = r"^(\.|_)",
-                   recursive: bool = True,
-                   subdirs: bool = False,
-                   progress: bool = False,
-                   exclude_files_only: bool = False,
-                   return_metadata: bool = False) -> Iterator[Union[str, Tuple[str, str]]]:
-    """ Generator of filtered file paths in ``directory``.
+def scan_directory(
+    directory: str,
+    file_re: str = r".*",
+    folder_re: str = r".*",
+    exclude_re: str = r"^(\.|_)",
+    recursive: bool = True,
+    subdirs: bool = False,
+    progress: bool = False,
+    exclude_files_only: bool = False,
+    return_metadata: bool = False,
+    logger=None,
+) -> Iterator[Union[str, Tuple[str, str]]]:
+    """Generator of filtered file paths in ``directory``.
 
     Args:
       directory: Directory to be scanned for files.
@@ -3065,6 +3516,8 @@ def scan_directory(directory: str,
     Yields:
       Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.
     """
+    if logger is None:
+        logger = module_logger
     if file_re is None:
         file_re = r".*"
     if folder_re is None:
@@ -3084,45 +3537,62 @@ def scan_directory(directory: str,
         for dir_entry in os.scandir(d):
             name = dir_entry.name
             path = os.path.join(d, name)
-            if dir_entry.is_dir() and (recursive or folder_re != '.*'):
+            if dir_entry.is_dir() and (recursive or folder_re != ".*"):
                 for res in traverse(path):
                     yield res
             else:
                 if pbar is not None:
                     pbar.update()
-                if folder_re == '.*':
+                if folder_re == ".*":
                     folder_passes = True
                 else:
                     folder_path = os.path.dirname(path)
                     if recursive:
-                        folder_passes = check_regex(folder_re, folder_path, excl='^$')  # passes if the folder path matches the regex
+                        folder_passes = check_regex(
+                            folder_re, folder_path, excl="^$"
+                        )  # passes if the folder path matches the regex
                     else:
                         folder = os.path.basename(folder_path)
-                        folder_passes = check_regex(folder_re, folder, excl='^$')  # passes if the folder name itself matches the regex
-                    if folder_passes and not exclude_files_only:  # True if the exclude_re should also exclude folder names
-                        folder_passes = check_regex(folder_re, folder_path)  # is false if any part of the folder path matches exclude_re
-                if dir_entry.is_file() and folder_passes and (check_regex(file_re, name) or (return_metadata and name == 'metadata.tsv')):
+                        folder_passes = check_regex(
+                            folder_re, folder, excl="^$"
+                        )  # passes if the folder name itself matches the regex
+                    if (
+                        folder_passes and not exclude_files_only
+                    ):  # True if the exclude_re should also exclude folder
+                        # names
+                        folder_passes = check_regex(
+                            folder_re, folder_path
+                        )  # is false if any part of the folder path matches
+                        # exclude_re
+                if (
+                    dir_entry.is_file()
+                    and folder_passes
+                    and (
+                        check_regex(file_re, name)
+                        or (return_metadata and name == "metadata.tsv")
+                    )
+                ):
                     counter += 1
                     if pbar is not None:
-                        pbar.set_postfix({'selected': counter})
+                        pbar.set_postfix({"selected": counter})
                     if subdirs:
                         yield (d, name)
                     else:
                         yield path
 
-    if exclude_re is None or exclude_re == '':
-        exclude_re = '^$'
+    if exclude_re is None or exclude_re == "":
+        exclude_re = "^$"
     directory = resolve_dir(directory)
     counter = 0
     if not os.path.isdir(directory):
         logger.error("Not an existing directory: " + directory)
         return iter([])
-    pbar = tqdm(desc='Scanning files', unit=' files') if progress else None
+    pbar = tqdm(desc="Scanning files", unit=" files") if progress else None
     return traverse(directory)
 
 
 def column_order(df, first_cols=None, sort=True):
-    """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
+    """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included."""
     if first_cols is None:
         first_cols = STANDARD_COLUMN_ORDER
     cols = df.columns
@@ -3134,8 +3604,10 @@ def column_order(df, first_cols=None, sort=True):
     return df[column_order]
 
 
-def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', duration_col='duration'):
-    """ Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact.
+def sort_note_list(
+    df, mc_col="mc", mc_onset_col="mc_onset", midi_col="midi", duration_col="duration"
+):
+    """Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact.
 
     Parameters
     ----------
@@ -3151,7 +3623,10 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
     """
     df = df.copy()
     is_grace = df[duration_col] == 0
-    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
+    grace_ix = {
+        k: v.to_numpy()
+        for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()
+    }
     has_nan = df[midi_col].isna().any()
     if has_nan:
         with warnings.catch_warnings():
@@ -3167,10 +3642,19 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
                 ),
             )
             df.loc[:, midi_col] = df[midi_col].fillna(1000)
-    normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
-        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
-    sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
-                  normal_ix.items()]
+    normal_ix = (
+        df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]]
+        .groupby([mc_col, mc_onset_col])
+        .apply(
+            lambda gr: gr.index[
+                np.lexsort((gr.values[:, 3], gr.values[:, 2]))
+            ].to_numpy()
+        )
+    )
+    sorted_ixs = [
+        np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix
+        for onset, ix in normal_ix.items()
+    ]
     df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
     if has_nan:
         with warnings.catch_warnings():
@@ -3185,12 +3669,12 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
                     "To retain the old behavior, use either.*"
                 ),
             )
-            df.loc[:, midi_col] = df[midi_col].replace({1000: pd.NA}).astype('Int64')
+            df.loc[:, midi_col] = df[midi_col].replace({1000: pd.NA}).astype("Int64")
     return df
 
 
 def sort_tpcs(tpcs, ascending=True, start=None):
-    """ Sort tonal pitch classes by order on the piano.
+    """Sort tonal pitch classes by order on the piano.
         Uses: fifths2pc()
 
     Parameters
@@ -3213,8 +3697,15 @@ def sort_tpcs(tpcs, ascending=True, start=None):
     return res if ascending else list(reversed(res))
 
 
-@function_logger
-def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2, inplace=False, alternatives_only=False):
+def split_alternatives(
+    df,
+    column="label",
+    regex=r"-(?!(\d|b+\d|\#+\d))",
+    max=2,
+    inplace=False,
+    alternatives_only=False,
+    logger=None,
+):
     """
     Splits labels that come with an alternative separated by '-' and adds
     a new column. Only one alternative is taken into account. `df` is
@@ -3227,7 +3718,8 @@ def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2,
     column : :obj:`str`, optional
         Name of the column that holds the harmony labels.
     regex : :obj:`str`, optional
-        The regular expression (or simple string) that detects the character combination used to separate alternative annotations.
+        The regular expression (or simple string) that detects the character combination used to separate alternative
+        annotations.
         By default, alternatives are separated by a '-' that does not precede a scale degree such as 'b6' or '3'.
     max : :obj:`int`, optional
         Maximum number of admitted alternatives, defaults to 2.
@@ -3243,13 +3735,18 @@ def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2,
     >>> labels = pd.read_csv('labels.csv')
     >>> split_alternatives(labels, inplace=True)
     """
+    if logger is None:
+        logger = module_logger
     if not inplace:
         df = df.copy()
     alternatives = df[column].str.split(regex, expand=True)
-    alternatives.dropna(axis=1, how='all', inplace=True)
+    alternatives.dropna(axis=1, how="all", inplace=True)
     alternatives.columns = range(alternatives.shape[1])
     if alternatives_only:
-        columns = [column] + [f"alt_{column}" if i == 1 else f"alt{i}_{column}" for i in alternatives.columns[1:]]
+        columns = [column] + [
+            f"alt_{column}" if i == 1 else f"alt{i}_{column}"
+            for i in alternatives.columns[1:]
+        ]
         alternatives.columns = columns
         return alternatives.iloc[:, :max]
     if len(alternatives.columns) > 1:
@@ -3260,56 +3757,63 @@ def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2,
             if i == max:
                 break
             alt_name = f"alt_{column}" if i == 1 else f"alt{i}_{column}"
-            df.insert(position, alt_name, alternatives[i].fillna(pd.NA))  # replace None by NA
+            df.insert(
+                position, alt_name, alternatives[i].fillna(pd.NA)
+            )  # replace None by NA
             position += 1
         if len(alternatives.columns) > max:
             logger.warning(
-                f"More than {max} alternatives are not taken into account:\n{alternatives[alternatives[2].notna()]}")
+                f"More than {max} alternatives are not taken into account:\n{alternatives[alternatives[2].notna()]}"
+            )
     else:
         logger.debug("Contains no alternative labels.")
     if not inplace:
         return df
 
 
-@function_logger
-def split_note_name(nn, count=False):
-    """ Splits a note name such as 'Ab' into accidentals and name.
+def split_note_name(nn, count=False, logger=None):
+    """Splits a note name such as 'Ab' into accidentals and name.
 
     nn : :obj:`str`
         Note name.
     count : :obj:`bool`, optional
         Pass True to get the accidentals as integer rather than as string.
     """
+    if logger is None:
+        logger = module_logger
     m = re.match("^([A-G]|[a-g])(#*|b*)$", str(nn))
     if m is None:
         logger.error(nn + " is not a valid scale degree.")
         return None, None
     note_name, accidentals = m.group(1), m.group(2)
     if count:
-        accidentals = accidentals.count('#') - accidentals.count('b')
+        accidentals = accidentals.count("#") - accidentals.count("b")
     return accidentals, note_name
 
 
-@function_logger
-def split_scale_degree(sd, count=False):
-    """ Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
+def split_scale_degree(sd, count=False, logger=None):
+    """Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
 
     sd : :obj:`str`
         Scale degree.
     count : :obj:`bool`, optional
         Pass True to get the accidentals as integer rather than as string.
     """
+    if logger is None:
+        logger = module_logger
     m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
-        if '/' in sd:
-            logger.error(f"{sd} needs to be resolved, which requires information about the mode of the local key. "
-                         f"You can use ms3.utils.resolve_relative_keys(scale_degree, is_minor_context).")
+        if "/" in sd:
+            logger.error(
+                f"{sd} needs to be resolved, which requires information about the mode of the local key. "
+                f"You can use ms3.utils.resolve_relative_keys(scale_degree, is_minor_context)."
+            )
         else:
             logger.error(f"{sd} is not a valid scale degree.")
         return None, None
     acc, num = m.group(1), m.group(2)
     if count:
-        acc = acc.count('#') - acc.count('b')
+        acc = acc.count("#") - acc.count("b")
     return acc, num
 
 
@@ -3324,15 +3828,18 @@ def split_scale_degree(sd, count=False):
 #     return '\n'.join(chunkstring(string, length))
 
 
-@function_logger
-def test_binary(command):
+def test_binary(command, logger=None):
+    if logger is None:
+        logger = module_logger
     if command is None:
         return command
     if os.path.isfile(command):
         logger.debug(f"Found MuseScore binary: {command}")
         return command
     if which(command) is None:
-        logger.warning(f"MuseScore binary not found and not an installed command: {command}")
+        logger.warning(
+            f"MuseScore binary not found and not an installed command: {command}"
+        )
         return None
     else:
         logger.debug(f"Found MuseScore command: {command}")
@@ -3340,7 +3847,7 @@ def test_binary(command):
 
 
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
-    """ Compute a function for every row of a DataFrame, using several cols as arguments.
+    """Compute a function for every row of a DataFrame, using several cols as arguments.
         The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
         but it optimizes the procedure by precomputing `func` for all occurrent parameter combinations.
         Uses: inspect.getfullargspec()
@@ -3374,21 +3881,37 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
                 return df.apply(transform, args=(func,), **kwargs)
             if param2col.__class__ == dict:
                 var_arg = [k for k, v in param2col.items() if v is None]
-                apply_cols = [col for col in df.columns if not col in param2col.values()]
-                assert len(
-                    var_arg) < 2, f"Name only one variable keyword argument as which {apply_cols} are used {'argument': None}."
-                var_arg = var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
+                apply_cols = [
+                    col for col in df.columns if col not in param2col.values()
+                ]
+                assert len(var_arg) < 2, (
+                    f"Name only one variable keyword argument as which {apply_cols} are used "
+                    f"{'argument': None}."
+                )
+                var_arg = (
+                    var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
+                )
                 param2col = {k: v for k, v in param2col.items() if v is not None}
-                result_cols = {col: transform(df, func, dict({var_arg: col}, **param2col), **kwargs) for col in
-                               apply_cols}
+                result_cols = {
+                    col: transform(
+                        df, func, dict({var_arg: col}, **param2col), **kwargs
+                    )
+                    for col in apply_cols
+                }
             else:
-                apply_cols = [col for col in df.columns if not col in param2col]
-                result_cols = {col: transform(df, func, [col] + param2col, **kwargs) for col in apply_cols}
+                apply_cols = [col for col in df.columns if col not in param2col]
+                result_cols = {
+                    col: transform(df, func, [col] + param2col, **kwargs)
+                    for col in apply_cols
+                }
             return pd.DataFrame(result_cols, index=df.index)
 
     if param2col.__class__ == dict:
         param_tuples = list(df[param2col.values()].itertuples(index=False, name=None))
-        result_dict = {t: func(**{a: b for a, b in zip(param2col.keys(), t)}, **kwargs) for t in set(param_tuples)}
+        result_dict = {
+            t: func(**{a: b for a, b in zip(param2col.keys(), t)}, **kwargs)
+            for t in set(param_tuples)
+        }
     else:
         if df.__class__ == pd.core.series.Series:
             if param2col is not None:
@@ -3399,26 +3922,28 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             if param2col is None:
                 param_tuples = list(df.itertuples(index=False, name=None))
             else:
-                param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
+                param_tuples = list(
+                    df[list(param2col)].itertuples(index=False, name=None)
+                )
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
     with warnings.catch_warnings():
         # pandas developers doing their most annoying thing >:(
         warnings.filterwarnings(
             "ignore",
             category=FutureWarning,
-            message=(
-                ".*The default dtype for empty Series.*"
-            ),
+            message=(".*The default dtype for empty Series.*"),
         )
         res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
 
 
-@function_logger
-def adjacency_groups(S: pd.Series,
-                     na_values: Optional[str] = 'group',
-                     prevent_merge: bool = False) -> Tuple[pd.Series, Dict[int, Any]]:
-    """ Turns a Series into a Series of ascending integers starting from 1 that reflect groups of successive
+def adjacency_groups(
+    S: pd.Series,
+    na_values: Optional[str] = "group",
+    prevent_merge: bool = False,
+    logger=None,
+) -> Tuple[pd.Series, Dict[int, Any]]:
+    """Turns a Series into a Series of ascending integers starting from 1 that reflect groups of successive
     equal values. There are several options of how to deal with NA values.
 
     Args:
@@ -3428,11 +3953,13 @@ def adjacency_groups(S: pd.Series,
           | 'backfill' or 'bfill' groups NA values with the subsequent group
           | 'pad', 'ffill' groups NA values with the preceding group
           | Any other string works like 'group', with the difference that the groups will be named with this value.
-          | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and the
+          | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and
+          the
             subsequent value will be based on the preceding value.
       prevent_merge:
           By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
-          Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,
+          Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By
+          default,
           it will be merged to one single group ``[1, 1, 1], {1: 'a'}``. However, passing ``prevent_merge=True`` will
           result in ``[1, 1, 2], {1: 'a', 2: 'a'}``.
 
@@ -3441,6 +3968,8 @@ def adjacency_groups(S: pd.Series,
       A dictionary mapping the integers to the grouped values.
 
     """
+    if logger is None:
+        logger = module_logger
     reindex_flag = False
     # reindex is set to True in cases where NA values are being excluded from the operation and restored afterwards
     if prevent_merge:
@@ -3451,22 +3980,24 @@ def adjacency_groups(S: pd.Series,
             reindex_flag = True
         else:
             s = S
-    elif na_values == 'group':
+    elif na_values == "group":
         s = S
-    elif na_values in ('backfill', 'bfill', 'pad', 'ffill'):
+    elif na_values in ("backfill", "bfill", "pad", "ffill"):
         s = S.fillna(method=na_values)
     else:
         s = S.fillna(value=na_values)
 
     if s.isna().any():
-        if na_values == 'group':
+        if na_values == "group":
             shifted = s.shift()
             if pd.isnull(S.iloc[0]):
                 shifted.iloc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
-            logger.warning(f"After treating the Series '{S.name}' with na_values='{na_values}', "
-                           f"there were still {s.isna().sum()} NA values left.")
+            logger.warning(
+                f"After treating the Series '{S.name}' with na_values='{na_values}', "
+                f"there were still {s.isna().sum()} NA values left."
+            )
             s = s.dropna()
             beginnings = (s != s.shift()).fillna(False)
             beginnings.iloc[0] = True
@@ -3481,15 +4012,16 @@ def adjacency_groups(S: pd.Series,
     if reindex_flag:
         groups = groups.reindex(S.index)
     try:
-        return pd.to_numeric(groups).astype('Int64'), names
+        return pd.to_numeric(groups).astype("Int64"), names
     except TypeError:
         logger.warning(f"Erroneous outcome while computing adjacency groups: {groups}")
         return groups, names
 
 
-@function_logger
-def unfold_measures_table(measures: pd.DataFrame) -> Optional[pd.DataFrame]:
-    """ Returns a copy of a measures table that corresponds through a succession of MCs when playing all repeats.
+def unfold_measures_table(
+    measures: pd.DataFrame, logger=None
+) -> Optional[pd.DataFrame]:
+    """Returns a copy of a measures table that corresponds through a succession of MCs when playing all repeats.
     To distinguish between repeated MCs and MNs, it adds the continues column 'mc_playthrough' (starting at 1) and
     'mn_playthrough' which contains the values of 'mn' as string with letters {'a', 'b', ...} appended.
 
@@ -3499,30 +4031,39 @@ def unfold_measures_table(measures: pd.DataFrame) -> Optional[pd.DataFrame]:
     Returns:
 
     """
-    if 'mc_playthrough' in measures:
-        logger.info(f"Received a dataframe with the column 'mc_playthrough' that is already unfolded. Returning as is.")
+    if logger is None:
+        logger = module_logger
+    if "mc_playthrough" in measures:
+        logger.info(
+            "Received a dataframe with the column 'mc_playthrough' that is already unfolded. Returning as is."
+        )
         return measures
     playthrough2mc = make_playthrough2mc(measures, logger=logger)
     if playthrough2mc is None or len(playthrough2mc) == 0:
-        logger.warning(f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n{measures.set_index('mc').next}")
+        logger.warning(
+            f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n"
+            f"{measures.set_index('mc').next}"
+        )
         return None
     else:
         logger.debug("Repeat structure successfully unfolded.")
     unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
     try:
         mn_playthrough_col = compute_mn_playthrough(unfolded_measures, logger=logger)
-        insert_position = unfolded_measures.columns.get_loc('mc_playthrough') + 1
-        unfolded_measures.insert(insert_position, 'mn_playthrough', mn_playthrough_col)
+        insert_position = unfolded_measures.columns.get_loc("mc_playthrough") + 1
+        unfolded_measures.insert(insert_position, "mn_playthrough", mn_playthrough_col)
     except Exception as e:
-        logger.warning(f"Adding the column 'mn_playthrough' to the unfolded measures table failed with:\n'{e}'")
-    logger.debug(f"Measures successfully unfolded.")
+        logger.warning(
+            f"Adding the column 'mn_playthrough' to the unfolded measures table failed with:\n'{e}'"
+        )
+    logger.debug("Measures successfully unfolded.")
     return unfolded_measures
 
 
-@function_logger
-def unfold_repeats(df: pd.DataFrame,
-                   playthrough_info: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
-    """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
+def unfold_repeats(
+    df: pd.DataFrame, playthrough_info: Union[pd.Series, pd.DataFrame], logger=None
+) -> pd.DataFrame:
+    """Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
     Args:
       df: DataFrame needs to have the columns 'mc'. If 'mn' is present, the column 'mn' will be added, too.
@@ -3533,36 +4074,47 @@ def unfold_repeats(df: pd.DataFrame,
     Returns:
       A copy of the dataframe with the columns 'mc_playthrough' and 'mn_playthrough' (if 'mn' is present) inserted.
     """
+    if logger is None:
+        logger = module_logger
     n_occurrences = df.mc.value_counts()
-    result_df = df.set_index('mc')
+    result_df = df.set_index("mc")
     if isinstance(playthrough_info, pd.DataFrame):
-        playthrough2mc = playthrough_info['mc']
-        playthrough2mn = playthrough_info['mn_playthrough'].to_dict()
+        playthrough2mc = playthrough_info["mc"]
+        playthrough2mn = playthrough_info["mn_playthrough"].to_dict()
     else:
         playthrough2mc = playthrough_info
         playthrough2mn = None
     playthrough2mc = playthrough2mc[playthrough2mc.isin(result_df.index)]
-    mc_playthrough_col = pd.Series(sum([[playthrough] * n_occurrences[mc] for playthrough, mc in playthrough2mc.items()], []))
+    mc_playthrough_col = pd.Series(
+        sum(
+            [
+                [playthrough] * n_occurrences[mc]
+                for playthrough, mc in playthrough2mc.items()
+            ],
+            [],
+        )
+    )
     result_df = result_df.loc[playthrough2mc.values].reset_index()
-    if 'mn' in result_df.columns:
-        column_position = result_df.columns.get_loc('mn') + 1
+    if "mn" in result_df.columns:
+        column_position = result_df.columns.get_loc("mn") + 1
         if playthrough2mn is not None:
             mn_playthrough_col = mc_playthrough_col.map(playthrough2mn)
-            result_df.insert(column_position, 'mn_playthrough', mn_playthrough_col)
+            result_df.insert(column_position, "mn_playthrough", mn_playthrough_col)
     else:
-        column_position = result_df.columns.get_loc('mc') + 1
-    result_df.insert(column_position, 'mc_playthrough', mc_playthrough_col)
+        column_position = result_df.columns.get_loc("mc") + 1
+    result_df.insert(column_position, "mc_playthrough", mc_playthrough_col)
     return result_df
 
 
 @contextmanager
-@function_logger
-def unpack_mscz(mscz, tmp_dir=None):
+def unpack_mscz(mscz, tmp_dir=None, logger=None):
+    if logger is None:
+        logger = module_logger
     if tmp_dir is None:
         tmp_dir = os.path.dirname(mscz)
-    tmp_file = Temp(suffix='.mscx', prefix='.', dir=tmp_dir, delete=False)
+    tmp_file = Temp(suffix=".mscx", prefix=".", dir=tmp_dir, delete=False)
     with Zip(mscz) as zip_file:
-        mscx_files = [f for f in zip_file.namelist() if f.endswith('.mscx')]
+        mscx_files = [f for f in zip_file.namelist() if f.endswith(".mscx")]
         if len(mscx_files) > 1:
             logger.info(f"{mscz} contains several MSCX files. Picking the first one")
         mscx = mscx_files[0]
@@ -3573,16 +4125,18 @@ def unpack_mscz(mscz, tmp_dir=None):
     try:
         yield tmp_file.name
     except Exception:
-        logger.error(f"Error while dealing with the temporarily unpacked {os.path.basename(mscz)}")
+        logger.error(
+            f"Error while dealing with the temporarily unpacked {os.path.basename(mscz)}"
+        )
         raise
     finally:
         os.remove(tmp_file.name)
 
 
 @contextmanager
-@function_logger
-def capture_parse_logs(logger_object: logging.Logger,
-                       level: Union[str, int] = 'w') -> LogCapturer:
+def capture_parse_logs(
+    logger_object: logging.Logger, level: Union[str, int] = "w", logger=None
+) -> LogCapturer:
     """Within the context, the given logger will have an additional handler that captures all messages with level
     ``level`` or higher. At the end of the context, retrieve the message list via LogCapturer.content_list.
 
@@ -3593,29 +4147,41 @@ def capture_parse_logs(logger_object: logging.Logger,
                 # do the stuff of which you want to capture the log messages of the given level (and above)
                 all_messages = capturer.content_list
     """
+    if logger is None:
+        logger = module_logger
     captured_warnings = LogCapturer(level=level)
     logger_object.addHandler(captured_warnings.log_handler)
     yield captured_warnings
     logger_object.removeHandler(captured_warnings.log_handler)
 
 
-@function_logger
-def update_labels_cfg(labels_cfg):
-    keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
-    if 'logger' in labels_cfg:
-        del (labels_cfg['logger'])
+def update_labels_cfg(labels_cfg, logger=None):
+    if logger is None:
+        logger = module_logger
+    keys = [
+        "staff",
+        "voice",
+        "harmony_layer",
+        "positioning",
+        "decode",
+        "column_name",
+        "color_format",
+    ]
+    if "logger" in labels_cfg:
+        del labels_cfg["logger"]
     updated, incorrect = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys)
     if len(incorrect) > 0:
-        last_5 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
-        plural = 'These options are' if len(incorrect) > 1 else 'This option is'
-        logger.warning(f"{plural} not valid to configure labels: {incorrect}\nLast 5 function calls leading here: {last_5}")
+        last_5 = ", ".join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
+        plural = "These options are" if len(incorrect) > 1 else "This option is"
+        logger.warning(
+            f"{plural} not valid to configure labels: {incorrect}\nLast 5 function calls leading here: {last_5}"
+        )
     return updated
 
 
-@function_logger
-def write_metadata(metadata_df: pd.DataFrame,
-                   path: str,
-                   index=False) -> bool:
+def write_metadata(
+    metadata_df: pd.DataFrame, path: str, index=False, logger=None
+) -> bool:
     """
     Write the DataFrame ``metadata_df`` to ``path``, updating an existing file rather than overwriting it.
 
@@ -3633,28 +4199,41 @@ def write_metadata(metadata_df: pd.DataFrame,
     Returns:
       True if the metadata were successfully written, False otherwise.
     """
-    metadata_df = metadata_df.astype('string')
+    if logger is None:
+        logger = module_logger
+    metadata_df = metadata_df.astype("string")
     metadata_df = enforce_piece_index_for_metadata(metadata_df)
     path = resolve_dir(path)
     if os.path.isdir(path):
-        tsv_path = os.path.join(path, 'metadata.tsv')
+        tsv_path = os.path.join(path, "metadata.tsv")
     else:
         tsv_path = path
     _, fext = os.path.splitext(tsv_path)
-    if fext != '.tsv':
-        logger.warning(f"The output format for metadata is Tab-Separated Values (.tsv) but the file extensions is {fext}.")
+    if fext != ".tsv":
+        logger.warning(
+            f"The output format for metadata is Tab-Separated Values (.tsv) but the file extensions is {fext}."
+        )
     if not os.path.isfile(tsv_path):
         output_df = metadata_df
-        msg = 'Created'
+        msg = "Created"
     else:
         # Trying to load an existing 'metadata.tsv' file to update existing rows
-        previous = pd.read_csv(tsv_path, sep='\t', dtype='string')
+        previous = pd.read_csv(tsv_path, sep="\t", dtype="string")
         previous = enforce_piece_index_for_metadata(previous)
-        for ix, what in zip((previous.index, previous.columns, metadata_df.index, metadata_df.columns),
-                            ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
+        for ix, what in zip(
+            (previous.index, previous.columns, metadata_df.index, metadata_df.columns),
+            (
+                "index of the existing",
+                "columns of the existing",
+                "index of the updated",
+                "columns of the updated",
+            ),
+        ):
             if not ix.is_unique:
                 duplicated = ix[ix.duplicated()].to_list()
-                logger.error(f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}")
+                logger.error(
+                    f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}"
+                )
                 return False
         new_cols = metadata_df.columns.difference(previous.columns)
         shared_cols = metadata_df.columns.intersection(previous.columns)
@@ -3664,36 +4243,53 @@ def write_metadata(metadata_df: pd.DataFrame,
         previous.update(metadata_df)
         legacy_columns = [c for c in LEGACY_COLUMNS if c in previous.columns]
         if len(legacy_columns) > 0:
-            plural = f's {legacy_columns}' if len(legacy_columns) > 1 else f' {legacy_columns[0]}'
+            plural = (
+                f"s {legacy_columns}"
+                if len(legacy_columns) > 1
+                else f" {legacy_columns[0]}"
+            )
             previous = previous.drop(columns=legacy_columns)
             logger.info(f"Dropped legacy column{plural} .")
         output_df = previous.reset_index()
-        msg = 'Updated'
+        msg = "Updated"
     output_df = prepare_metadata_for_writing(output_df)
-    output_df.to_csv(tsv_path, sep='\t', index=index)
+    output_df.to_csv(tsv_path, sep="\t", index=index)
     logger.info(f"{msg} {tsv_path}")
     return True
 
 
-@function_logger
-def enforce_piece_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
+def enforce_piece_index_for_metadata(
+    metadata_df: pd.DataFrame, append=False, logger=None
+) -> pd.DataFrame:
     """Returns a copy of the DataFrame that has an index level called 'piece'."""
-    possible_column_names = ('piece', 'fname', 'fnames', 'filename', 'name', 'names',)
+    if logger is None:
+        logger = module_logger
+    possible_column_names = (
+        "piece",
+        "fname",
+        "fnames",
+        "filename",
+        "name",
+        "names",
+    )
     if any(name in metadata_df.index.names for name in possible_column_names):
         return metadata_df.copy()
     try:
-        piece_col = next(col for col in possible_column_names if col in metadata_df.columns)
+        piece_col = next(
+            col for col in possible_column_names if col in metadata_df.columns
+        )
     except StopIteration:
-        raise ValueError(f"Metadata is expected to come with a column or index level called 'piece' or ("
-                         f"previously) 'fname'.")
-    if piece_col != 'piece':
-        metadata_df = metadata_df.rename(columns={piece_col: 'piece'})
+        raise ValueError(
+            "Metadata is expected to come with a column or index level called 'piece' or ("
+            "previously) 'fname'."
+        )
+    if piece_col != "piece":
+        metadata_df = metadata_df.rename(columns={piece_col: "piece"})
         logger.info(f"Renamed column '{piece_col}' -> 'piece'")
-    return metadata_df.set_index('piece', append=append)
+    return metadata_df.set_index("piece", append=append)
 
 
-@function_logger
-def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
+def write_markdown(metadata_df: pd.DataFrame, file_path: str, logger=None) -> None:
     """
     Write a subset of the DataFrame ``metadata_df`` to ``path`` in markdown format. If the file exists, it will be
     scanned for a line containing the string '# Overview' and overwritten from that line onwards.
@@ -3702,36 +4298,45 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
       metadata_df: DataFrame containing metadata.
       file_path: Path of the markdown file.
     """
+    if logger is None:
+        logger = module_logger
     rename4markdown = {
-        'piece': 'file_name',
-        'last_mn': 'measures',
-        'label_count': 'labels',
-        'harmony_version': 'standard',
-        'annotators': 'annotators',
-        'reviewers': 'reviewers',
+        "piece": "file_name",
+        "last_mn": "measures",
+        "label_count": "labels",
+        "harmony_version": "standard",
+        "annotators": "annotators",
+        "reviewers": "reviewers",
     }
-    rename4markdown = {k: v for k, v in rename4markdown.items() if k in metadata_df.columns}
-    drop_index = 'fname' in metadata_df.columns
-    md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
+    rename4markdown = {
+        k: v for k, v in rename4markdown.items() if k in metadata_df.columns
+    }
+    drop_index = "fname" in metadata_df.columns
+    md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna(
+        ""
+    )
     md = md.rename(columns=rename4markdown)
-    md_table = "#" + str(dataframe2markdown(md, name="Overview"))  # comes with a first-level heading which we turn into second-level
-    md_table += f"\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
+    md_table = "#" + str(
+        dataframe2markdown(md, name="Overview")
+    )  # comes with a first-level heading which we turn into second-level
+    md_table += "\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
 
     if os.path.isfile(file_path):
-        msg = 'Updated'
-        with open(file_path, 'r', encoding='utf-8') as f:
+        msg = "Updated"
+        with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
     else:
-        msg = 'Created'
+        msg = "Created"
         lines = []
-    # in case the README.md exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
-    with open(file_path, 'w', encoding='utf-8') as f:
+    # in case the README.md exists, everything from the line including '# Overview' (or last line otherwise) is
+    # overwritten
+    with open(file_path, "w", encoding="utf-8") as f:
         for line in lines:
-            if '# Overview' in line:
+            if "# Overview" in line:
                 break
             f.write(line)
         else:
-            f.write('\n\n')
+            f.write("\n\n")
         f.write(md_table)
     logger.info(f"{msg} {file_path}")
 
@@ -3740,11 +4345,11 @@ def prepare_metadata_for_writing(metadata_df):
     # convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in metadata_df}
     # if len(convert_to_str) > 0:
     #     metadata_df = metadata_df.astype(convert_to_str, errors='ignore')
-    metadata_df = metadata_df.astype('string', errors='ignore')
+    metadata_df = metadata_df.astype("string", errors="ignore")
     metadata_df.sort_index(inplace=True)
     metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
     # on Windows, make sure the paths are written with / separators
-    path_cols = [col for col in ('subdir', 'rel_path') if col in metadata_df.columns]
+    path_cols = [col for col in ("subdir", "rel_path") if col in metadata_df.columns]
     for col in path_cols:
         with warnings.catch_warnings():
             # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
@@ -3758,7 +4363,7 @@ def prepare_metadata_for_writing(metadata_df):
                     "To retain the old behavior, use either.*"
                 ),
             )
-            metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, '/')
+            metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, "/")
     staff_cols, other_cols = [], []
     for col in metadata_df.columns:
         if re.match(r"^staff_(\d+)", col):
@@ -3776,12 +4381,9 @@ def ensure_correct_column_types(df):
     return df
 
 
-@function_logger
 def write_tsv(
-        df: pd.DataFrame,
-        file_path: str,
-        pre_process: bool = True,
-        **kwargs):
+    df: pd.DataFrame, file_path: str, pre_process: bool = True, logger=None, **kwargs
+):
     """Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'. By default,
     the index is not included, unless you pass ``index=True`` as additional keyword argument.
     Uses: :py:func:`no_collections_no_booleans`
@@ -3800,18 +4402,22 @@ def write_tsv(
             Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
             Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above).
     """
+    if logger is None:
+        logger = module_logger
     path, file = os.path.split(file_path)
     path = resolve_dir(path)
     os.path.join(path, file)
     piece, ext = os.path.splitext(file)
-    if ext.lower() not in ('.tsv', '.csv', '.zip'):
-        logger.error(f"This function expects file_path to include the file name ending on .csv, .tsv, or .zip, not '{ext}'.")
+    if ext.lower() not in (".tsv", ".csv", ".zip"):
+        logger.error(
+            f"This function expects file_path to include the file name ending on .csv, .tsv, or .zip, not '{ext}'."
+        )
         return
     os.makedirs(path, exist_ok=True)
-    if ext.lower() == '.tsv':
-        kwargs.update(dict(sep='\t'))
-    if 'index' not in kwargs:
-        kwargs['index'] = False
+    if ext.lower() == ".tsv":
+        kwargs.update(dict(sep="\t"))
+    if "index" not in kwargs:
+        kwargs["index"] = False
     if pre_process:
         df = no_collections_no_booleans(df, logger=logger)
         df = ensure_correct_column_types(df)
@@ -3820,10 +4426,9 @@ def write_tsv(
     return
 
 
-@function_logger
-def abs2rel_key(absolute: str,
-                localkey: str,
-                global_minor: bool = False) -> str:
+def abs2rel_key(
+    absolute: str, localkey: str, global_minor: bool = False, logger=None
+) -> str:
     """
     Expresses a Roman numeral as scale degree relative to a given localkey.
     The result changes depending on whether Roman numeral and localkey are
@@ -3858,21 +4463,29 @@ def abs2rel_key(absolute: str,
           >>> abs2rel_key('VI', 'iv', global_minor=False)
           'III'       # Ab major expressed with respect to F minor
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(absolute) or pd.isnull(localkey):
         return absolute
     absolute = resolve_relative_keys(absolute)
     localkey = resolve_relative_keys(localkey)
-    maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
-    min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
-    white_key_major_accidentals = np.array([[0, 0, 0, 0, 0, 0, 0],
-                                            [0, 0, 1, 0, 0, 0, 1],
-                                            [0, 1, 1, 0, 0, 1, 1],
-                                            [0, 0, 0, -1, 0, 0, 0],
-                                            [0, 0, 0, 0, 0, 0, 1],
-                                            [0, 0, 1, 0, 0, 1, 1],
-                                            [0, 1, 1, 0, 1, 1, 1]])
+    maj_rn = ["I", "II", "III", "IV", "V", "VI", "VII"]
+    min_rn = ["i", "ii", "iii", "iv", "v", "vi", "vii"]
+    white_key_major_accidentals = np.array(
+        [
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 1],
+            [0, 1, 1, 0, 0, 1, 1],
+            [0, 0, 0, -1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 1, 0, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1, 1],
+        ]
+    )
     abs_accidentals, absolute = split_scale_degree(absolute, count=True, logger=logger)
-    localkey_accidentals, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    localkey_accidentals, localkey = split_scale_degree(
+        localkey, count=True, logger=logger
+    )
     resulting_accidentals = abs_accidentals - localkey_accidentals
     numerals = maj_rn if absolute.isupper() else min_rn
     localkey_index = maj_rn.index(localkey.upper())
@@ -3883,14 +4496,15 @@ def abs2rel_key(absolute: str,
     if global_minor:
         localkey_index = (localkey_index - 2) % 7
     resulting_accidentals -= white_key_major_accidentals[localkey_index][result_index]
-    acc = resulting_accidentals * '#' if resulting_accidentals > 0 else -resulting_accidentals * 'b'
+    acc = (
+        resulting_accidentals * "#"
+        if resulting_accidentals > 0
+        else -resulting_accidentals * "b"
+    )
     return acc + result_numeral
 
 
-@function_logger
-def rel2abs_key(relative: str,
-                localkey: str,
-                global_minor: bool = False):
+def rel2abs_key(relative: str, localkey: str, global_minor: bool = False, logger=None):
     """Expresses a Roman numeral that is expressed relative to a localkey
     as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
     the result changes depending on whether the global key is major or minor.
@@ -3920,21 +4534,31 @@ def rel2abs_key(relative: str,
       The same examples hold if you're expressing in terms of the global key
       the root of a VI-chord within the local keys VI or vi.
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(relative) or pd.isnull(localkey):
         return relative
     relative = resolve_relative_keys(relative)
     localkey = resolve_relative_keys(localkey)
-    maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
-    min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
-    white_key_major_accidentals = np.array([[0, 0, 0, 0, 0, 0, 0],
-                                            [0, 0, 1, 0, 0, 0, 1],
-                                            [0, 1, 1, 0, 0, 1, 1],
-                                            [0, 0, 0, -1, 0, 0, 0],
-                                            [0, 0, 0, 0, 0, 0, 1],
-                                            [0, 0, 1, 0, 0, 1, 1],
-                                            [0, 1, 1, 0, 1, 1, 1]])
-    relative_accidentals, relative = split_scale_degree(relative, count=True, logger=logger)
-    localkey_accidentals, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    maj_rn = ["I", "II", "III", "IV", "V", "VI", "VII"]
+    min_rn = ["i", "ii", "iii", "iv", "v", "vi", "vii"]
+    white_key_major_accidentals = np.array(
+        [
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 1],
+            [0, 1, 1, 0, 0, 1, 1],
+            [0, 0, 0, -1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 1, 0, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1, 1],
+        ]
+    )
+    relative_accidentals, relative = split_scale_degree(
+        relative, count=True, logger=logger
+    )
+    localkey_accidentals, localkey = split_scale_degree(
+        localkey, count=True, logger=logger
+    )
     resulting_accidentals = relative_accidentals + localkey_accidentals
     numerals = maj_rn if relative.isupper() else min_rn
     rel_num = numerals.index(relative)
@@ -3945,13 +4569,23 @@ def rel2abs_key(relative: str,
     if global_minor:
         localkey_index = (localkey_index - 2) % 7
     resulting_accidentals += white_key_major_accidentals[rel_num][localkey_index]
-    acc = resulting_accidentals * '#' if resulting_accidentals > 0 else -resulting_accidentals * 'b'
+    acc = (
+        resulting_accidentals * "#"
+        if resulting_accidentals > 0
+        else -resulting_accidentals * "b"
+    )
     return acc + result_numeral
 
 
-@function_logger
-def make_interval_index_from_durations(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
-                                       round=None, name='interval'):
+def make_interval_index_from_durations(
+    df,
+    position_col="quarterbeats",
+    duration_col="duration_qb",
+    closed="left",
+    round=None,
+    name="interval",
+    logger=None,
+):
     """Given an annotations table with positions and durations, create an :obj:`pandas.IntervalIndex`.
     Returns None if any row is underspecified.
 
@@ -3977,28 +4611,41 @@ def make_interval_index_from_durations(df, position_col='quarterbeats', duration
         A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
         could be coputed).
     """
+    if logger is None:
+        logger = module_logger
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
-        plural = 's' if len(missing) > 1 else ''
+        plural = "s" if len(missing) > 1 else ""
         logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
         return
     if df[position_col].isna().any() or df[duration_col].isna().any():
         missing = df[df[[position_col, duration_col]].isna().any(axis=1)]
-        logger.warning(f"Could not make IntervalIndex because of missing values:\n{missing}")
+        logger.warning(
+            f"Could not make IntervalIndex because of missing values:\n{missing}"
+        )
         return
     try:
         left = df[position_col].astype(float)
         right = (left + df[duration_col]).astype(float)
         if round is not None:
             left, right = left.round(round), right.round(round)
-        return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)
+        return pd.IntervalIndex.from_arrays(
+            left=left, right=right, closed=closed, name=name
+        )
     except Exception as e:
         logger.warning(f"Creating IntervalIndex failed with exception {e}.")
 
 
-@function_logger
-def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
-                               filter_zero_duration=False, round=None, name='interval'):
+def replace_index_by_intervals(
+    df,
+    position_col="quarterbeats",
+    duration_col="duration_qb",
+    closed="left",
+    filter_zero_duration=False,
+    round=None,
+    name="interval",
+    logger=None,
+):
     """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.
     Underspecified rows are removed.
 
@@ -4026,20 +4673,33 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
         A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
         could be computed).
     """
+    if logger is None:
+        logger = module_logger
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
-        plural = 's' if len(missing) > 1 else ''
+        plural = "s" if len(missing) > 1 else ""
         logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
         return df
-    mask = df[position_col].notna() & (df[position_col] != '') & df[duration_col].notna()
+    mask = (
+        df[position_col].notna() & (df[position_col] != "") & df[duration_col].notna()
+    )
     n_dropped = (~mask).sum()
     if filter_zero_duration:
-        mask &= (df[duration_col] > 0)
+        mask &= df[duration_col] > 0
     elif n_dropped > 0:
-        logger.info(f"Had to drop {n_dropped} rows for creating the IntervalIndex:\n{df[~mask]}")
+        logger.info(
+            f"Had to drop {n_dropped} rows for creating the IntervalIndex:\n{df[~mask]}"
+        )
     df = df[mask].copy()
-    iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
-                                                  closed=closed, round=round, name=name, logger=logger)
+    iv_index = make_interval_index_from_durations(
+        df,
+        position_col=position_col,
+        duration_col=duration_col,
+        closed=closed,
+        round=round,
+        name=name,
+        logger=logger,
+    )
     if df[duration_col].dtype != float:
         with warnings.catch_warnings():
             # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
@@ -4063,20 +4723,20 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
 
 def boolean_mode_col2strings(S) -> pd.Series:
     """Turn the boolean is_minor columns into string columns such that True => 'minor', False => 'major'."""
-    return S.map({True: 'minor', False: 'major'})
+    return S.map({True: "minor", False: "major"})
 
 
 def replace_boolean_mode_by_strings(df) -> pd.DataFrame:
     """Replaces boolean '_is_minor' columns with string columns renamed to '_mode'.
     Example: df['some_col', 'some_name_is_minor'] => df['some_col', 'some_name_mode']
     """
-    bool_cols = [col for col in df.columns if col.endswith('_is_minor')]
+    bool_cols = [col for col in df.columns if col.endswith("_is_minor")]
     if len(bool_cols) == 0:
         return df
     df = df.copy()
     renaming = {}
     for col_name in bool_cols:
-        numeral_name = col_name[:-len('_is_minor')]
+        numeral_name = col_name[: -len("_is_minor")]
         if col_name in df.columns:
             new_col_name = f"{numeral_name}_mode"
             new_col = boolean_mode_col2strings(df[col_name])
@@ -4086,38 +4746,44 @@ def replace_boolean_mode_by_strings(df) -> pd.DataFrame:
     return df
 
 
-@function_logger
-def resolve_relative_keys(relativeroot, minor=False):
-    """ Resolve nested relative keys, e.g. 'V/V/V' => 'VI'.
+def resolve_relative_keys(relativeroot, minor=False, logger=None):
+    """Resolve nested relative keys, e.g. 'V/V/V' => 'VI'.
 
     Uses: :py:func:`rel2abs_key`, :py:func:`str_is_minor`
 
     relativeroot : :obj:`str`
-        One or several relative keys, e.g. iv/v/VI (fourth scale degree of the fifth scale degree of the sixth scale degree)
+        One or several relative keys, e.g. iv/v/VI (fourth scale degree of the fifth scale degree of the sixth scale
+            degree)
     minor : :obj:`bool`, optional
         Pass True if the last of the relative keys is to be interpreted within a minor context.
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(relativeroot):
         return relativeroot
-    spl = relativeroot.split('/')
+    spl = relativeroot.split("/")
     if len(spl) < 2:
         return relativeroot
     if len(spl) == 2:
         applied, to = spl
         return rel2abs_key(applied, to, minor, logger=logger)
-    previous, last = '/'.join(spl[:-1]), spl[-1]
-    return rel2abs_key(resolve_relative_keys(previous, str_is_minor(last, is_name=False)), last, minor)
+    previous, last = "/".join(spl[:-1]), spl[-1]
+    return rel2abs_key(
+        resolve_relative_keys(previous, str_is_minor(last, is_name=False)), last, minor
+    )
 
 
 def series_is_minor(S, is_name=True):
-    """ Returns boolean Series where every value in ``S`` representing a minor key/chord is True."""
+    """Returns boolean Series where every value in ``S`` representing a minor key/chord is True."""
     # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
     # return S.str.replace(regex, lambda m: m.group(1)).str.islower()
-    return S.str.islower()  # as soon as one character is not lowercase, it should be major
+    return (
+        S.str.islower()
+    )  # as soon as one character is not lowercase, it should be major
 
 
 def str_is_minor(tone, is_name=True):
-    """ Returns True if ``tone`` represents a minor key or chord."""
+    """Returns True if ``tone`` represents a minor key or chord."""
     # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
     # m = re.match(regex, tone)
     # if m is None:
@@ -4126,8 +4792,9 @@ def str_is_minor(tone, is_name=True):
     return tone.islower()
 
 
-@function_logger
-def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=False):
+def transpose_changes(
+    changes, old_num, new_num, old_minor=False, new_minor=False, logger=None
+):
     """
     Since the interval sizes expressed by the changes of the DCML harmony syntax
     depend on the numeral's position in the scale, these may change if the numeral
@@ -4145,12 +4812,17 @@ def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=Fals
     old_minor, new_minor : :obj:`bool`, optional
         For each numeral, pass True if it occurs in a minor context.
     """
+    if logger is None:
+        logger = module_logger
     if pd.isnull(changes):
         return changes
     old = changes2tpc(changes, old_num, minor=old_minor, root_alterations=True)
     new = changes2tpc(changes, new_num, minor=new_minor, root_alterations=True)
     res = []
-    get_acc = lambda n: n * '#' if n > 0 else -n * 'b'
+
+    def get_acc(n):
+        return n * "#" if n > 0 else -n * "b"
+
     for (full, added, acc, chord_interval, iv1), (_, _, _, _, iv2) in zip(old, new):
         if iv1 is None or iv1 == iv2:
             res.append(full)
@@ -4158,22 +4830,35 @@ def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=Fals
             d = iv2 - iv1
             if d % 7 > 0:
                 logger.warning(
-                    f"The difference between the intervals of {full} in {old_num} and {new_num} (in {'minor' if new_minor else 'major'}) don't differ by chromatic semitones.")
-            n_acc = acc.count('#') - acc.count('b')
+                    f"The difference between the intervals of {full} in {old_num} and {new_num} (in "
+                    f"{'minor' if new_minor else 'major'}) don't differ by chromatic semitones."
+                )
+            n_acc = acc.count("#") - acc.count("b")
             new_acc = get_acc(n_acc - d // 7)
             res.append(added + new_acc + chord_interval)
-    return ''.join(res)
+    return "".join(res)
 
 
-@function_logger
-def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=None, key='C', minor=None,
-                  merge_tones=True, bass_only=False, mc=None):
+def features2tpcs(
+    numeral,
+    form=None,
+    figbass=None,
+    changes=None,
+    relativeroot=None,
+    key="C",
+    minor=None,
+    merge_tones=True,
+    bass_only=False,
+    mc=None,
+    logger=None,
+):
     """
     Given the features of a chord label, this function returns the chord tones
     in the order of the inversion, starting from the bass note. The tones are
     expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.
 
-    Uses: :py:func:`~.utils.changes2list`, :py:func:`~.utils.name2fifths`, :py:func:`~.utils.resolve_relative_keys`, :py:func:`~.utils.roman_numeral2fifths`,
+    Uses: :py:func:`~.utils.changes2list`, :py:func:`~.utils.name2fifths`, :py:func:`~.utils.resolve_relative_keys`,
+    :py:func:`~.utils.roman_numeral2fifths`,
     :py:func:`~.utils.sort_tpcs`, :py:func:`~.utils.str_is_minor`
 
     Parameters
@@ -4207,52 +4892,79 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         Pass measure count to display it in warnings.
 
     """
-    if pd.isnull(numeral) or numeral == '@none':
+    if logger is None:
+        logger = module_logger
+    if pd.isnull(numeral) or numeral == "@none":
         if bass_only or merge_tones:
             return pd.NA
         else:
             return {
-                'chord_tones': pd.NA,
-                'added_tones': pd.NA,
-                'root': pd.NA,
+                "chord_tones": pd.NA,
+                "added_tones": pd.NA,
+                "root": pd.NA,
             }
     form, figbass, changes, relativeroot = tuple(
-        '' if pd.isnull(val) else val for val in (form, figbass, changes, relativeroot))
-    label = f"{numeral}{form}{figbass}{'(' + changes + ')' if changes != '' else ''}{'/' + relativeroot if relativeroot != '' else ''}"
-    MC = '' if mc is None else f'MC {mc}: '
+        "" if pd.isnull(val) else val for val in (form, figbass, changes, relativeroot)
+    )
+    label = (
+        f"{numeral}{form}{figbass}{'(' + changes + ')' if changes != '' else ''}"
+        f"{'/' + relativeroot if relativeroot != '' else ''}"
+    )
+    MC = "" if mc is None else f"MC {mc}: "
     if minor is None:
         try:
             minor = str_is_minor(key, is_name=True)
             logger.debug(f"Mode inferred from {key}.")
         except Exception:
-            raise ValueError(f"If parameter 'minor' is not specified, 'key' needs to be a string, not {key}")
+            raise ValueError(
+                f"If parameter 'minor' is not specified, 'key' needs to be a string, not {key}"
+            )
 
     key = name2fifths(key, logger=logger)
 
-    if form in ['%', 'M', '+M']:
-        assert figbass in ['7', '65', '43',
-                           '2'], f"{MC}{label}: {form} requires figbass (7, 65, 43, or 2) since it specifies a chord's seventh."
+    if form in ["%", "M", "+M"]:
+        assert figbass in ["7", "65", "43", "2"], (
+            f"{MC}{label}: {form} requires figbass (7, 65, 43, or 2) since it specifies a "
+            f"chord's seventh."
+        )
 
-    if relativeroot != '':
+    if relativeroot != "":
         resolved = resolve_relative_keys(relativeroot, minor, logger=logger)
         rel_minor = str_is_minor(resolved, is_name=False)
         transp = roman_numeral2fifths(resolved, minor, logger=logger)
         logger.debug(
-            f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
-        return features2tpcs(numeral=numeral, form=form, figbass=figbass, relativeroot=None, changes=changes,
-                             key=key + transp, minor=rel_minor, merge_tones=merge_tones, bass_only=bass_only, mc=mc,
-                             logger=logger)
+            f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths."
+        )
+        return features2tpcs(
+            numeral=numeral,
+            form=form,
+            figbass=figbass,
+            relativeroot=None,
+            changes=changes,
+            key=key + transp,
+            minor=rel_minor,
+            merge_tones=merge_tones,
+            bass_only=bass_only,
+            mc=mc,
+            logger=logger,
+        )
 
-    if numeral.lower() == '#vii' and not minor:
-        logger.warning(f"{MC}{numeral} in major context corrected to {numeral[1:]}.",
-                       extra={'message_id': (27, MC)})
+    if numeral.lower() == "#vii" and not minor:
+        logger.warning(
+            f"{MC}{numeral} in major context corrected to {numeral[1:]}.",
+            extra={"message_id": (27, MC)},
+        )
         numeral = numeral[1:]
 
     root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
 
     # build 2-octave diatonic scale on C major/minor
-    root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
-    tpcs = 2 * [i + key for i in (0, 2, -3, -1, 1, -4, -2)] if minor else 2 * [i + key for i in (0, 2, 4, -1, 1, 3, 5)]
+    root = ["I", "II", "III", "IV", "V", "VI", "VII"].index(num_degree.upper())
+    tpcs = (
+        2 * [i + key for i in (0, 2, -3, -1, 1, -4, -2)]
+        if minor
+        else 2 * [i + key for i in (0, 2, 4, -1, 1, 3, 5)]
+    )
     # starting the scale from chord root, i.e. root will be tpcs[0], the chord's seventh tpcs[6] etc.
     tpcs = tpcs[root:] + tpcs[:root]
     root = tpcs[0] + 7 * root_alteration
@@ -4261,7 +4973,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     # logger.debug(f"{num_degree}: The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
 
     def set_iv(chord_interval, interval_size):
-        """ Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).
+        """Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).
 
         Parameters
         ----------
@@ -4275,26 +4987,26 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         tpcs[chord_interval] = iv
         tpcs[chord_interval + 7] = iv
 
-    is_triad = figbass in ['', '6', '64']
-    is_seventh_chord = figbass in ['7', '65', '43', '2']
+    is_triad = figbass in ["", "6", "64"]
+    is_seventh_chord = figbass in ["7", "65", "43", "2"]
     if not is_triad and not is_seventh_chord:
         raise ValueError(f"{MC}{figbass} is not a valid chord inversion.")
 
-    if form == 'o':
+    if form == "o":
         set_iv(2, -3)
         set_iv(4, -6)
         if is_seventh_chord:
             set_iv(6, -9)
-    elif form == '%':
+    elif form == "%":
         set_iv(2, -3)
         set_iv(4, -6)
         set_iv(6, -2)
-    elif form == '+':
+    elif form == "+":
         set_iv(2, 4)
         set_iv(4, 8)
         if is_seventh_chord:
             set_iv(6, -2)
-    elif form == '+M':
+    elif form == "+M":
         set_iv(2, 4)
         set_iv(4, 8)
         set_iv(6, 5)
@@ -4304,7 +5016,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             set_iv(2, 4)
         else:
             set_iv(2, -3)
-        if form == 'M':
+        if form == "M":
             set_iv(6, 5)
         elif is_seventh_chord:
             set_iv(6, -2)
@@ -4325,36 +5037,50 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     alts = changes2list(changes, sort=False)
     added_notes = []
     for full, add_remove, acc, chord_interval in alts:
-        added = add_remove == '+'
-        substracted = add_remove == '-'
-        replacing_upper = add_remove == '^'
-        replacing_lower = add_remove == 'v'
+        added = add_remove == "+"
+        substracted = add_remove == "-"
+        replacing_upper = add_remove == "^"
+        replacing_lower = add_remove == "v"
         chord_interval = int(chord_interval) - 1
-        ### From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in `tpcs`)
+        # From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in
+        # `tpcs`)
         if (chord_interval == 0 and not substracted) or chord_interval > 13:
             logger.warning(
-                f"{MC}Change {full} is meaningless and ignored because it concerns chord tone {chord_interval + 1}.")
+                f"{MC}Change {full} is meaningless and ignored because it concerns chord tone {chord_interval + 1}."
+            )
             continue
         next_octave = chord_interval > 7
-        shift = 7 * (acc.count('#') - acc.count('b'))
+        shift = 7 * (acc.count("#") - acc.count("b"))
         new_val = tpcs[chord_interval] + shift
         if substracted:
             if chord_interval not in tone_functions:
                 logger.warning(
-                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by {numeral}{form}{figbass}.")
+                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by "
+                    f"{numeral}{form}{figbass}."
+                )
             else:
                 root_position[chord_interval] = []
         elif added:
             added_notes.append(new_val)
         elif next_octave:
             if any((replacing_lower, replacing_upper, substracted)):
-                logger.info(f"{MC}{full[0]} has no effect on tonal pitch classes computed for {full}  because the interval is larger than an octave.")
+                logger.info(
+                    f"{MC}{full[0]} has no effect on tonal pitch classes computed for {full}  because the interval is "
+                    f"larger than an octave."
+                )
             added_notes.append(new_val)
-        elif chord_interval in [1, 3, 5]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
-            if '#' in acc or replacing_upper:
-                if '#' in acc and replacing_upper:
+        elif chord_interval in [
+            1,
+            3,
+            5,
+        ]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour
+            # unless they have a # or ^
+            if "#" in acc or replacing_upper:
+                if "#" in acc and replacing_upper:
                     logger.info(f"{MC}^ is redundant in {full}.")
-                if chord_interval == 5 and is_triad:  # leading tone to 7 but not in seventh chord
+                if (
+                    chord_interval == 5 and is_triad
+                ):  # leading tone to 7 but not in seventh chord
                     added_notes.append(new_val)
                 else:
                     replace_chord_tone(chord_interval + 1, new_val)
@@ -4365,50 +5091,56 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         else:  # chord tone alterations
             if replacing_lower:
                 # TODO: This must be possible, e.g. V(6v5) where 5 is suspension of 4
-                logger.info(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
-            elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
-                if figbass == '':  # in root position triads they are added
-                    # TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced from below!
+                logger.info(
+                    f"{MC}{full} -> chord tones cannot replace neighbours, use + instead."
+                )
+            elif chord_interval == 6 and figbass != "7":  # 7th are a special case:
+                if figbass == "":  # in root position triads they are added
+                    # TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced
+                    #  from below!
                     added_notes.append(new_val)
-                elif figbass in ['6', '64'] or '#' in acc:  # in inverted triads they replace the root, as does #7
+                elif (
+                    figbass in ["6", "64"] or "#" in acc
+                ):  # in inverted triads they replace the root, as does #7
                     replace_chord_tone(0, new_val)
                 else:  # otherwise they are unclear
                     logger.warning(
-                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.",
-                        extra={"message_id": (18,)})
+                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or "
+                        f"replaces the 8 and should not be used.",
+                        extra={"message_id": (18,)},
+                    )
             elif tpcs[chord_interval] == new_val:
                 logger.info(
-                    f"{MC}The change {full} has no effect in {numeral}{form}{figbass}")
+                    f"{MC}The change {full} has no effect in {numeral}{form}{figbass}"
+                )
             else:
                 root_position[chord_interval] = [new_val]
 
-    figbass2bass = {
-        '': 0,
-        '7': 0,
-        '6': 1,
-        '65': 1,
-        '64': 2,
-        '43': 2,
-        '2': 3
-    }
+    figbass2bass = {"": 0, "7": 0, "6": 1, "65": 1, "64": 2, "43": 2, "2": 3}
     bass = figbass2bass[figbass]
     chord_tones = []
     tone_function_names = {
-        0: 'root',
-        2: '3rd',
-        4: '5th',
-        6: '7th',
+        0: "root",
+        2: "3rd",
+        4: "5th",
+        6: "7th",
     }
     for tf in tone_functions[bass:] + tone_functions[:bass]:
         chord_tone, replacing_tones = root_position[tf], replacements[tf]
         if chord_tone == replacing_tones == []:
-            logger.debug(f"{MC}{label} results in a chord without {tone_function_names[tf]}.")
+            logger.debug(
+                f"{MC}{label} results in a chord without {tone_function_names[tf]}."
+            )
         if chord_tone != []:
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
-                logger.warning(f"{MC}{label} results in a chord tone {tone_function_names[tf]} AND its replacement(s) (TPC {replacing_tones}). "
-                               f"You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.",
-                               extra={"message_id": (6, mc, label)})
+                logger.warning(
+                    f"{MC}{label} results in a chord tone {tone_function_names[tf]} AND its replacement(s) (TPC "
+                    f"{replacing_tones}). "
+                    f"You might want to add a + to distinguish from a suspension, or add this warning to "
+                    f"IGNORED_WARNINGS with a comment.",
+                    extra={"message_id": (6, mc, label)},
+                )
         chord_tones.extend(replacing_tones)
 
     bass_tpc = chord_tones[0]
@@ -4418,28 +5150,28 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         return tuple(sort_tpcs(chord_tones + added_notes, start=bass_tpc))
     else:
         return {
-            'chord_tones': tuple(chord_tones),
-            'added_tones': tuple(added_notes),
-            'root': root,
+            "chord_tones": tuple(chord_tones),
+            "added_tones": tuple(added_notes),
+            "root": root,
         }
 
 
 def path2parent_corpus(path):
-    """Walk up the path and return the name of the first superdirectory that is a git repository or contains a 'metadata.tsv' file."""
-    if path in ('', '/'):
+    """Walk up the path and return the name of the first superdirectory that is a git repository or contains a
+    'metadata.tsv' file."""
+    if path in ("", "/"):
         return None
     try:
         if os.path.isdir(path):
             listdir = os.listdir(path)
-            if 'metadata.tsv' in listdir or '.git' in listdir:
+            if "metadata.tsv" in listdir or ".git" in listdir:
                 return path
         return path2parent_corpus(os.path.dirname(path))
     except Exception:
         return None
 
 
-@function_logger
-def chord2tpcs(chord, regex=None, **kwargs):
+def chord2tpcs(chord, regex=None, logger=None, **kwargs):
     """
     Split a chord label into its features and apply features2tpcs().
 
@@ -4455,42 +5187,56 @@ def chord2tpcs(chord, regex=None, **kwargs):
     **kwargs :
         arguments for features2tpcs (pass MC to show it in warnings!)
     """
+    if logger is None:
+        logger = module_logger
     if regex is None:
         regex = DCML_REGEX
     chord_features = re.match(regex, chord)
     assert chord_features is not None, f"{chord} does not match the regex."
     chord_features = chord_features.groupdict()
-    numeral, form, figbass, changes, relativeroot = tuple(chord_features[f] for f in ('numeral', 'form', 'figbass', 'changes', 'relativeroot'))
-    return features2tpcs(numeral=numeral, form=form, figbass=figbass, changes=changes, relativeroot=relativeroot,
-                         logger=logger, **kwargs)
+    numeral, form, figbass, changes, relativeroot = tuple(
+        chord_features[f]
+        for f in ("numeral", "form", "figbass", "changes", "relativeroot")
+    )
+    return features2tpcs(
+        numeral=numeral,
+        form=form,
+        figbass=figbass,
+        changes=changes,
+        relativeroot=relativeroot,
+        logger=logger,
+        **kwargs,
+    )
 
 
 def transpose(e, n):
-    """ Add `n` to all elements `e` recursively.
-    """
+    """Add `n` to all elements `e` recursively."""
     return map2elements(e, lambda x: x + n)
 
 
-def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
+def parse_ignored_warnings(
+    messages: Collection[str],
+) -> Iterator[Tuple[str, Tuple[int]]]:
     """Turns a list of log messages into an iterator of (logger_name, (message_info, ...)) pairs.
-    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(Parse|Corpus).corpus.piece [-- potentially more, irrelevant stuff].
+    Log messages consist of a header of the shape WARNING_ENUM_MEMBER (enum_value, [mc, more_info...]) ms3.(
+    Parse|Corpus).corpus.piece [-- potentially more, irrelevant stuff].
     The header might be followed by several lines of comments, each beginning with a space or tab.
     """
     if isinstance(messages, str):
         yield from parse_ignored_warnings([messages])
     else:
         for message in messages:
-            if '\n' in message:
-                yield from parse_ignored_warnings(message.split('\n'))
-            elif message == '':
+            if "\n" in message:
+                yield from parse_ignored_warnings(message.split("\n"))
+            elif message == "":
                 continue
-            elif message[0] in (' ', '\t', '#'):
+            elif message[0] in (" ", "\t", "#"):
                 # if several lines of a warning were copied, use only the first one
                 continue
             else:
                 try:
                     # if the annotator copied too much, cut off the redundant information at the end
-                    redundant = message.index(' -- ')
+                    redundant = message.index(" -- ")
                     message = message[:redundant]
                 except ValueError:
                     pass
@@ -4499,16 +5245,22 @@ def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tup
                 try:
                     msg, logger_name = re.match(split_re, message).groups()
                 except AttributeError:
-                    print(f"The following message could not be split, apparently it does not end with the logger_name: {message}")
+                    print(
+                        f"The following message could not be split, apparently it does not end with the logger_name: "
+                        f"{message}"
+                    )
                     raise
-                if msg[-1] != ')':
-                    if any(msg.startswith(level) for level in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')):
+                if msg[-1] != ")":
+                    if any(
+                        msg.startswith(level)
+                        for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+                    ):
                         # message_id has not (yet) specified for this log message and is ignored;
                         # a warning could be implemented at this point
                         continue
                     else:
                         raise ValueError(f"Unexpected log message format: {msg}")
-                tuple_start = msg.index('(') + 1
+                tuple_start = msg.index("(") + 1
                 tuple_str = msg[tuple_start:-1]
                 info = literal_eval(tuple_str)
                 yield logger_name, info
@@ -4532,7 +5284,8 @@ def ignored_warnings2dict(messages: Collection[str]) -> Dict[str, List[Tuple[int
 def parse_ignored_warnings_file(path: str) -> Dict[str, List[Tuple[int, Tuple[int]]]]:
     """Parse file with log messages that have to be ignored to the dict.
     The expected structure of message: warning_type (warning_type_id, *integers) file
-    Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
+    Example of message: INCORRECT_VOLTA_MN_WARNING (2,
+    94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
 
     Parameters
     ----------
@@ -4545,50 +5298,56 @@ def parse_ignored_warnings_file(path: str) -> Dict[str, List[Tuple[int, Tuple[in
         {logger_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
     """
     path = resolve_dir(path)
-    messages = open(path, 'r', encoding='utf-8').readlines()
+    messages = open(path, "r", encoding="utf-8").readlines()
     return ignored_warnings2dict(messages)
 
 
-def overlapping_chunk_per_interval(df: pd.DataFrame,
-                                   intervals: List[pd.Interval],
-                                   truncate: bool = True) -> Dict[pd.Interval, pd.DataFrame]:
-    """ For each interval, create a chunk of the given DataFrame based on its IntervalIndex.
-    This is an optimized algorithm compared to calling IntervalIndex.overlaps(interval) for each
-    given interval, with the additional advantage that it will not discard rows where the
-    interval is zero, such as [25.0, 25.0).
+def overlapping_chunk_per_interval(
+    df: pd.DataFrame, intervals: List[pd.Interval], truncate: bool = True
+) -> Dict[pd.Interval, pd.DataFrame]:
+    """For each interval, create a chunk of the given DataFrame based on its IntervalIndex.
+        This is an optimized algorithm compared to calling IntervalIndex.overlaps(interval) for each
+        given interval, with the additional advantage that it will not discard rows where the
+        interval is zero, such as [25.0, 25.0).
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
-        Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
-        ``Parse.iter_transformed(interval_index=True)``.
-    intervals : :obj:`list` of :obj:`pd.Interval`
-        The intervals defining the chunks' dimensions. Expected to be non-overlapping and monotonically increasing.
-    truncate : :obj:`bool`, optional
-        Defaults to True, meaning that the interval index and the 'duration_qb' will be adapted for overlapping intervals.
-        Pass False to get chunks with all overlapping intervals as they are.
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and
+    'duration_qb'.
+            Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
+            ``Parse.iter_transformed(interval_index=True)``.
+        intervals : :obj:`list` of :obj:`pd.Interval`
+            The intervals defining the chunks' dimensions. Expected to be non-overlapping and monotonically increasing.
+        truncate : :obj:`bool`, optional
+            Defaults to True, meaning that the interval index and the 'duration_qb' will be adapted for overlapping
+            intervals.
+            Pass False to get chunks with all overlapping intervals as they are.
 
-    Returns
-    -------
-    :obj:`dict`
-        {interval -> chunk}
+        Returns
+        -------
+        :obj:`dict`
+            {interval -> chunk}
     """
-    lefts = df.index.left.values  # lefts and rights will get shorter (potentially) with every
-    rights = df.index.right.values  # interval, in order to reduce the time for comparing values
+    lefts = (
+        df.index.left.values
+    )  # lefts and rights will get shorter (potentially) with every
+    rights = (
+        df.index.right.values
+    )  # interval, in order to reduce the time for comparing values
     chunks = {}
     current_start_mask = np.ones(len(df.index), dtype=bool)  # length remains the same
     for iv in intervals:
         # assumes intervals are non-overlapping and monotonically increasing
         l, r = iv.left, iv.right
         # never again check events ending before the current interval's start
-        not_ending_before_l = (rights >= l)
+        not_ending_before_l = rights >= l
         lefts = lefts[not_ending_before_l]
         rights = rights[not_ending_before_l]
         current_start_mask[current_start_mask] = not_ending_before_l
-        starting_before_r = (r > lefts)
+        starting_before_r = r > lefts
         not_ending_on_l_except_empty = (rights != l) | (lefts == l)
-        overlapping = (starting_before_r & not_ending_on_l_except_empty)
+        overlapping = starting_before_r & not_ending_on_l_except_empty
         bool_mask = current_start_mask.copy()
         bool_mask[current_start_mask] = overlapping
         chunk = df[bool_mask].copy()
@@ -4598,10 +5357,12 @@ def overlapping_chunk_per_interval(df: pd.DataFrame,
             if starting_before_l.sum() > 0 or ending_after_r.sum() > 0:
                 new_lefts[starting_before_l] = l
                 new_rights[ending_after_r] = r
-                chunk.index = pd.IntervalIndex.from_arrays(new_lefts, new_rights, closed='left')
-                chunk.duration_qb = (new_rights - new_lefts)
+                chunk.index = pd.IntervalIndex.from_arrays(
+                    new_lefts, new_rights, closed="left"
+                )
+                chunk.duration_qb = new_rights - new_lefts
                 chunk.quarterbeats = new_lefts
-                chunk.sort_values(['quarterbeats', 'duration_qb'], inplace=True)
+                chunk.sort_values(["quarterbeats", "duration_qb"], inplace=True)
         chunks[iv] = chunk
     return chunks
 
@@ -4609,39 +5370,39 @@ def overlapping_chunk_per_interval(df: pd.DataFrame,
 def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
     """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
-        'notes': ['tpc', 'midi'],
-        'events': ['Chord/durationType', 'Rest/durationType'],
-        'chords': ['chord_id'],
-        'rests': ['nominal_duration'],
-        'expanded': ['numeral'],
-        'labels': ['harmony_layer', 'label', 'label_type'],
-        'measures': ['act_dur'],
-        'cadences': ['cadence'],
-        'metadata': ['piece'],
-        'form_labels': ['form_label', 'a'],
+        "notes": ["tpc", "midi"],
+        "events": ["Chord/durationType", "Rest/durationType"],
+        "chords": ["chord_id"],
+        "rests": ["nominal_duration"],
+        "expanded": ["numeral"],
+        "labels": ["harmony_layer", "label", "label_type"],
+        "measures": ["act_dur"],
+        "cadences": ["cadence"],
+        "metadata": ["piece"],
+        "form_labels": ["form_label", "a"],
     }
     for t, columns in type2cols.items():
         if any(c in df.columns for c in columns):
-            if t == 'expanded':
+            if t == "expanded":
                 # check if it's cadences only
-                if 'cadence' in df.columns and all(df.cadence.notna()):
-                    return 'cadences'
+                if "cadence" in df.columns and all(df.cadence.notna()):
+                    return "cadences"
                 else:
-                    return 'expanded'
-            if t == 'notes':
+                    return "expanded"
+            if t == "notes":
                 # check if it contains rests, too
-                if 'tpc' in df.columns and any(df.tpc.isna()):
+                if "tpc" in df.columns and any(df.tpc.isna()):
                     return "notes_and_rests"
                 else:
                     return "notes"
             return t
-    if any(c in df.columns for c in ['mc', 'mn']):
-        return 'labels'
-    return 'unknown'
+    if any(c in df.columns for c in ["mc", "mn"]):
+        return "labels"
+    return "unknown"
 
 
 def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
-    """ Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.
+    """Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.
 
     Args:
       df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to
@@ -4661,16 +5422,17 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
         end = max(idx.right)
         iv = pd.Interval(start, end, closed=idx.closed)
         row.index = pd.IntervalIndex([iv])
-        row.loc[iv, 'duration_qb'] = iv.length
+        row.loc[iv, "duration_qb"] = iv.length
     else:
         new_duration = df.duration_qb.sum()
-        row.loc[first_loc, 'duration_qb'] = new_duration
+        row.loc[first_loc, "duration_qb"] = new_duration
     return row
 
 
 @dataclass
 class File:
     """Storing path and file name information for one file."""
+
     ix: int
     """Index integer (ID)"""
     type: str
@@ -4691,20 +5453,20 @@ class File:
     """Absolute file path."""
     directory: str
     """Absolute folder path where the file is located."""
-    suffix: str = ''
-    """Upon registering the File with a :obj:`Piece`, if the current piece has a suffix compared to the Piece's piece, 
+    suffix: str = ""
+    """Upon registering the File with a :obj:`Piece`, if the current piece has a suffix compared to the Piece's piece,
     suffix is removed from the File object's piece field and added to the suffix field."""
-    commit_sha: str = ''
+    commit_sha: str = ""
     """The the file has been retrieved from a particular git revision, this is set to the revision's hash."""
 
     def __repr__(self):
-        suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
-        commit = '' if self.commit_sha == '' else f"@{self.commit_sha[:7]}"
+        suffix = "" if self.suffix == "" else f", suffix: {self.suffix}."
+        commit = "" if self.commit_sha == "" else f"@{self.commit_sha[:7]}"
         return f"{self.ix}: '{self.rel_path}'{commit}{suffix}"
 
     def replace_extension(self, new_extension: str, **kwargs) -> Self:
-        if new_extension[0] != '.':
-            new_extension = '.' + new_extension
+        if new_extension[0] != ".":
+            new_extension = "." + new_extension
         old_ext_len = len(self.fext)
         new_vals = {}
         for field in ("file", "fext", "rel_path", "full_path"):
@@ -4713,13 +5475,15 @@ class File:
         return replace(self, **new_vals, **kwargs)
 
     @classmethod
-    def from_corpus_path(cls,
-                         corpus_path: str,
-                         filename: str,
-                         ftype: Optional[str] = None,
-                         subdir='.',
-                         ix: int = -1):
-        """ Creates File object from individual components
+    def from_corpus_path(
+        cls,
+        corpus_path: str,
+        filename: str,
+        ftype: Optional[str] = None,
+        subdir=".",
+        ix: int = -1,
+    ):
+        """Creates File object from individual components
 
         Args:
             corpus_path: Root directory of the file's corpus.
@@ -4746,55 +5510,72 @@ class File:
             rel_path=rel_path,
             full_path=full_path,
             directory=os.path.dirname(full_path),
-            suffix='',
+            suffix="",
         )
 
 
-@function_logger
-def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
-                                                  piece: str,
-                                                  file_type: str,
-                                                  ) -> File:
+def automatically_choose_from_disambiguated_files(
+    disambiguated_choices: Dict[str, File], piece: str, file_type: str, logger=None
+) -> File:
+    if logger is None:
+        logger = module_logger
     if len(disambiguated_choices) == 1:
         return list(disambiguated_choices.keys())[0]
     disamb_series = pd.Series(disambiguated_choices)
     files = list(disambiguated_choices.values())
     files_df = pd.DataFrame(files, index=disamb_series.index)
     choice_between_n = len(files)
-    if file_type == 'scores':
+    if file_type == "scores":
         # if a score is requested, check if there is only a single MSCX or otherwise MSCZ file and pick that
         fexts = files_df.fext.str.lower()
         fext_counts = fexts.value_counts()
-        if '.mscx' in fext_counts:
-            if fext_counts['.mscx'] == 1:
-                selected_file = disamb_series[fexts == '.mscx'].iloc[0]
-                logger.debug(f"In order to pick one from the {choice_between_n} scores with piece '{piece}', '{selected_file.rel_path}' was selected because it is the only "
-                             f"one in MSCX format.")
+        if ".mscx" in fext_counts:
+            if fext_counts[".mscx"] == 1:
+                selected_file = disamb_series[fexts == ".mscx"].iloc[0]
+                logger.debug(
+                    f"In order to pick one from the {choice_between_n} scores with piece '{piece}', "
+                    f"'{selected_file.rel_path}' was selected because it is the only "
+                    f"one in MSCX format."
+                )
                 return selected_file
-        elif '.mscz' in fext_counts and fext_counts['.mscz'] == 1:
-            selected_file = disamb_series[fexts == '.mscz'].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} scores with piece '{piece}', '{selected_file.rel_path}' was selected because it is the only "
-                         f"one in MSCZ format.")
+        elif ".mscz" in fext_counts and fext_counts[".mscz"] == 1:
+            selected_file = disamb_series[fexts == ".mscz"].iloc[0]
+            logger.debug(
+                f"In order to pick one from the {choice_between_n} scores with piece '{piece}', "
+                f"'{selected_file.rel_path}' was selected because it is the only "
+                f"one in MSCZ format."
+            )
             return selected_file
-    # as first disambiguation criterion, check if the shortest disambiguation string pertains to 1 file only and pick that
-    disamb_str_lengths = pd.Series(disamb_series.index.map(len), index=disamb_series.index)
-    shortest_length_selector = (disamb_str_lengths == disamb_str_lengths.min())
+    # as first disambiguation criterion, check if the shortest disambiguation string pertains to 1 file only and pick
+    # that
+    disamb_str_lengths = pd.Series(
+        disamb_series.index.map(len), index=disamb_series.index
+    )
+    shortest_length_selector = disamb_str_lengths == disamb_str_lengths.min()
     n_have_shortest_length = shortest_length_selector.sum()
     if n_have_shortest_length == 1:
         ix = disamb_str_lengths.idxmin()
         selected_file = disamb_series.loc[ix]
-        logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one with the shortest disambiguating string '{ix}' was selected.")
+        logger.debug(
+            f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one with the "
+            f"shortest disambiguating string '{ix}' was selected."
+        )
         return selected_file
-    if file_type != 'unknown':
+    if file_type != "unknown":
         # otherwise, check if only one file is lying in a directory with default name
         subdirs = files_df.subdir
         default_components = file_type2path_component_map()[file_type]
-        default_components_regex = '|'.join(comp.replace('.', r'\.') for comp in default_components)
+        default_components_regex = "|".join(
+            comp.replace(".", r"\.") for comp in default_components
+        )
         default_selector = subdirs.str.contains(default_components_regex, regex=True)
         if default_selector.sum() == 1:
             subdir = subdirs[default_selector].iloc[0]
             selected_file = disamb_series[default_selector].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the default subdir '{subdir}' was selected.")
+            logger.debug(
+                f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the "
+                f"default subdir '{subdir}' was selected."
+            )
             return selected_file
         # or if only one file contains a default name in its suffix
         suffixes = files_df.suffix
@@ -4802,7 +5583,10 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         if default_selector.sum() == 1:
             suffix = suffixes[default_selector].iloc[0]
             selected_file = disamb_series[default_selector].iloc[0]
-            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the default suffix '{suffix}' was selected.")
+            logger.debug(
+                f"In order to pick one from the {choice_between_n} '{file_type}' with piece '{piece}', the one in the "
+                f"default suffix '{suffix}' was selected."
+            )
             return selected_file
     # if no file was selected, try again with only those having the shortest disambiguation strings
     if shortest_length_selector.all():
@@ -4811,13 +5595,22 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         sorted_disamb_series = disamb_series.sort_index()
         disamb = sorted_disamb_series.index[0]
         selected_file = sorted_disamb_series.iloc[0]
-        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with piece '{piece}'. I'm picking '{selected_file.rel_path}' "
-                       f"because its disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
+        logger.warning(
+            f"Unable to automatically choose from the {choice_between_n} '{file_type}' with piece '{piece}'. I'm "
+            f"picking '{selected_file.rel_path}' "
+            f"because its disambiguation string '{disamb}' is the lexicographically first among "
+            f"{sorted_disamb_series.index.to_list()}"
+        )
         return selected_file
     only_shortest_disamb_str = disamb_series[shortest_length_selector].to_dict()
-    logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with piece '{piece}', trying again "
-                f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
-    return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, piece, file_type)
+    logger.info(
+        f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with piece '{piece}', "
+        f"trying again "
+        f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings."
+    )
+    return automatically_choose_from_disambiguated_files(
+        only_shortest_disamb_str, piece, file_type
+    )
 
 
 def ask_user_to_choose(query: str, choices: Collection[Any]) -> Optional[Any]:
@@ -4839,26 +5632,33 @@ def ask_user_to_choose(query: str, choices: Collection[Any]) -> Optional[Any]:
         return choices[int_i - 1]
 
 
-def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
-                                                piece: str,
-                                                file_type: str = '') -> Optional[File]:
+def ask_user_to_choose_from_disambiguated_files(
+    disambiguated_choices: Dict[str, File], piece: str, file_type: str = ""
+) -> Optional[File]:
     sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
     disambiguated_choices = {k: disambiguated_choices[k] for k in sorted_keys}
     file_list = list(disambiguated_choices.values())
-    disamb_strings = pd.Series(disambiguated_choices.keys(), name='disambiguation_str')
-    choices_df = pd.concat([disamb_strings,
-                            pd.DataFrame(file_list)[['rel_path', 'type', 'ix']]],
-                           axis=1)
-    choices_df.index = pd.Index(range(1, len(file_list) + 1), name='select:')
+    disamb_strings = pd.Series(disambiguated_choices.keys(), name="disambiguation_str")
+    choices_df = pd.concat(
+        [disamb_strings, pd.DataFrame(file_list)[["rel_path", "type", "ix"]]], axis=1
+    )
+    choices_df.index = pd.Index(range(1, len(file_list) + 1), name="select:")
     range_str = f"1-{len(disambiguated_choices)}"
     query = f"Selection [{range_str}]: "
     print(f"Several '{file_type}' available for '{piece}':\n{choices_df.to_string()}")
-    print(f"Please select one of the files by passing an integer between {range_str} (or 0 for none):")
+    print(
+        f"Please select one of the files by passing an integer between {range_str} (or 0 for none):"
+    )
     return ask_user_to_choose(query, file_list)
 
 
-@function_logger
-def disambiguate_files(files: Collection[File], piece: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
+def disambiguate_files(
+    files: Collection[File],
+    piece: str,
+    file_type: str,
+    choose: Literal["auto", "ask"] = "auto",
+    logger=None,
+) -> Optional[File]:
     """Receives a collection of :obj:`File` with the aim to pick one of them.
     First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
     suffixes.
@@ -4871,36 +5671,36 @@ def disambiguate_files(files: Collection[File], piece: str, file_type: str, choo
     Returns:
       The selected file.
     """
+    if logger is None:
+        logger = module_logger
     n_files = len(files)
     if n_files == 0:
         return
     files = tuple(files)
     if n_files == 1:
         return files[0]
-    if choose not in ('auto', 'ask'):
-        logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
-        choose = 'auto'
+    if choose not in ("auto", "ask"):
+        logger.info(
+            f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'."
+        )
+        choose = "auto"
     disambiguation_dict = files2disambiguation_dict(files, logger=logger)
-    if choose == 'ask':
-        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, piece, file_type)
-    return automatically_choose_from_disambiguated_files(disambiguation_dict, piece, file_type, logger=logger)
+    if choose == "ask":
+        return ask_user_to_choose_from_disambiguated_files(
+            disambiguation_dict, piece, file_type
+        )
+    return automatically_choose_from_disambiguated_files(
+        disambiguation_dict, piece, file_type, logger=logger
+    )
 
 
-# @function_logger
-# def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], piece: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
-#     files = [tup[0] for tup in tuples_with_file_as_first_element]
-#     selected = disambiguate_files(files, piece=piece, file_type=file_type, choose=choose, logger=logger)
-#     if selected is None:
-#         return
-#     for tup in tuples_with_file_as_first_element:
-#         if tup[0] == selected:
-#             return tup
-
-
-@function_logger
-def files2disambiguation_dict(files: Collection[File], include_disambiguator: bool = False) -> FileDict:
+def files2disambiguation_dict(
+    files: Collection[File], include_disambiguator: bool = False, logger=None
+) -> FileDict:
     """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
     of distinct strings to distinguish files pertaining to the same type."""
+    if logger is None:
+        logger = module_logger
     n_files = len(files)
     if n_files == 0:
         return {}
@@ -4913,30 +5713,39 @@ def files2disambiguation_dict(files: Collection[File], include_disambiguator: bo
         # done disambiguating
         return dict(zip(disambiguation, files))
     if include_disambiguator and len(set(disambiguation)) > 1:
-        logger.warning(f"Including the disambiguator removes the facet name, but the files pertain to "
-                       f"several facets: {set(disambiguation)}")
+        logger.warning(
+            f"Including the disambiguator removes the facet name, but the files pertain to "
+            f"several facets: {set(disambiguation)}"
+        )
     # first, try to disambiguate based on the files' sub-directories
     subdirs = []
     for f in files:
         file_type = f.type
         subdir = f.subdir.strip(r"\/.")
         if subdir.startswith(file_type):
-            subdir = subdir[len(file_type):]
-        if subdir.strip(r"\/") == '':
-            subdir = ''
+            len_fext = len(file_type)
+            subdir = subdir[len_fext:]
+        if subdir.strip(r"\/") == "":
+            subdir = ""
         subdirs.append(subdir)
     if len(set(subdirs)) > 1:
         # files can (partially) be disambiguated because they are in different sub-directories
         if include_disambiguator:
-            disambiguation = [f"subdir: {'.' if subdir == '' else subdir}" for disamb, subdir in zip(disambiguation, subdirs)]
+            disambiguation = [
+                f"subdir: {'.' if subdir == '' else subdir}"
+                for disamb, subdir in zip(disambiguation, subdirs)
+            ]
         else:
-            disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
+            disambiguation = [
+                os.path.join(disamb, subdir)
+                for disamb, subdir in zip(disambiguation, subdirs)
+            ]
     if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     # next, try adding detected suffixes
     for ix, f in enumerate(files):
-        if f.suffix != '':
+        if f.suffix != "":
             if include_disambiguator:
                 disambiguation[ix] += f", suffix: {f.suffix}"
             else:
@@ -4956,11 +5765,16 @@ def files2disambiguation_dict(files: Collection[File], include_disambiguator: bo
         return dict(zip(disambiguation, files))
     str_counts = Counter(disambiguation)
     duplicate_disambiguation_strings = [s for s, cnt in str_counts.items() if cnt > 1]
-    ambiguate_files = {s: [f for disamb, f in zip(disambiguation, files) if disamb == s] for s in duplicate_disambiguation_strings}
+    ambiguate_files = {
+        s: [f for disamb, f in zip(disambiguation, files) if disamb == s]
+        for s in duplicate_disambiguation_strings
+    }
     result = dict(zip(disambiguation, files))
     remaining_ones = {s: result[s] for s in duplicate_disambiguation_strings}
-    logger.warning(f"The following files could not be ambiguated: {ambiguate_files}.\n"
-                   f"In the result, only these remain: {remaining_ones}.")
+    logger.warning(
+        f"The following files could not be ambiguated: {ambiguate_files}.\n"
+        f"In the result, only these remain: {remaining_ones}."
+    )
     return result
 
 
@@ -4978,12 +5792,13 @@ def literal_type2tuple(typ: TypeVar) -> Tuple[str]:
 
 
 @cache
-@function_logger
-def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None]],
-                                   typ: Optional[Union[TypeVar, Tuple[str]]] = None,
-                                   none_means_all: bool = True,
-                                   ) -> Optional[List[str]]:
-    """ Makes sure that an input value is a list of strings and that all strings are valid w.r.t. to
+def argument_and_literal_type2list(
+    argument: Union[str, Tuple[str], Literal[None]],
+    typ: Optional[Union[TypeVar, Tuple[str]]] = None,
+    none_means_all: bool = True,
+    logger=None,
+) -> Optional[List[str]]:
+    """Makes sure that an input value is a list of strings and that all strings are valid w.r.t. to
     the type's expected literal values (strings).
 
     Args:
@@ -5001,6 +5816,8 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
       The list of accepted strings.
       The list of rejected strings.
     """
+    if logger is None:
+        logger = module_logger
     if typ is None:
         allowed = None
     else:
@@ -5030,23 +5847,29 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     n_rejected = len(rejected)
     if n_rejected > 0:
         if n_rejected == 1:
-            logger.warning(f"This is not an accepted value: {rejected[0]}\n"
-                           f"Choose from {allowed}")
+            logger.warning(
+                f"This is not an accepted value: {rejected[0]}\n"
+                f"Choose from {allowed}"
+            )
         else:
-            logger.warning(f"These are not accepted value, only: {rejected}"
-                           f"Choose from {allowed}")
+            logger.warning(
+                f"These are not accepted value, only: {rejected}"
+                f"Choose from {allowed}"
+            )
     if len(accepted) > 0:
         return accepted
     logger.warning(f"Pass at least one of {allowed}.")
     return
 
 
-L = TypeVar('L')
+L = TypeVar("L")
 
 
-@function_logger
-def check_argument_against_literal_type(argument: str,
-                                        typ: L) -> Optional[L]:
+def check_argument_against_literal_type(
+    argument: str, typ: L, logger=None
+) -> Optional[L]:
+    if logger is None:
+        logger = module_logger
     if not isinstance(argument, str):
         logger.warning(f"Argument needs to be a string, not '{type(argument)}'")
         return None
@@ -5060,17 +5883,22 @@ def check_argument_against_literal_type(argument: str,
     return argument
 
 
-@function_logger
-def resolve_facets_param(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
+def resolve_facets_param(
+    facets, facet_type_var: TypeVar = Facet, none_means_all=True, logger=None
+):
     """Like :func:`argument_and_literal_type2list`, but also resolves 'tsv' to all non-score facets."""
-    if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
+    if logger is None:
+        logger = module_logger
+    if isinstance(facets, str) and facets in ("tsv", "tsvs"):
         selected_facets = list(literal_type2tuple(facet_type_var))
-        if 'scores' in selected_facets:
-            selected_facets.remove('scores')
+        if "scores" in selected_facets:
+            selected_facets.remove("scores")
     else:
         if isinstance(facets, list):
             facets = tuple(facets)
-        selected_facets = argument_and_literal_type2list(facets, facet_type_var, none_means_all=none_means_all, logger=logger)
+        selected_facets = argument_and_literal_type2list(
+            facets, facet_type_var, none_means_all=none_means_all, logger=logger
+        )
     # logger.debug(f"Resolved argument '{facets}' to {selected_facets}.")
     return selected_facets
 
@@ -5080,32 +5908,41 @@ def bold_font(s):
 
 
 def available_views2str(views_dict: ViewDict, active_view_name: str = None) -> str:
-    view_names = {key: view.name if key is None else key for key, view in views_dict.items()}
+    view_names = {
+        key: view.name if key is None else key for key, view in views_dict.items()
+    }
     current_view = view_names[active_view_name]
-    view_list = [bold_font(current_view)] + [name for name in view_names.values() if name != current_view]
+    view_list = [bold_font(current_view)] + [
+        name for name in view_names.values() if name != current_view
+    ]
     return f"[{'|'.join(view_list)}]\n"
 
 
-@function_logger
-def unpack_json_paths(paths: Collection[str]) -> None:
+def unpack_json_paths(paths: Collection[str], logger=None) -> None:
     """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
-    json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
+    if logger is None:
+        logger = module_logger
+    json_ixs = [i for i, p in enumerate(paths) if p.endswith(".json")]
     if len(json_ixs) > 0:
         for i in reversed(json_ixs):
             try:
                 with open(paths[i]) as f:
                     loaded_paths = json.load(f)
                 paths.extend(loaded_paths)
-                logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
-                del (paths[i])
+                logger.info(
+                    f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}."
+                )
+                del paths[i]
             except Exception:
-                logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+                logger.info(
+                    f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}"
+                )
 
 
-@function_logger
-def resolve_paths_argument(paths: Union[str, Collection[str]],
-                           files: bool = True) -> List[str]:
-    """ Makes sure that the given path(s) exists(s) and filters out those that don't.
+def resolve_paths_argument(
+    paths: Union[str, Collection[str]], files: bool = True, logger=None
+) -> List[str]:
+    """Makes sure that the given path(s) exists(s) and filters out those that don't.
 
     Args:
       paths: One or several paths given as strings.
@@ -5114,6 +5951,8 @@ def resolve_paths_argument(paths: Union[str, Collection[str]],
     Returns:
 
     """
+    if logger is None:
+        logger = module_logger
     if isinstance(paths, str):
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
@@ -5138,10 +5977,12 @@ def resolve_paths_argument(paths: Union[str, Collection[str]],
     return resolved_paths
 
 
-@function_logger
-def compute_path_from_file(file: File,
-                           root_dir: Optional[str] = None,
-                           folder: Optional[str] = None) -> str:
+def compute_path_from_file(
+    file: File,
+    root_dir: Optional[str] = None,
+    folder: Optional[str] = None,
+    logger=None,
+) -> str:
     """
     Constructs a path based on the arguments.
 
@@ -5154,7 +5995,8 @@ def compute_path_from_file(file: File,
       folder:
           * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
           * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
-          * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+          * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's
+          subdir.
             For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
           * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
             ``root_dir``.
@@ -5163,28 +6005,28 @@ def compute_path_from_file(file: File,
     Returns:
       The constructed directory path.
     """
-    if folder is not None and (os.path.isabs(folder) or '~' in folder):
+    if logger is None:
+        logger = module_logger
+    if folder is not None and (os.path.isabs(folder) or "~" in folder):
         folder = resolve_dir(folder)
         path = folder
     else:
         root = file.corpus_path if root_dir is None else resolve_dir(root_dir)
         if folder is None:
             path = os.path.join(root, file.type)
-        elif folder == '':
+        elif folder == "":
             path = root
-        elif folder[0] == '.':
+        elif folder[0] == ".":
             path = os.path.abspath(os.path.join(root, file.subdir, folder))
         else:
             path = os.path.abspath(os.path.join(root, folder))
     return path
 
 
-def make_file_path(file: File,
-                   root_dir=None,
-                   folder: str = None,
-                   suffix: str = '',
-                   fext: str = '.tsv'):
-    """ Constructs a file path based on the arguments.
+def make_file_path(
+    file: File, root_dir=None, folder: str = None, suffix: str = "", fext: str = ".tsv"
+):
+    """Constructs a file path based on the arguments.
 
     Args:
       file: This function uses the fields piece, corpus_path, subdir, and type.
@@ -5210,7 +6052,7 @@ def make_file_path(file: File,
     assert fext is not None, ""
     path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
     if suffix is None:
-        suffix = ''
+        suffix = ""
     piece = file.piece + suffix + fext
     return os.path.join(path, piece)
 
@@ -5220,18 +6062,21 @@ def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
     Solution by Kenan Banks on https://stackoverflow.com/a/3303361
     """
     # Remove invalid characters
-    s = re.sub('[^0-9a-zA-Z_]', '', s)
+    s = re.sub("[^0-9a-zA-Z_]", "", s)
 
     # Remove leading characters until we find a letter or underscore
-    regex = '^[^a-zA-Z]+' if remove_leading_underscore else '^[^a-zA-Z_]+'
-    s = re.sub(regex, '', s)
+    regex = "^[^a-zA-Z]+" if remove_leading_underscore else "^[^a-zA-Z_]+"
+    s = re.sub(regex, "", s)
 
     return s
 
 
 @cache
-@function_logger
-def get_git_commit(repo_path: str, git_revision: str) -> Optional[git.Commit]:
+def get_git_commit(
+    repo_path: str, git_revision: str, logger=None
+) -> Optional[git.Commit]:
+    if logger is None:
+        logger = module_logger
     try:
         repo = git.Repo(repo_path, search_parent_directories=True)
     except Exception as e:
@@ -5240,27 +6085,33 @@ def get_git_commit(repo_path: str, git_revision: str) -> Optional[git.Commit]:
     try:
         return repo.commit(git_revision)
     except BadName:
-        logger.error(f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}.")
+        logger.error(
+            f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}."
+        )
 
 
-@function_logger
-def parse_tsv_file_at_git_revision(file: File,
-                                   git_revision: str,
-                                   repo_path: Optional[str] = None) -> FileDataframeTupleMaybe:
+def parse_tsv_file_at_git_revision(
+    file: File, git_revision: str, repo_path: Optional[str] = None, logger=None
+) -> FileDataframeTupleMaybe:
     """
-    Pass a File object of a TSV file and an identifier for a git revision to retrieve the parsed TSV file at that commit.
-    The file needs to have existed at the revision in question.
+       Pass a File object of a TSV file and an identifier for a git revision to retrieve the parsed TSV file at that
+    commit.
+       The file needs to have existed at the revision in question.
 
-    Args:
-      file:
-      git_revision:
-      repo_path:
+       Args:
+         file:
+         git_revision:
+         repo_path:
 
-    Returns:
+       Returns:
 
     """
-    if file.type == 'scores':
-        raise NotImplementedError(f"Parsing older revisions of scores is not implemented. Checkout the revision yourself.")
+    if logger is None:
+        logger = module_logger
+    if file.type == "scores":
+        raise NotImplementedError(
+            "Parsing older revisions of scores is not implemented. Checkout the revision yourself."
+        )
     if repo_path is None:
         repo_path = file.corpus_path
     commit = get_git_commit(repo_path, git_revision, logger=logger)
@@ -5282,47 +6133,57 @@ def parse_tsv_file_at_git_revision(file: File,
         with io.BytesIO(targetfile.data_stream.read()) as f:
             parsed = load_tsv(f)
     except Exception as e:
-        logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}")
+        logger.error(
+            f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}"
+        )
         return None, None
     new_file = replace(file, commit_sha=commit_sha)
     return new_file, parsed
 
 
-@function_logger
-def check_phrase_annotations(df: pd.DataFrame,
-                             column: str) -> bool:
+def check_phrase_annotations(df: pd.DataFrame, column: str, logger=None) -> bool:
     """"""
+    if logger is None:
+        logger = module_logger
     p_col = df[column]
-    opening = p_col.fillna('').str.count('{')
-    closing = p_col.fillna('').str.count('}')
-    if 'mn_playthrough' in df.columns:
-        position_col = 'mn_playthrough'
+    opening = p_col.fillna("").str.count("{")
+    closing = p_col.fillna("").str.count("}")
+    if "mn_playthrough" in df.columns:
+        position_col = "mn_playthrough"
     else:
-        logger.info(f"Column 'mn_playthrough' is missing, so my assessment of the phrase annotations might be wrong.")
-        position_col = 'mn'
+        logger.info(
+            "Column 'mn_playthrough' is missing, so my assessment of the phrase annotations might be wrong."
+        )
+        position_col = "mn"
     columns = [position_col, column]
     if opening.sum() != closing.sum():
         o = df.loc[(opening > 0), columns]
         c = df.loc[(closing > 0), columns]
-        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1)
-        if 'mn' in compare:
-            compare = compare.astype({'mn': 'Int64'})
-        logger.warning(f"Phrase beginning and endings don't match:\n{compare.to_string(index=False)}", extra={"message_id": (16,)})
+        compare = pd.concat(
+            [o.reset_index(drop=True), c.reset_index(drop=True)], axis=1
+        )
+        if "mn" in compare:
+            compare = compare.astype({"mn": "Int64"})
+        logger.warning(
+            f"Phrase beginning and endings don't match:\n{compare.to_string(index=False)}",
+            extra={"message_id": (16,)},
+        )
         return False
     return True
 
-@function_logger
+
 def write_messages_to_file_or_remove(
-        warnings_file: str,
-        warnings: List[str],
-        header: str) -> bool:
+    warnings_file: str, warnings: List[str], header: str, logger=None
+) -> bool:
+    if logger is None:
+        logger = module_logger
     warnings_path = os.path.dirname(warnings_file)
     if len(warnings) > 0:
         os.makedirs(warnings_path, exist_ok=True)
         header = f"{header}\n{'=' * len(header)}\n\n"
-        with open(warnings_file, 'w', encoding='utf-8') as f:
+        with open(warnings_file, "w", encoding="utf-8") as f:
             f.write(header)
-            f.write('\n'.join(warnings))
+            f.write("\n".join(warnings))
         return True
     elif os.path.isfile(warnings_file):
         logger.info(f"Problems seem to be solved, removing {warnings_file}")
@@ -5330,31 +6191,29 @@ def write_messages_to_file_or_remove(
     return False
 
 
-@function_logger
 def write_warnings_to_file(
-        warnings_file: str,
-        warnings: List[str],
-        header: Optional[str] = None,
+    warnings_file: str, warnings: List[str], header: Optional[str] = None, logger=None
 ):
+    if logger is None:
+        logger = module_logger
     if header is None:
-        header = f"Warnings encountered during the last execution of ms3 review"
+        header = "Warnings encountered during the last execution of ms3 review"
     if write_messages_to_file_or_remove(warnings_file, warnings, header):
         logger.info(f"Written warnings to {warnings_file}.")
 
 
-@function_logger
 def write_validation_errors_to_file(
-        errors_file: str,
-        errors: List[str],
-        header: Optional[str] = None,
+    errors_file: str, errors: List[str], header: Optional[str] = None, logger=None
 ):
+    if logger is None:
+        logger = module_logger
     if header is None:
-        header = f"Validation error encountered after file creation"
+        header = "Validation error encountered after file creation"
     if write_messages_to_file_or_remove(errors_file, errors, header):
         logger.info(f"Written validation errors to {errors_file}.")
 
 
 def replace_extension(filepath: str, new_extension: str) -> str:
-    if new_extension[0] != '.':
-        new_extension = '.' + new_extension
+    if new_extension[0] != ".":
+        new_extension = "." + new_extension
     return os.path.splitext(filepath)[0] + new_extension
