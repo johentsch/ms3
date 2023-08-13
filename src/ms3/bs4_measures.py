@@ -1,7 +1,7 @@
 import logging
 import os
 from collections import defaultdict
-from fractions import Fraction as frac
+from fractions import Fraction
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -180,7 +180,7 @@ def make_actdur_col(
 ) -> pd.Series:
     actdur = len_col.fillna(timesig_col)
     try:
-        return actdur.map(frac).rename(name)
+        return actdur.map(Fraction).rename(name)
     except Exception:
         print(f"Failed to turn all values into fractions: {actdur}")
         raise
@@ -304,7 +304,7 @@ def make_offset_col(
     """
     if logger is None:
         logger = module_logger
-    nom_dur = df[timesig].map(frac)
+    nom_dur = df[timesig].map(Fraction)
     sel = df["act_dur"] < nom_dur
     if sel.sum() == 0:
         return pd.Series(0, index=df.index, name=name)
