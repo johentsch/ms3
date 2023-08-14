@@ -1,5 +1,4 @@
 import logging
-import os
 from collections import defaultdict
 from fractions import Fraction
 from typing import Dict, List, Optional, Tuple
@@ -11,8 +10,6 @@ from numpy.typing import NDArray
 from .logger import LoggedClass
 
 module_logger = logging.getLogger(__name__)
-
-os.environ["PYTHONWARNINGS"] = "once"
 
 # region helper functions
 
