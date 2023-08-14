@@ -2972,6 +2972,15 @@ class Instrumentation(LoggedClass):
             f"References to tags before the instrument was changed: {self.soup_references()}"
         )
 
+        # checking that the current changes will not affect other staves
+        staves_within_part = np.array(
+            [
+                staff_key
+                for staff_key, part_value in self.parsed_parts.staff2part.items()
+                if part_value == changed_part and staff_key != staff_id
+            ]
+        )  # which staves share this part
+
         # preprocessing and verification of correctness of trackname
         trackname_norm = trackname.lower().strip(".")
         if trackname_norm not in self.key2default_instrumentation:
@@ -2989,10 +2998,11 @@ class Instrumentation(LoggedClass):
                 trackname_norm = difflib.get_close_matches(
                     trackname_norm, list(self.key2default_instrumentation.keys()), n=1
                 )[0]
-                trackname_old = self.fields[staff_id]["trackName"].lower().strip(".")
+                trackname_old = self.fields[staff_id]["instrumentId"].lower().strip(".")
                 self.logger.warning(
-                    f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? I use the fields of "
-                    f"old trackName {trackname_old}",
+                    f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? Instrumentation of "
+                    f"staves {np.append(staves_within_part, staff_id)} is left unchanged with instrument:"
+                    f" {trackname_old}",
                     extra=dict(message_id=(30,)),
                 )
                 if trackname_old not in self.key2default_instrumentation:
@@ -3004,14 +3014,6 @@ class Instrumentation(LoggedClass):
             new_values = self.key2default_instrumentation[trackname_norm]
             self.updated.update({staff_id: new_values["id"]})
 
-        # checking that the current changes will not affect other staves
-        staves_within_part = np.array(
-            [
-                staff_key
-                for staff_key, part_value in self.parsed_parts.staff2part.items()
-                if part_value == changed_part and staff_key != staff_id
-            ]
-        )  # which staves share this part
         if len(staves_within_part) > 0:
             damaged_upd_staves = [
                 staff_key
