@@ -1,583 +1,583 @@
-index,id,ChannelName,ChannelValue,group,staff_type_name,defaultClef,longName,shortName,trackName,instrumentId,part_trackName,useDrumset,clef
-piccolo,piccolo,,72,pitched,stdNormal,,Piccolo,Picc.,Piccolo,wind.flutes.flute.piccolo,Piccolo,,
-d♭ piccolo,db-piccolo,,72,pitched,stdNormal,,D♭ Piccolo,D♭ Picc.,D♭ Piccolo,wind.flutes.flute.piccolo,D♭ Piccolo,,
-e♭ piccolo,eb-piccolo,,72,pitched,stdNormal,,E♭ Piccolo,E♭ Picc.,E♭ Piccolo,wind.flutes.flute.piccolo,E♭ Piccolo,,
-flute,flute,,73,pitched,stdNormal,,Flute,Fl.,Flute,wind.flutes.flute,Flute,,
-treble flute,treble-flute,,72,pitched,stdNormal,,Treble Flute,Tr. Fl.,Treble Flute,wind.flutes.flute,Treble Flute,,
-soprano flute,soprano-flute,,73,pitched,stdNormal,,Soprano Flute,Sop. Fl.,Soprano Flute,wind.flutes.flute,Soprano Flute,,
-sub contra-alto flute,subcontra-alto-flute,,73,pitched,stdNormal,,Sub Contra-alto Flute,Sc-a. Fl.,Sub Contra-alto Flute,wind.flutes.flute.subcontrabass,Sub Contra-alto Flute,,
-alto flute,alto-flute,,73,pitched,stdNormal,,Alto Flute,A. Fl.,Alto Flute,wind.flutes.flute.alto,Alto Flute,,
-bass flute,bass-flute,,73,pitched,stdNormal,,Bass Flute,B. Fl.,Bass Flute,wind.flutes.flute.bass,Bass Flute,,
-contra-alto flute,contra-alto-flute,,73,pitched,stdNormal,,Contra-alto Flute,C-a. Fl.,Contra-alto Flute,wind.flutes.flute.contra-alto,Contra-alto Flute,,
-contrabass flute,contrabass-flute,,73,pitched,stdNormal,,Contrabass Flute,Cb. Fl.,Contrabass Flute,wind.flutes.flute.contrabass,Contrabass Flute,,
-double contrabass flute,double-contrabass-flute,,73,pitched,stdNormal,,Double Contrabass Flute,D. Cb. Fl.,Double Contrabass Flute,wind.flutes.flute.double-contrabass,Double Contrabass Flute,,
-hyperbass flute,hyperbass-flute,,73,pitched,stdNormal,,Hyperbass Flute,Hb. Fl.,Hyperbass Flute,wind.flutes.flute.double-contrabass,Hyperbass Flute,,
-traverso,traverso,,73,pitched,stdNormal,,Traverso,Trv.,Traverso,wind.flutes.flute,Traverso,,
-danso,danso,,76,pitched,stdNormal,G8va,Danso,Da.,Danso,wind.flutes.danso,Danso,,G8va
-piccolo oboe,piccolo-oboe,,68,pitched,stdNormal,,Piccolo Oboe,P. Ob.,Piccolo Oboe,wind.reed.oboe.piccolo,Piccolo Oboe,,
-oboe,oboe,,68,pitched,stdNormal,,Oboe,Ob.,Oboe,wind.reed.oboe,Oboe,,
-baroque oboe,baroque-oboe,,69,pitched,stdNormal,,Baroque Oboe,Bq. Ob.,Baroque Oboe,wind.reed.oboe,Baroque Oboe,,
-oboe d'amore,oboe-d'amore,,68,pitched,stdNormal,,Oboe d'amore,Ob. d'a.,Oboe d'amore,wind.reed.oboe-damore,Oboe d'amore,,
-oboe da caccia,oboe-da-caccia,,67,pitched,stdNormal,,Oboe da caccia,Ob. d. ca.,Oboe da caccia,wind.reed.oboe-da-caccia,Oboe da caccia,,
-english horn,english-horn,,69,pitched,stdNormal,,English Horn,E. Hn.,English Horn,wind.reed.english-horn,English Horn,,
-bass oboe,bass-oboe,,68,pitched,stdNormal,G8vb,Bass Oboe,B. Ob.,Bass Oboe,wind.reed.oboe.bass,Bass Oboe,,G8vb
-piccolo heckelphone,piccolo-heckelphone,,68,pitched,stdNormal,G8vb,Piccolo Heckelphone,P. Hph.,Piccolo Heckelphone,wind.reed.heckelphone.piccolo,Piccolo Heckelphone,,G8vb
-heckelphone,heckelphone,,68,pitched,stdNormal,,Heckelphone,Hph.,Heckelphone,wind.reed.heckelphone,Heckelphone,,
-lupophone,lupophone,,68,pitched,stdNormal,G8vb,Lupophone,Lph.,Lupophone,wind.reed.heckelphone,Lupophone,,G8vb
-clarinet,clarinet,,71,pitched,stdNormal,,Clarinet,Cl.,Clarinet,wind.reed.clarinet,Clarinet,,
-piccolo clarinet,piccolo-clarinet,,71,pitched,stdNormal,,Piccolo Clarinet,P. Cl.,Piccolo Clarinet,wind.reed.clarinet.piccolo.aflat,Piccolo Clarinet,,
-soprano clarinet,soprano-clarinet,,71,pitched,stdNormal,,Soprano Clarinet,S. Cl.,Soprano Clarinet,wind.reed.clarinet,Soprano Clarinet,,
-c clarinet,c-clarinet,,71,pitched,stdNormal,,C Clarinet,C Cl.,C Clarinet,wind.reed.clarinet,C Clarinet,,
-d clarinet,d-clarinet,,71,pitched,stdNormal,,D Clarinet,D Cl.,D Clarinet,wind.reed.clarinet,D Clarinet,,
-e♭ clarinet,eb-clarinet,,71,pitched,stdNormal,,E♭ Clarinet,E♭ Cl.,E♭ Clarinet,wind.reed.clarinet.eflat,E♭ Clarinet,,
-g clarinet,g-clarinet,,71,pitched,stdNormal,,G Clarinet,G Cl.,G Clarinet,wind.reed.clarinet,G Clarinet,,
-b♭ clarinet,bb-clarinet,,71,pitched,stdNormal,,B♭ Clarinet,B♭ Cl.,B♭ Clarinet,wind.reed.clarinet.bflat,B♭ Clarinet,,
-a clarinet,a-clarinet,,71,pitched,stdNormal,,A Clarinet,A Cl.,A Clarinet,wind.reed.clarinet.a,A Clarinet,,
-alto clarinet,alto-clarinet,,71,pitched,stdNormal,,Alto Clarinet,A. Cl.,Alto Clarinet,wind.reed.clarinet.alto,Alto Clarinet,,
-basset clarinet,basset-clarinet,,71,pitched,stdNormal,,Basset Clarinet,Ba. Cl.,Basset Clarinet,wind.reed.clarinet.basset,Basset Clarinet,,
-basset horn,basset-horn,,71,pitched,stdNormal,,Basset Horn,Ba. Hn.,Basset Horn,wind.reed.basset-horn,Basset Horn,,
-bass clarinet,bass-clarinet,,71,pitched,stdNormal,,Bass Clarinet,B. Cl.,Bass Clarinet,wind.reed.clarinet.bass,Bass Clarinet,,
-b♭ bass clarinet,bb-bass-clarinet,,71,pitched,stdNormal,,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet,wind.reed.clarinet.bass,B♭ Bass Clarinet,,
-b♭ bass clarinet (bass clef),bb-bass-clarinet-bass-clef,,71,pitched,stdNormal,F,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,B♭ Bass Clarinet (Bass Clef),,F
-a bass clarinet,a-bass-clarinet,,71,pitched,stdNormal,,A Bass Clarinet,A B. Cl.,A Bass Clarinet,wind.reed.clarinet.bass,A Bass Clarinet,,
-a bass clarinet (bass clef),a-bass-clarinet-bass-clef),,71,pitched,stdNormal,F,A Bass Clarinet,A B. Cl.,A Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,A Bass Clarinet (Bass Clef),,F
-contra-alto clarinet,contra-alto-clarinet,,71,pitched,stdNormal,,Contra-alto Clarinet,C-a. Cl.,Contra-alto Clarinet,wind.reed.clarinet.contra-alto,Contra-alto Clarinet,,
-contrabass clarinet,contrabass-clarinet,,71,pitched,stdNormal,,Contrabass Clarinet,Cb. Cl.,Contrabass Clarinet,wind.reed.clarinet.contrabass,Contrabass Clarinet,,
-saxophone,saxophone,,66,pitched,stdNormal,,Saxophone,Sax.,Saxophone,wind.reed.saxophone,Saxophone,,
-sopranissimo saxophone,sopranissimo-saxophone,,64,pitched,stdNormal,,Sopranissimo Saxophone,Sio. Sax.,Sopranissimo Saxophone,wind.reed.saxophone.sopraninissimo,Sopranissimo Saxophone,,
-sopranino saxophone,sopranino-saxophone,,64,pitched,stdNormal,,Sopranino Saxophone,Si. Sax.,Sopranino Saxophone,wind.reed.saxophone.sopranino,Sopranino Saxophone,,
-soprano saxophone,soprano-saxophone,,64,pitched,stdNormal,,Soprano Saxophone,S. Sax.,Soprano Saxophone,wind.reed.saxophone.soprano,Soprano Saxophone,,
-aulochrome,aulochrome,,64,pitched,stdNormal,,Aulochrome,Aul.,Aulochrome,wind.reed.saxophone.aulochrome,Aulochrome,,
-mezzo-soprano saxophone,mezzo-soprano-saxophone,,65,pitched,stdNormal,,Mezzo-Soprano Saxophone,M.S. Sax.,Mezzo-Soprano Saxophone,wind.reed.saxophone.mezzo-soprano,Mezzo-Soprano Saxophone,,
-alto saxophone,alto-saxophone,,65,pitched,stdNormal,,Alto Saxophone,A. Sax.,Alto Saxophone,wind.reed.saxophone.alto,Alto Saxophone,,
-melody saxophone,melody-saxophone,,66,pitched,stdNormal,,Melody Saxophone,Mel. Sax.,Melody Saxophone,wind.reed.saxophone.melody,Melody Saxophone,,
-tenor saxophone,tenor-saxophone,,66,pitched,stdNormal,,Tenor Saxophone,T. Sax.,Tenor Saxophone,wind.reed.saxophone.tenor,Tenor Saxophone,,
-baritone saxophone,baritone-saxophone,,67,pitched,stdNormal,,Baritone Saxophone,Bar. Sax.,Baritone Saxophone,wind.reed.saxophone.baritone,Baritone Saxophone,,
-bass saxophone,bass-saxophone,,67,pitched,stdNormal,,Bass Saxophone,B. Sax.,Bass Saxophone,wind.reed.saxophone.bass,Bass Saxophone,,
-contrabass saxophone,contrabass-saxophone,,67,pitched,stdNormal,,Contrabass Saxophone,Cb. Sax.,Contrabass Saxophone,wind.reed.saxophone.contrabass,Contrabass Saxophone,,
-subcontrabass saxophone,subcontrabass-saxophone,,67,pitched,stdNormal,,Subcontrabass Saxophone,Scb. Sax.,Subcontrabass Saxophone,wind.reed.saxophone.subcontrabass,Subcontrabass Saxophone,,
-bassoon,bassoon,,70,pitched,stdNormal,F,Bassoon,Bsn.,Bassoon,wind.reed.bassoon,Bassoon,,F
-contrabassoon,contrabassoon,,70,pitched,stdNormal,,Contrabassoon,Cbsn.,Contrabassoon,wind.reed.contrabassoon,Contrabassoon,,
-bagpipe,bagpipe,,109,pitched,stdNormal,,Bagpipe,Bagp.,Bagpipe,wind.pipes.bagpipes,Bagpipe,,
-reed contrabass,reed-contrabass,,70,pitched,stdNormal,F,Reed Contrabass,Rd. Cbs.,Reed Contrabass,wind.reed.contrabass,Reed Contrabass,,F
-dulcian,dulcian,,67,pitched,stdNormal,F,Dulcian,Du.,Dulcian,wind.reed.dulcian,Dulcian,,F
-rackett,rackett,,67,pitched,stdNormal,F,Rackett,Ra.,Rackett,wind.reed.rackett,Rackett,,F
-sarrusophone,sarrusophone,,67,pitched,stdNormal,,Sarrusophone,Sar.,Sarrusophone,wind.reed.sarrusaphone,Sarrusophone,,
-sopranino sarrusophone,sopranino-sarrusophone,,67,pitched,stdNormal,,Sopranino Sarrusophone,Si. Sar.,Sopranino Sarrusophone,wind.reed.sarrusaphone,Sopranino Sarrusophone,,
-soprano sarrusophone,soprano-sarrusophone,,67,pitched,stdNormal,,Soprano Sarrusophone,S. Sar.,Soprano Sarrusophone,wind.reed.sarrusaphone,Soprano Sarrusophone,,
-alto sarrusophone,alto-sarrusophone,,67,pitched,stdNormal,,Alto Sarrusophone,A. Sar.,Alto Sarrusophone,wind.reed.sarrusaphone,Alto Sarrusophone,,
-tenor sarrusophone,tenor-sarrusophone,,67,pitched,stdNormal,,Tenor Sarrusophone,T. Sar.,Tenor Sarrusophone,wind.reed.sarrusaphone,Tenor Sarrusophone,,
-baritone sarrusophone,baritone-sarrusophone,,67,pitched,stdNormal,,Baritone Sarrusophone,Bar. Sar.,Baritone Sarrusophone,wind.reed.sarrusaphone,Baritone Sarrusophone,,
-bass sarrusophone,bass-sarrusophone,,67,pitched,stdNormal,,Bass Sarrusophone,B. Sar.,Bass Sarrusophone,wind.reed.sarrusaphone,Bass Sarrusophone,,
-contrabass sarrusophone,contrabass-sarrusophone,,67,pitched,stdNormal,,Contrabass Sarrusophone,Cb. Sar.,Contrabass Sarrusophone,wind.reed.sarrusaphone,Contrabass Sarrusophone,,
-pocket sax in c,xaphoon,,71,pitched,stdNormal,,Pocket Sax in C,C Pkt. Sax,Pocket Sax in C,wind.reed.xaphoon,Pocket Sax in C,,
-pocket sax in b♭,bb-xaphoon,,71,pitched,stdNormal,,Pocket Sax in B♭,B♭ Pkt. Sax,Pocket Sax in B♭,wind.reed.xaphoon,Pocket Sax in B♭,,
-pocket sax in d,d-xaphoon,,71,pitched,stdNormal,,Pocket Sax in D,D Pkt. Sax,Pocket Sax in D,wind.reed.xaphoon,Pocket Sax in D,,
-pocket sax in g,g-xaphoon,,71,pitched,stdNormal,,Pocket Sax in G,G Pkt. Sax,Pocket Sax in G,wind.reed.xaphoon,Pocket Sax in G,,
-chalumeau,chalumeau,,67,pitched,stdNormal,G8vb,Chalumeau,Cha.,Chalumeau,wind.reed.chalumeau,Chalumeau,,G8vb
-sopranino chalumeau,sopranino-chalumeau,,67,pitched,stdNormal,,Sopranino Chalumeau,Si. Cha.,Sopranino Chalumeau,wind.reed.chalumeau,Sopranino Chalumeau,,
-soprano chalumeau,soprano-chalumeau,,67,pitched,stdNormal,,Soprano Chalumeau,S. Cha.,Soprano Chalumeau,wind.reed.chalumeau,Soprano Chalumeau,,
-alto chalumeau,alto-chalumeau,,67,pitched,stdNormal,G8vb,Alto Chalumeau,A. Cha.,Alto Chalumeau,wind.reed.chalumeau,Alto Chalumeau,,G8vb
-tenor chalumeau,tenor-chalumeau,,67,pitched,stdNormal,G8vb,Tenor Chalumeau,T. Cha.,Tenor Chalumeau,wind.reed.chalumeau,Tenor Chalumeau,,G8vb
-bass chalumeau,bass-chalumeau,,67,pitched,stdNormal,F,Bass Chalumeau,B. Cha.,Bass Chalumeau,wind.reed.chalumeau,Bass Chalumeau,,F
-tarogato,tarogato,,69,pitched,stdNormal,,Tarogato,Tar.,Tarogato,wind.reed.taroagato,Tarogato,,
-octavin,octavin,,69,pitched,stdNormal,,Octavin,Oct.,Octavin,wind.reed.octavin,Octavin,,
-heckelphone-clarinet,heckelphone-clarinet,,68,pitched,stdNormal,G8vb,Heckelphone-clarinet,Hph.-cl.,Heckelphone-clarinet,wind.reed.heckelphone-clarinet,Heckelphone-clarinet,,G8vb
-sopranino shawm,sopranino-shawm,,67,pitched,stdNormal,,Sopranino Shawm,Si. Sh.,Sopranino Shawm,wind.reed.shawm,Sopranino Shawm,,
-soprano shawm,soprano-shawm,,67,pitched,stdNormal,,Soprano Shawm,S. Sh.,Soprano Shawm,wind.reed.shawm,Soprano Shawm,,
-alto shawm,alto-shawm,,67,pitched,stdNormal,,Alto Shawm,A. Sh.,Alto Shawm,wind.reed.shawm,Alto Shawm,,
-tenor shawm,tenor-shawm,,67,pitched,stdNormal,G8vb,Tenor Shawm,T. Sh.,Tenor Shawm,wind.reed.shawm,Tenor Shawm,,G8vb
-bass shawm,bass-shawm,,67,pitched,stdNormal,F,Bass Shawm,B. Sh.,Bass Shawm,wind.reed.shawm,Bass Shawm,,F
-great bass shawm,great-bass-shawm,,67,pitched,stdNormal,G8vb,Great Bass Shawm,G.B. Sh.,Great Bass Shawm,wind.reed.shawm,Great Bass Shawm,,G8vb
-cromorne,cromorne,,67,pitched,stdNormal,,Cromorne,Cr.,Cromorne,wind.reed.cromorne,Cromorne,,
-crumhorn,crumhorn,,67,pitched,stdNormal,,Crumhorn,Crh.,Crumhorn,wind.reed.crumhorn,Crumhorn,,
-soprano crumhorn,soprano-crumhorn,,67,pitched,stdNormal,,Soprano Crumhorn,S. Crh.,Soprano Crumhorn,wind.reed.crumhorn.soprano,Soprano Crumhorn,,
-alto crumhorn,alto-crumhorn,,67,pitched,stdNormal,,Alto Crumhorn,A. Crh.,Alto Crumhorn,wind.reed.crumhorn.alto,Alto Crumhorn,,
-tenor crumhorn,tenor-crumhorn,,67,pitched,stdNormal,G8vb,Tenor Crumhorn,T. Crh.,Tenor Crumhorn,wind.reed.crumhorn.tenor,Tenor Crumhorn,,G8vb
-bass crumhorn,bass-crumhorn,,67,pitched,stdNormal,F,Bass Crumhorn,B. Crh.,Bass Crumhorn,wind.reed.crumhorn.bass,Bass Crumhorn,,F
-greatbass crumhorn,greatbass-crumhorn,,67,pitched,stdNormal,F,Greatbass Crumhorn,Gb. Crh.,Greatbass Crumhorn,wind.reed.crumhorn.great-bass,Greatbass Crumhorn,,F
-cornamuse,cornamuse,,67,pitched,stdNormal,,Cornamuse,Cm.,Cornamuse,wind.reed.cornamuse,Cornamuse,,
-soprano cornamuse,soprano-cornamuse,,67,pitched,stdNormal,,Soprano Cornamuse,S. Cm.,Soprano Cornamuse,wind.reed.cornamuse,Soprano Cornamuse,,
-alto cornamuse,alto-cornamuse,,67,pitched,stdNormal,,Alto Cornamuse,A. Cm.,Alto Cornamuse,wind.reed.cornamuse,Alto Cornamuse,,
-tenor cornamuse,tenor-cornamuse,,67,pitched,stdNormal,G8vb,Tenor Cornamuse,T. Cm.,Tenor Cornamuse,wind.reed.cornamuse,Tenor Cornamuse,,G8vb
-bass cornamuse,bass-cornamuse,,67,pitched,stdNormal,F,Bass Cornamuse,B. Cm.,Bass Cornamuse,wind.reed.cornamuse,Bass Cornamuse,,F
-f duduk,f-duduk,,71,pitched,stdNormal,G8va,F Duduk,F Du.,F Duduk,wind.reed.duduk,F Duduk,,G8va
-e duduk,e-duduk,,71,pitched,stdNormal,G8va,E Duduk,E Du.,E Duduk,wind.reed.duduk,E Duduk,,G8va
-duduk,d-duduk,,71,pitched,stdNormal,G8va,Duduk 2,Du. 2,Duduk,wind.reed.duduk,Duduk 2,,G8va
-c duduk,c-duduk,,71,pitched,stdNormal,G8va,C Duduk,C Du.,C Duduk,wind.reed.duduk,C Duduk,,G8va
-b duduk,b-duduk,,71,pitched,stdNormal,,B Duduk,B Du.,B Duduk,wind.reed.duduk,B Duduk,,
-b♭ duduk,bb-duduk,,71,pitched,stdNormal,,B♭ Duduk,B♭ Du.,B♭ Duduk,wind.reed.duduk,B♭ Duduk,,
-a duduk,a-duduk,,71,pitched,stdNormal,,A Duduk,A Du.,A Duduk,wind.reed.duduk,A Duduk,,
-g duduk,g-duduk,,71,pitched,stdNormal,,G Duduk,G Du.,G Duduk,wind.reed.duduk,G Duduk,,
-a bass duduk,a-bass-duduk,,71,pitched,stdNormal,,A Bass Duduk,A B. Du.,A Bass Duduk,wind.reed.duduk,A Bass Duduk,,
-soprano kelhorn,soprano-kelhorn,,67,pitched,stdNormal,,Soprano Kelhorn,S. Kh.,Soprano Kelhorn,,Soprano Kelhorn,,
-alto kelhorn,alto-kelhorn,,67,pitched,stdNormal,,Alto Kelhorn,A. Kh.,Alto Kelhorn,,Alto Kelhorn,,
-tenor kelhorn,tenor-kelhorn,,67,pitched,stdNormal,G8vb,Tenor Kelhorn,T. Kh.,Tenor Kelhorn,,Tenor Kelhorn,,G8vb
-bass kelhorn,bass-kelhorn,,67,pitched,stdNormal,F,Bass Kelhorn,B. Kh.,Bass Kelhorn,,Bass Kelhorn,,F
-greatbass kelhorn,greatbass-kelhorn,,67,pitched,stdNormal,F,Greatbass Kelhorn,Gb. Kh.,Greatbass Kelhorn,,Greatbass Kelhorn,,F
-rauschpfeife,rauschpfeife,,67,pitched,stdNormal,,Rauschpfeife,Rpf.,Rauschpfeife,wind.reed.rauschpfeife,Rauschpfeife,,
-sopranino rauschpfeife,sopranino-rauschpfeife,,67,pitched,stdNormal,,Sopranino Rauschpfeife,Si. Rpf.,Sopranino Rauschpfeife,wind.reed.rauschpfeife,Sopranino Rauschpfeife,,
-soprano rauschpfeife,soprano-rauschpfeife,,67,pitched,stdNormal,,Soprano Rauschpfeife,S. Rpf.,Soprano Rauschpfeife,wind.reed.rauschpfeife,Soprano Rauschpfeife,,
-shenai,shenai,,111,pitched,stdNormal,,Shenai,She.,Shenai,wind.reed.shenai,Shenai,,
-dizi,d-dizi,,72,pitched,stdNormal,,Dizi,Di.,Dizi,wind.flutes.di-zi,Dizi,,
-c dizi,c-dizi,,72,pitched,stdNormal,,C Dizi,C Di.,C Dizi,wind.flutes.di-zi,C Dizi,,
-a dizi,a-dizi,,72,pitched,stdNormal,,A Dizi,A Di.,A Dizi,wind.flutes.di-zi,A Dizi,,
-g dizi,g-dizi,,72,pitched,stdNormal,,G Dizi,G Di.,G Dizi,wind.flutes.di-zi,G Dizi,,
-f dizi,f-dizi,,72,pitched,stdNormal,,F Dizi,F Di.,F Dizi,wind.flutes.di-zi,F Dizi,,
-e dizi,e-dizi,,72,pitched,stdNormal,,E Dizi,E Di.,E Dizi,wind.flutes.di-zi,E Dizi,,
-b♭ fife,fife,,72,pitched,stdNormal,G8va,B♭ Fife,B♭ Fife,B♭ Fife,wind.flutes.fife,B♭ Fife,,G8va
-flageolet,flageolet,,78,pitched,stdNormal,G8va,Flageolet,Fla.,Flageolet,wind.flutes.flageolet,Flageolet,,G8va
-french flageolet,french-flageolet,,78,pitched,stdNormal,G8va,French Flageolet,Fr. Fla.,French Flageolet,wind.flutes.flageolet,French Flageolet,,G8va
-english flageolet,english-flageolet,,78,pitched,stdNormal,G8va,English Flageolet,Eng. Fla.,English Flageolet,wind.flutes.flageolet,English Flageolet,,G8va
-irish flute,irish-flute,,73,pitched,stdNormal,,Irish Flute,Ir. Fl.,Irish Flute,wind.flutes.flute.irish,Irish Flute,,
-gemshorn,gemshorn,,79,pitched,stdNormal,G8va,Gemshorn,Gh.,Gemshorn,wind.flutes.gemshorn,Gemshorn,,G8va
-soprano gemshorn,soprano-gemshorn,,79,pitched,stdNormal,G8va,Soprano Gemshorn,S. Gh.,Soprano Gemshorn,wind.flutes.gemshorn,Soprano Gemshorn,,G8va
-alto gemshorn,alto-gemshorn,,79,pitched,stdNormal,,Alto Gemshorn,A. Gh.,Alto Gemshorn,wind.flutes.gemshorn,Alto Gemshorn,,
-tenor gemshorn,tenor-gemshorn,,79,pitched,stdNormal,,Tenor Gemshorn,T. Gh.,Tenor Gemshorn,wind.flutes.gemshorn,Tenor Gemshorn,,
-bass gemshorn,bass-gemshorn,,79,pitched,stdNormal,F8va,Bass Gemshorn,B. Gh.,Bass Gemshorn,wind.flutes.gemshorn,Bass Gemshorn,,F8va
-ocarina,ocarina,,79,pitched,stdNormal,G8va,Ocarina,Oc.,Ocarina,wind.flutes.ocarina,Ocarina,,G8va
-g soprano ocarina,g-soprano-ocarina,,79,pitched,stdNormal,G8va,G Soprano Ocarina,G S. Oc.,G Soprano Ocarina,wind.flutes.ocarina,G Soprano Ocarina,,G8va
-f soprano ocarina,f-soprano-ocarina,,79,pitched,stdNormal,G8va,F Soprano Ocarina,F S. Oc.,F Soprano Ocarina,wind.flutes.ocarina,F Soprano Ocarina,,G8va
-c soprano ocarina,c-soprano-ocarina,,79,pitched,stdNormal,G8va,C Soprano Ocarina,C S. Oc.,C Soprano Ocarina,wind.flutes.ocarina,C Soprano Ocarina,,G8va
-b♭ soprano ocarina,bb-soprano-ocarina,,79,pitched,stdNormal,G8va,B♭ Soprano Ocarina,B♭ S. Oc.,B♭ Soprano Ocarina,wind.flutes.ocarina,B♭ Soprano Ocarina,,G8va
-g alto ocarina,g-alto-ocarina,,79,pitched,stdNormal,,G Alto Ocarina,G A. Oc.,G Alto Ocarina,wind.flutes.ocarina,G Alto Ocarina,,
-f alto ocarina,f-alto-ocarina,,79,pitched,stdNormal,,F Alto Ocarina,F A. Oc.,F Alto Ocarina,wind.flutes.ocarina,F Alto Ocarina,,
-c alto ocarina,c-alto-ocarina,,79,pitched,stdNormal,,C Alto Ocarina,C A. Oc.,C Alto Ocarina,wind.flutes.ocarina,C Alto Ocarina,,
-b♭ alto ocarina,bb-alto-ocarina,,79,pitched,stdNormal,,B♭ Alto Ocarina,B♭ A. Oc.,B♭ Alto Ocarina,wind.flutes.ocarina,B♭ Alto Ocarina,,
-c bass ocarina,c-bass-ocarina,,79,pitched,stdNormal,F,C Bass Ocarina,C B. Oc.,C Bass Ocarina,wind.flutes.ocarina,C Bass Ocarina,,F
-pan flute,pan-flute,,75,pitched,stdNormal,,Pan Flute,Pn. Fl.,Pan Flute,wind.flutes.panpipes,Pan Flute,,
-c quena,c-quena,,67,pitched,stdNormal,G8va,C Quena,C Qn.,C Quena,wind.flutes.quena,C Quena,,G8va
-g quena,g-quena,,67,pitched,stdNormal,,G Quena,G Qn.,G Quena,wind.flutes.quena,G Quena,,
-f quena,f-quena,,67,pitched,stdNormal,,F Quena,F Qn.,F Quena,wind.flutes.quena,F Quena,,
-quena,d-quena,,67,pitched,stdNormal,,Quena 2,Qn. 2,Quena,wind.flutes.quena,Quena 2,,
-recorder,recorder,,74,pitched,stdNormal,G8va,Recorder,Rec.,Recorder,wind.flutes.recorder,Recorder,,G8va
-garklein recorder,garklein-recorder,,74,pitched,stdNormal,G15ma,Garklein Recorder,Gk. Rec.,Garklein Recorder,wind.flutes.recorder.garklein,Garklein Recorder,,G15ma
-sopranino recorder,sopranino-recorder,,74,pitched,stdNormal,G8va,Sopranino Recorder,Si. Rec.,Sopranino Recorder,wind.flutes.recorder.sopranino,Sopranino Recorder,,G8va
-soprano recorder,soprano-recorder,,74,pitched,stdNormal,G8va,Soprano Recorder,S. Rec.,Soprano Recorder,wind.flutes.recorder.soprano,Soprano Recorder,,G8va
-alto recorder,alto-recorder,,74,pitched,stdNormal,,Alto Recorder,A. Rec.,Alto Recorder,wind.flutes.recorder.alto,Alto Recorder,,
-tenor recorder,tenor-recorder,,74,pitched,stdNormal,,Tenor Recorder,T. Rec.,Tenor Recorder,wind.flutes.recorder.tenor,Tenor Recorder,,
-bass recorder,bass-recorder,,74,pitched,stdNormal,F8va,Bass Recorder,B. Rec.,Bass Recorder,wind.flutes.recorder.bass,Bass Recorder,,F8va
-greatbass recorder,greatbass-recorder,,74,pitched,stdNormal,F8va,Greatbass Recorder,Gb. Rec.,Greatbass Recorder,wind.flutes.recorder.great-bass,Greatbass Recorder,,F8va
-contrabass recorder,contrabass-recorder,,74,pitched,stdNormal,F,Contrabass Recorder,Cb. Rec.,Contrabass Recorder,wind.flutes.recorder.contrabass,Contrabass Recorder,,F
-slide whistle,slide-whistle,,79,pitched,stdNormal,G8va,Slide Whistle,Sl. Wh.,Slide Whistle,wind.flutes.slide,Slide Whistle,,G8va
-b♭ tin whistle,bflat-tin-whistle,,78,pitched,stdNormal,G8va,B♭ Tin Whistle,B♭ Tin Wh.,B♭ Tin Whistle,wind.flutes.whistle.tin.bflat,B♭ Tin Whistle,,G8va
-c tin whistle,c-tin-whistle,,78,pitched,stdNormal,G8va,C Tin Whistle,C Tin Wh.,C Tin Whistle,wind.flutes.whistle.tin,C Tin Whistle,,G8va
-d tin whistle,d-tin-whistle,,78,pitched,stdNormal,G8va,D Tin Whistle,D Tin Wh.,D Tin Whistle,wind.flutes.whistle.tin.d,D Tin Whistle,,G8va
-winds,Winds,,73,pitched,stdNormal,F,Winds,Wi.,Winds,wind.group,Winds,,F
-horn in f,horn,open,60,pitched,stdNormal,,Horn in F,F Hn.,Horn in F,brass.french-horn,Horn in F,,
-horn in c alto,c-horn-alto,open,60,pitched,stdNormal,,Horn in C alto,C Hn.,Horn in C alto,brass.natural-horn,Horn in C alto,,
-horn in b♭ alto,bb-horn-alto,open,60,pitched,stdNormal,,Horn in B♭ alto,B♭ Hn.,Horn in B♭ alto,brass.french-horn,Horn in B♭ alto,,
-horn in a,a-horn,open,60,pitched,stdNormal,,Horn in A,A Hn.,Horn in A,brass.natural-horn,Horn in A,,
-horn in a♭,ab-horn,open,60,pitched,stdNormal,,Horn in A♭,A♭ Hn.,Horn in A♭,brass.natural-horn,Horn in A♭,,
-horn in g,g-horn,open,60,pitched,stdNormal,,Horn in G,G Hn.,Horn in G,brass.natural-horn,Horn in G,,
-horn in e,e-horn,open,60,pitched,stdNormal,,Horn in E,E Hn.,Horn in E,brass.natural-horn,Horn in E,,
-horn in e♭,eb-horn,open,60,pitched,stdNormal,,Horn in E♭,E♭ Hn.,Horn in E♭,brass.natural-horn,Horn in E♭,,
-horn in d,d-horn,open,60,pitched,stdNormal,,Horn in D,D Hn.,Horn in D,brass.natural-horn,Horn in D,,
-horn in c,c-horn,open,60,pitched,stdNormal,,Horn in C,C Hn.,Horn in C,brass.natural-horn,Horn in C,,
-horn in c (bass clef),c-horn-bass,open,60,pitched,stdNormal,F,Horn in C,C Hn.,Horn in C (Bass Clef),brass.natural-horn,Horn in C (Bass Clef),,F
-horn in b♭ basso,bb-horn-basso,open,60,pitched,stdNormal,,Horn in B♭ basso,B♭ Hn.,Horn in B♭ basso,brass.natural-horn,Horn in B♭ basso,,
-vienna horn,vienna-horn,open,60,pitched,stdNormal,,Vienna Horn,V. Hn.,Vienna Horn,brass.vienna-horn,Vienna Horn,,
-wagner tuba,wagner-tuba,,56,pitched,stdNormal,F,Wagner Tuba,Wag. Tb.,Wagner Tuba,brass.wagner-tuba,Wagner Tuba,,F
-b♭ wagner tuba,bb-wagner-tuba,,60,pitched,stdNormal,F,B♭ Wagner Tuba,B♭ Wag. Tb.,B♭ Wagner Tuba,brass.wagner-tuba,B♭ Wagner Tuba,,F
-f wagner tuba,f-wagner-tuba,,56,pitched,stdNormal,F,F Wagner Tuba,F Wag. Tb.,F Wagner Tuba,brass.wagner-tuba,F Wagner Tuba,,F
-trumpet,trumpet,open,56,pitched,stdNormal,,Trumpet,Tpt.,Trumpet,brass.trumpet,Trumpet,,
-piccolo trumpet,piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet,P. Tpt.,Piccolo Trumpet,brass.trumpet.piccolo,Piccolo Trumpet,,
-piccolo trumpet in b♭,bb-piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet in B♭,P. Tpt. B♭,Piccolo Trumpet in B♭,brass.trumpet.piccolo,Piccolo Trumpet in B♭,,
-piccolo trumpet in a,a-piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet in A,P. Tpt. A,Piccolo Trumpet in A,brass.trumpet.piccolo,Piccolo Trumpet in A,,
-f trumpet,f-trumpet,open,56,pitched,stdNormal,,F Trumpet,F Tpt.,F Trumpet,brass.trumpet,F Trumpet,,
-e trumpet,e-trumpet,open,56,pitched,stdNormal,,E Trumpet,E Tpt.,E Trumpet,brass.trumpet,E Trumpet,,
-e♭ trumpet,eb-trumpet,open,56,pitched,stdNormal,,E♭ Trumpet,E♭ Tpt.,E♭ Trumpet,brass.trumpet,E♭ Trumpet,,
-d trumpet,d-trumpet,open,56,pitched,stdNormal,,D Trumpet,D Tpt.,D Trumpet,brass.trumpet.d,D Trumpet,,
-c trumpet,c-trumpet,open,56,pitched,stdNormal,,C Trumpet,C Tpt.,C Trumpet,brass.trumpet.c,C Trumpet,,
-b♭ trumpet,bb-trumpet,open,56,pitched,stdNormal,,B♭ Trumpet,B♭ Tpt.,B♭ Trumpet,brass.trumpet.bflat,B♭ Trumpet,,
-a trumpet,a-trumpet,open,56,pitched,stdNormal,,A Trumpet,A Tpt.,A Trumpet,brass.trumpet,A Trumpet,,
-pocket trumpet,pocket-trumpet,open,56,pitched,stdNormal,,Pocket Trumpet,Pkt. Tpt.,Pocket Trumpet,brass.trumpet.pocket,Pocket Trumpet,,
-slide trumpet,slide-trumpet,open,56,pitched,stdNormal,,Slide Trumpet,Sl.Tpt.,Slide Trumpet,brass.trumpet.slide,Slide Trumpet,,
-tenor trumpet,tenor-trumpet,open,56,pitched,stdNormal,,Tenor Trumpet,T. Tpt.,Tenor Trumpet,brass.trumpet.tenor,Tenor Trumpet,,
-bass trumpet,bass-trumpet,open,56,pitched,stdNormal,,Bass Trumpet,B. Tpt.,Bass Trumpet,brass.trumpet.bass,Bass Trumpet,,
-e♭ bass trumpet,eb-bass-trumpet,open,56,pitched,stdNormal,,E♭ Bass Trumpet,E♭ B. Tpt.,E♭ Bass Trumpet,brass.trumpet.bass,E♭ Bass Trumpet,,
-bass trumpet in c,c-bass-trumpet,open,56,pitched,stdNormal,,Bass Trumpet in C,B. Tpt. C,Bass Trumpet in C,brass.trumpet.bass,Bass Trumpet in C,,
-b♭ bass trumpet,bb-bass-trumpet,open,56,pitched,stdNormal,,B♭ Bass Trumpet,B♭ B. Tpt.,B♭ Bass Trumpet,brass.trumpet.bass,B♭ Bass Trumpet,,
-baroque trumpet,baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet,Bq. Tpt.,Baroque Trumpet,brass.trumpet.baroque,Baroque Trumpet,,
-baroque trumpet in f,f-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in F,Bq. Tpt. F,Baroque Trumpet in F,brass.trumpet.baroque,Baroque Trumpet in F,,
-baroque trumpet in e♭,eb-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in E♭,Bq. Tpt. E♭,Baroque Trumpet in E♭,brass.trumpet.baroque,Baroque Trumpet in E♭,,
-baroque trumpet in d,d-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in D,Bq. Tpt. D,Baroque Trumpet in D,brass.trumpet.baroque,Baroque Trumpet in D,,
-baroque trumpet in c,c-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in C,Bq. Tpt. C,Baroque Trumpet in C,brass.trumpet.baroque,Baroque Trumpet in C,,
-baroque trumpet in b♭,bb-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in B♭,Bq. Tpt. B♭,Baroque Trumpet in B♭,brass.trumpet.baroque,Baroque Trumpet in B♭,,
-e♭ cornet,eb-cornet,open,56,pitched,stdNormal,,E♭ Cornet,E♭ Cnt.,E♭ Cornet,brass.cornet.soprano,E♭ Cornet,,
-c cornet,c-cornet,open,56,pitched,stdNormal,,C Cornet,C Cnt.,C Cornet,brass.cornet,C Cornet,,
-b♭ cornet,bb-cornet,open,56,pitched,stdNormal,,B♭ Cornet,B♭ Cnt.,B♭ Cornet,brass.cornet,B♭ Cornet,,
-a cornet,a-cornet,open,56,pitched,stdNormal,,A Cornet,A Cnt.,A Cornet,brass.cornet,A Cornet,,
-flugelhorn,flugelhorn,open,56,pitched,stdNormal,,Flugelhorn,Flghn.,Flugelhorn,brass.flugelhorn,Flugelhorn,,
-trombone,trombone,open,57,pitched,stdNormal,F,Trombone,Tbn.,Trombone,brass.trombone,Trombone,,F
-trombone (treble clef),trombone-treble,open,57,pitched,stdNormal,,Trombone,Tbn.,Trombone (Treble Clef),brass.trombone,Trombone (Treble Clef),,
-soprano trombone,soprano-trombone,open,57,pitched,stdNormal,,Soprano Trombone,S. Tbn.,Soprano Trombone,brass.trombone,Soprano Trombone,,
-alto trombone,alto-trombone,open,57,pitched,stdNormal,C3,Alto Trombone,A. Tbn.,Alto Trombone,brass.trombone.alto,Alto Trombone,,C3
-tenor trombone,tenor-trombone,open,57,pitched,stdNormal,F,Tenor Trombone,T. Tbn.,Tenor Trombone,brass.trombone.tenor,Tenor Trombone,,F
-bass trombone,bass-trombone,open,57,pitched,stdNormal,F,Bass Trombone,B. Tbn.,Bass Trombone,brass.trombone.bass,Bass Trombone,,F
-contrabass trombone,contrabass-trombone,open,57,pitched,stdNormal,F,Contrabass Trombone,Cb. Tbn.,Contrabass Trombone,brass.trombone.contrabass,Contrabass Trombone,,F
-cimbasso,cimbasso,,57,pitched,stdNormal,F,Cimbasso,Cim.,Cimbasso,brass.cimbasso,Cimbasso,,F
-tuba,tuba,,58,pitched,stdNormal,F,Tuba,Tba.,Tuba,brass.tuba,Tuba,,F
-f tuba,f-tuba,,58,pitched,stdNormal,F,F Tuba,F Tb.,F Tuba,brass.tuba,F Tuba,,F
-e♭ tuba,eb-tuba,,58,pitched,stdNormal,F,E♭ Tuba,E♭ Tb.,E♭ Tuba,brass.tuba,E♭ Tuba,,F
-e♭ tuba (treble clef),eb-tuba-treble,,58,pitched,stdNormal,,E♭ Tuba,E♭ Tb.,E♭ Tuba (Treble Clef),brass.tuba,E♭ Tuba (Treble Clef),,
-c tuba,c-tuba,,58,pitched,stdNormal,F,C Tuba,C Tb.,C Tuba,brass.tuba,C Tuba,,F
-b♭ tuba,bb-tuba,,58,pitched,stdNormal,F,B♭ Tuba,B♭ Tb.,B♭ Tuba,brass.tuba,B♭ Tuba,,F
-b♭ tuba (treble clef),bb-tuba-treble,,58,pitched,stdNormal,,B♭ Tuba,B♭ Tb.,B♭ Tuba (Treble Clef),brass.tuba,B♭ Tuba (Treble Clef),,
-bass tuba in f,bass-f-tuba,,58,pitched,stdNormal,F,Bass Tuba in F,Ba. Tb. F,Bass Tuba in F,brass.tuba.bass,Bass Tuba in F,,F
-bass tuba in e♭,bass-eb-tuba,,58,pitched,stdNormal,F,Bass Tuba in E♭,Ba. Tb. E♭,Bass Tuba in E♭,brass.tuba.bass,Bass Tuba in E♭,,F
-sub-contrabass tuba,subcontrabass-tuba,,58,pitched,stdNormal,F,Sub-Contrabass Tuba,SCb. Tb.,Sub-Contrabass Tuba,brass.tuba.subcontrabass,Sub-Contrabass Tuba,,F
-timpani,timpani,,47,pitched,stdNormal,F,Timpani,Timp.,Timpani,drum.timpani,Timpani,,F
-glockenspiel,glockenspiel,,9,pitched,stdNormal,,Glockenspiel,Glock.,Glockenspiel,pitched-percussion.glockenspiel,Glockenspiel,,
-vibraphone,vibraphone,,11,pitched,stdNormal,,Vibraphone,Vib.,Vibraphone,pitched-percussion.vibraphone,Vibraphone,,
-xylophone,xylophone,,13,pitched,stdNormal,,Xylophone,Xyl.,Xylophone,pitched-percussion.xylophone,Xylophone,,
-xylomarimba,xylomarimba,,12,pitched,stdNormal,F,Xylomarimba,XMrm.,Xylomarimba,pitched-percussion.xylomarimba,Xylomarimba,,F
-marimba (grand staff),marimba,,12,pitched,stdNormal,F,Marimba,Mrm.,Marimba (Grand Staff),pitched-percussion.marimba,Marimba (Grand Staff),,F
-marimba (single staff),marimba-single,,12,pitched,stdNormal,,Marimba,Mrm.,Marimba (Single Staff),pitched-percussion.marimba,Marimba (Single Staff),,
-bass marimba,bass-marimba,,12,pitched,stdNormal,F,Bass Marimba,B. Mrm.,Bass Marimba,pitched-percussion.marimba.bass,Bass Marimba,,F
-contrabass marimba,contrabass-marimba,,12,pitched,stdNormal,F8vb,Contrabass Marimba,Cb. Mrm.,Contrabass Marimba,pitched-percussion.marimba.bass,Contrabass Marimba,,F8vb
-dulcimer,dulcimer,,15,pitched,stdNormal,F,Dulcimer,Dlc.,Dulcimer,pitched-percussion.hammer-dulcimer,Dulcimer,,F
-cimbalom,cimbalom,,15,pitched,stdNormal,F,Cimbalom,Cimb.,Cimbalom,pitched-percussion.cimbalom,Cimbalom,,F
-drumset,drumset,,0,percussion,perc5Line,PERC,Drumset,D. Set,Drumset,drum.group.set,Drumset,1,PERC
-concert snare drum,snare-drum,,48,percussion,perc1Line,PERC,Concert Snare Drum,Con. Sn.,Concert Snare Drum,drum.snare-drum,Concert Snare Drum,1,PERC
-concert bass drum,bass-drum,,48,percussion,perc1Line,PERC,Concert Bass Drum,Con. BD ,Concert Bass Drum,drum.bass-drum,Concert Bass Drum,1,PERC
-piccolo snare,piccolo-snare-drum,,48,percussion,perc1Line,PERC,Piccolo Snare,Picc. Sn.,Piccolo Snare,drum.snare-drum,Piccolo Snare,1,PERC
-field drum,military-drum,,48,percussion,perc1Line,PERC,Field Drum,Field Dr.,Field Drum,drum.snare-drum,Field Drum,1,PERC
-concert toms,tom-toms,,48,percussion,perc5Line,PERC,Concert Toms,C. Toms,Concert Toms,drum.tom-tom,Concert Toms,1,PERC
-chinese tom-toms,chinese-tom-toms,,48,percussion,perc1Line,PERC,Chinese Tom-Toms,Ch. Toms,Chinese Tom-Toms,drum.group.chinese,Chinese Tom-Toms,1,PERC
-bongos,bongos,,48,percussion,perc1Line,PERC,Bongos,Bon.,Bongos,drum.bongo,Bongos,1,PERC
-congas,congas,,48,percussion,perc1Line,PERC,Congas,Con.,Congas,drum.conga,Congas,1,PERC
-timbales,timbales,,0,percussion,perc1Line,PERC,Timbales,Timb.,Timbales,drum.timbale,Timbales,1,PERC
-frame drum,frame-drum,,0,percussion,perc1Line,PERC,Frame Drum,Fr. Dr.,Frame Drum,drum.frame-drum,Frame Drum,1,PERC
-automobile brake drums,automobile-brake-drums,,0,percussion,perc1Line,PERC,Automobile Brake Drums,Aut. Brk. Dr.,Automobile Brake Drums,metal.brake-drums,Automobile Brake Drums,1,PERC
-slit drum,slit-drum,,0,percussion,perc1Line,PERC,Slit Drum,Slt. Dr.,Slit Drum,drum.slit-drum,Slit Drum,1,PERC
-hi-hat,hi-hat,,0,percussion,perc1Line,PERC,Hi-hat,Hi-hat,Hi-hat,metal.hi-hat,Hi-hat,1,PERC
-tam-tam,tam-tam,,0,percussion,perc1Line,PERC,Tam-Tam,Tam,Tam-Tam,metal.tamtam,Tam-Tam,1,PERC
-sleigh bells,sleigh-bells,,0,percussion,perc1Line,PERC,Sleigh Bells,Sle. Be.,Sleigh Bells,metal.bells.sleigh-bells,Sleigh Bells,1,PERC
-metal castanets,metal-castanets,,0,percussion,perc1Line,PERC,Metal Castanets,Met. Cst.,Metal Castanets,,Metal Castanets,1,PERC
-iron pipes,iron-pipes,,0,percussion,perc1Line,PERC,Iron Pipes,Ir. Pi.,Iron Pipes,,Iron Pipes,1,PERC
-chains,chains,,0,percussion,perc1Line,PERC,Chains,Chn.,Chains,,Chains,1,PERC
-anvil,anvil,,48,percussion,perc1Line,PERC,Anvil,Anv.,Anvil,metal.anvil,Anvil,1,PERC
-triangle,triangle,,48,percussion,perc1Line,PERC,Triangle,Trgl.,Triangle,metal.triangle,Triangle,1,PERC
-cymbal,cymbal,,48,percussion,perc1Line,PERC,Cymbal,Cym.,Cymbal,metal.cymbal.crash,Cymbal,1,PERC
-ride cymbal,ride-cymbal,,0,percussion,perc1Line,PERC,Ride Cymbal,R. Cym.,Ride Cymbal,metal.cymbal.ride,Ride Cymbal,1,PERC
-chinese cymbal,chinese-cymbal,,0,percussion,perc1Line,PERC,Chinese Cymbal,Ch. Cym.,Chinese Cymbal,metal.cymbal.chinese,Chinese Cymbal,1,PERC
-crash cymbal,crash-cymbal,,48,percussion,perc1Line,PERC,Crash Cymbal,Cr. Cym.,Crash Cymbal,metal.cymbal.crash,Crash Cymbal,1,PERC
-splash cymbal,splash-cymbal,,0,percussion,perc1Line,PERC,Splash Cymbal,Sp. Cym.,Splash Cymbal,metal.cymbal.splash,Splash Cymbal,1,PERC
-cowbell,cowbell,,0,percussion,perc1Line,PERC,Cowbell,Cwb.,Cowbell,metal.bells.cowbell,Cowbell,1,PERC
-thundersheet,thundersheet,,0,percussion,perc1Line,PERC,Thundersheet,Thu.,Thundersheet,metal.thundersheet,Thundersheet,1,PERC
-metal wind chimes,metal-wind-chimes,,0,percussion,perc1Line,PERC,Metal Wind Chimes,Met. Wn Ch.,Metal Wind Chimes,metal.bells.wind-chimes,Metal Wind Chimes,1,PERC
-wood blocks,wood-blocks,,48,percussion,perc1Line,PERC,Wood Blocks,Wd. Bl.,Wood Blocks,wood.wood-block,Wood Blocks,1,PERC
-temple blocks,temple-blocks,,0,percussion,perc1Line,PERC,Temple Blocks,Tmp. Bl.,Temple Blocks,wood.temple-block,Temple Blocks,1,PERC
-claves,claves,,0,percussion,perc1Line,PERC,Claves,Clv.,Claves,wood.claves,Claves,1,PERC
-castanets,castanets,,0,percussion,perc1Line,PERC,Castanets,Cst.,Castanets,wood.castanets,Castanets,1,PERC
-güiro,guiro,,0,percussion,perc1Line,PERC,Güiro,Gro.,Güiro,wood.guiro,Güiro,1,PERC
-wooden wind chimes,wooden-wind-chimes,,0,percussion,perc1Line,PERC,Wooden Wind Chimes,Wd. Wn. Ch.,Wooden Wind Chimes,metal.bells.wind-chimes,Wooden Wind Chimes,1,PERC
-bamboo wind chimes,bamboo-wind-chimes,,0,percussion,perc1Line,PERC,Bamboo Wind Chimes,Bam. Wn. Ch.,Bamboo Wind Chimes,metal.bells.wind-chimes,Bamboo Wind Chimes,1,PERC
-maracas,maracas,,0,percussion,perc1Line,PERC,Maracas,Mrcs.,Maracas,rattle.maraca,Maracas,1,PERC
-cabasa,cabasa,,0,percussion,perc1Line,PERC,Cabasa,Cabs.,Cabasa,rattle.cabasa,Cabasa,1,PERC
-vibraslap,vibraslap,,0,percussion,perc1Line,PERC,Vibraslap,Vibslp.,Vibraslap,rattle.vibraslap,Vibraslap,1,PERC
-whip,whip,,0,percussion,perc1Line,PERC,Whip,Wh.,Whip,effect.whip,Whip,1,PERC
-ratchet,ratchet,,0,percussion,perc1Line,PERC,Ratchet,Rat.,Ratchet,rattle.ratchet,Ratchet,1,PERC
-sandpaper blocks,sandpaper-blocks,,0,percussion,perc1Line,PERC,Sandpaper Blocks,Sa. Bl.,Sandpaper Blocks,wood.sand-block,Sandpaper Blocks,1,PERC
-glass wind chimes,glass-wind-chimes,,0,percussion,perc1Line,PERC,Glass Wind Chimes,Gl. Wn Ch.,Glass Wind Chimes,metal.bells.wind-chimes,Glass Wind Chimes,1,PERC
-shell wind chimes,shell-wind-chimes,,0,percussion,perc1Line,PERC,Shell Wind Chimes,Sh. Wn Ch.,Shell Wind Chimes,metal.bells.wind-chimes,Shell Wind Chimes,1,PERC
-stones,stones,,0,percussion,perc1Line,PERC,Stones,Sto.,Stones,rattle.lava-stones,Stones,1,PERC
-tambourine,tambourine,,0,percussion,perc1Line,PERC,Tambourine,Tamb.,Tambourine,drum.tambourine,Tambourine,1,PERC
-percussion,percussion,,48,percussion,perc5Line,PERC,Percussion,Perc.,Percussion,drum.group.set,Percussion,1,PERC
-piano,piano,,0,pitched,stdNormal,F,Piano,Pno.,Piano,keyboard.piano,Piano,,F
-grand piano,grand-piano,,0,pitched,stdNormal,F,Grand Piano,Pno.,Grand Piano,keyboard.piano.grand,Grand Piano,,F
-upright piano,upright-piano,,0,pitched,stdNormal,F,Upright Piano,Pno.,Upright Piano,keyboard.piano.upright,Upright Piano,,F
-honky tonk piano,honky-tonk-piano,,3,pitched,stdNormal,F,Honky Tonk Piano,Hnk. Pno.,Honky Tonk Piano,keyboard.piano.honky-tonk,Honky Tonk Piano,,F
-toy piano,toy-piano,,0,pitched,stdNormal,F,Toy Piano,Toy Pno.,Toy Piano,keyboard.piano.toy,Toy Piano,,F
-clavichord,clavichord,,7,pitched,stdNormal,F,Clavichord,Cch.,Clavichord,keyboard.clavichord,Clavichord,,F
-harpsichord,harpsichord,,6,pitched,stdNormal,F,Harpsichord,Hch.,Harpsichord,keyboard.harpsichord,Harpsichord,,F
-virginal,virginal,,6,pitched,stdNormal,F,Virginal,Vir.,Virginal,keyboard.virginal,Virginal,,F
-celesta,celesta,,8,pitched,stdNormal,,Celesta,Cel.,Celesta,keyboard.celesta,Celesta,,
-electric piano,electric-piano,,4,pitched,stdNormal,F,Electric Piano,El. Pno.,Electric Piano,keyboard.piano.electric,Electric Piano,,F
-clavinet,clavinet,,7,pitched,stdNormal,F,Clavinet,Clav.,Clavinet,keyboard.clavichord.synth,Clavinet,,F
-harp,harp,,46,pitched,stdNormal,F,Harp,Hrp.,Harp,pluck.harp,Harp,,F
-organ,organ,,19,pitched,stdNormal,F,Organ,Org.,Organ,keyboard.organ,Organ,,F
-percussive organ,percussive-organ,,17,pitched,stdNormal,F,Percussive Organ,Perc. Org.,Percussive Organ,keyboard.organ.percussive,Percussive Organ,,F
-hammond organ,hammond-organ,,16,pitched,stdNormal,F,Hammond Organ,Hm. Org.,Hammond Organ,keyboard.organ.drawbar,Hammond Organ,,F
-rotary organ,rotary-organ,,18,pitched,stdNormal,F,Rotary Organ,Rot. Org.,Rotary Organ,keyboard.organ.rotary,Rotary Organ,,F
-pipe organ,pipe-organ,,19,pitched,stdNormal,F8vb,Pipe Organ,Org.,Pipe Organ,keyboard.organ.pipe,Pipe Organ,,F
-harmonium,harmonium,,20,pitched,stdNormal,F,Harmonium,Harm.,Harmonium,keyboard.harmonium,Harmonium,,F
-reed organ,reed-organ,,20,pitched,stdNormal,F,Reed Organ,Rd. Org.,Reed Organ,keyboard.organ.reed,Reed Organ,,F
-atmosphere synthesizer,atmosphere-synth,,99,pitched,stdNormal,F,Atmosphere Synthesizer,Synth.,Atmosphere Synthesizer,synth.effects.atmosphere,Atmosphere Synthesizer,,F
-brightness synthesizer,brightness-synth,,100,pitched,stdNormal,F,Brightness Synthesizer,Synth.,Brightness Synthesizer,synth.effects.brightness,Brightness Synthesizer,,F
-crystal synthesizer,crystal-synth,,98,pitched,stdNormal,F,Crystal Synthesizer,Synth.,Crystal Synthesizer,synth.effects.crystal,Crystal Synthesizer,,F
-echoes synthesizer,echoes-synth,,102,pitched,stdNormal,F,Echoes Synthesizer,Synth.,Echoes Synthesizer,synth.effects.echoes,Echoes Synthesizer,,F
-goblins synthesizer,goblins-synth,,101,pitched,stdNormal,F,Goblins Synthesizer,Synth.,Goblins Synthesizer,synth.effects.goblins,Goblins Synthesizer,,F
-rain synthesizer,rain-synth,,96,pitched,stdNormal,F,Rain Synthesizer,Synth.,Rain Synthesizer,synth.effects.rain,Rain Synthesizer,,F
-sci-fi synthesizer,sci-fi-synth,,103,pitched,stdNormal,F,Sci-fi Synthesizer,Synth.,Sci-fi Synthesizer,synth.effects.sci-fi,Sci-fi Synthesizer,,F
-soundtrack synthesizer,soundtrack-synth,,97,pitched,stdNormal,F,Soundtrack Synthesizer,Synth.,Soundtrack Synthesizer,synth.effects.soundtrack,Soundtrack Synthesizer,,F
-pad synthesizer,pad-synth,new age,88,pitched,stdNormal,F,Pad Synthesizer,Synth.,Pad Synthesizer,synth.pad,Pad Synthesizer,,F
-new age synthesizer,new-age-synth,,88,pitched,stdNormal,F,New Age Synthesizer,Synth.,New Age Synthesizer,synth.pad,New Age Synthesizer,,F
-warm synthesizer,warm-synth,,89,pitched,stdNormal,F,Warm Synthesizer,Synth.,Warm Synthesizer,synth.pad.warm,Warm Synthesizer,,F
-poly synthesizer,poly-synth,,90,pitched,stdNormal,F,Poly Synthesizer,Synth.,Poly Synthesizer,synth.pad.polysynth,Poly Synthesizer,,F
-choir synthesizer,choir-synth,,91,pitched,stdNormal,F,Choir Synthesizer,Synth.,Choir Synthesizer,synth.pad.choir,Choir Synthesizer,,F
-bowed synthesizer,bowed-synth,,92,pitched,stdNormal,F,Bowed Synthesizer,Synth.,Bowed Synthesizer,synth.pad.bowed,Bowed Synthesizer,,F
-metallic synthesizer,metallic-synth,,93,pitched,stdNormal,F,Metallic Synthesizer,Synth.,Metallic Synthesizer,synth.pad.metallic,Metallic Synthesizer,,F
-halo synthesizer,halo-synth,,94,pitched,stdNormal,F,Halo Synthesizer,Synth.,Halo Synthesizer,synth.pad.halo,Halo Synthesizer,,F
-sweep synthesizer,sweep-synth,,95,pitched,stdNormal,F,Sweep Synthesizer,Synth.,Sweep Synthesizer,synth.pad.warm,Sweep Synthesizer,,F
-saw synthesizer,saw-synth,,81,pitched,stdNormal,F,Saw Synthesizer,Synth.,Saw Synthesizer,synth.tone.sawtooth,Saw Synthesizer,,F
-sine synthesizer,sine-synth,,79,pitched,stdNormal,F,Sine Synthesizer,Synth.,Sine Synthesizer,synth.tone.sine,Sine Synthesizer,,F
-square synthesizer,square-synth,,80,pitched,stdNormal,F,Square Synthesizer,Synth.,Square Synthesizer,synth.tone.sine,Square Synthesizer,,F
-ondes martenot,ondes-martenot,,79,pitched,stdNormal,F,Ondes Martenot,O.M.,Ondes Martenot,keyboard.ondes-martenot,Ondes Martenot,,F
-mallet synthesizer,mallet-synthesizer,,80,pitched,stdNormal,F,Mallet Synthesizer,Mal. Syn.,Mallet Synthesizer,synth.group,Mallet Synthesizer,,F
-bass synthesizer,bass-synthesizer,synth-bass-1,38,pitched,stdNormal,F,Bass Synthesizer,Synth.,Bass Synthesizer,pluck.bass.synth,Bass Synthesizer,,F
-brass synthesizer,brass-synthesizer,synth-brass-1,62,pitched,stdNormal,F,Brass Synthesizer,Synth.,Brass Synthesizer,brass.group.synth,Brass Synthesizer,,F
-string synthesizer,string-synthesizer,synth-string-1,50,pitched,stdNormal,F,String Synthesizer,Synth.,String Synthesizer,strings.group.synth,String Synthesizer,,F
-theremin,theremin,,79,pitched,stdNormal,F,Theremin,Thmn.,Theremin,synth.theremin,Theremin,,F
-percussion synthesizer,percussion-synthesizer,,0,percussion,perc1Line,PERC,Percussion Synthesizer,Perc. Syn.,Percussion Synthesizer,drum.tom-tom.synth,Percussion Synthesizer,1,PERC
-banjo,banjo,,105,pitched,stdNormal,G8vb,Banjo,Bj.,Banjo,pluck.banjo,Banjo,,G8vb
-banjo (tablature),banjo-tablature,,105,tablature,tab5StrCommon,G8vb,Banjo,Bj.,Banjo (Tablature),pluck.banjo,Banjo (Tablature),,G8vb
-tenor banjo,tenor-banjo,,105,pitched,stdNormal,G8vb,Tenor Banjo,T. Bj.,Tenor Banjo,pluck.banjo.tenor,Tenor Banjo,,G8vb
-irish tenor banjo,irish-tenor-banjo,,105,pitched,stdNormal,G8vb,Irish Tenor Banjo,ITB,Irish Tenor Banjo,pluck.banjo.tenor,Irish Tenor Banjo,,G8vb
-irish tenor banjo (tablature),irish-tenor-banjo-tablature,,105,tablature,tab4StrCommon,G8vb,Irish Tenor Banjo,ITB,Irish Tenor Banjo (Tablature),pluck.banjo.tenor,Irish Tenor Banjo (Tablature),,G8vb
-balalaika,balalaika,,107,pitched,stdNormal,,Balalaika,Bal.,Balalaika,pluck.balalaika,Balalaika,,
-piccolo balalaika,balalaika-piccolo,,107,pitched,stdNormal,,Piccolo Balalaika,Pic. Bal.,Piccolo Balalaika,pluck.balalaika.piccolo,Piccolo Balalaika,,
-prima balalaika,balalaika-prima,,107,pitched,stdNormal,,Prima Balalaika,Pr. Bal.,Prima Balalaika,pluck.balalaika.prima,Prima Balalaika,,
-secunda balalaika,balalaika-secunda,,107,pitched,stdNormal,,Secunda Balalaika,Sec. Bal.,Secunda Balalaika,pluck.balalaika.secunda,Secunda Balalaika,,
-alto balalaika,balalaika-alto,,107,pitched,stdNormal,G8vb,Alto Balalaika,Al. Bal.,Alto Balalaika,pluck.balalaika.alto,Alto Balalaika,,G8vb
-bass balalaika,balalaika-bass,,107,pitched,stdNormal,F,Bass Balalaika,B. Bal.,Bass Balalaika,pluck.balalaika.bass,Bass Balalaika,,F
-contrabass balalaika,balalaika-contrabass,,107,pitched,stdNormal,F8vb,Contrabass Balalaika,Cb. Bal.,Contrabass Balalaika,pluck.balalaika.contrabass,Contrabass Balalaika,,F8vb
-bouzouki (3-course),bouzouki-3-course,,25,pitched,stdNormal,,Bouzouki,Bou.,Bouzouki (3-course),pluck.bouzouki,Bouzouki (3-course),,
-bouzouki (4-course),bouzouki-4-course,,25,pitched,stdNormal,,Bouzouki,Bou.,Bouzouki (4-course),pluck.bouzouki,Bouzouki (4-course),,
-cavaquinho,cavaquinho,,25,pitched,stdNormal,,Cavaquinho,Cava.,Cavaquinho,pluck.guitar,Cavaquinho,,
-cavaquinho (tablature),cavaquinho-tablature,,25,tablature,tab4StrSimple,,Cavaquinho,Cava.,Cavaquinho (Tablature),pluck.guitar,Cavaquinho (Tablature),,
-mandolin,mandolin,,25,pitched,stdNormal,,Mandolin,Mdn.,Mandolin,pluck.mandolin,Mandolin,,
-mandolin (tablature),mandolin-tablature,,25,tablature,tab4StrCommon,,Mandolin,Mdn.,Mandolin (Tablature),pluck.mandolin,Mandolin (Tablature),,
-alto mandola,alto-mandola,,25,pitched,stdNormal,G8vb,Alto Mandola,A. Mda.,Alto Mandola,pluck.mandola,Alto Mandola,,G8vb
-ukulele,ukulele,,24,pitched,stdNormal,,Ukulele,Uk.,Ukulele,pluck.ukulele,Ukulele,,
-ukulele (tablature),ukulele-4-str-tab,,24,tablature,tabUkulele,,Ukulele,Uk.,Ukulele (Tablature),pluck.ukulele,Ukulele (Tablature),,
-ukulele (low g),ukulele-low-g,,24,pitched,stdNormal,,Ukulele (Low G),Uk.,Ukulele (Low G),pluck.ukulele,Ukulele (Low G),,
-tenor ukulele,tenor-ukulele,,24,pitched,stdNormal,,Tenor Ukulele,Ten. Uk.,Tenor Ukulele,pluck.ukulele.tenor,Tenor Ukulele,,
-baritone ukulele,baritone-ukulele,,24,pitched,stdNormal,G8vb,Baritone Ukulele,Bar. Uk.,Baritone Ukulele,pluck.ukulele.tenor,Baritone Ukulele,,G8vb
-voice,voice,,52,pitched,stdNormal,,Voice,Vo.,Voice,voice.vocals,Voice,,
-boy soprano,boy-soprano,,52,pitched,stdNormal,,Boy Soprano,B. S.,Boy Soprano,voice.child,Boy Soprano,,
-soprano,soprano,,52,pitched,stdNormal,,Soprano,S.,Soprano,voice.soprano,Soprano,,
-soprano (c clef),soprano-c-clef,,52,pitched,stdNormal,C1,Soprano,S.,Soprano (C Clef),voice.soprano,Soprano (C Clef),,C1
-mezzo-soprano,mezzo-soprano,,52,pitched,stdNormal,,Mezzo-soprano,Mzs.,Mezzo-soprano,voice.mezzo-soprano,Mezzo-soprano,,
-mezzo-soprano (c clef),mezzo-soprano-c-clef,,52,pitched,stdNormal,C2,Mezzo-soprano,Mzs.,Mezzo-soprano (C Clef),voice.mezzo-soprano,Mezzo-soprano (C Clef),,C2
-alto,alto,,52,pitched,stdNormal,,Alto,A.,Alto,voice.alto,Alto,,
-alto (c clef),alto-c-clef,,52,pitched,stdNormal,C3,Alto,A.,Alto (C Clef),voice.alto,Alto (C Clef),,C3
-contralto,contralto,,52,pitched,stdNormal,,Contralto,Contr.,Contralto,voice.alto,Contralto,,
-countertenor,countertenor,,52,pitched,stdNormal,,Countertenor,Ct.,Countertenor,voice.countertenor,Countertenor,,
-tenor,tenor,,52,pitched,stdNormal,G8vb,Tenor,T.,Tenor,voice.tenor,Tenor,,G8vb
-tenor (c clef),tenor-c-clef,,52,pitched,stdNormal,C4,Tenor,T.,Tenor (C Clef),voice.tenor,Tenor (C Clef),,C4
-baritone,baritone,,52,pitched,stdNormal,F,Baritone,Bar.,Baritone,voice.baritone,Baritone,,F
-baritone (c clef),baritone-c-clef,,52,pitched,stdNormal,C5,Baritone,Bar.,Baritone (C Clef),voice.baritone,Baritone (C Clef),,C5
-bass,bass,,52,pitched,stdNormal,F,Bass,B.,Bass,voice.bass,Bass,,F
-women,women,Soprano,52,pitched,stdNormal,,Women,W.,Women,voice.female,Women,,
-men,men,Tenor,52,pitched,stdNormal,F,Men,M.,Men,voice.male,Men,,F
-strings,strings,arco,48,pitched,stdNormal,F,Strings,St.,Strings,strings.group,Strings,,F
-violin,violin,arco,40,pitched,stdNormal,,Violin,Vln.,Violin,strings.violin,Violin,,
-violins,violins,arco,48,pitched,stdNormal,,Violins,Vlns.,Violins,strings.group,Violins,,
-viola,viola,arco,41,pitched,stdNormal,C3,Viola,Vla.,Viola,strings.viola,Viola,,C3
-violas,violas,arco,48,pitched,stdNormal,C3,Violas,Vlas.,Violas,strings.group,Violas,,C3
-violoncello,violoncello,arco,42,pitched,stdNormal,F,Violoncello,Vc.,Violoncello,strings.cello,Violoncello,,F
-violoncellos,violoncellos,arco,48,pitched,stdNormal,F,Violoncellos,Vcs.,Violoncellos,strings.group,Violoncellos,,F
-contrabass,contrabass,arco,43,pitched,stdNormal,,Contrabass,Cb.,Contrabass,strings.contrabass,Contrabass,,
-contrabasses,contrabasses,arco,48,pitched,stdNormal,,Contrabasses,Cbs.,Contrabasses,strings.group,Contrabasses,,
-double bass,double-bass,arco,43,pitched,stdNormal,,Double Bass,Db.,Double Bass,strings.contrabass,Double Bass,,
-octobass,octobass,arco,43,pitched,stdNormal,,Octobass,Otb.,Octobass,strings.octobass,Octobass,,
-pardessus de viole,pardessus-de-viole,arco,40,pitched,stdNormal,,Pardessus de viole,Pds. v.,Pardessus de viole,strings.viol,Pardessus de viole,,
-treble viol,treble-viol,arco,40,pitched,stdNormal,,Treble Viol,Tr. Vl.,Treble Viol,strings.viol.treble,Treble Viol,,
-alto viol,alto-viol,arco,41,pitched,stdNormal,C3,Alto Viol,A. Vl.,Alto Viol,strings.viol.alto,Alto Viol,,C3
-tenor viol,tenor-viol,arco,41,pitched,stdNormal,C3,Tenor Viol,T. Vl.,Tenor Viol,strings.viol.tenor,Tenor Viol,,C3
-viola da gamba,viola-da-gamba,arco,42,pitched,stdNormal,F,Viola da gamba,Vla. d. g.,Viola da gamba,,Viola da gamba,,F
-viola da gamba (tablature),viola-da-gamba-tablature,arco,42,tablature,tab6StrFrench,F,Viola da gamba,Vla. d. g.,Viola da gamba (Tablature),,Viola da gamba (Tablature),,F
-baryton,baryton,arco,42,pitched,stdNormal,F,Baryton,Bary.,Baryton,strings.baryton,Baryton,,F
-violone,violone,arco,43,pitched,stdNormal,F8vb,Violone,Vne.,Violone,strings.viol.violone,Violone,,F8vb
-d violone,d-violone,arco,43,pitched,stdNormal,F8vb,D Violone,D Vne.,D Violone,strings.viol.violone,D Violone,,F8vb
-erhu,erhu,arco,110,pitched,stdNormal,,Erhu,Eh.,Erhu,strings.erhu,Erhu,,
-nyckelharpa,nyckelharpa,arco,41,pitched,stdNormal,,Nyckelharpa,Nyh.,Nyckelharpa,strings.nyckelharpa,Nyckelharpa,,
-bass guitar,bass-guitar,,34,pitched,stdNormal,,Bass Guitar,B. Guit.,Bass Guitar,pluck.bass,Bass Guitar,,
-bass guitar (tablature),bass-guitar-tablature,,34,tablature,tab4StrCommon,,Bass Guitar,B. Guit.,Bass Guitar (Tablature),pluck.bass,Bass Guitar (Tablature),,
-acoustic bass,acoustic-bass,pizzicato,32,pitched,stdNormal,,Acoustic Bass,Bass,Acoustic Bass,pluck.bass.acoustic,Acoustic Bass,,
-electric bass,electric-bass,,33,pitched,stdNormal,,Electric Bass,El. B.,Electric Bass,pluck.bass.electric,Electric Bass,,
-electric bass (tablature),electric-bass-4-str-tab,,33,tablature,tab4StrCommon,,Electric Bass,El. B.,Electric Bass (Tablature),pluck.bass.electric,Electric Bass (Tablature),,
-fretless electric bass,fretless-electric-bass,,35,pitched,stdNormal,,Fretless Electric Bass,Frtl. El. B.,Fretless Electric Bass,pluck.bass.fretless,Fretless Electric Bass,,
-5-str. electric bass,5-string-electric-bass,,33,pitched,stdNormal,,5-str. Electric Bass,El. B.,5-str. Electric Bass,pluck.bass.electric,5-str. Electric Bass,,
-5-str. electric bass (tablature),5-string-electric-bass-tab,,33,tablature,tab5StrCommon,,5-str. Electric Bass,El. B.,5-str. Electric Bass (Tablature),pluck.bass.electric,5-str. Electric Bass (Tablature),,
-5-str. electric bass (high c/tenor),5-string-electric-bass-high-c,,33,pitched,stdNormal,,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor),pluck.bass.electric,5-str. Electric Bass (High C/Tenor),,
-5-str. electric bass (high c/tenor) (tablature),5-string-electric-bass-tab-high-c,,33,tablature,tab5StrCommon,,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor) (Tablature),pluck.bass.electric,5-str. Electric Bass (High C/Tenor) (Tablature),,
-6-str. electric bass,6-string-electric-bass,,33,pitched,stdNormal,,6-str. Electric Bass,El. B.,6-str. Electric Bass,pluck.bass.electric,6-str. Electric Bass,,
-6-str. electric bass (tablature),6-string-electric-bass-tab,,33,tablature,tab6StrCommon,,6-str. Electric Bass,El. B.,6-str. Electric Bass (Tablature),pluck.bass.electric,6-str. Electric Bass (Tablature),,
-prim,prim,,24,pitched,stdNormal,,Prim,Pr.,Prim,pluck.tambura,Prim,,
-brač,brac,,24,pitched,stdNormal,,Brač,Br.,Brač,pluck.tambura,Brač,,
-čelo,celo,,24,pitched,stdNormal,,Čelo,Č.,Čelo,pluck.tambura,Čelo,,
-bugarija,bugarija,,24,pitched,stdNormal,,Bugarija,Bu.,Bugarija,pluck.tambura,Bugarija,,
-berda,berda,,32,pitched,stdNormal,F,Berda,Be.,Berda,pluck.tambura,Berda,,F
-bandurria,bandurria,,24,pitched,stdNormal,,Bandurria,Band.,Bandurria,pluck.bandurria,Bandurria,,
-bandurria (tablature),bandurria-tablature,,24,tablature,tab6StrCommon,,Bandurria,Band.,Bandurria (Tablature),pluck.bandurria,Bandurria (Tablature),,
-laúd,laud,,24,pitched,stdNormal,G8vb,Laúd,Laúd,Laúd,pluck.laud,Laúd,,G8vb
-laúd (tablature),laud-tablature,,24,tablature,tab6StrCommon,G8vb,Laúd,Laúd,Laúd (Tablature),pluck.laud,Laúd (Tablature),,G8vb
-tenor mandola,tenor-mandola,,25,pitched,stdNormal,G8vb,Tenor Mandola,T. Mda.,Tenor Mandola,pluck.mandola,Tenor Mandola,,G8vb
-mandocello,mandocello,,25,pitched,stdNormal,F,Mandocello,Mncl.,Mandocello,pluck.mandocello,Mandocello,,F
-octave mandolin,octave-mandolin,,25,pitched,stdNormal,G8vb,Octave Mandolin,OM.,Octave Mandolin,pluck.mandolin.octave,Octave Mandolin,,G8vb
-shamisen,shamisen,,106,pitched,stdNormal,G8vb,Shamisen,Sh.,Shamisen,pluck.shamisen,Shamisen,,G8vb
-sitar,sitar,,104,pitched,stdNormal,,Sitar,Si.,Sitar,pluck.sitar,Sitar,,
-mandola,mandola,,25,pitched,stdNormal,C3,Mandola,Mda.,Mandola,pluck.mandola,Mandola,,C3
-koto,koto,,107,pitched,stdNormal,,Koto,Ko.,Koto,pluck.koto,Koto,,
-mtn. dulcimer,mtn-dulcimer-std,,25,pitched,stdNormal,,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer,pluck.dulcimer,Mtn. Dulcimer,,
-mtn. dulcimer (tablature),mtn-dulcimer-std-chrom-tab,,25,tablature,tabDulcimer,,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer (Tablature),pluck.dulcimer,Mtn. Dulcimer (Tablature),,
-mtn. dulcimer - baritone,mtn-dulcimer-baritone,,25,pitched,stdNormal,,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone,pluck.dulcimer,Mtn. Dulcimer - Baritone,,
-mtn. dulcimer - baritone (tablature),mtn-dulcimer-bartn-chrom-tab,,25,tablature,tabDulcimer,,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone (Tablature),pluck.dulcimer,Mtn. Dulcimer - Baritone (Tablature),,
-mtn. dulcimer - bass,mtn-dulcimer-bass,,25,pitched,stdNormal,G8vb,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass,pluck.dulcimer,Mtn. Dulcimer - Bass,,G8vb
-mtn. dulcimer - bass (tablature),mtn-dulcimer-bass-chrom-tab,,25,tablature,tabDulcimer,G8vb,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass (Tablature),pluck.dulcimer,Mtn. Dulcimer - Bass (Tablature),,G8vb
-oud,oud,,25,pitched,stdNormal,,Oud,O.,Oud,pluck.oud,Oud,,
-lute,lute,,25,pitched,stdNormal,,Lute,Lt.,Lute,pluck.lute,Lute,,
-lute (tablature),lute-tablature,,25,tablature,tab6StrFrench,,Lute,Lt.,Lute (Tablature),pluck.lute,Lute (Tablature),,
-lute 5-course,ren.-tenor-lute-5-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 5-course,pluck.lute,Lute 5-course,,
-lute 6-course,ren.-tenor-lute-6-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 6-course,pluck.lute,Lute 6-course,,
-lute 7-course,ren.-tenor-lute-7-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 7-course,pluck.lute,Lute 7-course,,
-lute 8-course,ren.-tenor-lute-8-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 8-course,pluck.lute,Lute 8-course,,
-lute 9-course,ren.-tenor-lute-9-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 9-course,pluck.lute,Lute 9-course,,
-lute 10-course,ren.-tenor-lute-10-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 10-course,pluck.lute,Lute 10-course,,
-lute 13-course,baroque-lute-13-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 13-course,pluck.lute,Lute 13-course,,
-archlute,archlute-14-course,,25,pitched,stdNormal,,Archlute,A. Lt.,Archlute,pluck.archlute,Archlute,,
-theorbo,theorbo-14-course,,25,pitched,stdNormal,,Theorbo,Thb.,Theorbo,pluck.theorbo,Theorbo,,
-baritone guitar,baritone-guitar,,24,pitched,stdNormal,G8vb,Baritone Guitar,Bar. Guit.,Baritone Guitar,pluck.guitar,Baritone Guitar,,G8vb
-contra guitar,contra-guitar,open,24,pitched,stdNormal,G8vb,Contra Guitar,C. Guit.,Contra Guitar,pluck.guitar,Contra Guitar,,G8vb
-acoustic guitar,guitar-steel,open,25,pitched,stdNormal,G8vb,Acoustic Guitar,Guit.,Acoustic Guitar,pluck.guitar.acoustic,Acoustic Guitar,,G8vb
-acoustic guitar (treble clef),guitar-steel-treble-clef,,25,pitched,stdNormal,,Guitar,Guit.,Acoustic Guitar (Treble Clef),pluck.guitar.acoustic,Acoustic Guitar (Treble Clef),,
-acoustic guitar (tablature),guitar-steel-tablature,open,25,tablature,tab6StrCommon,G8vb,Acoustic Guitar,Guit.,Acoustic Guitar (Tablature),pluck.guitar.acoustic,Acoustic Guitar (Tablature),,G8vb
-11-string alto guitar,11-string-alto-guitar,open,24,pitched,stdNormal,F,11-string Alto Guitar,11-str. A. Guit.,11-string Alto Guitar,pluck.guitar,11-string Alto Guitar,,F
-12-string guitar,12-string-guitar,open,25,pitched,stdNormal,G8vb,12-string Guitar,12-str. Guit.,12-string Guitar,pluck.guitar,12-string Guitar,,G8vb
-pedal steel guitar,pedal-steel-guitar,open,25,pitched,stdNormal,,Pedal Steel Guitar,Ped. St. Guit.,Pedal Steel Guitar,pluck.guitar.pedal-steel,Pedal Steel Guitar,,
-electric guitar,electric-guitar,open,27,pitched,stdNormal,G8vb,Electric Guitar,El. Guit.,Electric Guitar,pluck.guitar.electric,Electric Guitar,,G8vb
-electric guitar (treble clef),electric-guitar-treble-clef,,27,pitched,stdNormal,,Electric Guitar,El. Guit.,Electric Guitar (Treble Clef),pluck.guitar.electric,Electric Guitar (Treble Clef),,
-electric guitar (tablature),electric-guitar-tablature,open,27,tablature,tab6StrCommon,G8vb,Electric Guitar,El. Guit.,Electric Guitar (Tablature),pluck.guitar.electric,Electric Guitar (Tablature),,G8vb
-soprano guitar,soprano-guitar,open,24,pitched,stdNormal,,Soprano Guitar,S. Guit.,Soprano Guitar,pluck.guitar,Soprano Guitar,,
-alto guitar,alto-guitar,open,24,pitched,stdNormal,G8vb,Alto Guitar,A. Guit.,Alto Guitar,pluck.guitar,Alto Guitar,,G8vb
-classical guitar,guitar-nylon,open,24,pitched,stdNormal,G8vb,Classical Guitar,Guit.,Classical Guitar,pluck.guitar.nylon-string,Classical Guitar,,G8vb
-guitar (treble clef),guitar-nylon-treble-clef,open,24,pitched,stdNormal,,Guitar,Guit.,Guitar (Treble Clef),pluck.guitar.nylon-string,Guitar (Treble Clef),,
-classical guitar (tablature),guitar-nylon-tablature,open,24,tablature,tab6StrCommon,G8vb,Classical Guitar,Guit.,Classical Guitar (Tablature),pluck.guitar.nylon-string,Classical Guitar (Tablature),,G8vb
-7-string guitar,7-string-guitar,,24,pitched,stdNormal,G8vb,7-string Guitar,Guit.,7-string Guitar,pluck.guitar.nylon-string,7-string Guitar,,G8vb
-7-string guitar (tablature),7-string-guitar-tablature,,24,tablature,tab7StrCommon,G8vb,7-string Guitar,Guit.,7-string Guitar (Tablature),pluck.guitar.nylon-string,7-string Guitar (Tablature),,G8vb
-effect synthesizer,effect-synth,rain,96,pitched,stdNormal,F,Effect Synthesizer,Synth.,Effect Synthesizer,synth.effects,Effect Synthesizer,,F
-kazoo,kazoo,,85,pitched,stdNormal,,Kazoo,Kaz.,Kazoo,voice.kazoo,Kazoo,,
-snare drum,marching-snare,,56,percussion,perc5Line,PERC,Snare Drum,S.D.,Snare Drum,drum.snare-drum,Snare Drum,1,PERC
-tenor drums,marching-tenor-drums,,96,percussion,perc5Line,PERC,Tenor Drums,T.D.,Tenor Drums,drum.tenor-drum,Tenor Drums,1,PERC
-bass drums,marching-bass-drums,,59,percussion,perc5Line,PERC,Bass Drums,B.D.,Bass Drums,drum.bass-drum,Bass Drums,1,PERC
-cymbals,marching-cymbals,,58,percussion,perc5Line,PERC,Cymbals,Cym.,Cymbals,metal.cymbal.crash,Cymbals,1,PERC
-finger snap,finger-snap,,0,percussion,perc1Line,PERC,Finger Snap,Fi. Sna.,Finger Snap,effect.snap,Finger Snap,1,PERC
-hand clap,hand-clap,,0,percussion,perc1Line,PERC,Hand Clap,Hd. Clp.,Hand Clap,effect.hand-clap,Hand Clap,1,PERC
-slap,slap,,0,percussion,perc1Line,PERC,Slap,Sla.,Slap,effect.slap,Slap,1,PERC
-stamp,stamp,,0,percussion,perc1Line,PERC,Stamp,Sta.,Stamp,effect.stamp,Stamp,1,PERC
-quijada,quijada,,0,percussion,perc1Line,PERC,Quijada,Qui.,Quijada,rattle.jawbone,Quijada,1,PERC
-bell plate,bell-plate,,0,percussion,perc1Line,PERC,Bell Plate,Be. Pla.,Bell Plate,metal.bells.bell-plate,Bell Plate,1,PERC
-bowl gongs,bowl-gongs,,0,percussion,perc1Line,PERC,Bowl Gongs,Bw. Gon.,Bowl Gongs,metal.gong,Bowl Gongs,1,PERC
-tubo,tubo,,0,percussion,perc1Line,PERC,Tubo,Tu.,Tubo,,Tubo,1,PERC
-shaker,shaker,,0,percussion,perc1Line,PERC,Shaker,Sh.,Shaker,,Shaker,1,PERC
-bells,bells,,0,percussion,perc1Line,PERC,Bells,Be.,Bells,,Bells,1,PERC
-tablas,tablas,,0,percussion,perc1Line,PERC,Tablas,Tbs.,Tablas,drum.tabla,Tablas,1,PERC
-cuica,cuica,,0,percussion,perc1Line,PERC,Cuica,Cu.,Cuica,drum.cuica,Cuica,1,PERC
-finger cymbals,finger-cymbals,,0,percussion,perc1Line,PERC,Finger Cymbals,Fi. Cym.,Finger Cymbals,metal.cymbal.finger,Finger Cymbals,1,PERC
-tuned klaxon horns,tuned-klaxon-horns,,84,pitched,stdNormal,F,Tuned Klaxon Horns,Tn. Klx. Hns.,Tuned Klaxon Horns,,Tuned Klaxon Horns,,F
-kalimba,kalimba,,108,pitched,stdNormal,,Kalimba,Kal.,Kalimba,pitched-percussion.kalimba,Kalimba,,
-treble kalimba,treble-kalimba,,108,pitched,stdNormal,,Treble Kalimba,Tr. Kal.,Treble Kalimba,pitched-percussion.kalimba,Treble Kalimba,,
-alto kalimba,alto-kalimba,,108,pitched,stdNormal,,Alto Kalimba,A. Kal.,Alto Kalimba,pitched-percussion.kalimba,Alto Kalimba,,
-carillon,carillon,,14,pitched,stdNormal,F,Carillon,Car.,Carillon,metal.bells.carillon,Carillon,,F
-orff soprano xylophone,orff-soprano-xylophone,,12,pitched,stdNormal,G8va,Orff Soprano Xylophone,O. S. Xyl.,Orff Soprano Xylophone,pitched-percussion.xylophone.soprano,Orff Soprano Xylophone,,G8va
-orff alto xylophone,orff-alto-xylophone,,12,pitched,stdNormal,,Orff Alto Xylophone,O. A. Xyl.,Orff Alto Xylophone,pitched-percussion.xylophone.alto,Orff Alto Xylophone,,
-orff bass xylophone,orff-bass-xylophone,,12,pitched,stdNormal,G8vb,Orff Bass Xylophone,O. B. Xyl.,Orff Bass Xylophone,pitched-percussion.xylophone.soprano,Orff Bass Xylophone,,G8vb
-metallophone,metallophone,,11,pitched,stdNormal,,Metallophone,Met.,Metallophone,pitched-percussion.metallophone,Metallophone,,
-orff soprano metallophone,orff-soprano-metallophone,,11,pitched,stdNormal,G8va,Orff Soprano Metallophone,O. S. Met.,Orff Soprano Metallophone,pitched-percussion.metallophone.soprano,Orff Soprano Metallophone,,G8va
-orff alto metallophone,orff-alto-metallophone,,11,pitched,stdNormal,,Orff Alto Metallophone,O. A. Met.,Orff Alto Metallophone,pitched-percussion.metallophone.alto,Orff Alto Metallophone,,
-orff bass metallophone,orff-bass-metallophone,,11,pitched,stdNormal,G8vb,Orff Bass Metallophone,O. B. Met.,Orff Bass Metallophone,pitched-percussion.metallophone.bass,Orff Bass Metallophone,,G8vb
-chimes,tubular-bells,,14,pitched,stdNormal,,Chimes,Cme.,Chimes,pitched-percussion.tubular-bells,Chimes,,
-steel drums,steel-drums,,114,pitched,stdNormal,F,Steel Drums,St. Dr.,Steel Drums,metal.steel-drums,Steel Drums,,F
-soprano steel drums,soprano-steel-drums,,114,pitched,stdNormal,,Soprano Steel Drums,S. St. Dr.,Soprano Steel Drums,metal.steel-drums,Soprano Steel Drums,,
-alto steel drums,alto-steel-drums,,114,pitched,stdNormal,,Alto Steel Drums,A. St. Dr.,Alto Steel Drums,metal.steel-drums,Alto Steel Drums,,
-guitar steel drums,guitar-steel-drums,,114,pitched,stdNormal,,Guitar Steel Drums,Gtr. St. Dr.,Guitar Steel Drums,metal.steel-drums,Guitar Steel Drums,,
-tenor steel drums,tenor-steel-drums,,114,pitched,stdNormal,G8vb,Tenor Steel Drums,T. St. Dr.,Tenor Steel Drums,metal.steel-drums,Tenor Steel Drums,,G8vb
-cello steel drums,cello-steel-drums,,114,pitched,stdNormal,G8vb,Cello Steel Drums,Ce. St. Dr.,Cello Steel Drums,metal.steel-drums,Cello Steel Drums,,G8vb
-bass steel drums,bass-steel-drums,,114,pitched,stdNormal,F,Bass Steel Drums,B. St. Dr.,Bass Steel Drums,metal.steel-drums,Bass Steel Drums,,F
-hand bells,hand-bells,,112,pitched,stdNormal,F,Hand Bells,Ha. Be.,Hand Bells,pitched-percussion.handbells,Hand Bells,,F
-tuned gongs,tuned-gongs,,14,pitched,stdNormal,F,Tuned Gongs,Td. Gon.,Tuned Gongs,metal.gong,Tuned Gongs,,F
-flexatone,flexatone,,14,pitched,stdNormal,G8va,Flexatone,Flt.,Flexatone,metal.flexatone,Flexatone,,G8va
-musical saw,musical-saw,,92,pitched,stdNormal,,Musical Saw,Mu. Sw.,Musical Saw,metal.musical-saw,Musical Saw,,
-musical glasses,musical-glasses,,93,pitched,stdNormal,G8va,Musical Glasses,Mu. Gla.,Musical Glasses,pitched-percussion.crystal-glasses,Musical Glasses,,G8va
-glass harmonica,glass-harmonica,,92,pitched,stdNormal,,Glass Harmonica,Gla. Har.,Glass Harmonica,pitched-percussion.glass-harmonica,Glass Harmonica,,
-orff soprano glockenspiel,orff-soprano-glockenspiel,,9,pitched,stdNormal,G15ma,Orff Soprano Glockenspiel,O. S. Glk.,Orff Soprano Glockenspiel,pitched-percussion.glockenspiel.soprano,Orff Soprano Glockenspiel,,G15ma
-orff alto glockenspiel,orff-alto-glockenspiel,,9,pitched,stdNormal,G8va,Orff Alto Glockenspiel,O. A. Glk.,Orff Alto Glockenspiel,pitched-percussion.glockenspiel.alto,Orff Alto Glockenspiel,,G8va
-crotales,crotales,,10,pitched,stdNormal,,Crotales,Crot.,Crotales,metal.crotales,Crotales,,
-tubaphone,tubaphone,,47,pitched,stdNormal,G15ma,Tubaphone,Tph.,Tubaphone,,Tubaphone,,G15ma
-almglocken,almglocken,,108,pitched,stdNormal,F15ma,Almglocken,Almg.,Almglocken,metal.bells.almglocken,Almglocken,,G15ma
-roto-toms,roto-toms,,117,pitched,stdNormal,,Roto-Toms,Roto,Roto-Toms,drum.rototom,Roto-Toms,,
-conch,conch,,60,pitched,stdNormal,F,Conch,Cnch.,Conch,brass.conch-shell,Conch,,F
-didgeridoo,didgeridoo,,57,pitched,stdNormal,F,Didgeridoo,Doo.,Didgeridoo,brass.didgeridoo,Didgeridoo,,F
-horagai,horagai,,60,pitched,stdNormal,F,Horagai,Hor.,Horagai,brass.horagai,Horagai,,F
-shofar,shofar,,60,pitched,stdNormal,G8vb,Shofar,Sho.,Shofar,brass.shofar,Shofar,,G8vb
-vuvuzela,vuvuzela,,56,pitched,stdNormal,,Vuvuzela,Vuv.,Vuvuzela,brass.vuvuzela,Vuvuzela,,
-helicon,helicon,,58,pitched,stdNormal,F,Helicon,Helicon,Helicon,brass.helicon,Helicon,,F
-sousaphone,sousaphone,,58,pitched,stdNormal,F,Sousaphone,Sphn.,Sousaphone,brass.sousaphone,Sousaphone,,F
-b♭ sousaphone,bb-sousaphone,,58,pitched,stdNormal,F,B♭ Sousaphone,B♭ Sphn.,B♭ Sousaphone,brass.sousaphone,B♭ Sousaphone,,F
-euphonium,euphonium,,58,pitched,stdNormal,F,Euphonium,Euph.,Euphonium,brass.euphonium,Euphonium,,F
-euphonium (treble clef),euphonium-treble,,58,pitched,stdNormal,,Euphonium,Euph.,Euphonium (Treble Clef),brass.euphonium,Euphonium (Treble Clef),,
-fiscorn,fiscorn,open,56,pitched,stdNormal,,Fiscorn,Fsc.,Fiscorn,brass.fiscorn,Fiscorn,,
-kuhlohorn,kuhlohorn,open,56,pitched,stdNormal,,Kuhlohorn,Klhn.,Kuhlohorn,brass.kuhlohorn,Kuhlohorn,,
-euphonium bugle,euphonium-bugle,,58,pitched,stdNormal,,Euphonium Bugle,Euph. Bu.,Euphonium Bugle,brass.bugle.euphonium-bugle,Euphonium Bugle,,
-mellophone bugle,mellophon-bugle,,58,pitched,stdNormal,,Mellophone Bugle,Mello. Bu.,Mellophone Bugle,brass.bugle.mellophone-bugle,Mellophone Bugle,,
-contrabass bugle,contrabass-bugle,,58,pitched,stdNormal,,Contrabass Bugle,Cb. Bu.,Contrabass Bugle,brass.bugle.contrabass,Contrabass Bugle,,
-mellophone,mellophone,,60,pitched,stdNormal,,Mellophone,Mello.,Mellophone,brass.mellophone,Mellophone,,
-ophicleide,ophicleide,,56,pitched,stdNormal,F,Ophicleide,Oph.,Ophicleide,brass.ophicleide,Ophicleide,,F
-f alto ophicleide,f-alto-ophicleide,,56,pitched,stdNormal,,F Alto Ophicleide,F A. Oph.,F Alto Ophicleide,brass.ophicleide,F Alto Ophicleide,,
-e♭ alto ophicleide,eb-alto-ophicleide,,56,pitched,stdNormal,,E♭ Alto Ophicleide,E♭ A. Oph.,E♭ Alto Ophicleide,brass.ophicleide,E♭ Alto Ophicleide,,
-c bass ophicleide,c-bass-ophicleide,,56,pitched,stdNormal,F,C Bass Ophicleide,C B. Oph.,C Bass Ophicleide,brass.ophicleide,C Bass Ophicleide,,F
-b♭ bass ophicleide,bb-bass-ophicleide,,56,pitched,stdNormal,F,B♭ Bass Ophicleide,B♭ B. Oph.,B♭ Bass Ophicleide,brass.ophicleide,B♭ Bass Ophicleide,,F
-e♭ contrabass ophicleide,eb-contrabass-ophicleide,,56,pitched,stdNormal,F,E♭ Contrabass Ophicleide,E♭ Cb. Oph.,E♭ Contrabass Ophicleide,brass.ophicleide,E♭ Contrabass Ophicleide,,F
-cornettino,cornettino,,56,pitched,stdNormal,,Cornettino,Co.,Cornettino,brass.cornettino,Cornettino,,
-cornett,cornett,,56,pitched,stdNormal,,Cornett,Co.,Cornett,brass.cornett,Cornett,,
-soprano cornett,soprano-cornett,,56,pitched,stdNormal,,Soprano Cornett,S. Co.,Soprano Cornett,brass.cornett,Soprano Cornett,,
-alto cornett,alto-cornett,,56,pitched,stdNormal,,Alto Cornett,A. Co.,Alto Cornett,brass.cornett,Alto Cornett,,
-tenor cornett,tenor-cornett,,56,pitched,stdNormal,G8vb,Tenor Cornett,T. Co.,Tenor Cornett,brass.cornett.tenor,Tenor Cornett,,G8vb
-serpent,serpent,,56,pitched,stdNormal,F,Serpent,Spt.,Serpent,brass.serpent,Serpent,,F
-alto sackbut,alto-sackbut,,57,pitched,stdNormal,G8vb,Alto Sackbut,A. Sack.,Alto Sackbut,brass.sackbutt.alto,Alto Sackbut,,G8vb
-tenor sackbut,tenor-sackbut,,57,pitched,stdNormal,G8vb,Tenor Sackbut,T. Sack.,Tenor Sackbut,brass.sackbutt.tenor,Tenor Sackbut,,G8vb
-bass sackbut,bass-sackbut,,57,pitched,stdNormal,F,Bass Sackbut,B. Sack.,Bass Sackbut,brass.sackbutt.bass,Bass Sackbut,,F
-rag dung,rag-dung,open,56,pitched,stdNormal,F,Rag Dung,Rg. Dng.,Rag Dung,brass.rag-dung,Rag Dung,,F
-bugle,bugle,,58,pitched,stdNormal,,Bugle,Bu.,Bugle,brass.bugle,Bugle,,
-soprano bugle,soprano-bugle,,58,pitched,stdNormal,,Soprano Bugle,S. Bu.,Soprano Bugle,brass.bugle.soprano,Soprano Bugle,,
-alto bugle,alto-bugle,,58,pitched,stdNormal,,Alto Bugle,A. Bu.,Alto Bugle,brass.bugle.alto,Alto Bugle,,
-baritone bugle,baritone-bugle,,58,pitched,stdNormal,,Baritone Bugle,Bar. Bu.,Baritone Bugle,brass.bugle.baritone,Baritone Bugle,,
-saxhorn,saxhorn,open,60,pitched,stdNormal,,Saxhorn,Saxhorn,Saxhorn,brass.saxhorn,Saxhorn,,
-f alto horn,f-alto-horn,open,60,pitched,stdNormal,,F Alto Horn,F A. Hn.,F Alto Horn,brass.alto-horn,F Alto Horn,,
-e♭ alto horn,eb-alto-horn,open,60,pitched,stdNormal,,E♭ Alto Horn,E♭ A. Hn.,E♭ Alto Horn,brass.alto-horn,E♭ Alto Horn,,
-baritone horn,baritone-horn,open,60,pitched,stdNormal,F,Baritone Horn,Bar. Hn.,Baritone Horn,brass.baritone-horn,Baritone Horn,,F
-baritone horn (treble clef),baritone-horn-treble,open,60,pitched,stdNormal,,Baritone Horn,Bar. Hn.,Baritone Horn (Treble Clef),brass.baritone-horn,Baritone Horn (Treble Clef),,
-baritone horn (central europe),baritone-horn-central-europe,open,60,pitched,stdNormal,F,Baritone Horn,Bar. Hn.,Baritone Horn (Central Europe),brass.baritone-horn,Baritone Horn (Central Europe),,F
-"baritone horn (central europe, treble clef)",baritone-horn-central-europe-treble,open,60,pitched,stdNormal,,Baritone Horn,Bar. Hn.,"Baritone Horn (Central Europe, Treble Clef)",brass.baritone-horn,"Baritone Horn (Central Europe, Treble Clef)",,
-posthorn,posthorn,open,60,pitched,stdNormal,F,Posthorn,Psthn.,Posthorn,brass.posthorn,Posthorn,,F
-alphorn,alphorn,,60,pitched,stdNormal,F,Alphorn,AlpHn.,Alphorn,brass.alphorn,Alphorn,,F
-harmonica,harmonica,,22,pitched,stdNormal,,Harmonica,Harm.,Harmonica,wind.reed.harmonica,Harmonica,,
-12 hole c chromatic harmonica,harmonica-c12c,,22,pitched,stdNormal,,12 Hole C Chromatic Harmonica,Harm.,12 Hole C Chromatic Harmonica,wind.reed.harmonica,12 Hole C Chromatic Harmonica,,
-14 hole c chromatic harmonica,harmonica-c14c,,22,pitched,stdNormal,,14 Hole C Chromatic Harmonica,Harm.,14 Hole C Chromatic Harmonica,wind.reed.harmonica,14 Hole C Chromatic Harmonica,,
-12 hole g chromatic harmonica,harmonica-c12g,,22,pitched,stdNormal,,12 Hole G Chromatic Harmonica,Harm.,12 Hole G Chromatic Harmonica,wind.reed.harmonica,12 Hole G Chromatic Harmonica,,
-16 hole c chromatic harmonica,harmonica-c16c,,22,pitched,stdNormal,,16 Hole C Chromatic Harmonica,Harm.,16 Hole C Chromatic Harmonica,wind.reed.harmonica,16 Hole C Chromatic Harmonica,,
-12 hole tenor c chromatic harmonica,harmonica-c12tenor-c,,22,pitched,stdNormal,G8vb,12 Hole Tenor C Chromatic Harmonica,Harm.,12 Hole Tenor C Chromatic Harmonica,wind.reed.harmonica,12 Hole Tenor C Chromatic Harmonica,,G8vb
-10 hole high g diatonic harmonica,harmonica-d12high-g,,22,pitched,stdNormal,,10 Hole High G Diatonic Harmonica,Harm.,10 Hole High G Diatonic Harmonica,wind.reed.harmonica,10 Hole High G Diatonic Harmonica,,
-10 hole f diatonic harmonica,harmonica-d12f,,22,pitched,stdNormal,,10 Hole F Diatonic Harmonica,Harm.,10 Hole F Diatonic Harmonica,wind.reed.harmonica,10 Hole F Diatonic Harmonica,,
-10 hole d diatonic harmonica,harmonica-d12d,,22,pitched,stdNormal,,10 Hole D Diatonic Harmonica,Harm.,10 Hole D Diatonic Harmonica,wind.reed.harmonica,10 Hole D Diatonic Harmonica,,
-10 hole c diatonic harmonica,harmonica-d12c,,22,pitched,stdNormal,,10 Hole C Diatonic Harmonica,Harm.,10 Hole C Diatonic Harmonica,wind.reed.harmonica,10 Hole C Diatonic Harmonica,,
-10 hole a diatonic harmonica,harmonica-d12a,,22,pitched,stdNormal,,10 Hole A Diatonic Harmonica,Harm.,10 Hole A Diatonic Harmonica,wind.reed.harmonica,10 Hole A Diatonic Harmonica,,
-10 hole g diatonic harmonica,harmonica-d12-g,,22,pitched,stdNormal,,10 Hole G Diatonic Harmonica,Harm.,10 Hole G Diatonic Harmonica,wind.reed.harmonica,10 Hole G Diatonic Harmonica,,
-10 hole low d diatonic harmonica,harmonica-d10low-d,,22,pitched,stdNormal,G8vb,10 Hole Low D Diatonic Harmonica,Harm.,10 Hole Low D Diatonic Harmonica,wind.reed.harmonica,10 Hole Low D Diatonic Harmonica,,G8vb
-20 hole chordet harmonica,harmonica-chordet,,22,pitched,stdNormal,G8vb,20 Hole Chordet Harmonica,Harm.,20 Hole Chordet Harmonica,wind.reed.harmonica,20 Hole Chordet Harmonica,,G8vb
-bass harmonica,bass-harmonica,,22,pitched,stdNormal,F,Bass Harmonica,Bs. Harm.,Bass Harmonica,wind.reed.harmonica.bass,Bass Harmonica,,F
-bass hohner harmonica,bass-harmonica-hohner,,22,pitched,stdNormal,F,Bass Hohner Harmonica,Bs. Harm.,Bass Hohner Harmonica,wind.reed.harmonica.bass,Bass Hohner Harmonica,,F
-bass huang harmonica,bass-harmonica-huang,,22,pitched,stdNormal,F,Bass Huang Harmonica,Bs. Harm.,Bass Huang Harmonica,wind.reed.harmonica.bass,Bass Huang Harmonica,,F
-accordion,accordion,,21,pitched,stdNormal,F,Accordion,Acc.,Accordion,keyboard.accordion,Accordion,,F
-bandoneon,bandoneon,,23,pitched,stdNormal,F,Bandoneon,Ban.,Bandoneon,keyboard.bandoneon,Bandoneon,,F
-concertina,concertina,,21,pitched,stdNormal,F,Concertina,Conc.,Concertina,keyboard.concertina,Concertina,,F
-melodica,melodica,,22,pitched,stdNormal,,Melodica,Mel.,Melodica,wind.reed.melodica,Melodica,,
-sheng,sheng,,20,pitched,stdNormal,,Sheng,She.,Sheng,wind.reed.sheng,Sheng,,
-soprano sheng,soprano-sheng,,20,pitched,stdNormal,,Soprano Sheng,S She.,Soprano Sheng,wind.reed.sheng,Soprano Sheng,,
-alto sheng,alto-sheng,,20,pitched,stdNormal,C3,Alto Sheng,A She.,Alto Sheng,wind.reed.sheng,Alto Sheng,,C3
-tenor sheng,tenor-sheng,,20,pitched,stdNormal,C4,Tenor Sheng,T She.,Tenor Sheng,wind.reed.sheng,Tenor Sheng,,C4
-bass sheng,bass-sheng,,20,pitched,stdNormal,F,Bass Sheng,B She.,Bass Sheng,wind.reed.sheng,Bass Sheng,,F
-brass,brass,,61,pitched,stdNormal,F,Brass,Br.,Brass,brass.group,Brass,,F
+index,id,ChannelName,ChannelValue,group,staff_type_name,defaultClef,longName,shortName,trackName,instrumentId,part_trackName,keysig,useDrumset,clef
+piccolo,piccolo,,72,pitched,stdNormal,,Piccolo,Picc.,Piccolo,wind.flutes.flute.piccolo,Piccolo,,,
+d♭ piccolo,db-piccolo,,72,pitched,stdNormal,,D♭ Piccolo,D♭ Picc.,D♭ Piccolo,wind.flutes.flute.piccolo,D♭ Piccolo,,,
+e♭ piccolo,eb-piccolo,,72,pitched,stdNormal,,E♭ Piccolo,E♭ Picc.,E♭ Piccolo,wind.flutes.flute.piccolo,E♭ Piccolo,,,
+flute,flute,,73,pitched,stdNormal,,Flute,Fl.,Flute,wind.flutes.flute,Flute,,,
+treble flute,treble-flute,,72,pitched,stdNormal,,Treble Flute,Tr. Fl.,Treble Flute,wind.flutes.flute,Treble Flute,,,
+soprano flute,soprano-flute,,73,pitched,stdNormal,,Soprano Flute,Sop. Fl.,Soprano Flute,wind.flutes.flute,Soprano Flute,,,
+sub contra-alto flute,subcontra-alto-flute,,73,pitched,stdNormal,,Sub Contra-alto Flute,Sc-a. Fl.,Sub Contra-alto Flute,wind.flutes.flute.subcontrabass,Sub Contra-alto Flute,,,
+alto flute,alto-flute,,73,pitched,stdNormal,,Alto Flute,A. Fl.,Alto Flute,wind.flutes.flute.alto,Alto Flute,,,
+bass flute,bass-flute,,73,pitched,stdNormal,,Bass Flute,B. Fl.,Bass Flute,wind.flutes.flute.bass,Bass Flute,,,
+contra-alto flute,contra-alto-flute,,73,pitched,stdNormal,,Contra-alto Flute,C-a. Fl.,Contra-alto Flute,wind.flutes.flute.contra-alto,Contra-alto Flute,,,
+contrabass flute,contrabass-flute,,73,pitched,stdNormal,,Contrabass Flute,Cb. Fl.,Contrabass Flute,wind.flutes.flute.contrabass,Contrabass Flute,,,
+double contrabass flute,double-contrabass-flute,,73,pitched,stdNormal,,Double Contrabass Flute,D. Cb. Fl.,Double Contrabass Flute,wind.flutes.flute.double-contrabass,Double Contrabass Flute,,,
+hyperbass flute,hyperbass-flute,,73,pitched,stdNormal,,Hyperbass Flute,Hb. Fl.,Hyperbass Flute,wind.flutes.flute.double-contrabass,Hyperbass Flute,,,
+traverso,traverso,,73,pitched,stdNormal,,Traverso,Trv.,Traverso,wind.flutes.flute,Traverso,,,
+danso,danso,,76,pitched,stdNormal,G8va,Danso,Da.,Danso,wind.flutes.danso,Danso,,,G8va
+piccolo oboe,piccolo-oboe,,68,pitched,stdNormal,,Piccolo Oboe,P. Ob.,Piccolo Oboe,wind.reed.oboe.piccolo,Piccolo Oboe,,,
+oboe,oboe,,68,pitched,stdNormal,,Oboe,Ob.,Oboe,wind.reed.oboe,Oboe,,,
+baroque oboe,baroque-oboe,,69,pitched,stdNormal,,Baroque Oboe,Bq. Ob.,Baroque Oboe,wind.reed.oboe,Baroque Oboe,,,
+oboe d'amore,oboe-d'amore,,68,pitched,stdNormal,,Oboe d'amore,Ob. d'a.,Oboe d'amore,wind.reed.oboe-damore,Oboe d'amore,,,
+oboe da caccia,oboe-da-caccia,,67,pitched,stdNormal,,Oboe da caccia,Ob. d. ca.,Oboe da caccia,wind.reed.oboe-da-caccia,Oboe da caccia,,,
+english horn,english-horn,,69,pitched,stdNormal,,English Horn,E. Hn.,English Horn,wind.reed.english-horn,English Horn,,,
+bass oboe,bass-oboe,,68,pitched,stdNormal,G8vb,Bass Oboe,B. Ob.,Bass Oboe,wind.reed.oboe.bass,Bass Oboe,,,G8vb
+piccolo heckelphone,piccolo-heckelphone,,68,pitched,stdNormal,G8vb,Piccolo Heckelphone,P. Hph.,Piccolo Heckelphone,wind.reed.heckelphone.piccolo,Piccolo Heckelphone,,,G8vb
+heckelphone,heckelphone,,68,pitched,stdNormal,,Heckelphone,Hph.,Heckelphone,wind.reed.heckelphone,Heckelphone,,,
+lupophone,lupophone,,68,pitched,stdNormal,G8vb,Lupophone,Lph.,Lupophone,wind.reed.heckelphone,Lupophone,,,G8vb
+clarinet,clarinet,,71,pitched,stdNormal,,Clarinet,Cl.,Clarinet,wind.reed.clarinet,Clarinet,,,
+piccolo clarinet,piccolo-clarinet,,71,pitched,stdNormal,,Piccolo Clarinet,P. Cl.,Piccolo Clarinet,wind.reed.clarinet.piccolo.aflat,Piccolo Clarinet,,,
+soprano clarinet,soprano-clarinet,,71,pitched,stdNormal,,Soprano Clarinet,S. Cl.,Soprano Clarinet,wind.reed.clarinet,Soprano Clarinet,,,
+c clarinet,c-clarinet,,71,pitched,stdNormal,,C Clarinet,C Cl.,C Clarinet,wind.reed.clarinet,C Clarinet,,,
+d clarinet,d-clarinet,,71,pitched,stdNormal,,D Clarinet,D Cl.,D Clarinet,wind.reed.clarinet,D Clarinet,,,
+e♭ clarinet,eb-clarinet,,71,pitched,stdNormal,,E♭ Clarinet,E♭ Cl.,E♭ Clarinet,wind.reed.clarinet.eflat,E♭ Clarinet,,,
+g clarinet,g-clarinet,,71,pitched,stdNormal,,G Clarinet,G Cl.,G Clarinet,wind.reed.clarinet,G Clarinet,,,
+b♭ clarinet,bb-clarinet,,71,pitched,stdNormal,,B♭ Clarinet,B♭ Cl.,B♭ Clarinet,wind.reed.clarinet.bflat,B♭ Clarinet,,,
+a clarinet,a-clarinet,,71,pitched,stdNormal,,A Clarinet,A Cl.,A Clarinet,wind.reed.clarinet.a,A Clarinet,,,
+alto clarinet,alto-clarinet,,71,pitched,stdNormal,,Alto Clarinet,A. Cl.,Alto Clarinet,wind.reed.clarinet.alto,Alto Clarinet,,,
+basset clarinet,basset-clarinet,,71,pitched,stdNormal,,Basset Clarinet,Ba. Cl.,Basset Clarinet,wind.reed.clarinet.basset,Basset Clarinet,,,
+basset horn,basset-horn,,71,pitched,stdNormal,,Basset Horn,Ba. Hn.,Basset Horn,wind.reed.basset-horn,Basset Horn,,,
+bass clarinet,bass-clarinet,,71,pitched,stdNormal,,Bass Clarinet,B. Cl.,Bass Clarinet,wind.reed.clarinet.bass,Bass Clarinet,,,
+b♭ bass clarinet,bb-bass-clarinet,,71,pitched,stdNormal,,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet,wind.reed.clarinet.bass,B♭ Bass Clarinet,,,
+b♭ bass clarinet (bass clef),bb-bass-clarinet-bass-clef,,71,pitched,stdNormal,F,B♭ Bass Clarinet,B♭ B. Cl.,B♭ Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,B♭ Bass Clarinet (Bass Clef),,,F
+a bass clarinet,a-bass-clarinet,,71,pitched,stdNormal,,A Bass Clarinet,A B. Cl.,A Bass Clarinet,wind.reed.clarinet.bass,A Bass Clarinet,,,
+a bass clarinet (bass clef),a-bass-clarinet-bass-clef),,71,pitched,stdNormal,F,A Bass Clarinet,A B. Cl.,A Bass Clarinet (Bass Clef),wind.reed.clarinet.bass,A Bass Clarinet (Bass Clef),,,F
+contra-alto clarinet,contra-alto-clarinet,,71,pitched,stdNormal,,Contra-alto Clarinet,C-a. Cl.,Contra-alto Clarinet,wind.reed.clarinet.contra-alto,Contra-alto Clarinet,,,
+contrabass clarinet,contrabass-clarinet,,71,pitched,stdNormal,,Contrabass Clarinet,Cb. Cl.,Contrabass Clarinet,wind.reed.clarinet.contrabass,Contrabass Clarinet,,,
+saxophone,saxophone,,66,pitched,stdNormal,,Saxophone,Sax.,Saxophone,wind.reed.saxophone,Saxophone,,,
+sopranissimo saxophone,sopranissimo-saxophone,,64,pitched,stdNormal,,Sopranissimo Saxophone,Sio. Sax.,Sopranissimo Saxophone,wind.reed.saxophone.sopraninissimo,Sopranissimo Saxophone,,,
+sopranino saxophone,sopranino-saxophone,,64,pitched,stdNormal,,Sopranino Saxophone,Si. Sax.,Sopranino Saxophone,wind.reed.saxophone.sopranino,Sopranino Saxophone,,,
+soprano saxophone,soprano-saxophone,,64,pitched,stdNormal,,Soprano Saxophone,S. Sax.,Soprano Saxophone,wind.reed.saxophone.soprano,Soprano Saxophone,,,
+aulochrome,aulochrome,,64,pitched,stdNormal,,Aulochrome,Aul.,Aulochrome,wind.reed.saxophone.aulochrome,Aulochrome,,,
+mezzo-soprano saxophone,mezzo-soprano-saxophone,,65,pitched,stdNormal,,Mezzo-Soprano Saxophone,M.S. Sax.,Mezzo-Soprano Saxophone,wind.reed.saxophone.mezzo-soprano,Mezzo-Soprano Saxophone,,,
+alto saxophone,alto-saxophone,,65,pitched,stdNormal,,Alto Saxophone,A. Sax.,Alto Saxophone,wind.reed.saxophone.alto,Alto Saxophone,,,
+melody saxophone,melody-saxophone,,66,pitched,stdNormal,,Melody Saxophone,Mel. Sax.,Melody Saxophone,wind.reed.saxophone.melody,Melody Saxophone,,,
+tenor saxophone,tenor-saxophone,,66,pitched,stdNormal,,Tenor Saxophone,T. Sax.,Tenor Saxophone,wind.reed.saxophone.tenor,Tenor Saxophone,,,
+baritone saxophone,baritone-saxophone,,67,pitched,stdNormal,,Baritone Saxophone,Bar. Sax.,Baritone Saxophone,wind.reed.saxophone.baritone,Baritone Saxophone,,,
+bass saxophone,bass-saxophone,,67,pitched,stdNormal,,Bass Saxophone,B. Sax.,Bass Saxophone,wind.reed.saxophone.bass,Bass Saxophone,,,
+contrabass saxophone,contrabass-saxophone,,67,pitched,stdNormal,,Contrabass Saxophone,Cb. Sax.,Contrabass Saxophone,wind.reed.saxophone.contrabass,Contrabass Saxophone,,,
+subcontrabass saxophone,subcontrabass-saxophone,,67,pitched,stdNormal,,Subcontrabass Saxophone,Scb. Sax.,Subcontrabass Saxophone,wind.reed.saxophone.subcontrabass,Subcontrabass Saxophone,,,
+bassoon,bassoon,,70,pitched,stdNormal,F,Bassoon,Bsn.,Bassoon,wind.reed.bassoon,Bassoon,,,F
+contrabassoon,contrabassoon,,70,pitched,stdNormal,,Contrabassoon,Cbsn.,Contrabassoon,wind.reed.contrabassoon,Contrabassoon,,,
+bagpipe,bagpipe,,109,pitched,stdNormal,,Bagpipe,Bagp.,Bagpipe,wind.pipes.bagpipes,Bagpipe,,,
+reed contrabass,reed-contrabass,,70,pitched,stdNormal,F,Reed Contrabass,Rd. Cbs.,Reed Contrabass,wind.reed.contrabass,Reed Contrabass,,,F
+dulcian,dulcian,,67,pitched,stdNormal,F,Dulcian,Du.,Dulcian,wind.reed.dulcian,Dulcian,,,F
+rackett,rackett,,67,pitched,stdNormal,F,Rackett,Ra.,Rackett,wind.reed.rackett,Rackett,,,F
+sarrusophone,sarrusophone,,67,pitched,stdNormal,,Sarrusophone,Sar.,Sarrusophone,wind.reed.sarrusaphone,Sarrusophone,,,
+sopranino sarrusophone,sopranino-sarrusophone,,67,pitched,stdNormal,,Sopranino Sarrusophone,Si. Sar.,Sopranino Sarrusophone,wind.reed.sarrusaphone,Sopranino Sarrusophone,,,
+soprano sarrusophone,soprano-sarrusophone,,67,pitched,stdNormal,,Soprano Sarrusophone,S. Sar.,Soprano Sarrusophone,wind.reed.sarrusaphone,Soprano Sarrusophone,,,
+alto sarrusophone,alto-sarrusophone,,67,pitched,stdNormal,,Alto Sarrusophone,A. Sar.,Alto Sarrusophone,wind.reed.sarrusaphone,Alto Sarrusophone,,,
+tenor sarrusophone,tenor-sarrusophone,,67,pitched,stdNormal,,Tenor Sarrusophone,T. Sar.,Tenor Sarrusophone,wind.reed.sarrusaphone,Tenor Sarrusophone,,,
+baritone sarrusophone,baritone-sarrusophone,,67,pitched,stdNormal,,Baritone Sarrusophone,Bar. Sar.,Baritone Sarrusophone,wind.reed.sarrusaphone,Baritone Sarrusophone,,,
+bass sarrusophone,bass-sarrusophone,,67,pitched,stdNormal,,Bass Sarrusophone,B. Sar.,Bass Sarrusophone,wind.reed.sarrusaphone,Bass Sarrusophone,,,
+contrabass sarrusophone,contrabass-sarrusophone,,67,pitched,stdNormal,,Contrabass Sarrusophone,Cb. Sar.,Contrabass Sarrusophone,wind.reed.sarrusaphone,Contrabass Sarrusophone,,,
+pocket sax in c,xaphoon,,71,pitched,stdNormal,,Pocket Sax in C,C Pkt. Sax,Pocket Sax in C,wind.reed.xaphoon,Pocket Sax in C,,,
+pocket sax in b♭,bb-xaphoon,,71,pitched,stdNormal,,Pocket Sax in B♭,B♭ Pkt. Sax,Pocket Sax in B♭,wind.reed.xaphoon,Pocket Sax in B♭,,,
+pocket sax in d,d-xaphoon,,71,pitched,stdNormal,,Pocket Sax in D,D Pkt. Sax,Pocket Sax in D,wind.reed.xaphoon,Pocket Sax in D,,,
+pocket sax in g,g-xaphoon,,71,pitched,stdNormal,,Pocket Sax in G,G Pkt. Sax,Pocket Sax in G,wind.reed.xaphoon,Pocket Sax in G,,,
+chalumeau,chalumeau,,67,pitched,stdNormal,G8vb,Chalumeau,Cha.,Chalumeau,wind.reed.chalumeau,Chalumeau,,,G8vb
+sopranino chalumeau,sopranino-chalumeau,,67,pitched,stdNormal,,Sopranino Chalumeau,Si. Cha.,Sopranino Chalumeau,wind.reed.chalumeau,Sopranino Chalumeau,,,
+soprano chalumeau,soprano-chalumeau,,67,pitched,stdNormal,,Soprano Chalumeau,S. Cha.,Soprano Chalumeau,wind.reed.chalumeau,Soprano Chalumeau,,,
+alto chalumeau,alto-chalumeau,,67,pitched,stdNormal,G8vb,Alto Chalumeau,A. Cha.,Alto Chalumeau,wind.reed.chalumeau,Alto Chalumeau,,,G8vb
+tenor chalumeau,tenor-chalumeau,,67,pitched,stdNormal,G8vb,Tenor Chalumeau,T. Cha.,Tenor Chalumeau,wind.reed.chalumeau,Tenor Chalumeau,,,G8vb
+bass chalumeau,bass-chalumeau,,67,pitched,stdNormal,F,Bass Chalumeau,B. Cha.,Bass Chalumeau,wind.reed.chalumeau,Bass Chalumeau,,,F
+tarogato,tarogato,,69,pitched,stdNormal,,Tarogato,Tar.,Tarogato,wind.reed.taroagato,Tarogato,,,
+octavin,octavin,,69,pitched,stdNormal,,Octavin,Oct.,Octavin,wind.reed.octavin,Octavin,,,
+heckelphone-clarinet,heckelphone-clarinet,,68,pitched,stdNormal,G8vb,Heckelphone-clarinet,Hph.-cl.,Heckelphone-clarinet,wind.reed.heckelphone-clarinet,Heckelphone-clarinet,,,G8vb
+sopranino shawm,sopranino-shawm,,67,pitched,stdNormal,,Sopranino Shawm,Si. Sh.,Sopranino Shawm,wind.reed.shawm,Sopranino Shawm,,,
+soprano shawm,soprano-shawm,,67,pitched,stdNormal,,Soprano Shawm,S. Sh.,Soprano Shawm,wind.reed.shawm,Soprano Shawm,,,
+alto shawm,alto-shawm,,67,pitched,stdNormal,,Alto Shawm,A. Sh.,Alto Shawm,wind.reed.shawm,Alto Shawm,,,
+tenor shawm,tenor-shawm,,67,pitched,stdNormal,G8vb,Tenor Shawm,T. Sh.,Tenor Shawm,wind.reed.shawm,Tenor Shawm,,,G8vb
+bass shawm,bass-shawm,,67,pitched,stdNormal,F,Bass Shawm,B. Sh.,Bass Shawm,wind.reed.shawm,Bass Shawm,,,F
+great bass shawm,great-bass-shawm,,67,pitched,stdNormal,G8vb,Great Bass Shawm,G.B. Sh.,Great Bass Shawm,wind.reed.shawm,Great Bass Shawm,,,G8vb
+cromorne,cromorne,,67,pitched,stdNormal,,Cromorne,Cr.,Cromorne,wind.reed.cromorne,Cromorne,,,
+crumhorn,crumhorn,,67,pitched,stdNormal,,Crumhorn,Crh.,Crumhorn,wind.reed.crumhorn,Crumhorn,,,
+soprano crumhorn,soprano-crumhorn,,67,pitched,stdNormal,,Soprano Crumhorn,S. Crh.,Soprano Crumhorn,wind.reed.crumhorn.soprano,Soprano Crumhorn,,,
+alto crumhorn,alto-crumhorn,,67,pitched,stdNormal,,Alto Crumhorn,A. Crh.,Alto Crumhorn,wind.reed.crumhorn.alto,Alto Crumhorn,,,
+tenor crumhorn,tenor-crumhorn,,67,pitched,stdNormal,G8vb,Tenor Crumhorn,T. Crh.,Tenor Crumhorn,wind.reed.crumhorn.tenor,Tenor Crumhorn,,,G8vb
+bass crumhorn,bass-crumhorn,,67,pitched,stdNormal,F,Bass Crumhorn,B. Crh.,Bass Crumhorn,wind.reed.crumhorn.bass,Bass Crumhorn,,,F
+greatbass crumhorn,greatbass-crumhorn,,67,pitched,stdNormal,F,Greatbass Crumhorn,Gb. Crh.,Greatbass Crumhorn,wind.reed.crumhorn.great-bass,Greatbass Crumhorn,,,F
+cornamuse,cornamuse,,67,pitched,stdNormal,,Cornamuse,Cm.,Cornamuse,wind.reed.cornamuse,Cornamuse,,,
+soprano cornamuse,soprano-cornamuse,,67,pitched,stdNormal,,Soprano Cornamuse,S. Cm.,Soprano Cornamuse,wind.reed.cornamuse,Soprano Cornamuse,,,
+alto cornamuse,alto-cornamuse,,67,pitched,stdNormal,,Alto Cornamuse,A. Cm.,Alto Cornamuse,wind.reed.cornamuse,Alto Cornamuse,,,
+tenor cornamuse,tenor-cornamuse,,67,pitched,stdNormal,G8vb,Tenor Cornamuse,T. Cm.,Tenor Cornamuse,wind.reed.cornamuse,Tenor Cornamuse,,,G8vb
+bass cornamuse,bass-cornamuse,,67,pitched,stdNormal,F,Bass Cornamuse,B. Cm.,Bass Cornamuse,wind.reed.cornamuse,Bass Cornamuse,,,F
+f duduk,f-duduk,,71,pitched,stdNormal,G8va,F Duduk,F Du.,F Duduk,wind.reed.duduk,F Duduk,,,G8va
+e duduk,e-duduk,,71,pitched,stdNormal,G8va,E Duduk,E Du.,E Duduk,wind.reed.duduk,E Duduk,,,G8va
+duduk,d-duduk,,71,pitched,stdNormal,G8va,Duduk 2,Du. 2,Duduk,wind.reed.duduk,Duduk 2,,,G8va
+c duduk,c-duduk,,71,pitched,stdNormal,G8va,C Duduk,C Du.,C Duduk,wind.reed.duduk,C Duduk,,,G8va
+b duduk,b-duduk,,71,pitched,stdNormal,,B Duduk,B Du.,B Duduk,wind.reed.duduk,B Duduk,,,
+b♭ duduk,bb-duduk,,71,pitched,stdNormal,,B♭ Duduk,B♭ Du.,B♭ Duduk,wind.reed.duduk,B♭ Duduk,,,
+a duduk,a-duduk,,71,pitched,stdNormal,,A Duduk,A Du.,A Duduk,wind.reed.duduk,A Duduk,,,
+g duduk,g-duduk,,71,pitched,stdNormal,,G Duduk,G Du.,G Duduk,wind.reed.duduk,G Duduk,,,
+a bass duduk,a-bass-duduk,,71,pitched,stdNormal,,A Bass Duduk,A B. Du.,A Bass Duduk,wind.reed.duduk,A Bass Duduk,,,
+soprano kelhorn,soprano-kelhorn,,67,pitched,stdNormal,,Soprano Kelhorn,S. Kh.,Soprano Kelhorn,,Soprano Kelhorn,,,
+alto kelhorn,alto-kelhorn,,67,pitched,stdNormal,,Alto Kelhorn,A. Kh.,Alto Kelhorn,,Alto Kelhorn,,,
+tenor kelhorn,tenor-kelhorn,,67,pitched,stdNormal,G8vb,Tenor Kelhorn,T. Kh.,Tenor Kelhorn,,Tenor Kelhorn,,,G8vb
+bass kelhorn,bass-kelhorn,,67,pitched,stdNormal,F,Bass Kelhorn,B. Kh.,Bass Kelhorn,,Bass Kelhorn,,,F
+greatbass kelhorn,greatbass-kelhorn,,67,pitched,stdNormal,F,Greatbass Kelhorn,Gb. Kh.,Greatbass Kelhorn,,Greatbass Kelhorn,,,F
+rauschpfeife,rauschpfeife,,67,pitched,stdNormal,,Rauschpfeife,Rpf.,Rauschpfeife,wind.reed.rauschpfeife,Rauschpfeife,,,
+sopranino rauschpfeife,sopranino-rauschpfeife,,67,pitched,stdNormal,,Sopranino Rauschpfeife,Si. Rpf.,Sopranino Rauschpfeife,wind.reed.rauschpfeife,Sopranino Rauschpfeife,,,
+soprano rauschpfeife,soprano-rauschpfeife,,67,pitched,stdNormal,,Soprano Rauschpfeife,S. Rpf.,Soprano Rauschpfeife,wind.reed.rauschpfeife,Soprano Rauschpfeife,,,
+shenai,shenai,,111,pitched,stdNormal,,Shenai,She.,Shenai,wind.reed.shenai,Shenai,,,
+dizi,d-dizi,,72,pitched,stdNormal,,Dizi,Di.,Dizi,wind.flutes.di-zi,Dizi,,,
+c dizi,c-dizi,,72,pitched,stdNormal,,C Dizi,C Di.,C Dizi,wind.flutes.di-zi,C Dizi,,,
+a dizi,a-dizi,,72,pitched,stdNormal,,A Dizi,A Di.,A Dizi,wind.flutes.di-zi,A Dizi,,,
+g dizi,g-dizi,,72,pitched,stdNormal,,G Dizi,G Di.,G Dizi,wind.flutes.di-zi,G Dizi,,,
+f dizi,f-dizi,,72,pitched,stdNormal,,F Dizi,F Di.,F Dizi,wind.flutes.di-zi,F Dizi,,,
+e dizi,e-dizi,,72,pitched,stdNormal,,E Dizi,E Di.,E Dizi,wind.flutes.di-zi,E Dizi,,,
+b♭ fife,fife,,72,pitched,stdNormal,G8va,B♭ Fife,B♭ Fife,B♭ Fife,wind.flutes.fife,B♭ Fife,,,G8va
+flageolet,flageolet,,78,pitched,stdNormal,G8va,Flageolet,Fla.,Flageolet,wind.flutes.flageolet,Flageolet,,,G8va
+french flageolet,french-flageolet,,78,pitched,stdNormal,G8va,French Flageolet,Fr. Fla.,French Flageolet,wind.flutes.flageolet,French Flageolet,,,G8va
+english flageolet,english-flageolet,,78,pitched,stdNormal,G8va,English Flageolet,Eng. Fla.,English Flageolet,wind.flutes.flageolet,English Flageolet,,,G8va
+irish flute,irish-flute,,73,pitched,stdNormal,,Irish Flute,Ir. Fl.,Irish Flute,wind.flutes.flute.irish,Irish Flute,,,
+gemshorn,gemshorn,,79,pitched,stdNormal,G8va,Gemshorn,Gh.,Gemshorn,wind.flutes.gemshorn,Gemshorn,,,G8va
+soprano gemshorn,soprano-gemshorn,,79,pitched,stdNormal,G8va,Soprano Gemshorn,S. Gh.,Soprano Gemshorn,wind.flutes.gemshorn,Soprano Gemshorn,,,G8va
+alto gemshorn,alto-gemshorn,,79,pitched,stdNormal,,Alto Gemshorn,A. Gh.,Alto Gemshorn,wind.flutes.gemshorn,Alto Gemshorn,,,
+tenor gemshorn,tenor-gemshorn,,79,pitched,stdNormal,,Tenor Gemshorn,T. Gh.,Tenor Gemshorn,wind.flutes.gemshorn,Tenor Gemshorn,,,
+bass gemshorn,bass-gemshorn,,79,pitched,stdNormal,F8va,Bass Gemshorn,B. Gh.,Bass Gemshorn,wind.flutes.gemshorn,Bass Gemshorn,,,F8va
+ocarina,ocarina,,79,pitched,stdNormal,G8va,Ocarina,Oc.,Ocarina,wind.flutes.ocarina,Ocarina,,,G8va
+g soprano ocarina,g-soprano-ocarina,,79,pitched,stdNormal,G8va,G Soprano Ocarina,G S. Oc.,G Soprano Ocarina,wind.flutes.ocarina,G Soprano Ocarina,,,G8va
+f soprano ocarina,f-soprano-ocarina,,79,pitched,stdNormal,G8va,F Soprano Ocarina,F S. Oc.,F Soprano Ocarina,wind.flutes.ocarina,F Soprano Ocarina,,,G8va
+c soprano ocarina,c-soprano-ocarina,,79,pitched,stdNormal,G8va,C Soprano Ocarina,C S. Oc.,C Soprano Ocarina,wind.flutes.ocarina,C Soprano Ocarina,,,G8va
+b♭ soprano ocarina,bb-soprano-ocarina,,79,pitched,stdNormal,G8va,B♭ Soprano Ocarina,B♭ S. Oc.,B♭ Soprano Ocarina,wind.flutes.ocarina,B♭ Soprano Ocarina,,,G8va
+g alto ocarina,g-alto-ocarina,,79,pitched,stdNormal,,G Alto Ocarina,G A. Oc.,G Alto Ocarina,wind.flutes.ocarina,G Alto Ocarina,,,
+f alto ocarina,f-alto-ocarina,,79,pitched,stdNormal,,F Alto Ocarina,F A. Oc.,F Alto Ocarina,wind.flutes.ocarina,F Alto Ocarina,,,
+c alto ocarina,c-alto-ocarina,,79,pitched,stdNormal,,C Alto Ocarina,C A. Oc.,C Alto Ocarina,wind.flutes.ocarina,C Alto Ocarina,,,
+b♭ alto ocarina,bb-alto-ocarina,,79,pitched,stdNormal,,B♭ Alto Ocarina,B♭ A. Oc.,B♭ Alto Ocarina,wind.flutes.ocarina,B♭ Alto Ocarina,,,
+c bass ocarina,c-bass-ocarina,,79,pitched,stdNormal,F,C Bass Ocarina,C B. Oc.,C Bass Ocarina,wind.flutes.ocarina,C Bass Ocarina,,,F
+pan flute,pan-flute,,75,pitched,stdNormal,,Pan Flute,Pn. Fl.,Pan Flute,wind.flutes.panpipes,Pan Flute,,,
+c quena,c-quena,,67,pitched,stdNormal,G8va,C Quena,C Qn.,C Quena,wind.flutes.quena,C Quena,,,G8va
+g quena,g-quena,,67,pitched,stdNormal,,G Quena,G Qn.,G Quena,wind.flutes.quena,G Quena,,,
+f quena,f-quena,,67,pitched,stdNormal,,F Quena,F Qn.,F Quena,wind.flutes.quena,F Quena,,,
+quena,d-quena,,67,pitched,stdNormal,,Quena 2,Qn. 2,Quena,wind.flutes.quena,Quena 2,,,
+recorder,recorder,,74,pitched,stdNormal,G8va,Recorder,Rec.,Recorder,wind.flutes.recorder,Recorder,,,G8va
+garklein recorder,garklein-recorder,,74,pitched,stdNormal,G15ma,Garklein Recorder,Gk. Rec.,Garklein Recorder,wind.flutes.recorder.garklein,Garklein Recorder,,,G15ma
+sopranino recorder,sopranino-recorder,,74,pitched,stdNormal,G8va,Sopranino Recorder,Si. Rec.,Sopranino Recorder,wind.flutes.recorder.sopranino,Sopranino Recorder,,,G8va
+soprano recorder,soprano-recorder,,74,pitched,stdNormal,G8va,Soprano Recorder,S. Rec.,Soprano Recorder,wind.flutes.recorder.soprano,Soprano Recorder,,,G8va
+alto recorder,alto-recorder,,74,pitched,stdNormal,,Alto Recorder,A. Rec.,Alto Recorder,wind.flutes.recorder.alto,Alto Recorder,,,
+tenor recorder,tenor-recorder,,74,pitched,stdNormal,,Tenor Recorder,T. Rec.,Tenor Recorder,wind.flutes.recorder.tenor,Tenor Recorder,,,
+bass recorder,bass-recorder,,74,pitched,stdNormal,F8va,Bass Recorder,B. Rec.,Bass Recorder,wind.flutes.recorder.bass,Bass Recorder,,,F8va
+greatbass recorder,greatbass-recorder,,74,pitched,stdNormal,F8va,Greatbass Recorder,Gb. Rec.,Greatbass Recorder,wind.flutes.recorder.great-bass,Greatbass Recorder,,,F8va
+contrabass recorder,contrabass-recorder,,74,pitched,stdNormal,F,Contrabass Recorder,Cb. Rec.,Contrabass Recorder,wind.flutes.recorder.contrabass,Contrabass Recorder,,,F
+slide whistle,slide-whistle,,79,pitched,stdNormal,G8va,Slide Whistle,Sl. Wh.,Slide Whistle,wind.flutes.slide,Slide Whistle,,,G8va
+b♭ tin whistle,bflat-tin-whistle,,78,pitched,stdNormal,G8va,B♭ Tin Whistle,B♭ Tin Wh.,B♭ Tin Whistle,wind.flutes.whistle.tin.bflat,B♭ Tin Whistle,,,G8va
+c tin whistle,c-tin-whistle,,78,pitched,stdNormal,G8va,C Tin Whistle,C Tin Wh.,C Tin Whistle,wind.flutes.whistle.tin,C Tin Whistle,,,G8va
+d tin whistle,d-tin-whistle,,78,pitched,stdNormal,G8va,D Tin Whistle,D Tin Wh.,D Tin Whistle,wind.flutes.whistle.tin.d,D Tin Whistle,,,G8va
+winds,Winds,,73,pitched,stdNormal,F,Winds,Wi.,Winds,wind.group,Winds,,,F
+horn in f,horn,open,60,pitched,stdNormal,,Horn in F,F Hn.,Horn in F,brass.french-horn,Horn in F,,,
+horn in c alto,c-horn-alto,open,60,pitched,stdNormal,,Horn in C alto,C Hn.,Horn in C alto,brass.natural-horn,Horn in C alto,,,
+horn in b♭ alto,bb-horn-alto,open,60,pitched,stdNormal,,Horn in B♭ alto,B♭ Hn.,Horn in B♭ alto,brass.french-horn,Horn in B♭ alto,,,
+horn in a,a-horn,open,60,pitched,stdNormal,,Horn in A,A Hn.,Horn in A,brass.natural-horn,Horn in A,,,
+horn in a♭,ab-horn,open,60,pitched,stdNormal,,Horn in A♭,A♭ Hn.,Horn in A♭,brass.natural-horn,Horn in A♭,,,
+horn in g,g-horn,open,60,pitched,stdNormal,,Horn in G,G Hn.,Horn in G,brass.natural-horn,Horn in G,,,
+horn in e,e-horn,open,60,pitched,stdNormal,,Horn in E,E Hn.,Horn in E,brass.natural-horn,Horn in E,,,
+horn in e♭,eb-horn,open,60,pitched,stdNormal,,Horn in E♭,E♭ Hn.,Horn in E♭,brass.natural-horn,Horn in E♭,,,
+horn in d,d-horn,open,60,pitched,stdNormal,,Horn in D,D Hn.,Horn in D,brass.natural-horn,Horn in D,,,
+horn in c,c-horn,open,60,pitched,stdNormal,,Horn in C,C Hn.,Horn in C,brass.natural-horn,Horn in C,,,
+horn in c (bass clef),c-horn-bass,open,60,pitched,stdNormal,F,Horn in C,C Hn.,Horn in C (Bass Clef),brass.natural-horn,Horn in C (Bass Clef),,,F
+horn in b♭ basso,bb-horn-basso,open,60,pitched,stdNormal,,Horn in B♭ basso,B♭ Hn.,Horn in B♭ basso,brass.natural-horn,Horn in B♭ basso,,,
+vienna horn,vienna-horn,open,60,pitched,stdNormal,,Vienna Horn,V. Hn.,Vienna Horn,brass.vienna-horn,Vienna Horn,,,
+wagner tuba,wagner-tuba,,56,pitched,stdNormal,F,Wagner Tuba,Wag. Tb.,Wagner Tuba,brass.wagner-tuba,Wagner Tuba,,,F
+b♭ wagner tuba,bb-wagner-tuba,,60,pitched,stdNormal,F,B♭ Wagner Tuba,B♭ Wag. Tb.,B♭ Wagner Tuba,brass.wagner-tuba,B♭ Wagner Tuba,,,F
+f wagner tuba,f-wagner-tuba,,56,pitched,stdNormal,F,F Wagner Tuba,F Wag. Tb.,F Wagner Tuba,brass.wagner-tuba,F Wagner Tuba,,,F
+trumpet,trumpet,open,56,pitched,stdNormal,,Trumpet,Tpt.,Trumpet,brass.trumpet,Trumpet,,,
+piccolo trumpet,piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet,P. Tpt.,Piccolo Trumpet,brass.trumpet.piccolo,Piccolo Trumpet,,,
+piccolo trumpet in b♭,bb-piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet in B♭,P. Tpt. B♭,Piccolo Trumpet in B♭,brass.trumpet.piccolo,Piccolo Trumpet in B♭,,,
+piccolo trumpet in a,a-piccolo-trumpet,open,56,pitched,stdNormal,,Piccolo Trumpet in A,P. Tpt. A,Piccolo Trumpet in A,brass.trumpet.piccolo,Piccolo Trumpet in A,,,
+f trumpet,f-trumpet,open,56,pitched,stdNormal,,F Trumpet,F Tpt.,F Trumpet,brass.trumpet,F Trumpet,,,
+e trumpet,e-trumpet,open,56,pitched,stdNormal,,E Trumpet,E Tpt.,E Trumpet,brass.trumpet,E Trumpet,,,
+e♭ trumpet,eb-trumpet,open,56,pitched,stdNormal,,E♭ Trumpet,E♭ Tpt.,E♭ Trumpet,brass.trumpet,E♭ Trumpet,,,
+d trumpet,d-trumpet,open,56,pitched,stdNormal,,D Trumpet,D Tpt.,D Trumpet,brass.trumpet.d,D Trumpet,,,
+c trumpet,c-trumpet,open,56,pitched,stdNormal,,C Trumpet,C Tpt.,C Trumpet,brass.trumpet.c,C Trumpet,,,
+b♭ trumpet,bb-trumpet,open,56,pitched,stdNormal,,B♭ Trumpet,B♭ Tpt.,B♭ Trumpet,brass.trumpet.bflat,B♭ Trumpet,,,
+a trumpet,a-trumpet,open,56,pitched,stdNormal,,A Trumpet,A Tpt.,A Trumpet,brass.trumpet,A Trumpet,,,
+pocket trumpet,pocket-trumpet,open,56,pitched,stdNormal,,Pocket Trumpet,Pkt. Tpt.,Pocket Trumpet,brass.trumpet.pocket,Pocket Trumpet,,,
+slide trumpet,slide-trumpet,open,56,pitched,stdNormal,,Slide Trumpet,Sl.Tpt.,Slide Trumpet,brass.trumpet.slide,Slide Trumpet,,,
+tenor trumpet,tenor-trumpet,open,56,pitched,stdNormal,,Tenor Trumpet,T. Tpt.,Tenor Trumpet,brass.trumpet.tenor,Tenor Trumpet,,,
+bass trumpet,bass-trumpet,open,56,pitched,stdNormal,,Bass Trumpet,B. Tpt.,Bass Trumpet,brass.trumpet.bass,Bass Trumpet,,,
+e♭ bass trumpet,eb-bass-trumpet,open,56,pitched,stdNormal,,E♭ Bass Trumpet,E♭ B. Tpt.,E♭ Bass Trumpet,brass.trumpet.bass,E♭ Bass Trumpet,,,
+bass trumpet in c,c-bass-trumpet,open,56,pitched,stdNormal,,Bass Trumpet in C,B. Tpt. C,Bass Trumpet in C,brass.trumpet.bass,Bass Trumpet in C,,,
+b♭ bass trumpet,bb-bass-trumpet,open,56,pitched,stdNormal,,B♭ Bass Trumpet,B♭ B. Tpt.,B♭ Bass Trumpet,brass.trumpet.bass,B♭ Bass Trumpet,,,
+baroque trumpet,baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet,Bq. Tpt.,Baroque Trumpet,brass.trumpet.baroque,Baroque Trumpet,,,
+baroque trumpet in f,f-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in F,Bq. Tpt. F,Baroque Trumpet in F,brass.trumpet.baroque,Baroque Trumpet in F,,,
+baroque trumpet in e♭,eb-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in E♭,Bq. Tpt. E♭,Baroque Trumpet in E♭,brass.trumpet.baroque,Baroque Trumpet in E♭,,,
+baroque trumpet in d,d-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in D,Bq. Tpt. D,Baroque Trumpet in D,brass.trumpet.baroque,Baroque Trumpet in D,,,
+baroque trumpet in c,c-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in C,Bq. Tpt. C,Baroque Trumpet in C,brass.trumpet.baroque,Baroque Trumpet in C,,,
+baroque trumpet in b♭,bb-baroque-trumpet,open,56,pitched,stdNormal,,Baroque Trumpet in B♭,Bq. Tpt. B♭,Baroque Trumpet in B♭,brass.trumpet.baroque,Baroque Trumpet in B♭,,,
+e♭ cornet,eb-cornet,open,56,pitched,stdNormal,,E♭ Cornet,E♭ Cnt.,E♭ Cornet,brass.cornet.soprano,E♭ Cornet,,,
+c cornet,c-cornet,open,56,pitched,stdNormal,,C Cornet,C Cnt.,C Cornet,brass.cornet,C Cornet,,,
+b♭ cornet,bb-cornet,open,56,pitched,stdNormal,,B♭ Cornet,B♭ Cnt.,B♭ Cornet,brass.cornet,B♭ Cornet,,,
+a cornet,a-cornet,open,56,pitched,stdNormal,,A Cornet,A Cnt.,A Cornet,brass.cornet,A Cornet,,,
+flugelhorn,flugelhorn,open,56,pitched,stdNormal,,Flugelhorn,Flghn.,Flugelhorn,brass.flugelhorn,Flugelhorn,,,
+trombone,trombone,open,57,pitched,stdNormal,F,Trombone,Tbn.,Trombone,brass.trombone,Trombone,,,F
+trombone (treble clef),trombone-treble,open,57,pitched,stdNormal,,Trombone,Tbn.,Trombone (Treble Clef),brass.trombone,Trombone (Treble Clef),,,
+soprano trombone,soprano-trombone,open,57,pitched,stdNormal,,Soprano Trombone,S. Tbn.,Soprano Trombone,brass.trombone,Soprano Trombone,,,
+alto trombone,alto-trombone,open,57,pitched,stdNormal,C3,Alto Trombone,A. Tbn.,Alto Trombone,brass.trombone.alto,Alto Trombone,,,C3
+tenor trombone,tenor-trombone,open,57,pitched,stdNormal,F,Tenor Trombone,T. Tbn.,Tenor Trombone,brass.trombone.tenor,Tenor Trombone,,,F
+bass trombone,bass-trombone,open,57,pitched,stdNormal,F,Bass Trombone,B. Tbn.,Bass Trombone,brass.trombone.bass,Bass Trombone,,,F
+contrabass trombone,contrabass-trombone,open,57,pitched,stdNormal,F,Contrabass Trombone,Cb. Tbn.,Contrabass Trombone,brass.trombone.contrabass,Contrabass Trombone,,,F
+cimbasso,cimbasso,,57,pitched,stdNormal,F,Cimbasso,Cim.,Cimbasso,brass.cimbasso,Cimbasso,,,F
+tuba,tuba,,58,pitched,stdNormal,F,Tuba,Tba.,Tuba,brass.tuba,Tuba,,,F
+f tuba,f-tuba,,58,pitched,stdNormal,F,F Tuba,F Tb.,F Tuba,brass.tuba,F Tuba,,,F
+e♭ tuba,eb-tuba,,58,pitched,stdNormal,F,E♭ Tuba,E♭ Tb.,E♭ Tuba,brass.tuba,E♭ Tuba,,,F
+e♭ tuba (treble clef),eb-tuba-treble,,58,pitched,stdNormal,,E♭ Tuba,E♭ Tb.,E♭ Tuba (Treble Clef),brass.tuba,E♭ Tuba (Treble Clef),,,
+c tuba,c-tuba,,58,pitched,stdNormal,F,C Tuba,C Tb.,C Tuba,brass.tuba,C Tuba,,,F
+b♭ tuba,bb-tuba,,58,pitched,stdNormal,F,B♭ Tuba,B♭ Tb.,B♭ Tuba,brass.tuba,B♭ Tuba,,,F
+b♭ tuba (treble clef),bb-tuba-treble,,58,pitched,stdNormal,,B♭ Tuba,B♭ Tb.,B♭ Tuba (Treble Clef),brass.tuba,B♭ Tuba (Treble Clef),,,
+bass tuba in f,bass-f-tuba,,58,pitched,stdNormal,F,Bass Tuba in F,Ba. Tb. F,Bass Tuba in F,brass.tuba.bass,Bass Tuba in F,,,F
+bass tuba in e♭,bass-eb-tuba,,58,pitched,stdNormal,F,Bass Tuba in E♭,Ba. Tb. E♭,Bass Tuba in E♭,brass.tuba.bass,Bass Tuba in E♭,,,F
+sub-contrabass tuba,subcontrabass-tuba,,58,pitched,stdNormal,F,Sub-Contrabass Tuba,SCb. Tb.,Sub-Contrabass Tuba,brass.tuba.subcontrabass,Sub-Contrabass Tuba,,,F
+timpani,timpani,,47,pitched,stdNormal,F,Timpani,Timp.,Timpani,drum.timpani,Timpani,,,F
+glockenspiel,glockenspiel,,9,pitched,stdNormal,,Glockenspiel,Glock.,Glockenspiel,pitched-percussion.glockenspiel,Glockenspiel,,,
+vibraphone,vibraphone,,11,pitched,stdNormal,,Vibraphone,Vib.,Vibraphone,pitched-percussion.vibraphone,Vibraphone,,,
+xylophone,xylophone,,13,pitched,stdNormal,,Xylophone,Xyl.,Xylophone,pitched-percussion.xylophone,Xylophone,,,
+xylomarimba,xylomarimba,,12,pitched,stdNormal,F,Xylomarimba,XMrm.,Xylomarimba,pitched-percussion.xylomarimba,Xylomarimba,,,F
+marimba (grand staff),marimba,,12,pitched,stdNormal,F,Marimba,Mrm.,Marimba (Grand Staff),pitched-percussion.marimba,Marimba (Grand Staff),,,F
+marimba (single staff),marimba-single,,12,pitched,stdNormal,,Marimba,Mrm.,Marimba (Single Staff),pitched-percussion.marimba,Marimba (Single Staff),,,
+bass marimba,bass-marimba,,12,pitched,stdNormal,F,Bass Marimba,B. Mrm.,Bass Marimba,pitched-percussion.marimba.bass,Bass Marimba,,,F
+contrabass marimba,contrabass-marimba,,12,pitched,stdNormal,F8vb,Contrabass Marimba,Cb. Mrm.,Contrabass Marimba,pitched-percussion.marimba.bass,Contrabass Marimba,,,F8vb
+dulcimer,dulcimer,,15,pitched,stdNormal,F,Dulcimer,Dlc.,Dulcimer,pitched-percussion.hammer-dulcimer,Dulcimer,,,F
+cimbalom,cimbalom,,15,pitched,stdNormal,F,Cimbalom,Cimb.,Cimbalom,pitched-percussion.cimbalom,Cimbalom,,,F
+drumset,drumset,,0,percussion,perc5Line,PERC,Drumset,D. Set,Drumset,drum.group.set,Drumset,,1,PERC
+concert snare drum,snare-drum,,48,percussion,perc1Line,PERC,Concert Snare Drum,Con. Sn.,Concert Snare Drum,drum.snare-drum,Concert Snare Drum,,1,PERC
+concert bass drum,bass-drum,,48,percussion,perc1Line,PERC,Concert Bass Drum,Con. BD ,Concert Bass Drum,drum.bass-drum,Concert Bass Drum,,1,PERC
+piccolo snare,piccolo-snare-drum,,48,percussion,perc1Line,PERC,Piccolo Snare,Picc. Sn.,Piccolo Snare,drum.snare-drum,Piccolo Snare,,1,PERC
+field drum,military-drum,,48,percussion,perc1Line,PERC,Field Drum,Field Dr.,Field Drum,drum.snare-drum,Field Drum,,1,PERC
+concert toms,tom-toms,,48,percussion,perc5Line,PERC,Concert Toms,C. Toms,Concert Toms,drum.tom-tom,Concert Toms,,1,PERC
+chinese tom-toms,chinese-tom-toms,,48,percussion,perc1Line,PERC,Chinese Tom-Toms,Ch. Toms,Chinese Tom-Toms,drum.group.chinese,Chinese Tom-Toms,,1,PERC
+bongos,bongos,,48,percussion,perc1Line,PERC,Bongos,Bon.,Bongos,drum.bongo,Bongos,,1,PERC
+congas,congas,,48,percussion,perc1Line,PERC,Congas,Con.,Congas,drum.conga,Congas,,1,PERC
+timbales,timbales,,0,percussion,perc1Line,PERC,Timbales,Timb.,Timbales,drum.timbale,Timbales,,1,PERC
+frame drum,frame-drum,,0,percussion,perc1Line,PERC,Frame Drum,Fr. Dr.,Frame Drum,drum.frame-drum,Frame Drum,,1,PERC
+automobile brake drums,automobile-brake-drums,,0,percussion,perc1Line,PERC,Automobile Brake Drums,Aut. Brk. Dr.,Automobile Brake Drums,metal.brake-drums,Automobile Brake Drums,,1,PERC
+slit drum,slit-drum,,0,percussion,perc1Line,PERC,Slit Drum,Slt. Dr.,Slit Drum,drum.slit-drum,Slit Drum,,1,PERC
+hi-hat,hi-hat,,0,percussion,perc1Line,PERC,Hi-hat,Hi-hat,Hi-hat,metal.hi-hat,Hi-hat,,1,PERC
+tam-tam,tam-tam,,0,percussion,perc1Line,PERC,Tam-Tam,Tam,Tam-Tam,metal.tamtam,Tam-Tam,,1,PERC
+sleigh bells,sleigh-bells,,0,percussion,perc1Line,PERC,Sleigh Bells,Sle. Be.,Sleigh Bells,metal.bells.sleigh-bells,Sleigh Bells,,1,PERC
+metal castanets,metal-castanets,,0,percussion,perc1Line,PERC,Metal Castanets,Met. Cst.,Metal Castanets,,Metal Castanets,,1,PERC
+iron pipes,iron-pipes,,0,percussion,perc1Line,PERC,Iron Pipes,Ir. Pi.,Iron Pipes,,Iron Pipes,,1,PERC
+chains,chains,,0,percussion,perc1Line,PERC,Chains,Chn.,Chains,,Chains,,1,PERC
+anvil,anvil,,48,percussion,perc1Line,PERC,Anvil,Anv.,Anvil,metal.anvil,Anvil,,1,PERC
+triangle,triangle,,48,percussion,perc1Line,PERC,Triangle,Trgl.,Triangle,metal.triangle,Triangle,,1,PERC
+cymbal,cymbal,,48,percussion,perc1Line,PERC,Cymbal,Cym.,Cymbal,metal.cymbal.crash,Cymbal,,1,PERC
+ride cymbal,ride-cymbal,,0,percussion,perc1Line,PERC,Ride Cymbal,R. Cym.,Ride Cymbal,metal.cymbal.ride,Ride Cymbal,,1,PERC
+chinese cymbal,chinese-cymbal,,0,percussion,perc1Line,PERC,Chinese Cymbal,Ch. Cym.,Chinese Cymbal,metal.cymbal.chinese,Chinese Cymbal,,1,PERC
+crash cymbal,crash-cymbal,,48,percussion,perc1Line,PERC,Crash Cymbal,Cr. Cym.,Crash Cymbal,metal.cymbal.crash,Crash Cymbal,,1,PERC
+splash cymbal,splash-cymbal,,0,percussion,perc1Line,PERC,Splash Cymbal,Sp. Cym.,Splash Cymbal,metal.cymbal.splash,Splash Cymbal,,1,PERC
+cowbell,cowbell,,0,percussion,perc1Line,PERC,Cowbell,Cwb.,Cowbell,metal.bells.cowbell,Cowbell,,1,PERC
+thundersheet,thundersheet,,0,percussion,perc1Line,PERC,Thundersheet,Thu.,Thundersheet,metal.thundersheet,Thundersheet,,1,PERC
+metal wind chimes,metal-wind-chimes,,0,percussion,perc1Line,PERC,Metal Wind Chimes,Met. Wn Ch.,Metal Wind Chimes,metal.bells.wind-chimes,Metal Wind Chimes,,1,PERC
+wood blocks,wood-blocks,,48,percussion,perc1Line,PERC,Wood Blocks,Wd. Bl.,Wood Blocks,wood.wood-block,Wood Blocks,,1,PERC
+temple blocks,temple-blocks,,0,percussion,perc1Line,PERC,Temple Blocks,Tmp. Bl.,Temple Blocks,wood.temple-block,Temple Blocks,,1,PERC
+claves,claves,,0,percussion,perc1Line,PERC,Claves,Clv.,Claves,wood.claves,Claves,,1,PERC
+castanets,castanets,,0,percussion,perc1Line,PERC,Castanets,Cst.,Castanets,wood.castanets,Castanets,,1,PERC
+güiro,guiro,,0,percussion,perc1Line,PERC,Güiro,Gro.,Güiro,wood.guiro,Güiro,,1,PERC
+wooden wind chimes,wooden-wind-chimes,,0,percussion,perc1Line,PERC,Wooden Wind Chimes,Wd. Wn. Ch.,Wooden Wind Chimes,metal.bells.wind-chimes,Wooden Wind Chimes,,1,PERC
+bamboo wind chimes,bamboo-wind-chimes,,0,percussion,perc1Line,PERC,Bamboo Wind Chimes,Bam. Wn. Ch.,Bamboo Wind Chimes,metal.bells.wind-chimes,Bamboo Wind Chimes,,1,PERC
+maracas,maracas,,0,percussion,perc1Line,PERC,Maracas,Mrcs.,Maracas,rattle.maraca,Maracas,,1,PERC
+cabasa,cabasa,,0,percussion,perc1Line,PERC,Cabasa,Cabs.,Cabasa,rattle.cabasa,Cabasa,,1,PERC
+vibraslap,vibraslap,,0,percussion,perc1Line,PERC,Vibraslap,Vibslp.,Vibraslap,rattle.vibraslap,Vibraslap,,1,PERC
+whip,whip,,0,percussion,perc1Line,PERC,Whip,Wh.,Whip,effect.whip,Whip,,1,PERC
+ratchet,ratchet,,0,percussion,perc1Line,PERC,Ratchet,Rat.,Ratchet,rattle.ratchet,Ratchet,,1,PERC
+sandpaper blocks,sandpaper-blocks,,0,percussion,perc1Line,PERC,Sandpaper Blocks,Sa. Bl.,Sandpaper Blocks,wood.sand-block,Sandpaper Blocks,,1,PERC
+glass wind chimes,glass-wind-chimes,,0,percussion,perc1Line,PERC,Glass Wind Chimes,Gl. Wn Ch.,Glass Wind Chimes,metal.bells.wind-chimes,Glass Wind Chimes,,1,PERC
+shell wind chimes,shell-wind-chimes,,0,percussion,perc1Line,PERC,Shell Wind Chimes,Sh. Wn Ch.,Shell Wind Chimes,metal.bells.wind-chimes,Shell Wind Chimes,,1,PERC
+stones,stones,,0,percussion,perc1Line,PERC,Stones,Sto.,Stones,rattle.lava-stones,Stones,,1,PERC
+tambourine,tambourine,,0,percussion,perc1Line,PERC,Tambourine,Tamb.,Tambourine,drum.tambourine,Tambourine,,1,PERC
+percussion,percussion,,48,percussion,perc5Line,PERC,Percussion,Perc.,Percussion,drum.group.set,Percussion,,1,PERC
+piano,piano,,0,pitched,stdNormal,F,Piano,Pno.,Piano,keyboard.piano,Piano,,,F
+grand piano,grand-piano,,0,pitched,stdNormal,F,Grand Piano,Pno.,Grand Piano,keyboard.piano.grand,Grand Piano,,,F
+upright piano,upright-piano,,0,pitched,stdNormal,F,Upright Piano,Pno.,Upright Piano,keyboard.piano.upright,Upright Piano,,,F
+honky tonk piano,honky-tonk-piano,,3,pitched,stdNormal,F,Honky Tonk Piano,Hnk. Pno.,Honky Tonk Piano,keyboard.piano.honky-tonk,Honky Tonk Piano,,,F
+toy piano,toy-piano,,0,pitched,stdNormal,F,Toy Piano,Toy Pno.,Toy Piano,keyboard.piano.toy,Toy Piano,,,F
+clavichord,clavichord,,7,pitched,stdNormal,F,Clavichord,Cch.,Clavichord,keyboard.clavichord,Clavichord,,,F
+harpsichord,harpsichord,,6,pitched,stdNormal,F,Harpsichord,Hch.,Harpsichord,keyboard.harpsichord,Harpsichord,,,F
+virginal,virginal,,6,pitched,stdNormal,F,Virginal,Vir.,Virginal,keyboard.virginal,Virginal,,,F
+celesta,celesta,,8,pitched,stdNormal,,Celesta,Cel.,Celesta,keyboard.celesta,Celesta,,,
+electric piano,electric-piano,,4,pitched,stdNormal,F,Electric Piano,El. Pno.,Electric Piano,keyboard.piano.electric,Electric Piano,,,F
+clavinet,clavinet,,7,pitched,stdNormal,F,Clavinet,Clav.,Clavinet,keyboard.clavichord.synth,Clavinet,,,F
+harp,harp,,46,pitched,stdNormal,F,Harp,Hrp.,Harp,pluck.harp,Harp,,,F
+organ,organ,,19,pitched,stdNormal,F,Organ,Org.,Organ,keyboard.organ,Organ,,,F
+percussive organ,percussive-organ,,17,pitched,stdNormal,F,Percussive Organ,Perc. Org.,Percussive Organ,keyboard.organ.percussive,Percussive Organ,,,F
+hammond organ,hammond-organ,,16,pitched,stdNormal,F,Hammond Organ,Hm. Org.,Hammond Organ,keyboard.organ.drawbar,Hammond Organ,,,F
+rotary organ,rotary-organ,,18,pitched,stdNormal,F,Rotary Organ,Rot. Org.,Rotary Organ,keyboard.organ.rotary,Rotary Organ,,,F
+pipe organ,pipe-organ,,19,pitched,stdNormal,F8vb,Pipe Organ,Org.,Pipe Organ,keyboard.organ.pipe,Pipe Organ,,,F
+harmonium,harmonium,,20,pitched,stdNormal,F,Harmonium,Harm.,Harmonium,keyboard.harmonium,Harmonium,,,F
+reed organ,reed-organ,,20,pitched,stdNormal,F,Reed Organ,Rd. Org.,Reed Organ,keyboard.organ.reed,Reed Organ,,,F
+atmosphere synthesizer,atmosphere-synth,,99,pitched,stdNormal,F,Atmosphere Synthesizer,Synth.,Atmosphere Synthesizer,synth.effects.atmosphere,Atmosphere Synthesizer,,,F
+brightness synthesizer,brightness-synth,,100,pitched,stdNormal,F,Brightness Synthesizer,Synth.,Brightness Synthesizer,synth.effects.brightness,Brightness Synthesizer,,,F
+crystal synthesizer,crystal-synth,,98,pitched,stdNormal,F,Crystal Synthesizer,Synth.,Crystal Synthesizer,synth.effects.crystal,Crystal Synthesizer,,,F
+echoes synthesizer,echoes-synth,,102,pitched,stdNormal,F,Echoes Synthesizer,Synth.,Echoes Synthesizer,synth.effects.echoes,Echoes Synthesizer,,,F
+goblins synthesizer,goblins-synth,,101,pitched,stdNormal,F,Goblins Synthesizer,Synth.,Goblins Synthesizer,synth.effects.goblins,Goblins Synthesizer,,,F
+rain synthesizer,rain-synth,,96,pitched,stdNormal,F,Rain Synthesizer,Synth.,Rain Synthesizer,synth.effects.rain,Rain Synthesizer,,,F
+sci-fi synthesizer,sci-fi-synth,,103,pitched,stdNormal,F,Sci-fi Synthesizer,Synth.,Sci-fi Synthesizer,synth.effects.sci-fi,Sci-fi Synthesizer,,,F
+soundtrack synthesizer,soundtrack-synth,,97,pitched,stdNormal,F,Soundtrack Synthesizer,Synth.,Soundtrack Synthesizer,synth.effects.soundtrack,Soundtrack Synthesizer,,,F
+pad synthesizer,pad-synth,new age,88,pitched,stdNormal,F,Pad Synthesizer,Synth.,Pad Synthesizer,synth.pad,Pad Synthesizer,,,F
+new age synthesizer,new-age-synth,,88,pitched,stdNormal,F,New Age Synthesizer,Synth.,New Age Synthesizer,synth.pad,New Age Synthesizer,,,F
+warm synthesizer,warm-synth,,89,pitched,stdNormal,F,Warm Synthesizer,Synth.,Warm Synthesizer,synth.pad.warm,Warm Synthesizer,,,F
+poly synthesizer,poly-synth,,90,pitched,stdNormal,F,Poly Synthesizer,Synth.,Poly Synthesizer,synth.pad.polysynth,Poly Synthesizer,,,F
+choir synthesizer,choir-synth,,91,pitched,stdNormal,F,Choir Synthesizer,Synth.,Choir Synthesizer,synth.pad.choir,Choir Synthesizer,,,F
+bowed synthesizer,bowed-synth,,92,pitched,stdNormal,F,Bowed Synthesizer,Synth.,Bowed Synthesizer,synth.pad.bowed,Bowed Synthesizer,,,F
+metallic synthesizer,metallic-synth,,93,pitched,stdNormal,F,Metallic Synthesizer,Synth.,Metallic Synthesizer,synth.pad.metallic,Metallic Synthesizer,,,F
+halo synthesizer,halo-synth,,94,pitched,stdNormal,F,Halo Synthesizer,Synth.,Halo Synthesizer,synth.pad.halo,Halo Synthesizer,,,F
+sweep synthesizer,sweep-synth,,95,pitched,stdNormal,F,Sweep Synthesizer,Synth.,Sweep Synthesizer,synth.pad.warm,Sweep Synthesizer,,,F
+saw synthesizer,saw-synth,,81,pitched,stdNormal,F,Saw Synthesizer,Synth.,Saw Synthesizer,synth.tone.sawtooth,Saw Synthesizer,,,F
+sine synthesizer,sine-synth,,79,pitched,stdNormal,F,Sine Synthesizer,Synth.,Sine Synthesizer,synth.tone.sine,Sine Synthesizer,,,F
+square synthesizer,square-synth,,80,pitched,stdNormal,F,Square Synthesizer,Synth.,Square Synthesizer,synth.tone.sine,Square Synthesizer,,,F
+ondes martenot,ondes-martenot,,79,pitched,stdNormal,F,Ondes Martenot,O.M.,Ondes Martenot,keyboard.ondes-martenot,Ondes Martenot,,,F
+mallet synthesizer,mallet-synthesizer,,80,pitched,stdNormal,F,Mallet Synthesizer,Mal. Syn.,Mallet Synthesizer,synth.group,Mallet Synthesizer,,,F
+bass synthesizer,bass-synthesizer,synth-bass-1,38,pitched,stdNormal,F,Bass Synthesizer,Synth.,Bass Synthesizer,pluck.bass.synth,Bass Synthesizer,,,F
+brass synthesizer,brass-synthesizer,synth-brass-1,62,pitched,stdNormal,F,Brass Synthesizer,Synth.,Brass Synthesizer,brass.group.synth,Brass Synthesizer,,,F
+string synthesizer,string-synthesizer,synth-string-1,50,pitched,stdNormal,F,String Synthesizer,Synth.,String Synthesizer,strings.group.synth,String Synthesizer,,,F
+theremin,theremin,,79,pitched,stdNormal,F,Theremin,Thmn.,Theremin,synth.theremin,Theremin,,,F
+percussion synthesizer,percussion-synthesizer,,0,percussion,perc1Line,PERC,Percussion Synthesizer,Perc. Syn.,Percussion Synthesizer,drum.tom-tom.synth,Percussion Synthesizer,,1,PERC
+banjo,banjo,,105,pitched,stdNormal,G8vb,Banjo,Bj.,Banjo,pluck.banjo,Banjo,,,G8vb
+banjo (tablature),banjo-tablature,,105,tablature,tab5StrCommon,G8vb,Banjo,Bj.,Banjo (Tablature),pluck.banjo,Banjo (Tablature),,,G8vb
+tenor banjo,tenor-banjo,,105,pitched,stdNormal,G8vb,Tenor Banjo,T. Bj.,Tenor Banjo,pluck.banjo.tenor,Tenor Banjo,,,G8vb
+irish tenor banjo,irish-tenor-banjo,,105,pitched,stdNormal,G8vb,Irish Tenor Banjo,ITB,Irish Tenor Banjo,pluck.banjo.tenor,Irish Tenor Banjo,,,G8vb
+irish tenor banjo (tablature),irish-tenor-banjo-tablature,,105,tablature,tab4StrCommon,G8vb,Irish Tenor Banjo,ITB,Irish Tenor Banjo (Tablature),pluck.banjo.tenor,Irish Tenor Banjo (Tablature),,,G8vb
+balalaika,balalaika,,107,pitched,stdNormal,,Balalaika,Bal.,Balalaika,pluck.balalaika,Balalaika,,,
+piccolo balalaika,balalaika-piccolo,,107,pitched,stdNormal,,Piccolo Balalaika,Pic. Bal.,Piccolo Balalaika,pluck.balalaika.piccolo,Piccolo Balalaika,,,
+prima balalaika,balalaika-prima,,107,pitched,stdNormal,,Prima Balalaika,Pr. Bal.,Prima Balalaika,pluck.balalaika.prima,Prima Balalaika,,,
+secunda balalaika,balalaika-secunda,,107,pitched,stdNormal,,Secunda Balalaika,Sec. Bal.,Secunda Balalaika,pluck.balalaika.secunda,Secunda Balalaika,,,
+alto balalaika,balalaika-alto,,107,pitched,stdNormal,G8vb,Alto Balalaika,Al. Bal.,Alto Balalaika,pluck.balalaika.alto,Alto Balalaika,,,G8vb
+bass balalaika,balalaika-bass,,107,pitched,stdNormal,F,Bass Balalaika,B. Bal.,Bass Balalaika,pluck.balalaika.bass,Bass Balalaika,,,F
+contrabass balalaika,balalaika-contrabass,,107,pitched,stdNormal,F8vb,Contrabass Balalaika,Cb. Bal.,Contrabass Balalaika,pluck.balalaika.contrabass,Contrabass Balalaika,,,F8vb
+bouzouki (3-course),bouzouki-3-course,,25,pitched,stdNormal,,Bouzouki,Bou.,Bouzouki (3-course),pluck.bouzouki,Bouzouki (3-course),,,
+bouzouki (4-course),bouzouki-4-course,,25,pitched,stdNormal,,Bouzouki,Bou.,Bouzouki (4-course),pluck.bouzouki,Bouzouki (4-course),,,
+cavaquinho,cavaquinho,,25,pitched,stdNormal,,Cavaquinho,Cava.,Cavaquinho,pluck.guitar,Cavaquinho,,,
+cavaquinho (tablature),cavaquinho-tablature,,25,tablature,tab4StrSimple,,Cavaquinho,Cava.,Cavaquinho (Tablature),pluck.guitar,Cavaquinho (Tablature),,,
+mandolin,mandolin,,25,pitched,stdNormal,,Mandolin,Mdn.,Mandolin,pluck.mandolin,Mandolin,,,
+mandolin (tablature),mandolin-tablature,,25,tablature,tab4StrCommon,,Mandolin,Mdn.,Mandolin (Tablature),pluck.mandolin,Mandolin (Tablature),,,
+alto mandola,alto-mandola,,25,pitched,stdNormal,G8vb,Alto Mandola,A. Mda.,Alto Mandola,pluck.mandola,Alto Mandola,,,G8vb
+ukulele,ukulele,,24,pitched,stdNormal,,Ukulele,Uk.,Ukulele,pluck.ukulele,Ukulele,,,
+ukulele (tablature),ukulele-4-str-tab,,24,tablature,tabUkulele,,Ukulele,Uk.,Ukulele (Tablature),pluck.ukulele,Ukulele (Tablature),,,
+ukulele (low g),ukulele-low-g,,24,pitched,stdNormal,,Ukulele (Low G),Uk.,Ukulele (Low G),pluck.ukulele,Ukulele (Low G),,,
+tenor ukulele,tenor-ukulele,,24,pitched,stdNormal,,Tenor Ukulele,Ten. Uk.,Tenor Ukulele,pluck.ukulele.tenor,Tenor Ukulele,,,
+baritone ukulele,baritone-ukulele,,24,pitched,stdNormal,G8vb,Baritone Ukulele,Bar. Uk.,Baritone Ukulele,pluck.ukulele.tenor,Baritone Ukulele,,,G8vb
+voice,voice,,52,pitched,stdNormal,,Voice,Vo.,Voice,voice.vocals,Voice,,,
+boy soprano,boy-soprano,,52,pitched,stdNormal,,Boy Soprano,B. S.,Boy Soprano,voice.child,Boy Soprano,,,
+soprano,soprano,,52,pitched,stdNormal,,Soprano,S.,Soprano,voice.soprano,Soprano,,,
+soprano (c clef),soprano-c-clef,,52,pitched,stdNormal,C1,Soprano,S.,Soprano (C Clef),voice.soprano,Soprano (C Clef),,,C1
+mezzo-soprano,mezzo-soprano,,52,pitched,stdNormal,,Mezzo-soprano,Mzs.,Mezzo-soprano,voice.mezzo-soprano,Mezzo-soprano,,,
+mezzo-soprano (c clef),mezzo-soprano-c-clef,,52,pitched,stdNormal,C2,Mezzo-soprano,Mzs.,Mezzo-soprano (C Clef),voice.mezzo-soprano,Mezzo-soprano (C Clef),,,C2
+alto,alto,,52,pitched,stdNormal,,Alto,A.,Alto,voice.alto,Alto,,,
+alto (c clef),alto-c-clef,,52,pitched,stdNormal,C3,Alto,A.,Alto (C Clef),voice.alto,Alto (C Clef),,,C3
+contralto,contralto,,52,pitched,stdNormal,,Contralto,Contr.,Contralto,voice.alto,Contralto,,,
+countertenor,countertenor,,52,pitched,stdNormal,,Countertenor,Ct.,Countertenor,voice.countertenor,Countertenor,,,
+tenor,tenor,,52,pitched,stdNormal,G8vb,Tenor,T.,Tenor,voice.tenor,Tenor,,,G8vb
+tenor (c clef),tenor-c-clef,,52,pitched,stdNormal,C4,Tenor,T.,Tenor (C Clef),voice.tenor,Tenor (C Clef),,,C4
+baritone,baritone,,52,pitched,stdNormal,F,Baritone,Bar.,Baritone,voice.baritone,Baritone,,,F
+baritone (c clef),baritone-c-clef,,52,pitched,stdNormal,C5,Baritone,Bar.,Baritone (C Clef),voice.baritone,Baritone (C Clef),,,C5
+bass,bass,,52,pitched,stdNormal,F,Bass,B.,Bass,voice.bass,Bass,,,F
+women,women,Soprano,52,pitched,stdNormal,,Women,W.,Women,voice.female,Women,,,
+men,men,Tenor,52,pitched,stdNormal,F,Men,M.,Men,voice.male,Men,,,F
+strings,strings,arco,48,pitched,stdNormal,F,Strings,St.,Strings,strings.group,Strings,,,F
+violin,violin,arco,40,pitched,stdNormal,,Violin,Vln.,Violin,strings.violin,Violin,,,
+violins,violins,arco,48,pitched,stdNormal,,Violins,Vlns.,Violins,strings.group,Violins,,,
+viola,viola,arco,41,pitched,stdNormal,C3,Viola,Vla.,Viola,strings.viola,Viola,,,C3
+violas,violas,arco,48,pitched,stdNormal,C3,Violas,Vlas.,Violas,strings.group,Violas,,,C3
+violoncello,violoncello,arco,42,pitched,stdNormal,F,Violoncello,Vc.,Violoncello,strings.cello,Violoncello,,,F
+violoncellos,violoncellos,arco,48,pitched,stdNormal,F,Violoncellos,Vcs.,Violoncellos,strings.group,Violoncellos,,,F
+contrabass,contrabass,arco,43,pitched,stdNormal,,Contrabass,Cb.,Contrabass,strings.contrabass,Contrabass,,,
+contrabasses,contrabasses,arco,48,pitched,stdNormal,,Contrabasses,Cbs.,Contrabasses,strings.group,Contrabasses,,,
+double bass,double-bass,arco,43,pitched,stdNormal,,Double Bass,Db.,Double Bass,strings.contrabass,Double Bass,,,
+octobass,octobass,arco,43,pitched,stdNormal,,Octobass,Otb.,Octobass,strings.octobass,Octobass,,,
+pardessus de viole,pardessus-de-viole,arco,40,pitched,stdNormal,,Pardessus de viole,Pds. v.,Pardessus de viole,strings.viol,Pardessus de viole,,,
+treble viol,treble-viol,arco,40,pitched,stdNormal,,Treble Viol,Tr. Vl.,Treble Viol,strings.viol.treble,Treble Viol,,,
+alto viol,alto-viol,arco,41,pitched,stdNormal,C3,Alto Viol,A. Vl.,Alto Viol,strings.viol.alto,Alto Viol,,,C3
+tenor viol,tenor-viol,arco,41,pitched,stdNormal,C3,Tenor Viol,T. Vl.,Tenor Viol,strings.viol.tenor,Tenor Viol,,,C3
+viola da gamba,viola-da-gamba,arco,42,pitched,stdNormal,F,Viola da gamba,Vla. d. g.,Viola da gamba,,Viola da gamba,,,F
+viola da gamba (tablature),viola-da-gamba-tablature,arco,42,tablature,tab6StrFrench,F,Viola da gamba,Vla. d. g.,Viola da gamba (Tablature),,Viola da gamba (Tablature),,,F
+baryton,baryton,arco,42,pitched,stdNormal,F,Baryton,Bary.,Baryton,strings.baryton,Baryton,,,F
+violone,violone,arco,43,pitched,stdNormal,F8vb,Violone,Vne.,Violone,strings.viol.violone,Violone,,,F8vb
+d violone,d-violone,arco,43,pitched,stdNormal,F8vb,D Violone,D Vne.,D Violone,strings.viol.violone,D Violone,,,F8vb
+erhu,erhu,arco,110,pitched,stdNormal,,Erhu,Eh.,Erhu,strings.erhu,Erhu,,,
+nyckelharpa,nyckelharpa,arco,41,pitched,stdNormal,,Nyckelharpa,Nyh.,Nyckelharpa,strings.nyckelharpa,Nyckelharpa,,,
+bass guitar,bass-guitar,,34,pitched,stdNormal,,Bass Guitar,B. Guit.,Bass Guitar,pluck.bass,Bass Guitar,,,
+bass guitar (tablature),bass-guitar-tablature,,34,tablature,tab4StrCommon,,Bass Guitar,B. Guit.,Bass Guitar (Tablature),pluck.bass,Bass Guitar (Tablature),,,
+acoustic bass,acoustic-bass,pizzicato,32,pitched,stdNormal,,Acoustic Bass,Bass,Acoustic Bass,pluck.bass.acoustic,Acoustic Bass,,,
+electric bass,electric-bass,,33,pitched,stdNormal,,Electric Bass,El. B.,Electric Bass,pluck.bass.electric,Electric Bass,,,
+electric bass (tablature),electric-bass-4-str-tab,,33,tablature,tab4StrCommon,,Electric Bass,El. B.,Electric Bass (Tablature),pluck.bass.electric,Electric Bass (Tablature),,,
+fretless electric bass,fretless-electric-bass,,35,pitched,stdNormal,,Fretless Electric Bass,Frtl. El. B.,Fretless Electric Bass,pluck.bass.fretless,Fretless Electric Bass,,,
+5-str. electric bass,5-string-electric-bass,,33,pitched,stdNormal,,5-str. Electric Bass,El. B.,5-str. Electric Bass,pluck.bass.electric,5-str. Electric Bass,,,
+5-str. electric bass (tablature),5-string-electric-bass-tab,,33,tablature,tab5StrCommon,,5-str. Electric Bass,El. B.,5-str. Electric Bass (Tablature),pluck.bass.electric,5-str. Electric Bass (Tablature),,,
+5-str. electric bass (high c/tenor),5-string-electric-bass-high-c,,33,pitched,stdNormal,,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor),pluck.bass.electric,5-str. Electric Bass (High C/Tenor),,,
+5-str. electric bass (high c/tenor) (tablature),5-string-electric-bass-tab-high-c,,33,tablature,tab5StrCommon,,5-str. Electric Bass,El. B.,5-str. Electric Bass (High C/Tenor) (Tablature),pluck.bass.electric,5-str. Electric Bass (High C/Tenor) (Tablature),,,
+6-str. electric bass,6-string-electric-bass,,33,pitched,stdNormal,,6-str. Electric Bass,El. B.,6-str. Electric Bass,pluck.bass.electric,6-str. Electric Bass,,,
+6-str. electric bass (tablature),6-string-electric-bass-tab,,33,tablature,tab6StrCommon,,6-str. Electric Bass,El. B.,6-str. Electric Bass (Tablature),pluck.bass.electric,6-str. Electric Bass (Tablature),,,
+prim,prim,,24,pitched,stdNormal,,Prim,Pr.,Prim,pluck.tambura,Prim,,,
+brač,brac,,24,pitched,stdNormal,,Brač,Br.,Brač,pluck.tambura,Brač,,,
+čelo,celo,,24,pitched,stdNormal,,Čelo,Č.,Čelo,pluck.tambura,Čelo,,,
+bugarija,bugarija,,24,pitched,stdNormal,,Bugarija,Bu.,Bugarija,pluck.tambura,Bugarija,,,
+berda,berda,,32,pitched,stdNormal,F,Berda,Be.,Berda,pluck.tambura,Berda,,,F
+bandurria,bandurria,,24,pitched,stdNormal,,Bandurria,Band.,Bandurria,pluck.bandurria,Bandurria,,,
+bandurria (tablature),bandurria-tablature,,24,tablature,tab6StrCommon,,Bandurria,Band.,Bandurria (Tablature),pluck.bandurria,Bandurria (Tablature),,,
+laúd,laud,,24,pitched,stdNormal,G8vb,Laúd,Laúd,Laúd,pluck.laud,Laúd,,,G8vb
+laúd (tablature),laud-tablature,,24,tablature,tab6StrCommon,G8vb,Laúd,Laúd,Laúd (Tablature),pluck.laud,Laúd (Tablature),,,G8vb
+tenor mandola,tenor-mandola,,25,pitched,stdNormal,G8vb,Tenor Mandola,T. Mda.,Tenor Mandola,pluck.mandola,Tenor Mandola,,,G8vb
+mandocello,mandocello,,25,pitched,stdNormal,F,Mandocello,Mncl.,Mandocello,pluck.mandocello,Mandocello,,,F
+octave mandolin,octave-mandolin,,25,pitched,stdNormal,G8vb,Octave Mandolin,OM.,Octave Mandolin,pluck.mandolin.octave,Octave Mandolin,,,G8vb
+shamisen,shamisen,,106,pitched,stdNormal,G8vb,Shamisen,Sh.,Shamisen,pluck.shamisen,Shamisen,,,G8vb
+sitar,sitar,,104,pitched,stdNormal,,Sitar,Si.,Sitar,pluck.sitar,Sitar,,,
+mandola,mandola,,25,pitched,stdNormal,C3,Mandola,Mda.,Mandola,pluck.mandola,Mandola,,,C3
+koto,koto,,107,pitched,stdNormal,,Koto,Ko.,Koto,pluck.koto,Koto,,,
+mtn. dulcimer,mtn-dulcimer-std,,25,pitched,stdNormal,,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer,pluck.dulcimer,Mtn. Dulcimer,,,
+mtn. dulcimer (tablature),mtn-dulcimer-std-chrom-tab,,25,tablature,tabDulcimer,,Mtn. Dulcimer,Mtn. Dc.,Mtn. Dulcimer (Tablature),pluck.dulcimer,Mtn. Dulcimer (Tablature),,,
+mtn. dulcimer - baritone,mtn-dulcimer-baritone,,25,pitched,stdNormal,,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone,pluck.dulcimer,Mtn. Dulcimer - Baritone,,,
+mtn. dulcimer - baritone (tablature),mtn-dulcimer-bartn-chrom-tab,,25,tablature,tabDulcimer,,Mtn. Dulcimer - Baritone,Bar. M.D.,Mtn. Dulcimer - Baritone (Tablature),pluck.dulcimer,Mtn. Dulcimer - Baritone (Tablature),,,
+mtn. dulcimer - bass,mtn-dulcimer-bass,,25,pitched,stdNormal,G8vb,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass,pluck.dulcimer,Mtn. Dulcimer - Bass,,,G8vb
+mtn. dulcimer - bass (tablature),mtn-dulcimer-bass-chrom-tab,,25,tablature,tabDulcimer,G8vb,Mtn. Dulcimer - Bass,Bs. M.D.,Mtn. Dulcimer - Bass (Tablature),pluck.dulcimer,Mtn. Dulcimer - Bass (Tablature),,,G8vb
+oud,oud,,25,pitched,stdNormal,,Oud,O.,Oud,pluck.oud,Oud,,,
+lute,lute,,25,pitched,stdNormal,,Lute,Lt.,Lute,pluck.lute,Lute,,,
+lute (tablature),lute-tablature,,25,tablature,tab6StrFrench,,Lute,Lt.,Lute (Tablature),pluck.lute,Lute (Tablature),,,
+lute 5-course,ren.-tenor-lute-5-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 5-course,pluck.lute,Lute 5-course,,,
+lute 6-course,ren.-tenor-lute-6-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 6-course,pluck.lute,Lute 6-course,,,
+lute 7-course,ren.-tenor-lute-7-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 7-course,pluck.lute,Lute 7-course,,,
+lute 8-course,ren.-tenor-lute-8-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 8-course,pluck.lute,Lute 8-course,,,
+lute 9-course,ren.-tenor-lute-9-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 9-course,pluck.lute,Lute 9-course,,,
+lute 10-course,ren.-tenor-lute-10-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 10-course,pluck.lute,Lute 10-course,,,
+lute 13-course,baroque-lute-13-course,,25,pitched,stdNormal,,Lute,Lt.,Lute 13-course,pluck.lute,Lute 13-course,,,
+archlute,archlute-14-course,,25,pitched,stdNormal,,Archlute,A. Lt.,Archlute,pluck.archlute,Archlute,,,
+theorbo,theorbo-14-course,,25,pitched,stdNormal,,Theorbo,Thb.,Theorbo,pluck.theorbo,Theorbo,,,
+baritone guitar,baritone-guitar,,24,pitched,stdNormal,G8vb,Baritone Guitar,Bar. Guit.,Baritone Guitar,pluck.guitar,Baritone Guitar,,,G8vb
+contra guitar,contra-guitar,open,24,pitched,stdNormal,G8vb,Contra Guitar,C. Guit.,Contra Guitar,pluck.guitar,Contra Guitar,,,G8vb
+acoustic guitar,guitar-steel,open,25,pitched,stdNormal,G8vb,Acoustic Guitar,Guit.,Acoustic Guitar,pluck.guitar.acoustic,Acoustic Guitar,,,G8vb
+acoustic guitar (treble clef),guitar-steel-treble-clef,,25,pitched,stdNormal,,Guitar,Guit.,Acoustic Guitar (Treble Clef),pluck.guitar.acoustic,Acoustic Guitar (Treble Clef),,,
+acoustic guitar (tablature),guitar-steel-tablature,open,25,tablature,tab6StrCommon,G8vb,Acoustic Guitar,Guit.,Acoustic Guitar (Tablature),pluck.guitar.acoustic,Acoustic Guitar (Tablature),,,G8vb
+11-string alto guitar,11-string-alto-guitar,open,24,pitched,stdNormal,F,11-string Alto Guitar,11-str. A. Guit.,11-string Alto Guitar,pluck.guitar,11-string Alto Guitar,,,F
+12-string guitar,12-string-guitar,open,25,pitched,stdNormal,G8vb,12-string Guitar,12-str. Guit.,12-string Guitar,pluck.guitar,12-string Guitar,,,G8vb
+pedal steel guitar,pedal-steel-guitar,open,25,pitched,stdNormal,,Pedal Steel Guitar,Ped. St. Guit.,Pedal Steel Guitar,pluck.guitar.pedal-steel,Pedal Steel Guitar,,,
+electric guitar,electric-guitar,open,27,pitched,stdNormal,G8vb,Electric Guitar,El. Guit.,Electric Guitar,pluck.guitar.electric,Electric Guitar,,,G8vb
+electric guitar (treble clef),electric-guitar-treble-clef,,27,pitched,stdNormal,,Electric Guitar,El. Guit.,Electric Guitar (Treble Clef),pluck.guitar.electric,Electric Guitar (Treble Clef),,,
+electric guitar (tablature),electric-guitar-tablature,open,27,tablature,tab6StrCommon,G8vb,Electric Guitar,El. Guit.,Electric Guitar (Tablature),pluck.guitar.electric,Electric Guitar (Tablature),,,G8vb
+soprano guitar,soprano-guitar,open,24,pitched,stdNormal,,Soprano Guitar,S. Guit.,Soprano Guitar,pluck.guitar,Soprano Guitar,,,
+alto guitar,alto-guitar,open,24,pitched,stdNormal,G8vb,Alto Guitar,A. Guit.,Alto Guitar,pluck.guitar,Alto Guitar,,,G8vb
+classical guitar,guitar-nylon,open,24,pitched,stdNormal,G8vb,Classical Guitar,Guit.,Classical Guitar,pluck.guitar.nylon-string,Classical Guitar,,,G8vb
+guitar (treble clef),guitar-nylon-treble-clef,open,24,pitched,stdNormal,,Guitar,Guit.,Guitar (Treble Clef),pluck.guitar.nylon-string,Guitar (Treble Clef),,,
+classical guitar (tablature),guitar-nylon-tablature,open,24,tablature,tab6StrCommon,G8vb,Classical Guitar,Guit.,Classical Guitar (Tablature),pluck.guitar.nylon-string,Classical Guitar (Tablature),,,G8vb
+7-string guitar,7-string-guitar,,24,pitched,stdNormal,G8vb,7-string Guitar,Guit.,7-string Guitar,pluck.guitar.nylon-string,7-string Guitar,,,G8vb
+7-string guitar (tablature),7-string-guitar-tablature,,24,tablature,tab7StrCommon,G8vb,7-string Guitar,Guit.,7-string Guitar (Tablature),pluck.guitar.nylon-string,7-string Guitar (Tablature),,,G8vb
+effect synthesizer,effect-synth,rain,96,pitched,stdNormal,F,Effect Synthesizer,Synth.,Effect Synthesizer,synth.effects,Effect Synthesizer,,,F
+kazoo,kazoo,,85,pitched,stdNormal,,Kazoo,Kaz.,Kazoo,voice.kazoo,Kazoo,,,
+snare drum,marching-snare,,56,percussion,perc5Line,PERC,Snare Drum,S.D.,Snare Drum,drum.snare-drum,Snare Drum,,1,PERC
+tenor drums,marching-tenor-drums,,96,percussion,perc5Line,PERC,Tenor Drums,T.D.,Tenor Drums,drum.tenor-drum,Tenor Drums,,1,PERC
+bass drums,marching-bass-drums,,59,percussion,perc5Line,PERC,Bass Drums,B.D.,Bass Drums,drum.bass-drum,Bass Drums,,1,PERC
+cymbals,marching-cymbals,,58,percussion,perc5Line,PERC,Cymbals,Cym.,Cymbals,metal.cymbal.crash,Cymbals,,1,PERC
+finger snap,finger-snap,,0,percussion,perc1Line,PERC,Finger Snap,Fi. Sna.,Finger Snap,effect.snap,Finger Snap,,1,PERC
+hand clap,hand-clap,,0,percussion,perc1Line,PERC,Hand Clap,Hd. Clp.,Hand Clap,effect.hand-clap,Hand Clap,,1,PERC
+slap,slap,,0,percussion,perc1Line,PERC,Slap,Sla.,Slap,effect.slap,Slap,,1,PERC
+stamp,stamp,,0,percussion,perc1Line,PERC,Stamp,Sta.,Stamp,effect.stamp,Stamp,,1,PERC
+quijada,quijada,,0,percussion,perc1Line,PERC,Quijada,Qui.,Quijada,rattle.jawbone,Quijada,,1,PERC
+bell plate,bell-plate,,0,percussion,perc1Line,PERC,Bell Plate,Be. Pla.,Bell Plate,metal.bells.bell-plate,Bell Plate,,1,PERC
+bowl gongs,bowl-gongs,,0,percussion,perc1Line,PERC,Bowl Gongs,Bw. Gon.,Bowl Gongs,metal.gong,Bowl Gongs,,1,PERC
+tubo,tubo,,0,percussion,perc1Line,PERC,Tubo,Tu.,Tubo,,Tubo,,1,PERC
+shaker,shaker,,0,percussion,perc1Line,PERC,Shaker,Sh.,Shaker,,Shaker,,1,PERC
+bells,bells,,0,percussion,perc1Line,PERC,Bells,Be.,Bells,,Bells,,1,PERC
+tablas,tablas,,0,percussion,perc1Line,PERC,Tablas,Tbs.,Tablas,drum.tabla,Tablas,,1,PERC
+cuica,cuica,,0,percussion,perc1Line,PERC,Cuica,Cu.,Cuica,drum.cuica,Cuica,,1,PERC
+finger cymbals,finger-cymbals,,0,percussion,perc1Line,PERC,Finger Cymbals,Fi. Cym.,Finger Cymbals,metal.cymbal.finger,Finger Cymbals,,1,PERC
+tuned klaxon horns,tuned-klaxon-horns,,84,pitched,stdNormal,F,Tuned Klaxon Horns,Tn. Klx. Hns.,Tuned Klaxon Horns,,Tuned Klaxon Horns,,,F
+kalimba,kalimba,,108,pitched,stdNormal,,Kalimba,Kal.,Kalimba,pitched-percussion.kalimba,Kalimba,,,
+treble kalimba,treble-kalimba,,108,pitched,stdNormal,,Treble Kalimba,Tr. Kal.,Treble Kalimba,pitched-percussion.kalimba,Treble Kalimba,,,
+alto kalimba,alto-kalimba,,108,pitched,stdNormal,,Alto Kalimba,A. Kal.,Alto Kalimba,pitched-percussion.kalimba,Alto Kalimba,,,
+carillon,carillon,,14,pitched,stdNormal,F,Carillon,Car.,Carillon,metal.bells.carillon,Carillon,,,F
+orff soprano xylophone,orff-soprano-xylophone,,12,pitched,stdNormal,G8va,Orff Soprano Xylophone,O. S. Xyl.,Orff Soprano Xylophone,pitched-percussion.xylophone.soprano,Orff Soprano Xylophone,,,G8va
+orff alto xylophone,orff-alto-xylophone,,12,pitched,stdNormal,,Orff Alto Xylophone,O. A. Xyl.,Orff Alto Xylophone,pitched-percussion.xylophone.alto,Orff Alto Xylophone,,,
+orff bass xylophone,orff-bass-xylophone,,12,pitched,stdNormal,G8vb,Orff Bass Xylophone,O. B. Xyl.,Orff Bass Xylophone,pitched-percussion.xylophone.soprano,Orff Bass Xylophone,,,G8vb
+metallophone,metallophone,,11,pitched,stdNormal,,Metallophone,Met.,Metallophone,pitched-percussion.metallophone,Metallophone,,,
+orff soprano metallophone,orff-soprano-metallophone,,11,pitched,stdNormal,G8va,Orff Soprano Metallophone,O. S. Met.,Orff Soprano Metallophone,pitched-percussion.metallophone.soprano,Orff Soprano Metallophone,,,G8va
+orff alto metallophone,orff-alto-metallophone,,11,pitched,stdNormal,,Orff Alto Metallophone,O. A. Met.,Orff Alto Metallophone,pitched-percussion.metallophone.alto,Orff Alto Metallophone,,,
+orff bass metallophone,orff-bass-metallophone,,11,pitched,stdNormal,G8vb,Orff Bass Metallophone,O. B. Met.,Orff Bass Metallophone,pitched-percussion.metallophone.bass,Orff Bass Metallophone,,,G8vb
+chimes,tubular-bells,,14,pitched,stdNormal,,Chimes,Cme.,Chimes,pitched-percussion.tubular-bells,Chimes,,,
+steel drums,steel-drums,,114,pitched,stdNormal,F,Steel Drums,St. Dr.,Steel Drums,metal.steel-drums,Steel Drums,,,F
+soprano steel drums,soprano-steel-drums,,114,pitched,stdNormal,,Soprano Steel Drums,S. St. Dr.,Soprano Steel Drums,metal.steel-drums,Soprano Steel Drums,,,
+alto steel drums,alto-steel-drums,,114,pitched,stdNormal,,Alto Steel Drums,A. St. Dr.,Alto Steel Drums,metal.steel-drums,Alto Steel Drums,,,
+guitar steel drums,guitar-steel-drums,,114,pitched,stdNormal,,Guitar Steel Drums,Gtr. St. Dr.,Guitar Steel Drums,metal.steel-drums,Guitar Steel Drums,,,
+tenor steel drums,tenor-steel-drums,,114,pitched,stdNormal,G8vb,Tenor Steel Drums,T. St. Dr.,Tenor Steel Drums,metal.steel-drums,Tenor Steel Drums,,,G8vb
+cello steel drums,cello-steel-drums,,114,pitched,stdNormal,G8vb,Cello Steel Drums,Ce. St. Dr.,Cello Steel Drums,metal.steel-drums,Cello Steel Drums,,,G8vb
+bass steel drums,bass-steel-drums,,114,pitched,stdNormal,F,Bass Steel Drums,B. St. Dr.,Bass Steel Drums,metal.steel-drums,Bass Steel Drums,,,F
+hand bells,hand-bells,,112,pitched,stdNormal,F,Hand Bells,Ha. Be.,Hand Bells,pitched-percussion.handbells,Hand Bells,,,F
+tuned gongs,tuned-gongs,,14,pitched,stdNormal,F,Tuned Gongs,Td. Gon.,Tuned Gongs,metal.gong,Tuned Gongs,,,F
+flexatone,flexatone,,14,pitched,stdNormal,G8va,Flexatone,Flt.,Flexatone,metal.flexatone,Flexatone,,,G8va
+musical saw,musical-saw,,92,pitched,stdNormal,,Musical Saw,Mu. Sw.,Musical Saw,metal.musical-saw,Musical Saw,,,
+musical glasses,musical-glasses,,93,pitched,stdNormal,G8va,Musical Glasses,Mu. Gla.,Musical Glasses,pitched-percussion.crystal-glasses,Musical Glasses,,,G8va
+glass harmonica,glass-harmonica,,92,pitched,stdNormal,,Glass Harmonica,Gla. Har.,Glass Harmonica,pitched-percussion.glass-harmonica,Glass Harmonica,,,
+orff soprano glockenspiel,orff-soprano-glockenspiel,,9,pitched,stdNormal,G15ma,Orff Soprano Glockenspiel,O. S. Glk.,Orff Soprano Glockenspiel,pitched-percussion.glockenspiel.soprano,Orff Soprano Glockenspiel,,,G15ma
+orff alto glockenspiel,orff-alto-glockenspiel,,9,pitched,stdNormal,G8va,Orff Alto Glockenspiel,O. A. Glk.,Orff Alto Glockenspiel,pitched-percussion.glockenspiel.alto,Orff Alto Glockenspiel,,,G8va
+crotales,crotales,,10,pitched,stdNormal,,Crotales,Crot.,Crotales,metal.crotales,Crotales,,,
+tubaphone,tubaphone,,47,pitched,stdNormal,G15ma,Tubaphone,Tph.,Tubaphone,,Tubaphone,,,G15ma
+almglocken,almglocken,,108,pitched,stdNormal,F15ma,Almglocken,Almg.,Almglocken,metal.bells.almglocken,Almglocken,,,G15ma
+roto-toms,roto-toms,,117,pitched,stdNormal,,Roto-Toms,Roto,Roto-Toms,drum.rototom,Roto-Toms,,,
+conch,conch,,60,pitched,stdNormal,F,Conch,Cnch.,Conch,brass.conch-shell,Conch,,,F
+didgeridoo,didgeridoo,,57,pitched,stdNormal,F,Didgeridoo,Doo.,Didgeridoo,brass.didgeridoo,Didgeridoo,,,F
+horagai,horagai,,60,pitched,stdNormal,F,Horagai,Hor.,Horagai,brass.horagai,Horagai,,,F
+shofar,shofar,,60,pitched,stdNormal,G8vb,Shofar,Sho.,Shofar,brass.shofar,Shofar,,,G8vb
+vuvuzela,vuvuzela,,56,pitched,stdNormal,,Vuvuzela,Vuv.,Vuvuzela,brass.vuvuzela,Vuvuzela,,,
+helicon,helicon,,58,pitched,stdNormal,F,Helicon,Helicon,Helicon,brass.helicon,Helicon,,,F
+sousaphone,sousaphone,,58,pitched,stdNormal,F,Sousaphone,Sphn.,Sousaphone,brass.sousaphone,Sousaphone,,,F
+b♭ sousaphone,bb-sousaphone,,58,pitched,stdNormal,F,B♭ Sousaphone,B♭ Sphn.,B♭ Sousaphone,brass.sousaphone,B♭ Sousaphone,,,F
+euphonium,euphonium,,58,pitched,stdNormal,F,Euphonium,Euph.,Euphonium,brass.euphonium,Euphonium,,,F
+euphonium (treble clef),euphonium-treble,,58,pitched,stdNormal,,Euphonium,Euph.,Euphonium (Treble Clef),brass.euphonium,Euphonium (Treble Clef),,,
+fiscorn,fiscorn,open,56,pitched,stdNormal,,Fiscorn,Fsc.,Fiscorn,brass.fiscorn,Fiscorn,,,
+kuhlohorn,kuhlohorn,open,56,pitched,stdNormal,,Kuhlohorn,Klhn.,Kuhlohorn,brass.kuhlohorn,Kuhlohorn,,,
+euphonium bugle,euphonium-bugle,,58,pitched,stdNormal,,Euphonium Bugle,Euph. Bu.,Euphonium Bugle,brass.bugle.euphonium-bugle,Euphonium Bugle,,,
+mellophone bugle,mellophon-bugle,,58,pitched,stdNormal,,Mellophone Bugle,Mello. Bu.,Mellophone Bugle,brass.bugle.mellophone-bugle,Mellophone Bugle,,,
+contrabass bugle,contrabass-bugle,,58,pitched,stdNormal,,Contrabass Bugle,Cb. Bu.,Contrabass Bugle,brass.bugle.contrabass,Contrabass Bugle,,,
+mellophone,mellophone,,60,pitched,stdNormal,,Mellophone,Mello.,Mellophone,brass.mellophone,Mellophone,,,
+ophicleide,ophicleide,,56,pitched,stdNormal,F,Ophicleide,Oph.,Ophicleide,brass.ophicleide,Ophicleide,,,F
+f alto ophicleide,f-alto-ophicleide,,56,pitched,stdNormal,,F Alto Ophicleide,F A. Oph.,F Alto Ophicleide,brass.ophicleide,F Alto Ophicleide,,,
+e♭ alto ophicleide,eb-alto-ophicleide,,56,pitched,stdNormal,,E♭ Alto Ophicleide,E♭ A. Oph.,E♭ Alto Ophicleide,brass.ophicleide,E♭ Alto Ophicleide,,,
+c bass ophicleide,c-bass-ophicleide,,56,pitched,stdNormal,F,C Bass Ophicleide,C B. Oph.,C Bass Ophicleide,brass.ophicleide,C Bass Ophicleide,,,F
+b♭ bass ophicleide,bb-bass-ophicleide,,56,pitched,stdNormal,F,B♭ Bass Ophicleide,B♭ B. Oph.,B♭ Bass Ophicleide,brass.ophicleide,B♭ Bass Ophicleide,,,F
+e♭ contrabass ophicleide,eb-contrabass-ophicleide,,56,pitched,stdNormal,F,E♭ Contrabass Ophicleide,E♭ Cb. Oph.,E♭ Contrabass Ophicleide,brass.ophicleide,E♭ Contrabass Ophicleide,,,F
+cornettino,cornettino,,56,pitched,stdNormal,,Cornettino,Co.,Cornettino,brass.cornettino,Cornettino,,,
+cornett,cornett,,56,pitched,stdNormal,,Cornett,Co.,Cornett,brass.cornett,Cornett,,,
+soprano cornett,soprano-cornett,,56,pitched,stdNormal,,Soprano Cornett,S. Co.,Soprano Cornett,brass.cornett,Soprano Cornett,,,
+alto cornett,alto-cornett,,56,pitched,stdNormal,,Alto Cornett,A. Co.,Alto Cornett,brass.cornett,Alto Cornett,,,
+tenor cornett,tenor-cornett,,56,pitched,stdNormal,G8vb,Tenor Cornett,T. Co.,Tenor Cornett,brass.cornett.tenor,Tenor Cornett,,,G8vb
+serpent,serpent,,56,pitched,stdNormal,F,Serpent,Spt.,Serpent,brass.serpent,Serpent,,,F
+alto sackbut,alto-sackbut,,57,pitched,stdNormal,G8vb,Alto Sackbut,A. Sack.,Alto Sackbut,brass.sackbutt.alto,Alto Sackbut,,,G8vb
+tenor sackbut,tenor-sackbut,,57,pitched,stdNormal,G8vb,Tenor Sackbut,T. Sack.,Tenor Sackbut,brass.sackbutt.tenor,Tenor Sackbut,,,G8vb
+bass sackbut,bass-sackbut,,57,pitched,stdNormal,F,Bass Sackbut,B. Sack.,Bass Sackbut,brass.sackbutt.bass,Bass Sackbut,,,F
+rag dung,rag-dung,open,56,pitched,stdNormal,F,Rag Dung,Rg. Dng.,Rag Dung,brass.rag-dung,Rag Dung,,,F
+bugle,bugle,,58,pitched,stdNormal,,Bugle,Bu.,Bugle,brass.bugle,Bugle,,,
+soprano bugle,soprano-bugle,,58,pitched,stdNormal,,Soprano Bugle,S. Bu.,Soprano Bugle,brass.bugle.soprano,Soprano Bugle,,,
+alto bugle,alto-bugle,,58,pitched,stdNormal,,Alto Bugle,A. Bu.,Alto Bugle,brass.bugle.alto,Alto Bugle,,,
+baritone bugle,baritone-bugle,,58,pitched,stdNormal,,Baritone Bugle,Bar. Bu.,Baritone Bugle,brass.bugle.baritone,Baritone Bugle,,,
+saxhorn,saxhorn,open,60,pitched,stdNormal,,Saxhorn,Saxhorn,Saxhorn,brass.saxhorn,Saxhorn,,,
+f alto horn,f-alto-horn,open,60,pitched,stdNormal,,F Alto Horn,F A. Hn.,F Alto Horn,brass.alto-horn,F Alto Horn,,,
+e♭ alto horn,eb-alto-horn,open,60,pitched,stdNormal,,E♭ Alto Horn,E♭ A. Hn.,E♭ Alto Horn,brass.alto-horn,E♭ Alto Horn,,,
+baritone horn,baritone-horn,open,60,pitched,stdNormal,F,Baritone Horn,Bar. Hn.,Baritone Horn,brass.baritone-horn,Baritone Horn,,,F
+baritone horn (treble clef),baritone-horn-treble,open,60,pitched,stdNormal,,Baritone Horn,Bar. Hn.,Baritone Horn (Treble Clef),brass.baritone-horn,Baritone Horn (Treble Clef),,,
+baritone horn (central europe),baritone-horn-central-europe,open,60,pitched,stdNormal,F,Baritone Horn,Bar. Hn.,Baritone Horn (Central Europe),brass.baritone-horn,Baritone Horn (Central Europe),,,F
+"baritone horn (central europe, treble clef)",baritone-horn-central-europe-treble,open,60,pitched,stdNormal,,Baritone Horn,Bar. Hn.,"Baritone Horn (Central Europe, Treble Clef)",brass.baritone-horn,"Baritone Horn (Central Europe, Treble Clef)",,,
+posthorn,posthorn,open,60,pitched,stdNormal,F,Posthorn,Psthn.,Posthorn,brass.posthorn,Posthorn,,,F
+alphorn,alphorn,,60,pitched,stdNormal,F,Alphorn,AlpHn.,Alphorn,brass.alphorn,Alphorn,,,F
+harmonica,harmonica,,22,pitched,stdNormal,,Harmonica,Harm.,Harmonica,wind.reed.harmonica,Harmonica,,,
+12 hole c chromatic harmonica,harmonica-c12c,,22,pitched,stdNormal,,12 Hole C Chromatic Harmonica,Harm.,12 Hole C Chromatic Harmonica,wind.reed.harmonica,12 Hole C Chromatic Harmonica,,,
+14 hole c chromatic harmonica,harmonica-c14c,,22,pitched,stdNormal,,14 Hole C Chromatic Harmonica,Harm.,14 Hole C Chromatic Harmonica,wind.reed.harmonica,14 Hole C Chromatic Harmonica,,,
+12 hole g chromatic harmonica,harmonica-c12g,,22,pitched,stdNormal,,12 Hole G Chromatic Harmonica,Harm.,12 Hole G Chromatic Harmonica,wind.reed.harmonica,12 Hole G Chromatic Harmonica,,,
+16 hole c chromatic harmonica,harmonica-c16c,,22,pitched,stdNormal,,16 Hole C Chromatic Harmonica,Harm.,16 Hole C Chromatic Harmonica,wind.reed.harmonica,16 Hole C Chromatic Harmonica,,,
+12 hole tenor c chromatic harmonica,harmonica-c12tenor-c,,22,pitched,stdNormal,G8vb,12 Hole Tenor C Chromatic Harmonica,Harm.,12 Hole Tenor C Chromatic Harmonica,wind.reed.harmonica,12 Hole Tenor C Chromatic Harmonica,,,G8vb
+10 hole high g diatonic harmonica,harmonica-d12high-g,,22,pitched,stdNormal,,10 Hole High G Diatonic Harmonica,Harm.,10 Hole High G Diatonic Harmonica,wind.reed.harmonica,10 Hole High G Diatonic Harmonica,,,
+10 hole f diatonic harmonica,harmonica-d12f,,22,pitched,stdNormal,,10 Hole F Diatonic Harmonica,Harm.,10 Hole F Diatonic Harmonica,wind.reed.harmonica,10 Hole F Diatonic Harmonica,,,
+10 hole d diatonic harmonica,harmonica-d12d,,22,pitched,stdNormal,,10 Hole D Diatonic Harmonica,Harm.,10 Hole D Diatonic Harmonica,wind.reed.harmonica,10 Hole D Diatonic Harmonica,,,
+10 hole c diatonic harmonica,harmonica-d12c,,22,pitched,stdNormal,,10 Hole C Diatonic Harmonica,Harm.,10 Hole C Diatonic Harmonica,wind.reed.harmonica,10 Hole C Diatonic Harmonica,,,
+10 hole a diatonic harmonica,harmonica-d12a,,22,pitched,stdNormal,,10 Hole A Diatonic Harmonica,Harm.,10 Hole A Diatonic Harmonica,wind.reed.harmonica,10 Hole A Diatonic Harmonica,,,
+10 hole g diatonic harmonica,harmonica-d12-g,,22,pitched,stdNormal,,10 Hole G Diatonic Harmonica,Harm.,10 Hole G Diatonic Harmonica,wind.reed.harmonica,10 Hole G Diatonic Harmonica,,,
+10 hole low d diatonic harmonica,harmonica-d10low-d,,22,pitched,stdNormal,G8vb,10 Hole Low D Diatonic Harmonica,Harm.,10 Hole Low D Diatonic Harmonica,wind.reed.harmonica,10 Hole Low D Diatonic Harmonica,,,G8vb
+20 hole chordet harmonica,harmonica-chordet,,22,pitched,stdNormal,G8vb,20 Hole Chordet Harmonica,Harm.,20 Hole Chordet Harmonica,wind.reed.harmonica,20 Hole Chordet Harmonica,,,G8vb
+bass harmonica,bass-harmonica,,22,pitched,stdNormal,F,Bass Harmonica,Bs. Harm.,Bass Harmonica,wind.reed.harmonica.bass,Bass Harmonica,,,F
+bass hohner harmonica,bass-harmonica-hohner,,22,pitched,stdNormal,F,Bass Hohner Harmonica,Bs. Harm.,Bass Hohner Harmonica,wind.reed.harmonica.bass,Bass Hohner Harmonica,,,F
+bass huang harmonica,bass-harmonica-huang,,22,pitched,stdNormal,F,Bass Huang Harmonica,Bs. Harm.,Bass Huang Harmonica,wind.reed.harmonica.bass,Bass Huang Harmonica,,,F
+accordion,accordion,,21,pitched,stdNormal,F,Accordion,Acc.,Accordion,keyboard.accordion,Accordion,,,F
+bandoneon,bandoneon,,23,pitched,stdNormal,F,Bandoneon,Ban.,Bandoneon,keyboard.bandoneon,Bandoneon,,,F
+concertina,concertina,,21,pitched,stdNormal,F,Concertina,Conc.,Concertina,keyboard.concertina,Concertina,,,F
+melodica,melodica,,22,pitched,stdNormal,,Melodica,Mel.,Melodica,wind.reed.melodica,Melodica,,,
+sheng,sheng,,20,pitched,stdNormal,,Sheng,She.,Sheng,wind.reed.sheng,Sheng,,,
+soprano sheng,soprano-sheng,,20,pitched,stdNormal,,Soprano Sheng,S She.,Soprano Sheng,wind.reed.sheng,Soprano Sheng,,,
+alto sheng,alto-sheng,,20,pitched,stdNormal,C3,Alto Sheng,A She.,Alto Sheng,wind.reed.sheng,Alto Sheng,,,C3
+tenor sheng,tenor-sheng,,20,pitched,stdNormal,C4,Tenor Sheng,T She.,Tenor Sheng,wind.reed.sheng,Tenor Sheng,,,C4
+bass sheng,bass-sheng,,20,pitched,stdNormal,F,Bass Sheng,B She.,Bass Sheng,wind.reed.sheng,Bass Sheng,,,F
+brass,brass,,61,pitched,stdNormal,F,Brass,Br.,Brass,brass.group,Brass,,,F
