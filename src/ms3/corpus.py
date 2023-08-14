@@ -3530,7 +3530,6 @@ def parse_tsv_file(file, logger) -> pd.DataFrame:
         return df
     except Exception as e:
         logger.info(
-            return_str=f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as "
-            f"**kwargs."
-            f"\n{path}\nError: {e}"
+            f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as "
+            f"**kwargs.\n{path}\nError: {e}"
         )
