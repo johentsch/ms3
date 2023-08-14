@@ -3013,17 +3013,11 @@ class Instrumentation(LoggedClass):
             ]
         )  # which staves share this part
         if len(staves_within_part) > 0:
-            damaged_upd_staves = list(
-                filter(
-                    None,
-                    [
-                        staff_key
-                        if new_values["id"] != self.updated[staff_key]
-                        else None
-                        for staff_key in set(staves_within_part) & self.updated.keys()
-                    ],
-                )
-            )
+            damaged_upd_staves = [
+                staff_key
+                for staff_key in set(staves_within_part) & self.updated.keys()
+                if staff_key and new_values["id"] != self.updated[staff_key]
+            ]
             if len(damaged_upd_staves) > 0:
                 damaged_dict = {elem: self.updated[elem] for elem in damaged_upd_staves}
                 damaged_dict[staff_id] = new_values["id"]
