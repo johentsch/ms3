@@ -339,6 +339,7 @@ class _MSCX_bs4(LoggedClass):
                 for voice_id, voice_node in enumerate(voice_nodes, start=1):
                     if not self.read_only:
                         self.tags[mc][staff_id][voice_id] = defaultdict(list)
+                    # (re-)initialize variables for this voice's pass through the <Measure> tag
                     current_position = Fraction(0)
                     duration_multiplier = Fraction(1)
                     multiplier_stack = [Fraction(1)]
@@ -360,14 +361,17 @@ class _MSCX_bs4(LoggedClass):
                             event["chord_id"] = chord_id
                             grace = event_node.find(grace_tags)
 
-                            dur, dot_multiplier = bs4_chord_duration(
+                            event_duration, dot_multiplier = bs4_chord_duration(
                                 event_node, duration_multiplier
                             )
                             if grace:
                                 event["gracenote"] = grace.name
                             else:
-                                event["duration"] = dur
+                                event["duration"] = event_duration
                             chord_info = dict(event)
+                            # chord_info is a copy of the basic properties of the <Chord> that will be copied for each
+                            # included <Note> and <Rest>; whereas the event dict will be updated with additional
+                            # elements that make it into the "chords" and the "events" table
 
                             tremolo_tag = event_node.find("Tremolo")
                             if tremolo_tag:
@@ -380,18 +384,33 @@ class _MSCX_bs4(LoggedClass):
                                 if tremolo_duration_node:
                                     # the tremolo has two components that factually start sounding
                                     # on the same onset, but are encoded as two subsequent <Chord> tags
-                                    tremolo_duration = tremolo_duration_node.string
+                                    tremolo_duration_string = (
+                                        tremolo_duration_node.string
+                                    )
+                                    tremolo_duration_fraction = Fraction(
+                                        tremolo_duration_string
+                                    )
                                     tremolo_component = 1
                                 else:
                                     # the tremolo consists of one <Chord> only
-                                    tremolo_duration = dur
+                                    tremolo_duration_string = str(event_duration)
                             elif tremolo_component == 1:
+                                # The previous <Chord> was the first component of a tremolo, so this one is marked
+                                # as second component in the notes list (expected to have a <duration> tag of the
+                                # same length). The pointer is set back by half the tremolo's length, which is the
+                                # duration by which the first component had set it forward (see below). This was
+                                # necessary to allow for the correct computation of positions encoded via <location>
+                                # relative to the first component.
                                 tremolo_component = 2
+                                current_position -= tremolo_duration_fraction
+                                event["mc_onset"] = current_position
+                                chord_info["mc_onset"] = current_position
                             if tremolo_type:
                                 chord_info[
                                     "tremolo"
-                                ] = f"{tremolo_duration}_{tremolo_type}_{tremolo_component}"
+                                ] = f"{tremolo_duration_string}_{tremolo_type}_{tremolo_component}"
                                 if tremolo_component in (0, 2):
+                                    # delete 'tremolo_type' which signals that the <Chord> is part of a tremolo
                                     tremolo_type = None
                                 if tremolo_component == 2:
                                     completing_duration_node = event_node.find(
@@ -403,7 +422,7 @@ class _MSCX_bs4(LoggedClass):
                                         )
                                         if (
                                             duration_to_complete_tremolo
-                                            != tremolo_duration
+                                            != tremolo_duration_string
                                         ):
                                             self.logger.warning(
                                                 "Two components of tremolo have non-matching <duration>"
@@ -514,9 +533,8 @@ class _MSCX_bs4(LoggedClass):
                                         text_excluding_html,
                                     )
                                     if metronome_match:
-                                        base, value = metronome_match.group(
-                                            1
-                                        ), metronome_match.group(2)
+                                        base = metronome_match.group(1)
+                                        value = metronome_match.group(2)
                                         safe_update_event("metronome_base", base)
                                         safe_update_event(
                                             "metronome_number", float(value)
@@ -567,7 +585,7 @@ class _MSCX_bs4(LoggedClass):
                                         f"which I did not know how to handle. I stored it in the column "
                                         f"{parent_name}_text."
                                     )
-                                    column_name = safe_update_event(
+                                    safe_update_event(
                                         parent_name + "_text", text_including_html
                                     )
                             event_list.append(event)
@@ -584,12 +602,20 @@ class _MSCX_bs4(LoggedClass):
                                 position += event["duration"]
                             self.tags[mc][staff_id][voice_id][position].append(remember)
 
-                        if tremolo_component != 1:
+                        if tremolo_component == 1 and event_name == "Chord":
                             # In case a tremolo appears in the score as two subsequent events of equal length,
-                            # MuseScore assigns a <duration> of half the note value to both components of a tremolo.
+                            # (rather than a single tremolo event), the first <Chord> contains a <Tremolo> tag and
+                            # MuseScore assigns a <duration> of half the note value to both <Chord> components.
                             # The parser, instead, assigns the actual note value and the same position to both the
-                            # <Chord> with the <Tremolo> tag and the following one. In other words, the current_position
-                            # pointer is moved forward in all cases except for the first component of a tremolo
+                            # <Chord> with the <Tremolo> tag and the following one. The current_position pointer,
+                            # however, needs to move forward as the <duration> of the first component specifies in
+                            # order to handle <location> tags correctly that might occur between the two tremolo
+                            # components (e.g., the first harmonx in liszt_pelerinage/160.06_Vallee_dObermann, m. 121).
+                            # This is achieved by moving the pointer forward by half the length of the tremolo after
+                            # the first component (which is happening right here), and then substracting it again
+                            # before adding the second component (see above in the code).
+                            current_position += tremolo_duration_fraction
+                        else:
                             current_position += event["duration"]
 
                 measure_list.append(measure_info)
