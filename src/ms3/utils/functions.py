@@ -5236,7 +5236,7 @@ def parse_ignored_warnings(
             else:
                 try:
                     # if the annotator copied too much, cut off the redundant information at the end
-                    redundant = message.index(" -- ")
+                    redundant = message.index(" --")
                     message = message[:redundant]
                 except ValueError:
                     pass
