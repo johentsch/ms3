@@ -74,6 +74,8 @@
 .. |voice| replace:: :ref:`voice <voice>`
 """
 
+from __future__ import annotations
+
 import difflib
 import logging
 import os
@@ -90,6 +92,7 @@ from typing import (
     Collection,
     Dict,
     Hashable,
+    Iterable,
     List,
     Literal,
     Optional,
@@ -1781,6 +1784,45 @@ and {loc_after} before the subsequent {nxt_name}."""
             remember.append(dict(name="location", duration=loc_after, tag=location))
         return remember
 
+    def make_excerpt(self, included_mcs: Iterable[int] | int) -> Excerpt:
+        """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
+        the given integers is inconsequential because measures are always printed in the order in which they appear in
+        the score.
+
+        Args:
+            included_mcs:
+                List of measure counts to be included in the excerpt. Pass a single integer to get an excerpt from
+                that MC to the end of the piece.
+        """
+        available_mcs = self.ml().mc.to_list()
+        last_mc = max(available_mcs)
+        if isinstance(included_mcs, int):
+            assert (
+                included_mcs in available_mcs
+            ), f"Score has no measure count {included_mcs} (available: 1 - {last_mc})"
+            excluded_mcs = set(range(1, included_mcs))
+        else:
+            not_available = [mc for mc in included_mcs if mc not in available_mcs]
+            assert (
+                len(not_available) == 0
+            ), f"Score has no measure counts {not_available} (available: 1 - {last_mc})"
+            excluded_mcs = set(mc for mc in available_mcs if mc not in included_mcs)
+        assert excluded_mcs != available_mcs, (
+            f"Cannot create an excerpt not containing no measures, which would be the result for included_mcs="
+            f"{included_mcs}."
+        )
+        soup = copy(self.soup)
+        part_tag = soup.find("Part")
+        if part_tag is None:
+            staff_tag_iterator = soup.find_all("Staff")
+        else:
+            staff_tag_iterator = part_tag.find_next_siblings("Staff")
+        for staff_tag in staff_tag_iterator:
+            for mc, measure_tag in enumerate(staff_tag.find_all("Measure"), 1):
+                if mc in excluded_mcs:
+                    measure_tag.decompose()
+        return Excerpt(soup, logger_cfg=self.logger_cfg)
+
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
@@ -2698,6 +2740,14 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         self.measure_nodes = {k: None for k in self.measure_nodes.keys()}
         self.read_only = True
         return self.__dict__
+
+
+class Excerpt(_MSCX_bs4):
+    """Takes a copy of :attr:`_MSCX_bs4.soup` and eliminates all <Measure> tags that do not correspond to the given
+    list of MCs.
+    """
+
+    pass
 
 
 # ######################################################################
