@@ -93,6 +93,7 @@ from typing import (
     Dict,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Literal,
     Optional,
@@ -1787,7 +1788,9 @@ and {loc_after} before the subsequent {nxt_name}."""
     def make_excerpt(self, included_mcs: Iterable[int] | int) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
-        the score.
+        the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
+        the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
+        signatures.
 
         Args:
             included_mcs:
@@ -1801,12 +1804,14 @@ and {loc_after} before the subsequent {nxt_name}."""
                 included_mcs in available_mcs
             ), f"Score has no measure count {included_mcs} (available: 1 - {last_mc})"
             excluded_mcs = set(range(1, included_mcs))
+            first_mc = included_mcs
         else:
             not_available = [mc for mc in included_mcs if mc not in available_mcs]
             assert (
                 len(not_available) == 0
             ), f"Score has no measure counts {not_available} (available: 1 - {last_mc})"
             excluded_mcs = set(mc for mc in available_mcs if mc not in included_mcs)
+            first_mc = min(included_mcs)
         assert excluded_mcs != available_mcs, (
             f"Cannot create an excerpt not containing no measures, which would be the result for included_mcs="
             f"{included_mcs}."
@@ -1821,7 +1826,15 @@ and {loc_after} before the subsequent {nxt_name}."""
             for mc, measure_tag in enumerate(staff_tag.find_all("Measure"), 1):
                 if mc in excluded_mcs:
                     measure_tag.decompose()
-        return Excerpt(soup, logger_cfg=self.logger_cfg)
+        mc_measures = self.ml().set_index("mc")
+        first_selected = mc_measures.loc[first_mc]
+        first_keysig = first_selected.keysig
+        return Excerpt(
+            soup,
+            read_only=False,
+            logger_cfg=self.logger_cfg,
+            first_keysig=first_keysig,
+        )
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """Regenerate the measure list from the parsed score with advanced options."""
@@ -2030,41 +2043,41 @@ and {loc_after} before the subsequent {nxt_name}."""
             # only include <harmonyType> tag for harmony_layer 1 and 2 (MuseScore's Nashville Numbers and
             # Roman Numerals)
             if harmony_layer in (1, 2):
-                _ = self.new_tag("harmonyType", value=harmony_layer, within=tag)
+                _ = self.new_tag("harmonyType", value=harmony_layer, append_within=tag)
         if not pd.isnull(leftParen):
-            _ = self.new_tag("leftParen", within=tag)
+            _ = self.new_tag("leftParen", append_within=tag)
         if not pd.isnull(absolute_root):
-            _ = self.new_tag("root", value=absolute_root, within=tag)
+            _ = self.new_tag("root", value=absolute_root, append_within=tag)
         if not pd.isnull(rootCase):
-            _ = self.new_tag("rootCase", value=rootCase, within=tag)
+            _ = self.new_tag("rootCase", value=rootCase, append_within=tag)
         if not pd.isnull(label):
             if label == "/":
                 label = ""
-            _ = self.new_tag("name", value=label, within=tag)
+            _ = self.new_tag("name", value=label, append_within=tag)
         else:
             assert not pd.isnull(
                 absolute_root
             ), "Either label or root need to be specified."
 
         if not pd.isnull(z):
-            _ = self.new_tag("z", value=z, within=tag)
+            _ = self.new_tag("z", value=z, append_within=tag)
         if not pd.isnull(style):
-            _ = self.new_tag("style", value=style, within=tag)
+            _ = self.new_tag("style", value=style, append_within=tag)
         if not pd.isnull(placement):
-            _ = self.new_tag("placement", value=placement, within=tag)
+            _ = self.new_tag("placement", value=placement, append_within=tag)
         if not pd.isnull(minDistance):
-            _ = self.new_tag("minDistance", value=minDistance, within=tag)
+            _ = self.new_tag("minDistance", value=minDistance, append_within=tag)
         if not pd.isnull(nashville):
-            _ = self.new_tag("function", value=nashville, within=tag)
+            _ = self.new_tag("function", value=nashville, append_within=tag)
         if not pd.isnull(absolute_base):
-            _ = self.new_tag("base", value=absolute_base, within=tag)
+            _ = self.new_tag("base", value=absolute_base, append_within=tag)
 
         rgba = color_params2rgba(
             color_name, color_html, color_r, color_g, color_b, color_a
         )
         if rgba is not None:
             attrs = rgba2attrs(rgba)
-            _ = self.new_tag("color", attributes=attrs, within=tag)
+            _ = self.new_tag("color", attributes=attrs, append_within=tag)
 
         if not pd.isnull(offset_x) or not pd.isnull(offset_y):
             if pd.isnull(offset_x):
@@ -2072,10 +2085,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             if pd.isnull(offset_y):
                 offset_y = "0"
             _ = self.new_tag(
-                "offset", attributes={"x": offset_x, "y": offset_y}, within=tag
+                "offset", attributes={"x": offset_x, "y": offset_y}, append_within=tag
             )
         if not pd.isnull(rightParen):
-            _ = self.new_tag("rightParen", within=tag)
+            _ = self.new_tag("rightParen", append_within=tag)
         if after is not None:
             after.insert_after(tag)
         elif before is not None:
@@ -2086,24 +2099,49 @@ and {loc_after} before the subsequent {nxt_name}."""
 
     def new_location(self, location):
         tag = self.new_tag("location")
-        _ = self.new_tag("fractions", value=str(location), within=tag)
+        _ = self.new_tag("fractions", value=str(location), append_within=tag)
         return tag
 
     def new_tag(
-        self, name, value=None, attributes={}, after=None, before=None, within=None
-    ):
+        self,
+        name: str,
+        value: Optional[str] = None,
+        attributes: Optional[dict] = None,
+        after: Optional[bs4.Tag] = None,
+        before: Optional[bs4.Tag] = None,
+        append_within: Optional[bs4.Tag] = None,
+        prepend_within: Optional[bs4.Tag] = None,
+    ) -> bs4.Tag:
+        """Create a new tag with the given name, value and attributes and insert it into the score relative to a
+        given tag. Only one of ``after``, ``before``, ``append_within`` and ``prepend_within`` can be specified.
+
+        Args:
+            name: <name></name>
+            value: <name>value</name> (if specified)
+            attributes: <name key=value, ...></name>
+            after: Insert the tag as sibling following the given tag.
+            before: Insert the tag as sibling preceding the given tag.
+            append_within: Insert the tag as last child of the given tag.
+            prepend_within: Insert the tag as first child of the given tag.
+
+        Returns:
+            The new tag.
+        """
         tag = self.soup.new_tag(name)
         if value is not None:
             tag.string = str(value)
-        for k, v in attributes.items():
-            tag.attrs[k] = v
+        if attributes:
+            for k, v in attributes.items():
+                tag.attrs[k] = v
 
         if after is not None:
             after.insert_after(tag)
         elif before is not None:
             before.insert_before(tag)
-        elif within is not None:
-            within.append(tag)
+        elif append_within is not None:
+            append_within.append(tag)
+        elif prepend_within is not None:
+            prepend_within.insert(0, tag)
 
         return tag
 
@@ -2742,17 +2780,59 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         return self.__dict__
 
 
+# ##########################################################################
+# ###################### END OF _MSCX_bs4 DEFINITION #######################
+# ##########################################################################
+
+
 class Excerpt(_MSCX_bs4):
     """Takes a copy of :attr:`_MSCX_bs4.soup` and eliminates all <Measure> tags that do not correspond to the given
     list of MCs.
     """
 
-    pass
+    def __init__(
+        self,
+        soup: bs4.BeautifulSoup,
+        read_only: bool = False,
+        logger_cfg: Optional[dict] = None,
+        first_keysig: Optional[int] = None,
+    ):
+        """
+
+        Args:
+            soup: A beautifulsoup4 object representing the MSCX file.
+            read_only:
+                If set to True, all references to XML tags will be removed after parsing to allow the object to be
+                pickled.
+            logger_cfg:
+                The following options are available:
+                'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+                'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+                'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        """
+        super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
+        if first_keysig:  # doesn't call if first_keysig == 0
+            self.set_first_keysig(first_keysig)
+
+    def iter_first_measures(self) -> Iterator[bs4.Tag]:
+        for measure_dict in self.measure_nodes.values():
+            yield measure_dict[1]
+
+    def set_first_keysig(self, first_keysig: int):
+        """Set the key signature of the first measure to the given value."""
+        if first_keysig == 0:
+            self.logger.debug("first_keysig == 0, so I won't set a key signature.")
+            return
+        for measure_tag in self.iter_first_measures():
+            first_voice_tag = measure_tag.find("voice")
+            keysig_tag = measure_tag.find("KeySig")
+            if keysig_tag is None:
+                keysig_tag = self.new_tag("KeySig", prepend_within=first_voice_tag)
+                _ = self.new_tag(
+                    "accidental", value=first_keysig, append_within=keysig_tag
+                )
 
 
-# ######################################################################
-# ###################### END OF CLASS DEFINITION #######################
-# ######################################################################
 class ParsedParts(LoggedClass):
     """
     Storing found parts object from a BeautifulSoup file
