@@ -3110,19 +3110,15 @@ class Prelims(LoggedClass):
     def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
         super().__init__("Prelims", logger_cfg)
         self.soup = soup
-        part = soup.find("Part")
-        first_staff = part.find_next_sibling("Staff")
-        vbox_nodes = first_staff.find_all("VBox")
-        if len(vbox_nodes) == 0:
+        vbox_tag = get_vbox(soup, self.logger)
+        if vbox_tag is None:
             self.vbox = self.soup.new_tag("VBox")
+            part = soup.find("Part")
+            first_staff = part.find_next_sibling("Staff")
             first_staff.insert(0, self.vbox)
             self.logger.debug("Inserted <VBox> at the beginning of the first staff.")
         else:
-            self.vbox = vbox_nodes[0]
-            if len(vbox_nodes) > 1:
-                self.logger.warning(
-                    "First staff starts off with more than one VBox. Picked the first one."
-                )
+            self.vbox = vbox_tag
 
     @property
     def text_tags(self) -> Dict[str, bs4.Tag]:
@@ -3225,6 +3221,26 @@ def get_duration_event(elements):
             name = "<Chord>"
         return ix, name
     return (None, None)
+
+
+def get_vbox(soup: bs4.BeautifulSoup, logger=None) -> Optional[bs4.Tag]:
+    """
+    Returns the first <VBox> tag contained in the first staff, if any, which usually corresponds to the vertical
+    box at the top of a MuseScore file which contains the prelims (title, composer, etc.)
+    """
+    if logger is None:
+        logger = module_logger
+    part = soup.find("Part")
+    first_staff = part.find_next_sibling("Staff")
+    vbox_nodes = first_staff.find_all("VBox")
+    if len(vbox_nodes) == 0:
+        return
+    result = vbox_nodes[0]
+    if len(vbox_nodes) > 1:
+        logger.warning(
+            "First staff starts off with more than one VBox. Picked the first one."
+        )
+    return result
 
 
 def get_part_info(part_tag):
