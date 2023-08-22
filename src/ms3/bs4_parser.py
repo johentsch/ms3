@@ -1828,11 +1828,13 @@ and {loc_after} before the subsequent {nxt_name}."""
                     measure_tag.decompose()
         mc_measures = self.ml().set_index("mc")
         first_selected = mc_measures.loc[first_mc]
+        first_timesig = first_selected.timesig
         first_keysig = first_selected.keysig
         return Excerpt(
             soup,
             read_only=False,
             logger_cfg=self.logger_cfg,
+            first_timesig=first_timesig,
             first_keysig=first_keysig,
         )
 
@@ -2795,6 +2797,7 @@ class Excerpt(_MSCX_bs4):
         soup: bs4.BeautifulSoup,
         read_only: bool = False,
         logger_cfg: Optional[dict] = None,
+        first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
     ):
         """
@@ -2811,6 +2814,8 @@ class Excerpt(_MSCX_bs4):
                 'file': PATH_TO_LOGFILE to store all log messages under the given path.
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
+        if first_timesig:
+            self.set_first_timesig(first_timesig)
         if first_keysig:  # doesn't call if first_keysig == 0
             self.set_first_keysig(first_keysig)
 
@@ -2831,6 +2836,16 @@ class Excerpt(_MSCX_bs4):
                 _ = self.new_tag(
                     "accidental", value=first_keysig, append_within=keysig_tag
                 )
+
+    def set_first_timesig(self, first_timesig: str):
+        sigN, sigD = first_timesig.split("/")
+        for measure_tag in self.iter_first_measures():
+            first_voice_tag = measure_tag.find("voice")
+            timesig_tag = measure_tag.find("TimeSig")
+            if timesig_tag is None:
+                timesig_tag = self.new_tag("TimeSig", prepend_within=first_voice_tag)
+                _ = self.new_tag("sigN", value=sigN, append_within=timesig_tag)
+                _ = self.new_tag("sigD", value=sigD, append_within=timesig_tag)
 
 
 class ParsedParts(LoggedClass):
