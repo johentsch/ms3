@@ -2674,15 +2674,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         self.metadata = self._get_metadata()
 
     def write_score_to_handler(self, file_handler: IO) -> bool:
-        try:
-            mscx_string = bs4_to_mscx(self.soup)
-        except Exception as e:
-            self.logger.error(
-                f"Couldn't output score because of the following error:\n{e}"
-            )
-            return False
-        file_handler.write(mscx_string)
-        return True
+        return write_score_to_handler(self.soup, file_handler, logger=self.logger)
 
     def __getstate__(self):
         """When pickling, make object read-only, i.e. delete the BeautifulSoup object and all references to tags."""
@@ -3653,12 +3645,28 @@ def format_node(node, indent):
     return f"{space}{make_oneliner(node)}\n"
 
 
-def bs4_to_mscx(soup):
+def bs4_to_mscx(soup: bs4.BeautifulSoup):
     """Turn the BeautifulSoup into a string representing an MSCX file"""
     assert soup is not None, "BeautifulSoup XML structure is None"
     initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
+
+
+def write_score_to_handler(
+    soup: bs4.BeautifulSoup,
+    file_handler: IO,
+    logger=None,
+) -> bool:
+    if logger is None:
+        logger = module_logger
+    try:
+        mscx_string = bs4_to_mscx(soup)
+    except Exception as e:
+        logger.error(f"Couldn't output score because of the following error:\n{e}")
+        return False
+    file_handler.write(mscx_string)
+    return True
 
 
 # endregion Functions for writing BeautifulSoup to MSCX file
