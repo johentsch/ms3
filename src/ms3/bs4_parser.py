@@ -174,21 +174,38 @@ class _MSCX_bs4(LoggedClass):
         "1024th": Fraction(1, 1024),
     }
 
-    def __init__(self, mscx_src, read_only=False, logger_cfg={}):
+    @classmethod
+    def from_filepath(
+        cls,
+        mscx_src: str,
+        read_only: bool = False,
+        logger_cfg: Optional[dict] = None,
+    ):
+        with open(mscx_src, "r", encoding="utf-8") as file:
+            soup = bs4.BeautifulSoup(file.read(), "xml")
+        return cls(soup, read_only=read_only, logger_cfg=logger_cfg)
+
+    def __init__(
+        self,
+        soup: bs4.BeautifulSoup,
+        read_only: bool = False,
+        logger_cfg: Optional[dict] = None,
+    ):
         """
 
-        Parameters
-        ----------
-        mscx_src
-        read_only
-        logger_cfg : :obj:`dict`, optional
-            The following options are available:
-            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
-            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
-            'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        Args:
+            soup: A beautifulsoup4 object representing the MSCX file.
+            read_only:
+                If set to True, all references to XML tags will be removed after parsing to allow the object to be
+                pickled.
+            logger_cfg:
+                The following options are available:
+                'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+                'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+                'file': PATH_TO_LOGFILE to store all log messages under the given path.
         """
         super().__init__(subclass="_MSCX_bs4", logger_cfg=logger_cfg)
-        self.soup = None
+        self.soup = soup
         self.metadata = None
         self._metatags = None
         self._measures, self._events, self._notes = (
@@ -196,7 +213,6 @@ class _MSCX_bs4(LoggedClass):
             pd.DataFrame(),
             pd.DataFrame(),
         )
-        self.mscx_src = mscx_src
         self.read_only = read_only
         self.first_mc = 1
         self.measure_nodes = {}
@@ -233,6 +249,7 @@ class _MSCX_bs4(LoggedClass):
         The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut'].
         When creating note tables, the 'name' column will be populated with the names here rather than note names.
         """
+        self.parse_soup()
         self.parse_measures()
         self.perform_checks()
 
@@ -2205,12 +2222,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             self.make_standard_restlist()
         return self._rl
 
-    def parse_mscx(self) -> None:
-        """Load the XML structure from the score in self.mscx_src and store references to staves and measures."""
-        assert self.mscx_src is not None, "No MSCX file specified."
-        with open(self.mscx_src, "r", encoding="utf-8") as file:
-            self.soup = bs4.BeautifulSoup(file.read(), "xml")
-
+    def parse_soup(self):
         if self.version[0] not in ("3", "4"):
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
             raise ValueError(
@@ -2258,7 +2270,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
     def parse_measures(self):
         """Converts the score into the three DataFrame self._measures, self._events, and self._notes"""
         if self.soup is None:
-            self.parse_mscx()
+            raise RuntimeError(
+                f"No BeautifulSoup available, the field has value {self.soup!r}"
+            )
         grace_tags = [
             "grace4",
             "grace4after",

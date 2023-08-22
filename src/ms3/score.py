@@ -1018,7 +1018,7 @@ class MSCX(LoggedClass):
         implemented_parsers = ["bs4"]
         if self.parser in implemented_parsers:
             try:
-                self._parsed = _MSCX_bs4(
+                self._parsed = _MSCX_bs4.from_filepath(
                     self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg
                 )
             except Exception:
