@@ -123,6 +123,7 @@ from .utils import (
     make_playthrough2mc,
     make_playthrough_info,
     ordinal_suffix,
+    replace_index_by_intervals,
     resolve_dir,
     rgb_tuple2format,
     rgba2attrs,
@@ -1797,7 +1798,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 List of measure counts to be included in the excerpt. Pass a single integer to get an excerpt from
                 that MC to the end of the piece.
         """
-        available_mcs = self.ml().mc.to_list()
+        measures = self.measures()
+        available_mcs = measures.mc.to_list()
         last_mc = max(available_mcs)
         if isinstance(included_mcs, int):
             assert (
@@ -1828,11 +1830,24 @@ and {loc_after} before the subsequent {nxt_name}."""
             for mc, measure_tag in enumerate(staff_tag.find_all("Measure"), 1):
                 if mc in excluded_mcs:
                     measure_tag.decompose()
-        mc_measures = self.ml().set_index("mc")
+        mc_measures = measures.set_index("mc")
         first_selected = mc_measures.loc[first_mc]
         first_mn = first_selected.mn
         first_timesig = first_selected.timesig
         first_keysig = first_selected.keysig
+        first_quarterbeat = first_selected.quarterbeats
+        events = self.events()
+        clefs = events[events.event == "Clef"]
+        staff2clef = {}
+        for staff, clefs_df in clefs.groupby("staff"):
+            active_clef_row = get_row_at_quarterbeat(clefs_df, first_quarterbeat)
+            if active_clef_row is not None:
+                clef_values = {
+                    k[5:]: v
+                    for k, v in active_clef_row.items()
+                    if k.startswith("Clef/")
+                }
+                staff2clef[staff] = clef_values
         return Excerpt(
             soup,
             read_only=False,
@@ -1840,6 +1855,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             first_mn=first_mn,
             first_timesig=first_timesig,
             first_keysig=first_keysig,
+            staff2clef=staff2clef,
             final_barline=final_barline,
         )
 
@@ -2805,6 +2821,7 @@ class Excerpt(_MSCX_bs4):
         first_mn: Optional[int] = None,
         first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
+        staff2clef: Optional[dict] = None,
         final_barline: bool = False,
     ):
         """
@@ -2837,6 +2854,8 @@ class Excerpt(_MSCX_bs4):
             self.set_first_timesig(first_timesig)
         if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
+        if staff2clef:
+            self.set_clefs(staff2clef)
         if not final_barline:
             self.remove_final_barline()
 
@@ -2854,6 +2873,21 @@ class Excerpt(_MSCX_bs4):
         for measure_tag in self.iter_last_measures():
             first_voice_tag = measure_tag.find("voice")
             self.new_tag("BarLine", append_within=first_voice_tag)
+
+    def set_clefs(self, staff2clef: Dict[int, Dict[str, str]]):
+        """Set the initial clefs for the given staves."""
+        for staff, tag_value_dict in staff2clef.items():
+            first_measure = self.measure_nodes[staff][1]
+            first_voice = first_measure.find("voice")
+            clef_tag = self.new_tag("Clef", prepend_within=first_voice)
+            for tag, value in tag_value_dict.items():
+                if "/" in tag:
+                    self.logger.debug(
+                        f"Haven't learned how to deal with secondary Clef tags such as Clef/{tag}. "
+                        f"Igoring."
+                    )
+                else:
+                    self.new_tag(tag, value=value, append_within=clef_tag)
 
     def set_first_keysig(self, first_keysig: int):
         """Set the key signature of the first measure to the given value."""
@@ -4063,3 +4097,47 @@ def process_thoroughbass(
             #     cont = 2 if continuation_line_length > 2 else continuation_line_length
             #     components.append((level, cont))
     return components, duration
+
+
+@overload
+def get_row_at_quarterbeat(
+    df: pd.DataFrame, quarterbeat: Literal[None]
+) -> pd.DataFrame:
+    ...
+
+
+@overload
+def get_row_at_quarterbeat(df: pd.DataFrame, quarterbeat: float) -> Optional[pd.Series]:
+    ...
+
+
+def get_row_at_quarterbeat(
+    df: pd.DataFrame, quarterbeat: Optional[float] = None
+) -> Optional[pd.Series] | pd.DataFrame:
+    """Returns the row of a DataFrame that is active at a given quarterbeat by interpreting subsequent intervals of
+     the given dataframe's "quarterbeat" column as activation intervals. That is, the rows are interpreted as
+     consecutive, non-overlapping events and the ``duration_qb`` column is not taken into account for computing the
+     activation intervals. The last interval's right boundary is np.inf, so that all values higher than the latest
+     event resolve to the latest event without needing to now the end of the piece.
+
+    Args:
+        df: DataFrame in which the column "quarterbeat" is monotonically increasing.
+        quarterbeat:
+            The position the active row for which will be returned. If the position does not exist because it's
+            before the first event, None is returned.
+            If None is passed (default), the whole dataframe is returned.
+
+    Returns:
+        The row of the dataframe
+    """
+    df = df.copy()
+    df.duration_qb = (
+        (df.quarterbeats.shift(-1) - df.quarterbeats).astype(float).fillna(np.inf)
+    )
+    df = replace_index_by_intervals(df)
+    if quarterbeat is None:
+        return df
+    try:
+        return df.loc[quarterbeat]
+    except KeyError:
+        return
