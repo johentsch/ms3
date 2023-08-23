@@ -1805,6 +1805,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             ), f"Score has no measure count {included_mcs} (available: 1 - {last_mc})"
             excluded_mcs = set(range(1, included_mcs))
             first_mc = included_mcs
+            final_barline = True
         else:
             not_available = [mc for mc in included_mcs if mc not in available_mcs]
             assert (
@@ -1812,6 +1813,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             ), f"Score has no measure counts {not_available} (available: 1 - {last_mc})"
             excluded_mcs = set(mc for mc in available_mcs if mc not in included_mcs)
             first_mc = min(included_mcs)
+            final_barline = max(included_mcs) == last_mc
         assert excluded_mcs != available_mcs, (
             f"Cannot create an excerpt not containing no measures, which would be the result for included_mcs="
             f"{included_mcs}."
@@ -1838,6 +1840,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             first_mn=first_mn,
             first_timesig=first_timesig,
             first_keysig=first_keysig,
+            final_barline=final_barline,
         )
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
@@ -2802,6 +2805,7 @@ class Excerpt(_MSCX_bs4):
         first_mn: Optional[int] = None,
         first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
+        final_barline: bool = False,
     ):
         """
 
@@ -2821,6 +2825,9 @@ class Excerpt(_MSCX_bs4):
                 Time signature to be displayed at the beginning of the excerpt.
             first_keysig:
                 Key signature to be displayed at the beginning of the excerpt.
+            final_barline:
+                By default, the last barline is prevented from being displayed as ending barline. Pass True if the
+                excerpt's last measure is the final measure.
 
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
@@ -2830,10 +2837,23 @@ class Excerpt(_MSCX_bs4):
             self.set_first_timesig(first_timesig)
         if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
+        if not final_barline:
+            self.remove_final_barline()
 
     def iter_first_measures(self) -> Iterator[bs4.Tag]:
         for measure_dict in self.measure_nodes.values():
             yield measure_dict[1]
+
+    def iter_last_measures(self) -> Iterator[bs4.Tag]:
+        first_staff_measure_dict = self.measure_nodes[1]
+        last_mc = max(first_staff_measure_dict.keys())
+        for measure_dict in self.measure_nodes.values():
+            yield measure_dict[last_mc]
+
+    def remove_final_barline(self):
+        for measure_tag in self.iter_last_measures():
+            first_voice_tag = measure_tag.find("voice")
+            self.new_tag("BarLine", append_within=first_voice_tag)
 
     def set_first_keysig(self, first_keysig: int):
         """Set the key signature of the first measure to the given value."""
