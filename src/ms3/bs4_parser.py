@@ -1786,7 +1786,12 @@ and {loc_after} before the subsequent {nxt_name}."""
             remember.append(dict(name="location", duration=loc_after, tag=location))
         return remember
 
-    def make_excerpt(self, included_mcs: Iterable[int] | int) -> Excerpt:
+    def make_excerpt(
+        self,
+        included_mcs: Iterable[int] | int,
+        globalkey: Optional[str] = None,
+        localkey: Optional[str] = None,
+    ) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
         the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
@@ -1797,6 +1802,13 @@ and {loc_after} before the subsequent {nxt_name}."""
             included_mcs:
                 List of measure counts to be included in the excerpt. Pass a single integer to get an excerpt from
                 that MC to the end of the piece.
+            globalkey:
+                If the excerpt has chord labels, make sure the first label starts with the given global key, e.g.
+                'F#' for F sharp major or 'ab' for A flat minor.
+            localkey:
+                If the excerpt has chord labels, make sure the first label starts with the given local key, e.g.
+                'I' for the major tonic key or '#iv' for the raised subdominant minor key or 'bVII' for the lowered
+                subtonic major key.
         """
         measures = self.measures()
         available_mcs = measures.mc.to_list()
@@ -1857,14 +1869,12 @@ and {loc_after} before the subsequent {nxt_name}."""
                 active_harmony_row = get_row_at_quarterbeat(
                     harmonies, first_quarterbeat
                 )
-                print(active_harmony_row)
                 if active_harmony_row is not None:
                     first_harmony_values = {
                         k[8:]: v
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
-                print(first_harmony_values)
         return Excerpt(
             soup,
             read_only=False,
@@ -1875,6 +1885,8 @@ and {loc_after} before the subsequent {nxt_name}."""
             first_harmony_values=first_harmony_values,
             staff2clef=staff2clef,
             final_barline=final_barline,
+            globalkey=globalkey,
+            localkey=localkey,
         )
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
@@ -2842,6 +2854,8 @@ class Excerpt(_MSCX_bs4):
         first_harmony_values: Optional[Dict[str, str]] = None,
         staff2clef: Optional[Dict[int, Dict[str, str]]] = None,
         final_barline: bool = False,
+        globalkey: Optional[str] = None,
+        localkey: Optional[str] = None,
     ):
         """
 
@@ -2861,9 +2875,6 @@ class Excerpt(_MSCX_bs4):
                 Time signature to be displayed at the beginning of the excerpt.
             first_keysig:
                 Key signature to be displayed at the beginning of the excerpt.
-            final_barline:
-                By default, the last barline is prevented from being displayed as ending barline. Pass True if the
-                excerpt's last measure is the final measure.
             first_harmony_values:
                 If a harmony is to be inserted at the beginning, pass the {tag -> value} dictionary specifying the
                 tags to be appended as children of the <Harmony> tag. If mc_onset 0 already has a <Harmony> tag,
@@ -2873,6 +2884,16 @@ class Excerpt(_MSCX_bs4):
                 A {staff -> {tag -> value}} dictionary specifying one dictionary for each staff at the beginning of
                 which a <Clef> tag is to be created, containing the tags specified in the corresponding dict.
                 Tag names containing a '/' are ignored for now.
+            final_barline:
+                By default, the last barline is prevented from being displayed as ending barline. Pass True if the
+                excerpt's last measure is the final measure.
+            globalkey:
+                If the excerpt has chord labels, make sure the first label starts with the given global key, e.g.
+                'F#' for F sharp major or 'ab' for A flat minor.
+            localkey:
+                If the excerpt has chord labels, make sure the first label starts with the given local key, e.g.
+                'I' for the major tonic key or '#iv' for the raised subdominant minor key or 'bVII' for the lowered
+                subtonic major key.
 
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
@@ -2894,6 +2915,53 @@ class Excerpt(_MSCX_bs4):
         # to append within last <Measure>
         if not final_barline:
             self.remove_final_barline()
+
+        # tags to amend
+        if globalkey or localkey:
+            self.amend_first_harmony_keys(globalkey, localkey)
+
+    def amend_first_harmony_keys(
+        self,
+        globalkey: Optional[str] = None,
+        localkey: Optional[str] = None,
+    ):
+        if globalkey is None and localkey is None:
+            return
+        harmony_tag = self.get_onset_zero_harmony(return_layer=False)
+        if not harmony_tag:
+            self.logger.warning(
+                "Could not find <Harmony> tag at mc_onset 0 to amend keys."
+            )
+            return
+        name_tag, current_label = find_tag_get_string(harmony_tag, "name")
+        if name_tag is None:
+            self.logger.warning(
+                "Could not find <name> tag in <Harmony> tag at mc_onset 0 to amend keys."
+            )
+            return
+        keys_regex = re.compile(
+            r"""
+        ^(\.?
+            ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+            ((?P<localkey>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\.)?
+            (?P<label>.+)
+        )$""",
+            re.VERBOSE,
+        )
+        match = keys_regex.match(current_label)
+        if not match:
+            self.logger.warning(
+                f"Current label {current_label!r} does not match the expected format."
+            )
+            return
+        current_values = match.groupdict()
+        if globalkey:
+            current_values["globalkey"] = globalkey
+        if localkey:
+            current_values["localkey"] = localkey
+        new_label = ".".join(value for value in current_values.values() if value)
+        name_tag.string = new_label
+        self.logger.debug(f"First label {current_label!r} amended to {new_label!r}.")
 
     def iter_first_measures(self) -> Iterator[bs4.Tag]:
         for measure_dict in self.measure_nodes.values():
