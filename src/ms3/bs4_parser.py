@@ -106,6 +106,7 @@ import numpy as np
 import pandas as pd
 from bs4 import NavigableString
 from ms3._version import __version__
+from typing_extensions import Self
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
@@ -184,10 +185,12 @@ class _MSCX_bs4(LoggedClass):
         mscx_src: str,
         read_only: bool = False,
         logger_cfg: Optional[dict] = None,
-    ):
+    ) -> Self:
         with open(mscx_src, "r", encoding="utf-8") as file:
             soup = bs4.BeautifulSoup(file.read(), "xml")
-        return cls(soup, read_only=read_only, logger_cfg=logger_cfg)
+        created_object = cls(soup, read_only=read_only, logger_cfg=logger_cfg)
+        created_object.filepath = mscx_src
+        return created_object
 
     def __init__(
         self,
@@ -209,6 +212,7 @@ class _MSCX_bs4(LoggedClass):
                 'file': PATH_TO_LOGFILE to store all log messages under the given path.
         """
         super().__init__(subclass="_MSCX_bs4", logger_cfg=logger_cfg)
+        self.filepath = None  # is set by :meth:`from_filepath`
         self.soup = soup
         self.metadata = None
         self._metatags = None
@@ -1985,9 +1989,17 @@ and {loc_after} before the subsequent {nxt_name}."""
 
     def make_writeable(self):
         if self.read_only:
+            if not self.filepath:
+                raise RuntimeError(
+                    "Cannot be made writeable because no filepath is stored. Has the object been "
+                    "created directly from BeautifulSoup?"
+                )
+            with open(self.filepath, "r", encoding="utf-8") as file:
+                self.soup = bs4.BeautifulSoup(file.read(), "xml")
             self.read_only = False
             with temporarily_suppress_warnings(self) as self:
                 # This is an automatic re-parse which does not have to be logged again
+                self.parse_soup()
                 self.parse_measures()
 
     def measures(
