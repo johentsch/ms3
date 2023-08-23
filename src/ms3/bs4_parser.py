@@ -92,7 +92,6 @@ from typing import (
     Collection,
     Dict,
     Hashable,
-    Iterable,
     Iterator,
     List,
     Literal,
@@ -1786,9 +1785,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             remember.append(dict(name="location", duration=loc_after, tag=location))
         return remember
 
+    @cache
     def make_excerpt(
         self,
-        included_mcs: Iterable[int] | int,
+        included_mcs: Tuple[int] | int,
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
     ) -> Excerpt:
