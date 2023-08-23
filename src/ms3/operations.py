@@ -700,20 +700,27 @@ def make_coloring_reports_and_warnings(
                 if message_id in ignored_warning_ids:
                     continue
                 test_passes = False
-                if len(t.added_tones) > 0:
-                    added = (
-                        f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} ["
-                        f"{fifths2name(t.added_tones)}]"
-                    )
+                if pd.isnull(t.localkey) or pd.isnull(t.globalkey):
+                    context_msg = "The local and/or global key could not be determined."
                 else:
-                    added = ""
-                msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset})
-                seems not to correspond well to the score (which does not necessarily mean it is wrong).
-In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees
+                    if len(t.added_tones) > 0:
+                        added = (
+                            f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} ["
+                            f"{fifths2name(t.added_tones)}]"
+                        )
+                    else:
+                        added = ""
+                    context_msg = f"""In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees
 {tpc2scale_degree(t.chord_tones, t.localkey, t.globalkey)} [{fifths2name(t.chord_tones)}]{added}.
 The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets,
 a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
 If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed
 by a free-text comment in subsequent lines starting with a space or tab."""
-                piece_logger.warning(msg, extra={"message_id": message_id})
+                msg = (
+                    f"The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems "
+                    f"not to correspond well to the score (which does not necessarily mean it is wrong).\n"
+                )
+                piece_logger.warning(
+                    msg + context_msg, extra={"message_id": message_id}
+                )
     return test_passes
