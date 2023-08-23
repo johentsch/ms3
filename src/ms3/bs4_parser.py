@@ -1848,6 +1848,23 @@ and {loc_after} before the subsequent {nxt_name}."""
                     if k.startswith("Clef/")
                 }
                 staff2clef[staff] = clef_values
+        harmony_selector = events.event == "Harmony"
+        first_harmony_values = None
+        if harmony_selector.any():
+            harmonies = events[harmony_selector].sort_values("quarterbeats")
+            if first_quarterbeat not in harmonies.quarterbeats.values:
+                # harmony labels are present but not on beat 1 of the excerpt, so we will insert the one that's active
+                active_harmony_row = get_row_at_quarterbeat(
+                    harmonies, first_quarterbeat
+                )
+                print(active_harmony_row)
+                if active_harmony_row is not None:
+                    first_harmony_values = {
+                        k[8:]: v
+                        for k, v in active_harmony_row.items()
+                        if k.startswith("Harmony/")
+                    }
+                print(first_harmony_values)
         return Excerpt(
             soup,
             read_only=False,
@@ -1855,6 +1872,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             first_mn=first_mn,
             first_timesig=first_timesig,
             first_keysig=first_keysig,
+            first_harmony_values=first_harmony_values,
             staff2clef=staff2clef,
             final_barline=final_barline,
         )
@@ -2821,7 +2839,8 @@ class Excerpt(_MSCX_bs4):
         first_mn: Optional[int] = None,
         first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
-        staff2clef: Optional[dict] = None,
+        first_harmony_values: Optional[Dict[str, str]] = None,
+        staff2clef: Optional[Dict[int, Dict[str, str]]] = None,
         final_barline: bool = False,
     ):
         """
@@ -2845,17 +2864,34 @@ class Excerpt(_MSCX_bs4):
             final_barline:
                 By default, the last barline is prevented from being displayed as ending barline. Pass True if the
                 excerpt's last measure is the final measure.
+            first_harmony_values:
+                If a harmony is to be inserted at the beginning, pass the {tag -> value} dictionary specifying the
+                tags to be appended as children of the <Harmony> tag. If mc_onset 0 already has a <Harmony> tag,
+                it will be replaced in whatever (staff, voice) layer it occurs. Otherwise, the new tag will be inserted
+                in the first voice of the lowest staff.
+            staff2clef:
+                A {staff -> {tag -> value}} dictionary specifying one dictionary for each staff at the beginning of
+                which a <Clef> tag is to be created, containing the tags specified in the corresponding dict.
+                Tag names containing a '/' are ignored for now.
 
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
+
+        # to prepend within first <Measure>
         if first_mn:  # doesn't call if first_mn == 0
             self.set_first_mn(first_mn)
+
+        # # to prepend within first <voice> (in that order)
+        if first_harmony_values:
+            self.replace_first_harmony(first_harmony_values)
         if first_timesig:
             self.set_first_timesig(first_timesig)
         if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
         if staff2clef:
             self.set_clefs(staff2clef)
+
+        # to append within last <Measure>
         if not final_barline:
             self.remove_final_barline()
 
@@ -2874,6 +2910,29 @@ class Excerpt(_MSCX_bs4):
             first_voice_tag = measure_tag.find("voice")
             self.new_tag("BarLine", append_within=first_voice_tag)
 
+    def replace_first_harmony(self, first_harmony_values: Dict[str, str]):
+        harmony_tag = None
+        for voices_dict in self.tags[1].values():
+            # iterate through staves of MC 1
+            for onset2tags in voices_dict.values():
+                # iterate through voices of current staff
+                if 0 not in onset2tags:
+                    continue
+                for tag_info in onset2tags[0]:
+                    # iterate through all tags at mc_onset 0
+                    if tag_info["name"] == "Harmony":
+                        harmony_tag = tag_info["tag"]
+                        break
+        if harmony_tag is None:
+            harmony_staff = max(self.measure_nodes.keys())  # lowest staff
+            first_measure_tag = self.measure_nodes[harmony_staff][1]
+            first_voice_tag = first_measure_tag.find("voice")
+            harmony_tag = self.new_tag("Harmony", prepend_within=first_voice_tag)
+        else:
+            harmony_tag.clear()  # removes all children
+        for tag, value in first_harmony_values.items():
+            _ = self.new_tag(tag, value=value, append_within=harmony_tag)
+
     def set_clefs(self, staff2clef: Dict[int, Dict[str, str]]):
         """Set the initial clefs for the given staves."""
         for staff, tag_value_dict in staff2clef.items():
@@ -2887,7 +2946,7 @@ class Excerpt(_MSCX_bs4):
                         f"Igoring."
                     )
                 else:
-                    self.new_tag(tag, value=value, append_within=clef_tag)
+                    _ = self.new_tag(tag, value=value, append_within=clef_tag)
 
     def set_first_keysig(self, first_keysig: int):
         """Set the key signature of the first measure to the given value."""
@@ -2913,7 +2972,9 @@ class Excerpt(_MSCX_bs4):
             if i == 0:
                 # the measure number offset is encoded only in the first staff
                 # the offset is first_mn - 1 because the first measure has number 1 by default
-                self.new_tag("noOffset", value=first_mn - 1, prepend_within=measure_tag)
+                _ = self.new_tag(
+                    "noOffset", value=first_mn - 1, prepend_within=measure_tag
+                )
 
     def set_first_timesig(self, first_timesig: str):
         sigN, sigD = first_timesig.split("/")
