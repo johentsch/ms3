@@ -356,28 +356,30 @@ class _MSCX_bs4(LoggedClass):
 
         mc_onset = Fraction(mc_onset)
         label_name = kwargs["decoded"] if "decoded" in kwargs else label
-        if voice not in self.tags[mc][staff]:
+        if voice not in self.tags[mc][staff] or len(self.tags[mc][staff][voice]) == 0:
             # Adding label to an unused voice that has to be created
-            existing_voices = self.measure_nodes[staff][mc].find_all("voice")
+            existing_voices = list(self.measure_nodes[staff][mc].find_all("voice"))
             n = len(existing_voices)
-            if not voice <= n:
+            if voice <= n:
+                last = existing_voices[voice - 1]
+            else:
                 last = existing_voices[-1]
                 while voice > n:
                     last = self.new_tag("voice", after=last)
                     n += 1
-                remember = self.insert_label(
-                    label=label,
-                    loc_before=None if mc_onset == 0 else mc_onset,
-                    within=last,
-                    **kwargs,
-                )
-                self.tags[mc][staff][voice] = defaultdict(list)
-                self.tags[mc][staff][voice][mc_onset] = remember
-                self.logger.debug(
-                    f"Added {label_name} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at mc_onset "
-                    f"{mc_onset}."
-                )
-                return True
+            remember = self.insert_label(
+                label=label,
+                loc_before=None if mc_onset == 0 else mc_onset,
+                within=last,
+                **kwargs,
+            )
+            self.tags[mc][staff][voice] = defaultdict(list)
+            self.tags[mc][staff][voice][mc_onset] = remember
+            self.logger.debug(
+                f"Added {label_name} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at mc_onset "
+                f"{mc_onset}."
+            )
+            return True
 
         measure = self.tags[mc][staff][voice]
         if mc_onset in measure:
@@ -446,19 +448,18 @@ where there is no Chord or Rest, just: {elements}."""
                 self.logger.debug("There had already been a label.")
             return True
 
-        # There is no event to attach the label to
-        ordered = list(reversed(sorted(measure)))
-        assert len(ordered) > 0, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        # There is no event at the given onset to attach the label to
+        ordered_onsets = list(reversed(sorted(measure)))
         try:
             prv_pos, nxt_pos = next(
                 (prv, nxt)
-                for prv, nxt in zip(ordered + [None], [None] + ordered)
+                for prv, nxt in zip(ordered_onsets + [None], [None] + ordered_onsets)
                 if prv < mc_onset
             )
         except Exception:
             self.logger.error(
                 f"No event occurs before onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}. All elements: "
-                f"{ordered}"
+                f"{ordered_onsets}"
             )
             raise
         prv = measure[prv_pos]
