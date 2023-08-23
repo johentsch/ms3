@@ -2911,27 +2911,54 @@ class Excerpt(_MSCX_bs4):
             self.new_tag("BarLine", append_within=first_voice_tag)
 
     def replace_first_harmony(self, first_harmony_values: Dict[str, str]):
-        harmony_tag = None
-        for voices_dict in self.tags[1].values():
+        harmony_tag, staff, voice = self.get_onset_zero_harmony(return_layer=True)
+        if harmony_tag is not None:
+            self.delete_label(mc=1, staff=staff, voice=voice, mc_onset=0)
+        else:
+            staff = -1
+            voice = 1
+        label = first_harmony_values.pop("name", None)
+        harmony_layer = first_harmony_values.pop("harmonyType", None)
+        self.add_label(
+            label=label,
+            mc=1,
+            mc_onset=0,
+            staff=staff,
+            voice=voice,
+            harmony_layer=harmony_layer,
+            **first_harmony_values,
+        )
+
+    @overload
+    def get_onset_zero_harmony(self, return_layer: Literal[False]) -> Optional[bs4.Tag]:
+        ...
+
+    @overload
+    def get_onset_zero_harmony(
+        self, return_layer: Literal[True]
+    ) -> Tuple[Optional[bs4.Tag], int, int]:
+        ...
+
+    def get_onset_zero_harmony(self, return_layer: bool = False) -> Optional[bs4.Tag]:
+        """Iterate through all tags at mc_onset 0 for all notational (staff, voice) layers and return the first
+        <Harmony> tag or None."""
+        for staff, voices_dict in self.tags[1].items():
             # iterate through staves of MC 1
-            for onset2tags in voices_dict.values():
+            for voice, onset2tags in voices_dict.items():
                 # iterate through voices of current staff
                 if 0 not in onset2tags:
                     continue
                 for tag_info in onset2tags[0]:
                     # iterate through all tags at mc_onset 0
                     if tag_info["name"] == "Harmony":
-                        harmony_tag = tag_info["tag"]
-                        break
-        if harmony_tag is None:
-            harmony_staff = max(self.measure_nodes.keys())  # lowest staff
-            first_measure_tag = self.measure_nodes[harmony_staff][1]
-            first_voice_tag = first_measure_tag.find("voice")
-            harmony_tag = self.new_tag("Harmony", prepend_within=first_voice_tag)
+                        if return_layer:
+                            return tag_info["tag"], staff, voice
+                        else:
+                            return tag_info["tag"]
+        if return_layer:
+            return None, None, None
         else:
-            harmony_tag.clear()  # removes all children
-        for tag, value in first_harmony_values.items():
-            _ = self.new_tag(tag, value=value, append_within=harmony_tag)
+            return None
 
     def set_clefs(self, staff2clef: Dict[int, Dict[str, str]]):
         """Set the initial clefs for the given staves."""
