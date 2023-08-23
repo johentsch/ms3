@@ -1828,12 +1828,14 @@ and {loc_after} before the subsequent {nxt_name}."""
                     measure_tag.decompose()
         mc_measures = self.ml().set_index("mc")
         first_selected = mc_measures.loc[first_mc]
+        first_mn = first_selected.mn
         first_timesig = first_selected.timesig
         first_keysig = first_selected.keysig
         return Excerpt(
             soup,
             read_only=False,
             logger_cfg=self.logger_cfg,
+            first_mn=first_mn,
             first_timesig=first_timesig,
             first_keysig=first_keysig,
         )
@@ -2797,6 +2799,7 @@ class Excerpt(_MSCX_bs4):
         soup: bs4.BeautifulSoup,
         read_only: bool = False,
         logger_cfg: Optional[dict] = None,
+        first_mn: Optional[int] = None,
         first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
     ):
@@ -2812,11 +2815,20 @@ class Excerpt(_MSCX_bs4):
                 'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
                 'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
                 'file': PATH_TO_LOGFILE to store all log messages under the given path.
+            first_mn:
+                Measure number to be displayed at the beginning of the excerpt.
+            first_timesig:
+                Time signature to be displayed at the beginning of the excerpt.
+            first_keysig:
+                Key signature to be displayed at the beginning of the excerpt.
+
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
+        if first_mn:  # doesn't call if first_mn == 0
+            self.set_first_mn(first_mn)
         if first_timesig:
             self.set_first_timesig(first_timesig)
-        if first_keysig:  # doesn't call if first_keysig == 0
+        if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
 
     def iter_first_measures(self) -> Iterator[bs4.Tag]:
@@ -2836,6 +2848,18 @@ class Excerpt(_MSCX_bs4):
                 _ = self.new_tag(
                     "accidental", value=first_keysig, append_within=keysig_tag
                 )
+
+    def set_first_mn(self, first_mn: int):
+        """Set the measure number of the first measure to the given value."""
+        for i, measure_tag in enumerate(self.iter_first_measures()):
+            # <irregular> tags need to ensure that the first measure has number 1
+            irregular_tag = measure_tag.find("irregular")
+            if irregular_tag:
+                irregular_tag.decompose()
+            if i == 0:
+                # the measure number offset is encoded only in the first staff
+                # the offset is first_mn - 1 because the first measure has number 1 by default
+                self.new_tag("noOffset", value=first_mn - 1, prepend_within=measure_tag)
 
     def set_first_timesig(self, first_timesig: str):
         sigN, sigD = first_timesig.split("/")
