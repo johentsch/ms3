@@ -77,6 +77,7 @@ from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
 from typing import IO, Collection, Literal, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 from .annotations import Annotations
@@ -1083,8 +1084,6 @@ class MSCX(LoggedClass):
 
     def make_excerpt(
         self,
-        # mc_mode: Optional[Tuple[int, int] | int] = None,
-        # mn_mode: Optional[Tuple[int, int] | int] = None,
         start_mc: Optional[int] = None,
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
@@ -1165,9 +1164,14 @@ class MSCX(LoggedClass):
 
         print(f"Global key: {global_key}, Local key: {local_key}")
 
-        return self.parsed.make_excerpt(
+        excerpt = self.parsed.make_excerpt(
             included_mcs=included_mcs, globalkey=global_key, localkey=local_key
         )
+
+        original_file_name = os.path.splitext(os.path.split(excerpt.filepath)[1])[0]
+        new_file_name = original_file_name + f"_excerpt_{start}-{end}" + ".mscx"
+
+        excerpt.store_score(new_file_name)
 
     def extract_phrases(self):
         """Extract all phrases from the given score. The function will generate a list of tuples,
@@ -1193,9 +1197,7 @@ class MSCX(LoggedClass):
 
         print("Yet to be implemented and tested.")
 
-    def extract_random_snippets(
-        self, number_of_snippets: int = None, length_of_snippets: int = 2
-    ):
+    def extract_random_snippets(self, snippet_number: int, snippet_length: int = 2):
         """Extract random snippets from the given score. The function will generate a list of tuples,
         where in each pair, the first element is the mc for the snippet
         beginning and the second will be the mc for the snippet ending.
@@ -1204,13 +1206,23 @@ class MSCX(LoggedClass):
 
         measures = self.measures()
         mc = measures["mc"]
-        # mn = measures["mn"]
 
         last_mc = mc.iloc[-1]
+        count = snippet_number
 
-        # valid_mc_starts = range(1, last_mc, length_of_snippets)
+        if count > last_mc // snippet_length:
+            count = last_mc // snippet_length
+            print(
+                "Number of snippets exceeds the number of possible snippets. Will extract all possible snippets."
+            )
 
-        print(f"Last measure: {last_mc}")
+        valid_mc_starts = range(1, last_mc, snippet_length)
+        sampled_mc_starts = np.random.choice(valid_mc_starts, count, replace=False)
+
+        print(f"Sampled starting points: {sampled_mc_starts}")
+
+        for mc_start in sampled_mc_starts:
+            self.make_excerpt(start_mc=mc_start, end_mc=(mc_start + snippet_length - 1))
 
 
 # ######################################################################################################################

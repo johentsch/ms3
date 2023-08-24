@@ -1880,7 +1880,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
-        return Excerpt(
+
+        excerpt = Excerpt(
             soup,
             read_only=False,
             logger_cfg=self.logger_cfg,
@@ -1893,6 +1894,9 @@ and {loc_after} before the subsequent {nxt_name}."""
             globalkey=globalkey,
             localkey=localkey,
         )
+
+        excerpt.filepath = self.filepath
+        return excerpt
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """Regenerate the measure list from the parsed score with advanced options."""
