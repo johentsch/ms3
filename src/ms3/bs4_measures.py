@@ -822,7 +822,7 @@ class MeasureList(LoggedClass):
 
 
 class NextColumnMaker(LoggedClass):
-    def __init__(self, df, volta_structure, sections=True, logger_cfg={}):
+    def __init__(self, df, volta_structure, sections=True, logger_cfg=None):
         super().__init__(subclass="NextColumnMaker", logger_cfg=logger_cfg)
         self.sections = sections
         self.mc = df.mc  # Series

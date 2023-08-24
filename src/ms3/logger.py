@@ -3,7 +3,7 @@ import os
 import sys
 from contextlib import contextmanager
 from enum import Enum, unique
-from typing import Iterable, List, Set, Tuple
+from typing import Iterable, List, Optional, Set, Tuple
 
 LEVELS = {
     "DEBUG": logging.DEBUG,
@@ -115,7 +115,9 @@ class LoggedClass:
     _deprecated_elements: List[str] = []
     """Methods and properties named here will be removed from the object's tab completion."""
 
-    def __init__(self, subclass, logger_cfg={}):
+    def __init__(self, subclass: str, logger_cfg: Optional[dict] = None):
+        if logger_cfg is None:
+            logger_cfg = {}
         old_code_warnings = []
         if "logger_cfg" in logger_cfg:
             old_code_warnings.append("logger_cfg")
