@@ -80,7 +80,7 @@ from typing import IO, Collection, Literal, Optional, Tuple
 import pandas as pd
 
 from .annotations import Annotations
-from .bs4_parser import _MSCX_bs4
+from .bs4_parser import Excerpt, _MSCX_bs4, get_row_at_quarterbeat
 from .logger import LoggedClass, get_log_capture_handler
 from .transformations import add_quarterbeats_col
 from .utils import (
@@ -1080,6 +1080,137 @@ class MSCX(LoggedClass):
             )
         else:
             self._annotations = None
+
+    def make_excerpt(
+        self,
+        # mc_mode: Optional[Tuple[int, int] | int] = None,
+        # mn_mode: Optional[Tuple[int, int] | int] = None,
+        start_mc: Optional[int] = None,
+        start_mn: Optional[int] = None,
+        end_mc: Optional[int] = None,
+        end_mn: Optional[int] = None,
+    ) -> Excerpt:
+        """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
+        the given integers is inconsequential because measures are always printed in the order in which they appear in
+        the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
+        the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
+        signatures.
+
+        Args:
+            included_mcs:
+                List of measure counts to be included in the excerpt.
+                Pass a single integer to get an excerpt from that MC to the end of the piece.
+            start_mc:
+                Measure count of the first measure to be included in the excerpt.
+                If ``start_mc`` is given, ``start_mn`` must be None.
+            start_mn:
+                Measure number of the first measure to be included in the excerpt.
+                If ``start_mn`` is given, ``start_mc`` must be None.
+            end_mc:
+                Measure count of the last measure to be included in the excerpt.
+                If ``end_mc`` is given, ``end_mn`` must be None.
+            end_mn:
+                Measure number of the last measure to be included in the excerpt.
+                If ``end_mn`` is given, ``end_mc`` must be None.
+
+        """
+        if (start_mc is None and start_mn is None) or (
+            start_mc is not None and start_mn is not None
+        ):
+            raise ValueError("Exactly one of start_mc or start_mn must be provided.")
+
+        if end_mc is not None and end_mn is not None:
+            raise ValueError(
+                "Exactly one of end_mc or end_mn must be provided or None."
+            )
+
+        measures = self.measures()
+        mc = measures["mc"]
+        mn = measures["mn"]
+        start = 0
+        end = 0
+
+        # Setting starting mc value
+        if start_mc is not None:
+            start = start_mc
+        if start_mn is not None:
+            start = measures["mc"][mn[mn == start_mn].first_valid_index()]
+
+        quarterbeat_start = measures["quarterbeats"][
+            mc[mc == start].first_valid_index()
+        ]
+
+        # Setting ending mc value
+        if end_mc is not None:
+            end = end_mc
+        if end_mn is not None:
+            end = measures["mc"][mn[mn == end_mn].last_valid_index()]
+        if end_mc is None and end_mn is None:
+            end = measures["mc"].iloc[-1]
+
+        if end < start:
+            raise ValueError(
+                f"End measure ({end}) must be greater than start measure ({start})."
+            )
+
+        included_mcs = tuple(range(start, end + 1))
+
+        print(
+            f"Start: {start}, End: {end}. Total number of measures: {len(included_mcs)}"
+        )
+
+        row = get_row_at_quarterbeat(df=self.expanded(), quarterbeat=quarterbeat_start)
+        global_key = row["globalkey"]
+        local_key = row["localkey"]
+
+        print(f"Global key: {global_key}, Local key: {local_key}")
+
+        return self.parsed.make_excerpt(
+            included_mcs=included_mcs, globalkey=global_key, localkey=local_key
+        )
+
+    def extract_phrases(self):
+        """Extract all phrases from the given score. The function will generate a list of tuples,
+        where in each pair, the first element is the mc for the phrase beginning
+        and the second will be the mc for the phrase ending.
+        For each of these pairs, the function will call make_excerpt() to generate an excerpt for the phrase.
+        """
+
+        # phrases = self.expanded()["phraseend"]
+
+        # for i in range(len(phrases)):
+        #     phrase = tuple(None, None)
+        #     if phrases[i] == "{":
+        #         phrase[0] = i
+        #     if phrases[i] == "}":
+        #         phrase[1] = i
+        #     if  phrases[i] == "}{":
+        #         phrase[0] = None
+        #         phrase[1] = None
+
+        #     if phrase[0] is not None and phrase[1] is not None:
+        #         self.make_excerpt(phrase[0], phrase[1])
+
+        print("Yet to be implemented and tested.")
+
+    def extract_random_snippets(
+        self, number_of_snippets: int = None, length_of_snippets: int = 2
+    ):
+        """Extract random snippets from the given score. The function will generate a list of tuples,
+        where in each pair, the first element is the mc for the snippet
+        beginning and the second will be the mc for the snippet ending.
+        For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
+        """
+
+        measures = self.measures()
+        mc = measures["mc"]
+        # mn = measures["mn"]
+
+        last_mc = mc.iloc[-1]
+
+        # valid_mc_starts = range(1, last_mc, length_of_snippets)
+
+        print(f"Last measure: {last_mc}")
 
 
 # ######################################################################################################################
