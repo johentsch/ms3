@@ -3306,7 +3306,7 @@ class Instrumentation(LoggedClass):
             str: trackName extracted from tag for the staff staff_name
 
         """
-        if isinstance(staff_name) is int:
+        if isinstance(staff_name, int):
             staff_name = f"staff_{staff_name}"
         fields_data = self.fields
         if (
