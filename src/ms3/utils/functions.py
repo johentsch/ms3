@@ -5236,7 +5236,7 @@ def parse_ignored_warnings(
             else:
                 try:
                     # if the annotator copied too much, cut off the redundant information at the end
-                    redundant = message.index(" -- ")
+                    redundant = message.index(" --")
                     message = message[:redundant]
                 except ValueError:
                     pass
@@ -6179,7 +6179,8 @@ def write_messages_to_file_or_remove(
         logger = module_logger
     warnings_path = os.path.dirname(warnings_file)
     if len(warnings) > 0:
-        os.makedirs(warnings_path, exist_ok=True)
+        if warnings_path:
+            os.makedirs(warnings_path, exist_ok=True)
         header = f"{header}\n{'=' * len(header)}\n\n"
         with open(warnings_file, "w", encoding="utf-8") as f:
             f.write(header)

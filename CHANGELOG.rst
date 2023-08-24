@@ -2,6 +2,29 @@
 Changelog
 =========
 
+Version 2.1.0
+=============
+
+This update includes a few minor bug fixes but some heavy updating of the code internals:
+
+* pandas>=2.0.0 is now supported
+* the ``@function_logger`` decorator has been removed and replaced with a function argument that defaults to the
+  ``module_logger``
+* all modules which have seen a commit since the previous tag have been fully linted using pre-commit hooks
+* the filelock problem that made a couple of test fail under Windows since the early days has been resolved (by using
+  pytest's ``tmp_path`` fixture instad of ``NamedTemporaryFile``).
+* ``make_ml()`` (responsible for creating measure tables) was refactored and should be much more legible (and easier
+  to adapt and extend in the future)
+
+
+**Full Changelog**: `https://github.com/johentsch/ms3/compare/v2.0.1...v2.1.0`__
+
+
+Version 2.0.1
+=============
+
+* Allow metronome mark to appear in MC 2
+
 Version 2.0.0
 =============
 

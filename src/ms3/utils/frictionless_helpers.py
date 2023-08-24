@@ -13,6 +13,7 @@ import frictionless as fl
 import pandas as pd
 import yaml
 from ms3._typing import ScoreFacet, TSVtype, TSVtypes
+from pandas.core.dtypes.common import is_integer_dtype
 
 from .constants import DEFAULT_CREATOR_METADATA
 from .functions import (
@@ -403,7 +404,7 @@ def make_and_store_resource_descriptor(
     return descriptor_path
 
 
-def validate_descriptor_path(
+def validate_descriptor_at_path(
     descriptor_path: str,
     raise_exception: bool = True,
     write_or_remove_errors_file: bool = True,
@@ -506,7 +507,7 @@ def make_and_store_and_validate_resource_descriptor(
         logger=logger,
         **kwargs,
     )
-    return validate_descriptor_path(
+    return validate_descriptor_at_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
@@ -518,11 +519,7 @@ def is_range_index_equivalent(idx: pd.Index) -> bool:
     """Check if a given index is a RangeIndex with the same start, stop, and step as the default RangeIndex."""
     if isinstance(idx, pd.RangeIndex):
         return True
-    if (
-        isinstance(idx, pd.core.indexes.numeric.IntegerIndex)
-        and idx.is_monotonic_increasing
-        and idx[0] == 0
-    ):
+    if is_integer_dtype(idx.dtype) and idx.is_monotonic_increasing and idx[0] == 0:
         return True
     return False
 
@@ -621,7 +618,7 @@ def store_dataframe_resource(
         creator=DEFAULT_CREATOR_METADATA,  # custom metadata field for descriptor, passed as kwarg
         logger=logger,
     )
-    validate_descriptor_path(
+    validate_descriptor_at_path(
         descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
@@ -706,7 +703,7 @@ def store_dataframes_package(
         descriptor_path=package_descriptor_path,
         logger=logger,
     )
-    _ = validate_descriptor_path(
+    _ = validate_descriptor_at_path(
         package_descriptor_path,
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,

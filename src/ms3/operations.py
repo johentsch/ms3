@@ -3,8 +3,9 @@ print() instead of log messages from time to time.
 """
 import logging
 import os
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Literal, Optional, Tuple, Union
 
+import pandas as pd
 from ms3 import (
     Corpus,
     Parse,
@@ -342,7 +343,48 @@ def _transform(
     zipped: bool = False,
     overwrite: bool = True,
     log_level=None,
-):
+) -> Iterator[Tuple[pd.DataFrame, TSVtype, str, str, str]]:
+    """Helper generator to iterate over each selected facets--if a DataFrame is to be written for it either as
+    standalone TSV or into a ZIP file--concatenated for the entire Parse or Corpus object.
+
+    Args:
+        ms3_object: The object to iterate over.
+        facets: Selected facets. Determines the number of iterations.
+        filename:
+            If non-empty, this will be used for filenames as in f"{filename.{facet}.tsv" and, if ``zipped``,
+            f"{filename}.zip". Otherwise, filename will be set to :attr:`Corpus.name` for corpus objects, and for
+            Parse objects to the name of the ``output_folder``, if specified, or to "ms3_parse" otherwise.
+        output_folder:
+            The path where the file is to be created. The generator itself does not create any files, but the argument
+            is needed to determine if a file is actually to be written, or not, depending on ``overwrite``. The
+            argument is yielded as the third element.
+        choose:
+            Whether to automatically pick a single facet DataFrame per piece based on the shortest relative path (
+            default), or all available, or ask for user input when multiple versions of the same facet have been
+            detected.
+        interval_index:
+            Set to True if you want to replace the RangeIndex level with an IntervalIndex indicating the temporal
+            dimensions of each row in terms of quarterbeats.
+        unfold:
+            Set to True if repeats are to be unfolded prior to concatenation of the facet DataFrames.
+        test: Set to True to log what would have happened without yielding anything.
+        zipped:
+            If False (default), each concatenated facet is to be written to a separate TSV file and these are the
+            paths that generator checks for existence, skipping existing files if ``overwrite`` has been set to False.
+            If True, all facets are to be written into the same ZIP file; if it exists and ``overwrite`` has been set
+            to False, the generator aborts (returns None).
+        overwrite:
+            True by default, meaning that existing files are to be overwritten. If ``zipped`` has been set to True and
+            the target ZIP file exists, it will be removed before beginning the iteration.
+        log_level:
+
+    Yields:
+        The DataFrame holding the concatenated facet for the entire Corpus or Parse object.
+        The facet name.
+        ``output_folder``.
+        The filename prefix depending on the ``filename`` argument as explained above.
+        The log message to emit when writing the file (depends on ``test`` and ``zipped``).
+    """
     logger = get_logger("ms3.transform", level=log_level)
     if len(facets) == 0:
         print(
@@ -362,6 +404,7 @@ def _transform(
         prefix = "ms3_parse"
     prefix = make_valid_frictionless_name(prefix)
     if zipped:
+        # The variable 'path' will be the ZIP file to write to, or, if not zipped, one TSV path per facet (loop below).
         zip_name = f"{prefix}.zip"
         path = (
             zip_name if output_folder is None else os.path.join(output_folder, zip_name)
@@ -416,7 +459,6 @@ def _transform(
                 df = ms3_object.get_facet(
                     facet,
                     choose=choose,
-                    flat=True,
                     interval_index=interval_index,
                     unfold=unfold,
                 )
@@ -658,20 +700,27 @@ def make_coloring_reports_and_warnings(
                 if message_id in ignored_warning_ids:
                     continue
                 test_passes = False
-                if len(t.added_tones) > 0:
-                    added = (
-                        f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} ["
-                        f"{fifths2name(t.added_tones)}]"
-                    )
+                if pd.isnull(t.localkey) or pd.isnull(t.globalkey):
+                    context_msg = "The local and/or global key could not be determined."
                 else:
-                    added = ""
-                msg = f"""The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset})
-                seems not to correspond well to the score (which does not necessarily mean it is wrong).
-In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees
+                    if len(t.added_tones) > 0:
+                        added = (
+                            f" plus the added {tpc2scale_degree(t.added_tones, t.localkey, t.globalkey)} ["
+                            f"{fifths2name(t.added_tones)}]"
+                        )
+                    else:
+                        added = ""
+                    context_msg = f"""In the context of {t.globalkey}.{t.localkey}, it expresses the scale degrees
 {tpc2scale_degree(t.chord_tones, t.localkey, t.globalkey)} [{fifths2name(t.chord_tones)}]{added}.
 The corresponding score segment has {t.n_untouched} within-label and {t.n_colored} out-of-label note onsets,
 a ratio of {t.count_ratio} > {threshold} (the current, arbitrary, threshold).
 If it turns out the label is correct, please add the header of this warning to the IGNORED_WARNINGS, ideally followed
 by a free-text comment in subsequent lines starting with a space or tab."""
-                piece_logger.warning(msg, extra={"message_id": message_id})
+                msg = (
+                    f"The label '{t.label}' in m. {t.mn}, onset {t.mn_onset} (MC {t.mc}, onset {t.mc_onset}) seems "
+                    f"not to correspond well to the score (which does not necessarily mean it is wrong).\n"
+                )
+                piece_logger.warning(
+                    msg + context_msg, extra={"message_id": message_id}
+                )
     return test_passes
