@@ -71,11 +71,12 @@
 .. |voice| replace:: :ref:`voice <voice>`
 """
 import logging
+import math
 import os
 import re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import IO, Collection, Literal, Optional, Tuple
+from typing import IO, Collection, List, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -1088,7 +1089,8 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
-    ) -> Optional[None]:
+        # return_metadata: Optional[bool] = False,
+    ) -> Optional[None] | Optional[Tuple[pd.DataFrame, str]]:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
         the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
@@ -1112,6 +1114,8 @@ class MSCX(LoggedClass):
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
+            return_metadata:
+                If True, the method will return all the rows of the expanded dataframe that are included in the excerpt.
 
         Returns
         -------
@@ -1135,35 +1139,6 @@ class MSCX(LoggedClass):
         start = 0
         end = 0
 
-        # Setting starting mc value
-        if start_mc is not None:
-            start = start_mc
-        if start_mn is not None:
-            start = measures["mc"][mn[mn == start_mn].first_valid_index()]
-
-        quarterbeat_start = measures["quarterbeats"][
-            mc[mc == start].first_valid_index()
-        ]
-
-        temp_row = get_row_at_quarterbeat(
-            df=self.expanded(), quarterbeat=quarterbeat_start
-        )
-
-        # It might be that in the measures table, there is no quarterbeat value for the given start measure.
-        # If that is the case, we take the next measure that has a quarterbeat value.
-        if temp_row is None:
-            quarterbeat_start = measures["quarterbeats_all_endings"][
-                mc[mc == start].first_valid_index()
-            ]
-
-        temp_row = get_row_at_quarterbeat(
-            df=self.expanded(), quarterbeat=quarterbeat_start
-        )
-
-        if temp_row is None:
-            print("Found no quartebeat value for the given start measure. Aborting...")
-            return None
-
         # Setting ending mc value
         if end_mc is not None:
             end = end_mc
@@ -1172,10 +1147,30 @@ class MSCX(LoggedClass):
         if end_mc is None and end_mn is None:
             end = measures["mc"].iloc[-1]
 
-        if end < start:
-            raise ValueError(
-                f"End measure ({end}) must be greater than start measure ({start})."
+        # Setting starting mc value
+        if start_mc is not None:
+            start = start_mc
+        if start_mn is not None:
+            index = mn[mn == start_mn].first_valid_index()
+            start = measures["mc"][index]
+
+        temp = measures.set_index("mc", inplace=False)
+        if math.isnan(temp["quarterbeats"][start]):
+            print(
+                f"Found no quarterbeat value for the given start measure number {start}. ",
+                "Will be taking the next one.",
             )
+            while math.isnan(temp["quarterbeats"][start]):
+                start += 1
+                if start >= end:
+                    raise ValueError(
+                        f"Could not find a quarterbeat value for the given start measure number {start}.",
+                        "Caused starting measure to match or exceed ending measure.",
+                    )
+
+        quarterbeat_start = measures["quarterbeats"][
+            mc[mc == start].first_valid_index()
+        ]
 
         included_mcs = tuple(range(start, end + 1))
 
@@ -1184,12 +1179,10 @@ class MSCX(LoggedClass):
         )
 
         row = get_row_at_quarterbeat(df=self.expanded(), quarterbeat=quarterbeat_start)
+
+        # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns a DataFrame instead of a Series)
         if isinstance(row, pd.DataFrame):
             row = row.iloc[-1]
-        elif isinstance(row, pd.Series):
-            print()
-        else:
-            print()
 
         global_key = row["globalkey"]
         local_key = row["localkey"]
@@ -1205,12 +1198,28 @@ class MSCX(LoggedClass):
         print(new_file_name)
         excerpt.store_score(new_file_name)
 
+        # if return_metadata:
+        #     exp = self.expanded()
+        #     mc_col = exp["mc"]
+        #     start_index = mc_col[mc_col == start].first_valid_index()
+        #     end_index = mc_col[mc_col == end].last_valid_index()
+
+        #     if end_index is None:
+        #         end_index = len(mc_col) - 1
+
+        #     # Returning the rows of interest with the new file name as a tuple
+        #     return (
+        #         exp.iloc[start_index : end_index + 1].copy(),
+        #         os.path.split(new_file_name)[1].replace(".mscx", ".tsv"),
+        #     )
+
     def extract_phrases(self):
         """Extract all phrases from the given score. The function will generate a list of tuples,
         where in each pair, the first element is the mc for the phrase beginning
         and the second will be the mc for the phrase ending.
         For each of these pairs, the function will call make_excerpt() to generate an excerpt for the phrase.
         """
+        # TODO: Implement phrase extraction
 
         # phrases = self.expanded()["phraseend"]
 
@@ -1229,32 +1238,72 @@ class MSCX(LoggedClass):
 
         print("Yet to be implemented and tested.")
 
-    def extract_random_snippets(self, snippet_number: int, snippet_length: int = 2):
+    def extract_random_snippets(
+        self,
+        snippet_number: int,
+        snippet_length: int = 2,
+        # return_metadata: Optional[bool] = False,
+    ) -> Optional[List[pd.DataFrame]]:
         """Extract random snippets from the given score. The function will generate a list of tuples,
         where in each pair, the first element is the mc for the snippet
         beginning and the second will be the mc for the snippet ending.
         For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
+
+        Args
+        ----
+            snippet_number:
+                Number of snippets to be extracted.
+            snippet_length:
+                Length of each snippet in measures (bars).
         """
 
         measures = self.measures()
-        mc = measures["mc"]
+        mn = measures["mn"]
 
-        last_mc = mc.iloc[-1]
+        mn_max = mn.iloc[-1].copy()
         count = snippet_number
 
-        if count > last_mc // snippet_length:
-            count = last_mc // snippet_length
+        if count > mn_max // snippet_length:
+            count = mn_max // snippet_length
             print(
-                "Number of snippets exceeds the number of possible snippets. Will extract all possible snippets."
+                "Number of snippets exceeds the number of possible snippets. ",
+                "Will extract all possible snippets.",
             )
 
-        valid_mc_starts = range(1, last_mc, snippet_length)
-        sampled_mc_starts = np.random.choice(valid_mc_starts, count, replace=False)
+        valid_mn_starts = np.array(range(1, mn_max, snippet_length))
 
-        print(f"Sampled starting points: {sampled_mc_starts}")
+        if valid_mn_starts[-1] + snippet_length - 1 > mn_max:
+            valid_mn_starts = valid_mn_starts[:-1]
 
-        for mc_start in sampled_mc_starts:
-            self.make_excerpt(start_mc=mc_start, end_mc=(mc_start + snippet_length - 1))
+        sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
+
+        print(f"Sampled starting points: {sampled_mn_starts}")
+
+        for mn_start in sampled_mn_starts:
+            self.make_excerpt(
+                start_mn=mn_start,
+                end_mn=(mn_start + snippet_length - 1),
+                return_metadata=True,
+            )
+
+        # if return_metadata:
+        #     metadata = []
+        #     for mn_start in sampled_mn_starts:
+        #         metadata.append(
+        #             self.make_excerpt(
+        #                 start_mn=mn_start,
+        #                 end_mn=(mn_start + snippet_length - 1),
+        #                 return_metadata=True,
+        #             )
+        #         )
+        #     return metadata
+        # else:
+        #     for mn_start in sampled_mn_starts:
+        #         self.make_excerpt(
+        #             start_mn=mn_start,
+        #             end_mn=(mn_start + snippet_length - 1),
+        #             return_metadata=True,
+        #         )
 
 
 # ######################################################################################################################
