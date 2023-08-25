@@ -4291,7 +4291,7 @@ def get_row_at_quarterbeat(
      the given dataframe's "quarterbeat" column as activation intervals. That is, the rows are interpreted as
      consecutive, non-overlapping events and the ``duration_qb`` column is not taken into account for computing the
      activation intervals. The last interval's right boundary is np.inf, so that all values higher than the latest
-     event resolve to the latest event without needing to now the end of the piece.
+     event resolve to the latest event without needing to know the end of the piece.
 
     Args:
         df: DataFrame in which the column "quarterbeat" is monotonically increasing.

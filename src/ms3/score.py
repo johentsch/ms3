@@ -81,7 +81,7 @@ import numpy as np
 import pandas as pd
 
 from .annotations import Annotations
-from .bs4_parser import Excerpt, _MSCX_bs4, get_row_at_quarterbeat
+from .bs4_parser import _MSCX_bs4, get_row_at_quarterbeat
 from .logger import LoggedClass, get_log_capture_handler
 from .transformations import add_quarterbeats_col
 from .utils import (
@@ -1088,14 +1088,15 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
-    ) -> Excerpt:
+    ) -> Optional[None]:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
         the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
         the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
         signatures.
 
-        Args:
+        Args
+        ----
             included_mcs:
                 List of measure counts to be included in the excerpt.
                 Pass a single integer to get an excerpt from that MC to the end of the piece.
@@ -1111,6 +1112,11 @@ class MSCX(LoggedClass):
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
+
+        Returns
+        -------
+            Optional[None]: if it was impossible to find a quarterbeat value for the given start measure.
+                            In this case the function will not produce an excerpt.
 
         """
         if (start_mc is None and start_mn is None) or (
@@ -1139,6 +1145,25 @@ class MSCX(LoggedClass):
             mc[mc == start].first_valid_index()
         ]
 
+        temp_row = get_row_at_quarterbeat(
+            df=self.expanded(), quarterbeat=quarterbeat_start
+        )
+
+        # It might be that in the measures table, there is no quarterbeat value for the given start measure.
+        # If that is the case, we take the next measure that has a quarterbeat value.
+        if temp_row is None:
+            quarterbeat_start = measures["quarterbeats_all_endings"][
+                mc[mc == start].first_valid_index()
+            ]
+
+        temp_row = get_row_at_quarterbeat(
+            df=self.expanded(), quarterbeat=quarterbeat_start
+        )
+
+        if temp_row is None:
+            print("Found no quartebeat value for the given start measure. Aborting...")
+            return None
+
         # Setting ending mc value
         if end_mc is not None:
             end = end_mc
@@ -1159,18 +1184,25 @@ class MSCX(LoggedClass):
         )
 
         row = get_row_at_quarterbeat(df=self.expanded(), quarterbeat=quarterbeat_start)
+        if isinstance(row, pd.DataFrame):
+            row = row.iloc[-1]
+        elif isinstance(row, pd.Series):
+            print()
+        else:
+            print()
+
         global_key = row["globalkey"]
         local_key = row["localkey"]
 
         print(f"Global key: {global_key}, Local key: {local_key}")
 
         excerpt = self.parsed.make_excerpt(
-            included_mcs=included_mcs, globalkey=global_key, localkey=local_key
+            included_mcs=tuple(included_mcs), globalkey=global_key, localkey=local_key
         )
 
-        original_file_name = os.path.splitext(os.path.split(excerpt.filepath)[1])[0]
+        original_file_name = os.path.splitext(excerpt.filepath)[0]
         new_file_name = original_file_name + f"_excerpt_{start}-{end}" + ".mscx"
-
+        print(new_file_name)
         excerpt.store_score(new_file_name)
 
     def extract_phrases(self):
