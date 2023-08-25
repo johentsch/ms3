@@ -4363,7 +4363,9 @@ def prepare_metadata_for_writing(metadata_df):
                     "To retain the old behavior, use either.*"
                 ),
             )
-            metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, "/")
+            metadata_df.loc[:, col] = metadata_df[col].str.replace(
+                os.sep, "/", regex=False
+            )
     staff_cols, other_cols = [], []
     for col in metadata_df.columns:
         if re.match(r"^staff_(\d+)", col):
