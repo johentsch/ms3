@@ -3144,7 +3144,11 @@ INSTRUMENT_DEFAULTS = pd.read_csv(
         os.path.dirname(os.path.realpath(__file__)), "instrument_defaults.csv"
     ),
     index_col=0,
-).replace({np.nan: None})
+)
+INSTRUMENT_DEFAULTS.controllers = INSTRUMENT_DEFAULTS.controllers.apply(eval)
+for int_column in ["ChannelValue", "keysig", "useDrumset"]:
+    INSTRUMENT_DEFAULTS[int_column] = INSTRUMENT_DEFAULTS[int_column].astype('Int64')
+INSTRUMENT_DEFAULTS.replace({np.nan: None}, inplace=True)
 
 
 def get_enlarged_default_dict() -> Dict[str, dict]:
@@ -3169,6 +3173,8 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
                 "group",
                 "staff_type_name",
                 "defaultClef",
+                "controllers",
+                "keysig"
             ]
         )
         .to_dict()
@@ -3212,6 +3218,7 @@ class Instrumentation(LoggedClass):
             "group",
             "staff_type_name",
             "defaultClef",
+            "controllers"
         ]
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = (
@@ -3252,6 +3259,7 @@ class Instrumentation(LoggedClass):
                 "id": instrument_tag["id"],
                 "ChannelName": channel_name,
                 "ChannelValue": channel_info.program,
+                "controllers": [{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in channel_info.find_all("controller")]
             }
             cur_dict.update(staves_dict[staves[0]])
             for name in self.instrumentation_fields:
@@ -3288,8 +3296,10 @@ class Instrumentation(LoggedClass):
                 if type(tag) is bs4.element.Tag and tag is not None:
                     if key_instr_data == "ChannelValue":
                         value = int(tag["value"])
-                    elif key_instr_data == "useDrumset":
+                    elif key_instr_data in ["useDrumset", "keysig"]:
                         value = int(tag.get_text())
+                    elif key_instr_data == "controllers":
+                        value = [{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in tag]
                     else:
                         value = tag.get_text()
                 else:
@@ -3352,7 +3362,7 @@ class Instrumentation(LoggedClass):
                     tag.string = value
                 else:
                     new_tag = self.soup.new_tag(field_to_change)
-                    new_tag.string = value
+                    new_tag.string = str(value)
                     elem.append(new_tag)
                     self.logger.debug(
                         f"Added new {new_tag} with value {value!r} to part {changed_part}"
@@ -3474,8 +3484,6 @@ class Instrumentation(LoggedClass):
         staff_type = [elem.StaffType for elem in staff_data]
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
-            if field_to_change in ["useDrumset", "ChannelValue"] and value is not None:
-                value = str(int(value))
             self.logger.debug(
                 f"field {field_to_change!r} to be updated from {self.soup_references_data[staff_id][field_to_change]} "
                 f"to {value!r}"
@@ -3487,6 +3495,21 @@ class Instrumentation(LoggedClass):
             elif field_to_change == "ChannelName":
                 if value is not None:
                     self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+            elif field_to_change == "controllers":
+                found = self.parsed_parts.parts_data[changed_part].Channel.find_all("controller")
+                for idx, elem in enumerate(value):
+                    elem["ctrl"] = value[idx]["ctrl"]
+                    elem["value"] = value[idx]["value"]
+                    if idx >= len(found) - 1:
+                        new_tag = self.soup.new_tag("controller")
+                        new_tag["ctrl"] = value[idx]["ctrl"]
+                        new_tag["value"] = value[idx]["value"]
+                        self.parsed_parts.parts_data[changed_part].Channel.append(
+                            new_tag
+                        )
+                if len(found) > len(value):
+                    for i in range(len(value) - len(found)):
+                        found[i + len(found) - 1].extract()
             elif field_to_change == "ChannelValue":
                 self.parsed_parts.parts_data[changed_part].Channel.program[
                     "value"
@@ -3500,8 +3523,10 @@ class Instrumentation(LoggedClass):
                 self.modify_drumset_tags(
                     staff_data, value, changed_part, field_to_change
                 )
+            elif field_to_change == "keysig":
+                self.modify_drumset_tags(staff_type, value, changed_part, field_to_change)
             elif (
-                field_to_change in ["clef", "useDrumset"]
+                field_to_change in ["clef", "useDrumset", "keysig"]
                 and self.soup_references_data[staff_id][field_to_change] is not None
                 and value is None
             ):
