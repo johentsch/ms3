@@ -3239,6 +3239,7 @@ class Instrumentation(LoggedClass):
                 staves_dict[key_staff] = {
                     "group": staff_type["group"],
                     "staff_type_name": staff_type.find("name"),
+                    "keysig": staff_type.find("keysig"),
                     "defaultClef": data_staff.find("defaultClef"),
                 }
             channel_info = part.Channel
