@@ -76,10 +76,13 @@ import os
 import re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import IO, Collection, List, Literal, Optional, Tuple
+from typing import IO, Collection, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from pydantic import (  # allows for easy type checking using function decorators
+    validate_arguments,
+)
 
 from .annotations import Annotations
 from .bs4_parser import _MSCX_bs4, get_row_at_quarterbeat
@@ -1083,22 +1086,21 @@ class MSCX(LoggedClass):
         else:
             self._annotations = None
 
+    @validate_arguments
     def make_excerpt(
         self,
         start_mc: Optional[int] = None,
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
-        # return_metadata: Optional[bool] = False,
-    ) -> Optional[None] | Optional[Tuple[pd.DataFrame, str]]:
+    ):
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
         the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
         the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
         signatures.
 
-        Args
-        ----
+        Args:
             included_mcs:
                 List of measure counts to be included in the excerpt.
                 Pass a single integer to get an excerpt from that MC to the end of the piece.
@@ -1117,8 +1119,7 @@ class MSCX(LoggedClass):
             return_metadata:
                 If True, the method will return all the rows of the expanded dataframe that are included in the excerpt.
 
-        Returns
-        -------
+        Returns:
             Optional[None]: if it was impossible to find a quarterbeat value for the given start measure.
                             In this case the function will not produce an excerpt.
 
@@ -1195,23 +1196,7 @@ class MSCX(LoggedClass):
 
         original_file_name = os.path.splitext(excerpt.filepath)[0]
         new_file_name = original_file_name + f"_excerpt_{start}-{end}" + ".mscx"
-        print(new_file_name)
         excerpt.store_score(new_file_name)
-
-        # if return_metadata:
-        #     exp = self.expanded()
-        #     mc_col = exp["mc"]
-        #     start_index = mc_col[mc_col == start].first_valid_index()
-        #     end_index = mc_col[mc_col == end].last_valid_index()
-
-        #     if end_index is None:
-        #         end_index = len(mc_col) - 1
-
-        #     # Returning the rows of interest with the new file name as a tuple
-        #     return (
-        #         exp.iloc[start_index : end_index + 1].copy(),
-        #         os.path.split(new_file_name)[1].replace(".mscx", ".tsv"),
-        #     )
 
     def extract_phrases(self):
         """Extract all phrases from the given score. The function will generate a list of tuples,
@@ -1238,19 +1223,18 @@ class MSCX(LoggedClass):
 
         print("Yet to be implemented and tested.")
 
+    @validate_arguments
     def extract_random_snippets(
         self,
         snippet_number: int,
         snippet_length: int = 2,
-        # return_metadata: Optional[bool] = False,
-    ) -> Optional[List[pd.DataFrame]]:
+    ):
         """Extract random snippets from the given score. The function will generate a list of tuples,
         where in each pair, the first element is the mc for the snippet
         beginning and the second will be the mc for the snippet ending.
         For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
 
-        Args
-        ----
+        Args:
             snippet_number:
                 Number of snippets to be extracted.
             snippet_length:
@@ -1272,7 +1256,7 @@ class MSCX(LoggedClass):
 
         valid_mn_starts = np.array(range(1, mn_max, snippet_length))
 
-        if valid_mn_starts[-1] + snippet_length - 1 > mn_max:
+        if (valid_mn_starts[-1] + snippet_length - 1) > mn_max:
             valid_mn_starts = valid_mn_starts[:-1]
 
         sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
@@ -1285,25 +1269,6 @@ class MSCX(LoggedClass):
                 end_mn=(mn_start + snippet_length - 1),
                 return_metadata=True,
             )
-
-        # if return_metadata:
-        #     metadata = []
-        #     for mn_start in sampled_mn_starts:
-        #         metadata.append(
-        #             self.make_excerpt(
-        #                 start_mn=mn_start,
-        #                 end_mn=(mn_start + snippet_length - 1),
-        #                 return_metadata=True,
-        #             )
-        #         )
-        #     return metadata
-        # else:
-        #     for mn_start in sampled_mn_starts:
-        #         self.make_excerpt(
-        #             start_mn=mn_start,
-        #             end_mn=(mn_start + snippet_length - 1),
-        #             return_metadata=True,
-        #         )
 
 
 # ######################################################################################################################
