@@ -1200,28 +1200,35 @@ class MSCX(LoggedClass):
 
     def extract_phrases(self):
         """Extract all phrases from the given score. The function will generate a list of tuples,
-        where in each pair, the first element is the mc for the phrase beginning
-        and the second will be the mc for the phrase ending.
+        where in each pair, the first element is the mn for the phrase beginning
+        and the second will be the mn for the phrase ending.
         For each of these pairs, the function will call make_excerpt() to generate an excerpt for the phrase.
         """
-        # TODO: Implement phrase extraction
+        # TODO: Implement strict phrase extraction where if a measure contains both the end of a phrase
+        # and the beginning of the next one, the notes comprised in the beginning of the second phrase
+        # will be remove from the ending of the previous so as to avoid ambigous phrase endings.
 
-        # phrases = self.expanded()["phraseend"]
+        expanded = self.expanded()
 
-        # for i in range(len(phrases)):
-        #     phrase = tuple(None, None)
-        #     if phrases[i] == "{":
-        #         phrase[0] = i
-        #     if phrases[i] == "}":
-        #         phrase[1] = i
-        #     if  phrases[i] == "}{":
-        #         phrase[0] = None
-        #         phrase[1] = None
+        filtered_df = expanded[expanded["phraseend"].isin(["{", "}{", "}"])]
+        result = filtered_df[["mn", "phraseend"]].copy()
 
-        #     if phrase[0] is not None and phrase[1] is not None:
-        #         self.make_excerpt(phrase[0], phrase[1])
+        # Shift the 'mn' and 'phraseend' columns down for comparison
+        result["shifted_phraseend"] = (
+            result["phraseend"].shift(-1).fillna(-1).astype(str)
+        )
+        result["shifted_mn"] = result["mn"].shift(-1).fillna(-1).astype(int)
 
-        print("Yet to be implemented and tested.")
+        phrases = []
+        for _, row in result.iterrows():
+            if (row["phraseend"] == "{" or row["phraseend"] == "}{") and (
+                row["shifted_phraseend"] == "}" or row["shifted_phraseend"] == "}{"
+            ):
+                phrases.append((row["mn"], row["shifted_mn"]))
+                self.make_excerpt(start_mn=row["mn"], end_mn=row["shifted_mn"])
+
+        print(f"Found {len(phrases)} phrases.")
+        print(f"Phrases: {phrases}")
 
     @validate_arguments
     def extract_random_snippets(
