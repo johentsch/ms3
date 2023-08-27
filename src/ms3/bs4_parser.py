@@ -3145,8 +3145,8 @@ INSTRUMENT_DEFAULTS = pd.read_csv(
     ),
     index_col=0,
 )
-INSTRUMENT_DEFAULTS.controllers = INSTRUMENT_DEFAULTS.controllers.apply(eval)
-for int_column in ["ChannelValue", "keysig", "useDrumset"]:
+INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]] = INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]].apply(lambda k: list(map(lambda j: eval(j) if j is not None else None, k)))
+for int_column in ["keysig", "useDrumset"]:
     INSTRUMENT_DEFAULTS[int_column] = INSTRUMENT_DEFAULTS[int_column].astype('Int64')
 INSTRUMENT_DEFAULTS.replace({np.nan: None}, inplace=True)
 
@@ -3249,18 +3249,18 @@ class Instrumentation(LoggedClass):
                     "keysig": staff_type.find("keysig"),
                     "defaultClef": data_staff.find("defaultClef"),
                 }
-            channel_info = part.Channel
-            channel_name = (
-                None
-                if "name" not in channel_info.attrs.keys()
-                else channel_info["name"]
-            )
+            channel_info = part.find_all("Channel")
             cur_dict = {
-                "id": instrument_tag["id"],
-                "ChannelName": channel_name,
-                "ChannelValue": channel_info.program,
-                "controllers": [{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in channel_info.find_all("controller")]
-            }
+                "id": instrument_tag["id"], "ChannelName": [], "ChannelValue": [], "controllers": []}
+            for elem in channel_info:
+                channel_name = (
+                    None
+                    if "name" not in elem.attrs.keys()
+                    else elem["name"]
+                )
+                cur_dict["ChannelName"].append(channel_name)
+                cur_dict["ChannelValue"].append(elem.program)
+                cur_dict["controllers"].append([{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in elem.find_all("controller")])
             cur_dict.update(staves_dict[staves[0]])
             for name in self.instrumentation_fields:
                 if name not in cur_dict.keys():
@@ -3293,13 +3293,15 @@ class Instrumentation(LoggedClass):
         for key, instr_data in self.soup_references_data.items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
-                if type(tag) is bs4.element.Tag and tag is not None:
+                if type(tag) in [bs4.element.Tag, list] and tag is not None and tag != [None]:
                     if key_instr_data == "ChannelValue":
-                        value = int(tag["value"])
+                        value = [int(elem["value"]) for elem in tag]
                     elif key_instr_data in ["useDrumset", "keysig"]:
                         value = int(tag.get_text())
                     elif key_instr_data == "controllers":
-                        value = [{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in tag]
+                        value = [[{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in channel_elem] for channel_elem in tag]
+                    elif key_instr_data == "ChannelName":
+                        value = [elem for elem in tag]
                     else:
                         value = tag.get_text()
                 else:
@@ -3370,6 +3372,29 @@ class Instrumentation(LoggedClass):
             else:
                 if tag is not None:
                     tag.extract()
+
+    def modify_list_tags(self, changed_part, found, value):
+        """
+        Sets instruments if there is alist of values to update
+        :param changed_part: number of part of soup file where to find and update in the original file
+        :param found: parts of soup containing channel info in the original file
+        :param value: new values to set
+        :return: corrected list of parts of the same length as value list
+        """
+        l_found, l_value = 1 if found is None else len(found), 1 if value is None else len(value)
+        if l_found < l_value:
+            for i in range(l_value - l_found):
+                new_tag = self.soup.new_tag("Channel")
+                new_tag.string = str(value[i + len(found) - 1])
+                new_tag.append(self.soup.new_tag("program"))
+                self.parsed_parts.parts_data[changed_part].append(new_tag)
+                self.logger.debug(
+                    f"Added new {new_tag} with value {value!r} to part {changed_part}"
+                )
+        elif l_found > l_value:
+            for elem in found[l_value:]:
+                elem.extract()
+        return self.parsed_parts.parts_data[changed_part].find_all("Channel"), value
 
     def set_instrument(self, staff_id: Union[str, int], trackname):
         """
@@ -3482,6 +3507,7 @@ class Instrumentation(LoggedClass):
         # modification of fields
         staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
         staff_type = [elem.StaffType for elem in staff_data]
+        channel_data = self.parsed_parts.parts_data[changed_part].find_all("Channel")
         for field_to_change in self.instrumentation_fields:
             value = new_values[field_to_change]
             self.logger.debug(
@@ -3493,27 +3519,38 @@ class Instrumentation(LoggedClass):
                     field_to_change
                 ] = value
             elif field_to_change == "ChannelName":
+                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
                 if value is not None:
-                    self.parsed_parts.parts_data[changed_part].Channel["name"] = value
+                    for idx_channel, found_channel in enumerate(channel_data):
+                        cur_value = value[idx_channel]
+                        if cur_value is not None:
+                            found_channel["name"] = cur_value
             elif field_to_change == "controllers":
-                found = self.parsed_parts.parts_data[changed_part].Channel.find_all("controller")
-                for idx, elem in enumerate(value):
-                    elem["ctrl"] = value[idx]["ctrl"]
-                    elem["value"] = value[idx]["value"]
-                    if idx >= len(found) - 1:
-                        new_tag = self.soup.new_tag("controller")
-                        new_tag["ctrl"] = value[idx]["ctrl"]
-                        new_tag["value"] = value[idx]["value"]
-                        self.parsed_parts.parts_data[changed_part].Channel.append(
-                            new_tag
-                        )
-                if len(found) > len(value):
-                    for i in range(len(value) - len(found)):
-                        found[i + len(found) - 1].extract()
+                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
+                for idx_channel, found_channel in enumerate(channel_data):
+                    cur_value = value[idx_channel]
+                    found = found_channel.find_all("controller")
+                    for idx, elem in enumerate(cur_value):
+                        elem["ctrl"] = cur_value[idx]["ctrl"]
+                        elem["value"] = cur_value[idx]["value"]
+                        if idx >= len(found) - 1:
+                            new_tag = self.soup.new_tag("controller")
+                            new_tag["ctrl"] = cur_value[idx]["ctrl"]
+                            new_tag["value"] = cur_value[idx]["value"]
+                            found_channel.append(
+                                new_tag
+                            )
+                    if len(found) > len(value):
+                        for i in range(len(value) - len(found)):
+                            found[i + len(found) - 1].extract()
             elif field_to_change == "ChannelValue":
-                self.parsed_parts.parts_data[changed_part].Channel.program[
-                    "value"
-                ] = value
+                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
+                for idx_channel, found_channel in enumerate(channel_data):
+                    cur_value = value[idx_channel]
+                    if cur_value is not None:
+                        found_channel.program[
+                            "value"
+                        ] = cur_value
             elif field_to_change == "group":
                 for elem in staff_type:
                     elem["group"] = value
