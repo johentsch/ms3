@@ -19,7 +19,6 @@ __pycache__/*
 _version.py
 
 # Project files
-.vscode/
 .ropeproject
 .project
 .pydevproject
@@ -32,7 +31,6 @@ tags
 *.eggs/
 .installed.cfg
 *.egg-info
-.isort.cfg
 
 # Unittest and coverage
 htmlcov/*
