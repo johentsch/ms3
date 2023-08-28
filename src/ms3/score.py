@@ -1093,6 +1093,7 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
+        filename: Optional[str] = "excerpt",
     ):
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
@@ -1195,7 +1196,7 @@ class MSCX(LoggedClass):
         )
 
         original_file_name = os.path.splitext(excerpt.filepath)[0]
-        new_file_name = original_file_name + f"_excerpt_{start}-{end}" + ".mscx"
+        new_file_name = original_file_name + f"_{filename}_{start}-{end}" + ".mscx"
         excerpt.store_score(new_file_name)
 
     def extract_phrases(self):
@@ -1225,7 +1226,9 @@ class MSCX(LoggedClass):
                 row["shifted_phraseend"] == "}" or row["shifted_phraseend"] == "}{"
             ):
                 phrases.append((row["mn"], row["shifted_mn"]))
-                self.make_excerpt(start_mn=row["mn"], end_mn=row["shifted_mn"])
+                self.make_excerpt(
+                    start_mn=row["mn"], end_mn=row["shifted_mn"], filename="phrase"
+                )
 
         print(f"Found {len(phrases)} phrases.")
         print(f"Phrases: {phrases}")
