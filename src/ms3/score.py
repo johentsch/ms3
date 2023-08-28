@@ -80,9 +80,6 @@ from typing import IO, Collection, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from pydantic import (  # allows for easy type checking using function decorators
-    validate_arguments,
-)
 
 from .annotations import Annotations
 from .bs4_parser import _MSCX_bs4, get_row_at_quarterbeat
@@ -1086,7 +1083,6 @@ class MSCX(LoggedClass):
         else:
             self._annotations = None
 
-    @validate_arguments
     def make_excerpt(
         self,
         start_mc: Optional[int] = None,
@@ -1135,6 +1131,18 @@ class MSCX(LoggedClass):
             raise ValueError(
                 "Exactly one of end_mc or end_mn must be provided or None."
             )
+
+        if start_mc is not None and not isinstance(start_mc, int):
+            raise TypeError("end_mc must be an integer.")
+        if end_mc is not None and not isinstance(end_mc, int):
+            raise TypeError("end_mc must be an integer.")
+        if start_mn is not None and not isinstance(start_mn, int):
+            raise TypeError("end_mc must be an integer.")
+        if end_mn is not None and not isinstance(end_mn, int):
+            raise TypeError("end_mc must be an integer.")
+
+        if not isinstance(filename, str):
+            filename = str(filename)
 
         measures = self.measures()
         mc = measures["mc"]
@@ -1232,7 +1240,6 @@ class MSCX(LoggedClass):
 
         self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
 
-    @validate_arguments
     def extract_random_snippets(
         self,
         snippet_number: int,
@@ -1249,6 +1256,13 @@ class MSCX(LoggedClass):
             snippet_length:
                 Length of each snippet in measures (bars).
         """
+
+        if not isinstance(snippet_number, int):
+            raise TypeError("snippet_number must be an integer.")
+        if not isinstance(snippet_length, int):
+            raise TypeError(
+                "snippet_length must be an integer. Cannot create snippet of non-integral length."
+            )
 
         measures = self.measures()
         mn = measures["mn"]
