@@ -1097,9 +1097,10 @@ class MSCX(LoggedClass):
     ):
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
-        the score. Also, it is assumed that the MCs are consecutive, i.e. there are no gaps between them; otherwise
+        the score. Also, it is assumed that the MCs/MNs are consecutive, i.e. there are no gaps between them; otherwise
         the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
-        signatures.
+        signatures. There is also the option of omitting the ending MC or MN. In this case the excerpt will be
+        from the selected MC or MN to the end of the score.
 
         Args:
             included_mcs:
@@ -1176,7 +1177,7 @@ class MSCX(LoggedClass):
 
         included_mcs = tuple(range(start, end + 1))
 
-        print(
+        self.logger.debug(
             f"Start: {start}, End: {end}. Total number of measures: {len(included_mcs)}"
         )
 
@@ -1189,8 +1190,7 @@ class MSCX(LoggedClass):
         global_key = row["globalkey"]
         local_key = row["localkey"]
 
-        print(f"Global key: {global_key}, Local key: {local_key}")
-
+        self.logger.debug(f"Global key: {global_key}, Local key: {local_key}")
         excerpt = self.parsed.make_excerpt(
             included_mcs=tuple(included_mcs), globalkey=global_key, localkey=local_key
         )
@@ -1230,8 +1230,7 @@ class MSCX(LoggedClass):
                     start_mn=row["mn"], end_mn=row["shifted_mn"], filename="phrase"
                 )
 
-        print(f"Found {len(phrases)} phrases.")
-        print(f"Phrases: {phrases}")
+        self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
 
     @validate_arguments
     def extract_random_snippets(
@@ -1271,7 +1270,7 @@ class MSCX(LoggedClass):
 
         sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
 
-        print(f"Sampled starting points: {sampled_mn_starts}")
+        self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
 
         for mn_start in sampled_mn_starts:
             self.make_excerpt(
