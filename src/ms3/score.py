@@ -1289,22 +1289,19 @@ class MSCX(LoggedClass):
                 "snippet_length must be an integer. Cannot create snippet of non-integral length."
             )
 
-        measures = self.measures()
-        mn = measures["mn"]
-
-        mn_max = mn.iloc[-1].copy()
+        last_mn = self.measures().mn.max()
         count = n_excerpts
 
-        if count > mn_max // mn_lengths:
-            count = mn_max // mn_lengths
+        if count > last_mn // mn_lengths:
+            count = last_mn // mn_lengths
             print(
                 "Number of snippets exceeds the number of possible snippets. ",
                 "Will extract all possible snippets.",
             )
 
-        valid_mn_starts = np.array(range(1, mn_max, mn_lengths))
+        valid_mn_starts = np.array(range(1, last_mn, mn_lengths))
 
-        if (valid_mn_starts[-1] + mn_lengths - 1) > mn_max:
+        if (valid_mn_starts[-1] + mn_lengths - 1) > last_mn:
             valid_mn_starts = valid_mn_starts[:-1]
 
         sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
