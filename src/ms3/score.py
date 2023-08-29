@@ -1091,7 +1091,8 @@ class MSCX(LoggedClass):
         end_mn: Optional[int] = None,
         suffix: Optional[str] = None,
     ):
-        """Store an excerpt of the current score as a new .mscx file by defining start and end measure.
+        """Store an excerpt of the current score as a new .mscx file by defining start and end measure. If no end
+        measure is specified, the excerpt will include everything following the start measure.
         The original score header and metadata are kept. Start and end measure both can be specified either as MC
         (the number in MuseScore's status bar) or as MN (the number as displayed in the score).
 
@@ -1126,14 +1127,9 @@ class MSCX(LoggedClass):
                 "Exactly one of end_mc or end_mn must be provided or None."
             )
 
-        if start_mc is not None and not isinstance(start_mc, int):
-            raise TypeError("end_mc must be an integer.")
-        if end_mc is not None and not isinstance(end_mc, int):
-            raise TypeError("end_mc must be an integer.")
-        if start_mn is not None and not isinstance(start_mn, int):
-            raise TypeError("end_mc must be an integer.")
-        if end_mn is not None and not isinstance(end_mn, int):
-            raise TypeError("end_mc must be an integer.")
+        for arg, arg_val in zip(("start_mc", "start_mn", "end_mc", "end_mn"), locals()):
+            if arg_val is not None and not isinstance(arg_val, int):
+                raise TypeError(f"{arg} must be an integer.")
 
         if suffix is None:
             suffix = ""
