@@ -1088,7 +1088,7 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
-        directory=None,
+        directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
         """Store an excerpt of the current score as a new .mscx file by defining start and end measure. If no end
@@ -1290,28 +1290,23 @@ class MSCX(LoggedClass):
             )
 
         last_mn = self.measures().mn.max()
-        count = n_excerpts
+        last_possible_start = last_mn - mn_lengths + 1
 
-        if count > last_mn // mn_lengths:
-            count = last_mn // mn_lengths
-            print(
+        if n_excerpts > last_possible_start:
+            n_excerpts = last_possible_start
+            self.logger.info(
                 "Number of snippets exceeds the number of possible snippets. ",
                 "Will extract all possible snippets.",
             )
 
-        valid_mn_starts = np.array(range(1, last_mn, mn_lengths))
-
-        if (valid_mn_starts[-1] + mn_lengths - 1) > last_mn:
-            valid_mn_starts = valid_mn_starts[:-1]
-
-        sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
-
+        valid_mn_starts = np.arange(1, last_possible_start + 1)
+        sampled_mn_starts = np.random.choice(valid_mn_starts, n_excerpts, replace=False)
         self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
 
         for mn_start in sampled_mn_starts:
             self.store_excerpt(
-                start_mn=mn_start,
-                end_mn=(mn_start + mn_lengths - 1),
+                start_mn=int(mn_start),
+                end_mn=int(mn_start + mn_lengths - 1),
                 directory=directory,
                 suffix=suffix,
             )
