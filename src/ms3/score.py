@@ -1089,7 +1089,7 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
-        filename: Optional[str] = "excerpt",
+        suffix: Optional[str] = None,
     ):
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
@@ -1114,8 +1114,8 @@ class MSCX(LoggedClass):
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
-            return_metadata:
-                If True, the method will return all the rows of the expanded dataframe that are included in the excerpt.
+            suffix:
+                String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
 
         Returns:
             Optional[None]: if it was impossible to find a quarterbeat value for the given start measure.
@@ -1141,8 +1141,8 @@ class MSCX(LoggedClass):
         if end_mn is not None and not isinstance(end_mn, int):
             raise TypeError("end_mc must be an integer.")
 
-        if not isinstance(filename, str):
-            filename = str(filename)
+        if suffix is None:
+            suffix = ""
 
         measures = self.measures()
         mc = measures["mc"]
@@ -1204,7 +1204,7 @@ class MSCX(LoggedClass):
         )
 
         original_file_name = os.path.splitext(excerpt.filepath)[0]
-        new_file_name = original_file_name + f"_{filename}_{start}-{end}" + ".mscx"
+        new_file_name = original_file_name + f"{suffix}_{start}-{end}" + ".mscx"
         excerpt.store_score(new_file_name)
 
     def extract_phrases(self):
@@ -1235,7 +1235,7 @@ class MSCX(LoggedClass):
             ):
                 phrases.append((row["mn"], row["shifted_mn"]))
                 self.make_excerpt(
-                    start_mn=row["mn"], end_mn=row["shifted_mn"], filename="phrase"
+                    start_mn=row["mn"], end_mn=row["shifted_mn"], suffix="phrase"
                 )
 
         self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
@@ -1290,7 +1290,6 @@ class MSCX(LoggedClass):
             self.make_excerpt(
                 start_mn=mn_start,
                 end_mn=(mn_start + snippet_length - 1),
-                return_metadata=True,
             )
 
 
