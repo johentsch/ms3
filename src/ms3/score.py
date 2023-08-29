@@ -1128,9 +1128,12 @@ class MSCX(LoggedClass):
                 "Exactly one of end_mc or end_mn must be provided or None."
             )
 
-        for arg, arg_val in zip(("start_mc", "start_mn", "end_mc", "end_mn"), locals()):
+        for arg, arg_val in zip(
+            ("start_mc", "start_mn", "end_mc", "end_mn"),
+            (start_mc, start_mn, end_mc, end_mn),
+        ):
             if arg_val is not None and not isinstance(arg_val, int):
-                raise TypeError(f"{arg} must be an integer.")
+                raise TypeError(f"{arg} must be an integer. Got {arg_val!r}.")
 
         if suffix is None:
             suffix = ""
