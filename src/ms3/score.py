@@ -1152,41 +1152,34 @@ class MSCX(LoggedClass):
             start = start_mc
 
         mc_measures = measures.set_index("mc", inplace=False)
-        if pd.isnull(mc_measures["quarterbeats"][start]):
-            print(
-                f"Found no quarterbeat value for the given start measure number {start}. ",
-                "Will be taking the next one.",
+        quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
+        if pd.isnull(quarterbeat_start):
+            self.logger.error(
+                f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
+                f"could be inferred. Probably it is a first ending."
             )
-            while pd.isnull(mc_measures["quarterbeats"][start]):
-                start += 1
-                if start >= end:
-                    raise ValueError(
-                        f"Could not find a quarterbeat value for the given start measure number {start}.",
-                        "Caused starting measure to match or exceed ending measure.",
-                    )
+            global_key, local_key = None, None
+        else:
+            row = get_row_at_quarterbeat(
+                df=self.expanded(), quarterbeat=quarterbeat_start
+            )
 
-        quarterbeat_start = measures["quarterbeats"][
-            mc[mc == start].first_valid_index()
-        ]
+            # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns a DataFrame instead of a Series)
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[-1]
+
+            global_key = row["globalkey"]
+            local_key = row["localkey"]
 
         included_mcs = tuple(range(start, end + 1))
 
         self.logger.debug(
             f"Start: {start}, End: {end}. Total number of measures: {len(included_mcs)}"
         )
-
-        row = get_row_at_quarterbeat(df=self.expanded(), quarterbeat=quarterbeat_start)
-
-        # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns a DataFrame instead of a Series)
-        if isinstance(row, pd.DataFrame):
-            row = row.iloc[-1]
-
-        global_key = row["globalkey"]
-        local_key = row["localkey"]
-
         self.logger.debug(f"Global key: {global_key}, Local key: {local_key}")
+
         excerpt = self.parsed.make_excerpt(
-            included_mcs=tuple(included_mcs), globalkey=global_key, localkey=local_key
+            included_mcs=included_mcs, globalkey=global_key, localkey=local_key
         )
 
         original_file_name = os.path.splitext(excerpt.filepath)[0]
