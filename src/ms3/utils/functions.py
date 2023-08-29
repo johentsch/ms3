@@ -1282,15 +1282,80 @@ def fifths2acc(
     return abs(acc) * "b" if acc < 0 else acc * "#"
 
 
+@overload
 def fifths2iv(
     fifths: int,
+    smallest: bool,
+    perfect: str,
+    major: str,
+    minor: str,
+    augmented: str,
+    diminished: str,
+) -> Optional[str]:
+    ...
+
+
+@overload
+def fifths2iv(
+    fifths: pd.Series,
+    smallest: bool,
+    perfect: str,
+    major: str,
+    minor: str,
+    augmented: str,
+    diminished: str,
+) -> Optional[pd.Series]:
+    ...
+
+
+@overload
+def fifths2iv(
+    fifths: NDArray[int],
+    smallest: bool,
+    perfect: str,
+    major: str,
+    minor: str,
+    augmented: str,
+    diminished: str,
+) -> Optional[NDArray[str]]:
+    ...
+
+
+@overload
+def fifths2iv(
+    fifths: List[int],
+    smallest: bool,
+    perfect: str,
+    major: str,
+    minor: str,
+    augmented: str,
+    diminished: str,
+) -> Optional[List[str]]:
+    ...
+
+
+@overload
+def fifths2iv(
+    fifths: Tuple[int],
+    smallest: bool,
+    perfect: str,
+    major: str,
+    minor: str,
+    augmented: str,
+    diminished: str,
+) -> Optional[Tuple[str]]:
+    ...
+
+
+def fifths2iv(
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     smallest: bool = False,
     perfect: str = "P",
     major: str = "M",
     minor: str = "m",
     augmented: str = "a",
     diminished: str = "d",
-) -> str:
+) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
     """Return interval name of a stack of fifths such that 0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass
     ``smallest=True``, intervals of a fifth or greater will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
 
@@ -1307,6 +1372,35 @@ def fifths2iv(
     Returns:
       Name of the interval as a string.
     """
+    try:
+        if pd.isnull(fifths):
+            return fifths
+    except ValueError:
+        pass
+    if isinstance(fifths, pd.Series):
+        return cast2collection(
+            coll=fifths,
+            func=fifths2iv,
+            smallest=smallest,
+            perfect=perfect,
+            major=major,
+            minor=minor,
+            augmented=augmented,
+            diminished=diminished,
+        )
+    try:
+        fifths = int(float(fifths))
+    except TypeError:
+        return cast2collection(
+            coll=fifths,
+            func=fifths2iv,
+            smallest=smallest,
+            perfect=perfect,
+            major=major,
+            minor=minor,
+            augmented=augmented,
+            diminished=diminished,
+        )
     fifths_plus_one = fifths + 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
     int_num = ["4", "1", "5", "2", "6", "3", "7"][fifths_plus_one % 7]
     sharp_wise_quality = augmented
