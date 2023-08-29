@@ -174,3 +174,11 @@ class TestScore:
             assert_dfs_equal(target_notelist, new_notelist)
         finally:
             os.remove(tmp_file.name)
+
+    def test_excerpt(self, score_object, tmp_path):
+        for start, end in ((1, 3), (2, 2), (3, None)):
+            score_object.mscx.store_excerpt(
+                start_mc=start,
+                end_mc=end,
+                directory=tmp_path,
+            )
