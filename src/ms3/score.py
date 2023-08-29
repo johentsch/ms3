@@ -71,7 +71,6 @@
 .. |voice| replace:: :ref:`voice <voice>`
 """
 import logging
-import math
 import os
 import re
 from contextlib import contextmanager
@@ -1152,13 +1151,13 @@ class MSCX(LoggedClass):
         else:
             start = start_mc
 
-        temp = measures.set_index("mc", inplace=False)
-        if math.isnan(temp["quarterbeats"][start]):
+        mc_measures = measures.set_index("mc", inplace=False)
+        if pd.isnull(mc_measures["quarterbeats"][start]):
             print(
                 f"Found no quarterbeat value for the given start measure number {start}. ",
                 "Will be taking the next one.",
             )
-            while math.isnan(temp["quarterbeats"][start]):
+            while pd.isnull(mc_measures["quarterbeats"][start]):
                 start += 1
                 if start >= end:
                     raise ValueError(
