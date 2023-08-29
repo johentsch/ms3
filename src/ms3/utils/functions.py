@@ -5173,21 +5173,26 @@ def path2parent_corpus(path):
         return None
 
 
-def chord2tpcs(chord, regex=None, logger=None, **kwargs):
+def chord2tpcs(
+    chord: str,
+    regex: Optional[re.Pattern] = None,
+    logger: Optional[logging.Logger] = None,
+    **kwargs,
+):
     """
     Split a chord label into its features and apply features2tpcs().
 
     Uses: features2tpcs()
 
-    Parameters
-    ----------
-    chord : :obj:`str`
-        Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
-    regex : :obj:`re.Pattern`, optional
-        Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
-        annotation standard is used.
-    **kwargs :
-        arguments for features2tpcs (pass MC to show it in warnings!)
+    Args:
+        chord:
+            Chord label that can be split into the features ['numeral', 'form', 'figbass',
+            'changes', 'relativeroot'].
+        regex:
+            Compiled regex with named groups for the five features. By default, the current
+            version of the DCML harmony annotation standard is used.
+        **kwargs:
+            arguments for features2tpcs (pass mc=MC to show it in warnings!)
     """
     if logger is None:
         logger = module_logger

@@ -5,6 +5,7 @@ import logging
 import re
 import sys
 from collections import defaultdict
+from typing import Optional
 
 import pandas as pd
 
@@ -169,6 +170,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         skip_checks=skip_checks,
         logger=logger,
     )
+
     df["chord_type"] = transform(
         df,
         features2type,
@@ -224,7 +226,9 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     return df
 
 
-def extract_features_from_labels(S, regex=None):
+def extract_features_from_labels(
+    S: pd.Series, regex: Optional[re.Pattern | str] = None
+) -> pd.DataFrame:
     """Applies .str.extract(regex) on the Series and returns a DataFrame with all named capturing groups."""
     if regex is None:
         regex = DCML_REGEX
@@ -232,7 +236,7 @@ def extract_features_from_labels(S, regex=None):
         regex = re.compile(regex, re.VERBOSE)
     features = list(regex.groupindex.keys())
     extracted = S.str.extract(regex, expand=True)
-    return extracted[features].copy()
+    return extracted[features].copy()  # removes superfluous columns
 
 
 def split_labels(
@@ -284,6 +288,19 @@ def split_labels(
     if len(rename) > 0:
         spl.rename(columns=rename, inplace=True)
     df = values_into_df(df, spl)
+
+    # replace '42' chord inversion with '2'. It is equivalent and allowed for convenience but must be harmonized
+    replace_42_mask = (df.figbass == "42").fillna(False)
+    if replace_42_mask.any():
+
+        def replace_42(S: pd.Series) -> pd.Series:
+            return S.str.replace("42", "2", n=1, regex=False)
+
+        replace_cols = ["label", "chord", "figbass"]
+        df.loc[replace_42_mask, replace_cols] = df.loc[
+            replace_42_mask, replace_cols
+        ].apply(replace_42)
+
     if not skip_checks:
         syntax_errors = spl.isna().all(axis=1) & df[label_column].notna()
         if syntax_errors.any():
@@ -294,7 +311,11 @@ def split_labels(
         return df
 
 
-def values_into_df(df, new_values):
+def values_into_df(df: pd.DataFrame, new_values: pd.DataFrame) -> pd.DataFrame:
+    """Updates the given DataFrame with the values from the other DataFrame by updating existing columns and
+    concatenating new columns. The returned DataFrame has the columns of ``new_values`` on the right-hand side as if
+    they had been concatenated.
+    """
     features = list(new_values.columns)
     update_columns = [col for col in features if col in df.columns]
     new_columns = [col for col in features if col not in df.columns]
