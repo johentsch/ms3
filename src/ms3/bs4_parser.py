@@ -3531,8 +3531,6 @@ class Instrumentation(LoggedClass):
                     cur_value = value[idx_channel]
                     found = found_channel.find_all("controller")
                     for idx, elem in enumerate(cur_value):
-                        elem["ctrl"] = cur_value[idx]["ctrl"]
-                        elem["value"] = cur_value[idx]["value"]
                         if idx >= len(found) - 1:
                             new_tag = self.soup.new_tag("controller")
                             new_tag["ctrl"] = cur_value[idx]["ctrl"]
@@ -3540,8 +3538,11 @@ class Instrumentation(LoggedClass):
                             found_channel.append(
                                 new_tag
                             )
-                    if len(found) > len(value):
-                        for i in range(len(value) - len(found)):
+                        else:
+                            found[idx]["ctrl"] = elem["ctrl"]
+                            found[idx]["value"] = elem["value"]
+                    if len(found) > len(cur_value):
+                        for i in range(len(cur_value) - len(found)):
                             found[i + len(found) - 1].extract()
             elif field_to_change == "ChannelValue":
                 channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
