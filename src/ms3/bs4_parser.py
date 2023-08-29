@@ -2933,7 +2933,12 @@ class Excerpt(_MSCX_bs4):
         if not final_barline:
             self.remove_final_barline()
 
-        # tags to amend
+        # sanitize values in case NaN was passed
+        if pd.isnull(globalkey):
+            globalkey = None
+        if pd.isnull(localkey):
+            localkey = None
+        # amend first label to indicate global and/or local key
         if globalkey or localkey:
             self.amend_first_harmony_keys(globalkey, localkey)
 
@@ -3052,10 +3057,16 @@ class Excerpt(_MSCX_bs4):
             first_voice = first_measure.find("voice")
             clef_tag = self.new_tag("Clef", prepend_within=first_voice)
             for tag, value in tag_value_dict.items():
+                if pd.isnull(value):
+                    continue
                 if "/" in tag:
                     self.logger.debug(
                         f"Haven't learned how to deal with secondary Clef tags such as Clef/{tag}. "
                         f"Igoring."
+                    )
+                elif ":" in tag:
+                    self.logger.debug(
+                        f"Inclusion of tag attributes (such as {tag}) not yet implemented."
                     )
                 else:
                     _ = self.new_tag(tag, value=value, append_within=clef_tag)
