@@ -1088,6 +1088,7 @@ class MSCX(LoggedClass):
         start_mn: Optional[int] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
+        directory=None,
         suffix: Optional[str] = None,
     ):
         """Store an excerpt of the current score as a new .mscx file by defining start and end measure. If no end
@@ -1108,6 +1109,8 @@ class MSCX(LoggedClass):
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
+            directory:
+                Path to the folder where the excerpts are to be stored.
             suffix:
                 String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
 
@@ -1182,9 +1185,15 @@ class MSCX(LoggedClass):
             included_mcs=included_mcs, globalkey=global_key, localkey=local_key
         )
 
-        original_file_name = os.path.splitext(excerpt.filepath)[0]
+        original_directory, original_filename = os.path.split(excerpt.filepath)
+        original_file_name = os.path.splitext(original_filename)[0]
         new_file_name = original_file_name + f"{suffix}_{start}-{end}" + ".mscx"
-        excerpt.store_score(new_file_name)
+        if directory is None:
+            excerpt_filepath = os.path.join(original_directory, new_file_name)
+        else:
+            excerpt_filepath = os.path.join(directory, new_file_name)
+        excerpt.store_score(excerpt_filepath)
+        self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
     def extract_phrases(self):
         """Extract all phrases from the given score. The function will generate a list of tuples,
