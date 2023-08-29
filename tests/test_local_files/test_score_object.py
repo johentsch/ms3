@@ -10,6 +10,7 @@ from ms3.bs4_measures import MeasureList, make_offset_col
 from ms3.utils import (
     assert_all_lines_equal,
     assert_dfs_equal,
+    check_phrase_annotations,
     decode_harmonies,
     load_tsv,
     no_collections_no_booleans,
@@ -176,9 +177,24 @@ class TestScore:
             os.remove(tmp_file.name)
 
     def test_excerpt(self, score_object, tmp_path):
+        print(f"CREATING EXCERPTS IN {tmp_path}")
         for start, end in ((1, 3), (2, 2), (3, None)):
             score_object.mscx.store_excerpt(
                 start_mc=start,
                 end_mc=end,
                 directory=tmp_path,
             )
+        assert len(os.listdir(tmp_path)) == 3
+
+    def test_phrase_excerpts(self, score_object, tmp_path):
+        print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
+        dcml_labels = score_object.mscx.expanded(unfold=True)
+        if not dcml_labels:
+            pytest.skip("No labels to extract phrases from.")
+        if not check_phrase_annotations(dcml_labels, "phraseend"):
+            pytest.skip("Incongruent phrase annotations.")
+        score_object.mscx.store_phrase_excerpts(
+            directory=tmp_path,
+        )
+        if score_object.mscx.has_annotations:
+            assert len(os.listdir(tmp_path)) > 0

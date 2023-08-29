@@ -1133,7 +1133,9 @@ class MSCX(LoggedClass):
             (start_mc, start_mn, end_mc, end_mn),
         ):
             if arg_val is not None and not isinstance(arg_val, int):
-                raise TypeError(f"{arg} must be an integer. Got {arg_val!r}.")
+                raise TypeError(
+                    f"{arg} must be an integer. Got {arg_val!r} ({type(arg_val)!r})."
+                )
 
         if suffix is None:
             suffix = ""
@@ -1161,7 +1163,7 @@ class MSCX(LoggedClass):
         dcml_labels = self.expanded()
         if dcml_labels is not None and len(dcml_labels) > 0:
             # try to infer global key and local key from the annotations
-            mc_measures = measures.set_index("mc", inplace=False)
+            mc_measures = measures.set_index("mc")
             quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
             if pd.isnull(quarterbeat_start):
                 self.logger.error(
@@ -1201,38 +1203,61 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
-    def extract_phrases(self):
-        """Extract all phrases from the given score. The function will generate a list of tuples,
-        where in each pair, the first element is the mn for the phrase beginning
-        and the second will be the mn for the phrase ending.
-        For each of these pairs, the function will call make_excerpt() to generate an excerpt for the phrase.
+    def store_phrase_excerpts(self, directory: Optional[str] = None):
+        """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
+        the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
+        start and end MC for each phrase are passed to :meth:`store_excerpt`. The resulting excerpts will be
+        named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
         """
-        # TODO: Implement strict phrase extraction where if a measure contains both the end of a phrase
-        # and the beginning of the next one, the notes comprised in the beginning of the second phrase
-        # will be remove from the ending of the previous so as to avoid ambigous phrase endings.
 
-        expanded = self.expanded()
+        expanded = self.expanded(unfold=True)
+        if expanded is None or len(expanded) == 0:
+            self.logger.info("No DCML labels found to extract phrase information from.")
+            return
 
-        filtered_df = expanded[expanded["phraseend"].isin(["{", "}{", "}"])]
-        result = filtered_df[["mn", "phraseend"]].copy()
+        phrase_label_mask = expanded["phraseend"].isin(["{", "}{", "}"])
+        if not phrase_label_mask.any():
+            self.logger.info(
+                "DCML labels do not contain phrase labels with curly brackets {}"
+            )
+            return
 
-        # Shift the 'mn' and 'phraseend' columns down for comparison
-        result["shifted_phraseend"] = (
-            result["phraseend"].shift(-1).fillna(-1).astype(str)
-        )
-        result["shifted_mn"] = result["mn"].shift(-1).fillna(-1).astype(int)
-
-        phrases = []
-        for _, row in result.iterrows():
-            if (row["phraseend"] == "{" or row["phraseend"] == "}{") and (
-                row["shifted_phraseend"] == "}" or row["shifted_phraseend"] == "}{"
-            ):
-                phrases.append((row["mn"], row["shifted_mn"]))
-                self.store_excerpt(
-                    start_mn=row["mn"], end_mn=row["shifted_mn"], suffix="phrase"
-                )
-
+        phrase_labels = expanded.loc[phrase_label_mask, "phraseend"]
+        phrase_starts = phrase_labels.str.contains("{")
+        phrase_ends = phrase_labels.str.contains("}")
+        if phrase_starts.sum() != phrase_ends.sum():
+            self.logger.error("Phrase labels are incoherent. Not extracting phrases.")
+            return
+        start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
+        end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
+        phrases = list(
+            reversed(sorted(zip(start_mcs, end_mcs)))
+        )  # prepare for removal of duplicates due to unfolding
         self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
+        phrases_without_duplicates = []
+        previous_start = None
+        for start_mc, end_mc in phrases:
+            if start_mc == previous_start:
+                # do not create excerpts with the same start_mc
+                continue
+            if end_mc < start_mc:
+                self.logger.error(
+                    f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
+                )
+                continue
+            phrases_without_duplicates.append((start_mc, end_mc))
+            self.store_excerpt(
+                start_mc=int(start_mc),
+                end_mc=int(end_mc),
+                directory=directory,
+                suffix="_phrase",
+            )
+            previous_start = start_mc
+
+        self.logger.info(
+            f"Extracted {len(phrases_without_duplicates)} phrases.\n"
+            f"Phrases: {phrases_without_duplicates}"
+        )
 
     def extract_random_snippets(
         self,
