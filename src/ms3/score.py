@@ -1259,7 +1259,7 @@ class MSCX(LoggedClass):
             f"Phrases: {phrases_without_duplicates}"
         )
 
-    def extract_random_snippets(
+    def store_random_excerpts(
         self,
         snippet_number: int,
         snippet_length: int = 2,
