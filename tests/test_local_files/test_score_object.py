@@ -182,7 +182,7 @@ class TestScore:
             score_object.mscx.store_excerpt(
                 start_mc=start,
                 end_mc=end,
-                directory=tmp_path,
+                directory=str(tmp_path),
             )
         assert len(os.listdir(tmp_path)) == 3
 
@@ -194,7 +194,25 @@ class TestScore:
         if not check_phrase_annotations(dcml_labels, "phraseend"):
             pytest.skip("Incongruent phrase annotations.")
         score_object.mscx.store_phrase_excerpts(
-            directory=tmp_path,
+            directory=str(tmp_path),
         )
         if score_object.mscx.has_annotations:
             assert len(os.listdir(tmp_path)) > 0
+
+    def test_random_excerpts(self, score_object, tmp_path):
+        print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_random_excerpts(
+            n_excerpts=3,
+            directory=str(tmp_path),
+        )
+        assert len(os.listdir(tmp_path)) == 3
+
+    def test_storing_all_excerpts(self, score_object, tmp_path):
+        print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
+        last_mn = score_object.mscx.measures().mn.max()
+        mn_length = last_mn - 2
+        score_object.mscx.store_random_excerpts(
+            mn_length=int(mn_length),
+            directory=str(tmp_path),
+        )
+        assert len(os.listdir(tmp_path)) == 3
