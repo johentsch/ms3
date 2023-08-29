@@ -1117,10 +1117,9 @@ class MSCX(LoggedClass):
                             In this case the function will not produce an excerpt.
 
         """
-        if (start_mc is None and start_mn is None) or (
-            start_mc is not None and start_mn is not None
-        ):
-            raise ValueError("Exactly one of start_mc or start_mn must be provided.")
+        assert (start_mc is None) + (
+            start_mn is None
+        ) == 1, "Exactly one of start_mc or start_mn must be provided."
 
         if end_mc is not None and end_mn is not None:
             raise ValueError(
@@ -1137,23 +1136,21 @@ class MSCX(LoggedClass):
         measures = self.measures()
         mc = measures["mc"]
         mn = measures["mn"]
-        start = 0
-        end = 0
 
         # Setting ending mc value
-        if end_mc is not None:
+        if end_mc is None:
+            if end_mn is None:
+                end = mc.iloc[-1]
+            else:
+                end = measures.loc[mn == end_mn, "mc"].iloc[-1]
+        else:
             end = end_mc
-        if end_mn is not None:
-            end = measures["mc"][mn[mn == end_mn].last_valid_index()]
-        if end_mc is None and end_mn is None:
-            end = measures["mc"].iloc[-1]
 
         # Setting starting mc value
-        if start_mc is not None:
+        if start_mc is None:
+            start = measures.loc[mn == start_mn, "mc"].iloc[0]
+        else:
             start = start_mc
-        if start_mn is not None:
-            index = mn[mn == start_mn].first_valid_index()
-            start = measures["mc"][index]
 
         temp = measures.set_index("mc", inplace=False)
         if math.isnan(temp["quarterbeats"][start]):
