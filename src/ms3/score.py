@@ -1263,6 +1263,8 @@ class MSCX(LoggedClass):
         self,
         snippet_number: int,
         snippet_length: int = 2,
+        directory: Optional[str] = None,
+        suffix: Optional[str] = None,
     ):
         """Extract random snippets from the given score. The function will generate a list of tuples,
         where in each pair, the first element is the mc for the snippet
@@ -1274,6 +1276,10 @@ class MSCX(LoggedClass):
                 Number of snippets to be extracted.
             snippet_length:
                 Length of each snippet in measures (bars).
+            directory:
+                Path to the folder where the excerpts are to be stored.
+            suffix:
+                String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
         """
 
         if not isinstance(snippet_number, int):
@@ -1307,7 +1313,10 @@ class MSCX(LoggedClass):
 
         for mn_start in sampled_mn_starts:
             self.store_excerpt(
-                start_mn=mn_start, end_mn=(mn_start + snippet_length - 1)
+                start_mn=mn_start,
+                end_mn=(mn_start + snippet_length - 1),
+                directory=directory,
+                suffix=suffix,
             )
 
 
