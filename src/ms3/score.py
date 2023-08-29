@@ -1147,7 +1147,11 @@ class MSCX(LoggedClass):
         # Setting ending mc value
         if end_mc is None:
             if end_mn is None:
-                end = mc.iloc[-1]
+                end = mc.max()
+            elif end_mn not in mn.values:
+                raise ValueError(
+                    f"Score has no measure number {end_mn} to end an excerpt on."
+                )
             else:
                 end = measures.loc[mn == end_mn, "mc"].iloc[-1]
         else:
@@ -1155,6 +1159,10 @@ class MSCX(LoggedClass):
 
         # Setting starting mc value
         if start_mc is None:
+            if start_mn not in mn.values:
+                raise ValueError(
+                    f"Score has no measure number {start_mn} to start an excerpt from."
+                )
             start = measures.loc[mn == start_mn, "mc"].iloc[0]
         else:
             start = start_mc
@@ -1261,8 +1269,8 @@ class MSCX(LoggedClass):
 
     def store_random_excerpts(
         self,
-        n_excerpts: int,
-        mn_lengths: int = 2,
+        n_excerpts: Optional[int] = None,
+        mn_length: int = 2,
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1273,8 +1281,8 @@ class MSCX(LoggedClass):
 
         Args:
             n_excerpts:
-                Number of snippets to be extracted.
-            mn_lengths:
+                Number of snippets to be extracted. If not specified, all possible snippets will be extracted.
+            mn_length:
                 Length of each snippet in terms of MN (measure numbers).
             directory:
                 Path to the folder where the excerpts are to be stored.
@@ -1282,31 +1290,37 @@ class MSCX(LoggedClass):
                 String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
         """
 
-        if not isinstance(n_excerpts, int):
+        if n_excerpts is not None and not isinstance(n_excerpts, int):
             raise TypeError("snippet_number must be an integer.")
-        if not isinstance(mn_lengths, int):
+        if not isinstance(mn_length, int):
             raise TypeError(
                 "snippet_length must be an integer. Cannot create snippet of non-integral length."
             )
 
         last_mn = self.measures().mn.max()
-        last_possible_start = last_mn - mn_lengths + 1
-
-        if n_excerpts > last_possible_start:
+        last_possible_start = last_mn - mn_length + 1
+        if n_excerpts is None:
+            n_excerpts = last_possible_start
+            self.logger.debug(
+                f"Number of snippets not specified. Extracting all {n_excerpts} possible snippets."
+            )
+        elif n_excerpts > last_possible_start:
             n_excerpts = last_possible_start
             self.logger.info(
                 "Number of snippets exceeds the number of possible snippets. ",
                 "Will extract all possible snippets.",
             )
 
-        valid_mn_starts = np.arange(1, last_possible_start + 1)
+        valid_mn_starts = np.arange(
+            1, last_possible_start + 1
+        )  # systematically excludes anacrusis (MN=0)
         sampled_mn_starts = np.random.choice(valid_mn_starts, n_excerpts, replace=False)
         self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
 
         for mn_start in sampled_mn_starts:
             self.store_excerpt(
                 start_mn=int(mn_start),
-                end_mn=int(mn_start + mn_lengths - 1),
+                end_mn=int(mn_start + mn_length - 1),
                 directory=directory,
                 suffix=suffix,
             )
