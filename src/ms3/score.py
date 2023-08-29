@@ -1083,7 +1083,7 @@ class MSCX(LoggedClass):
         else:
             self._annotations = None
 
-    def make_excerpt(
+    def store_excerpt(
         self,
         start_mc: Optional[int] = None,
         start_mn: Optional[int] = None,
@@ -1091,17 +1091,11 @@ class MSCX(LoggedClass):
         end_mn: Optional[int] = None,
         suffix: Optional[str] = None,
     ):
-        """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
-        the given integers is inconsequential because measures are always printed in the order in which they appear in
-        the score. Also, it is assumed that the MCs/MNs are consecutive, i.e. there are no gaps between them; otherwise
-        the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
-        signatures. There is also the option of omitting the ending MC or MN. In this case the excerpt will be
-        from the selected MC or MN to the end of the score.
+        """Store an excerpt of the current score as a new .mscx file by defining start and end measure.
+        The original score header and metadata are kept. Start and end measure both can be specified either as MC
+        (the number in MuseScore's status bar) or as MN (the number as displayed in the score).
 
         Args:
-            included_mcs:
-                List of measure counts to be included in the excerpt.
-                Pass a single integer to get an excerpt from that MC to the end of the piece.
             start_mc:
                 Measure count of the first measure to be included in the excerpt.
                 If ``start_mc`` is given, ``start_mn`` must be None.
@@ -1234,7 +1228,7 @@ class MSCX(LoggedClass):
                 row["shifted_phraseend"] == "}" or row["shifted_phraseend"] == "}{"
             ):
                 phrases.append((row["mn"], row["shifted_mn"]))
-                self.make_excerpt(
+                self.store_excerpt(
                     start_mn=row["mn"], end_mn=row["shifted_mn"], suffix="phrase"
                 )
 
@@ -1287,7 +1281,7 @@ class MSCX(LoggedClass):
         self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
 
         for mn_start in sampled_mn_starts:
-            self.make_excerpt(
+            self.store_excerpt(
                 start_mn=mn_start,
                 end_mn=(mn_start + snippet_length - 1),
             )
