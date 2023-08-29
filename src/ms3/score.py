@@ -1298,6 +1298,10 @@ class MSCX(LoggedClass):
             )
 
         last_mn = self.measures().mn.max()
+        if mn_length > last_mn:
+            raise ValueError(
+                f"mn_length ({mn_length}) exceeds the number of measures in the score ({last_mn})."
+            )
         last_possible_start = last_mn - mn_length + 1
         if n_excerpts is None:
             n_excerpts = last_possible_start
