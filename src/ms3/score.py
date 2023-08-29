@@ -1261,8 +1261,8 @@ class MSCX(LoggedClass):
 
     def store_random_excerpts(
         self,
-        snippet_number: int,
-        snippet_length: int = 2,
+        n_excerpts: int,
+        mn_lengths: int = 2,
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1272,19 +1272,19 @@ class MSCX(LoggedClass):
         For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
 
         Args:
-            snippet_number:
+            n_excerpts:
                 Number of snippets to be extracted.
-            snippet_length:
-                Length of each snippet in measures (bars).
+            mn_lengths:
+                Length of each snippet in terms of MN (measure numbers).
             directory:
                 Path to the folder where the excerpts are to be stored.
             suffix:
                 String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
         """
 
-        if not isinstance(snippet_number, int):
+        if not isinstance(n_excerpts, int):
             raise TypeError("snippet_number must be an integer.")
-        if not isinstance(snippet_length, int):
+        if not isinstance(mn_lengths, int):
             raise TypeError(
                 "snippet_length must be an integer. Cannot create snippet of non-integral length."
             )
@@ -1293,18 +1293,18 @@ class MSCX(LoggedClass):
         mn = measures["mn"]
 
         mn_max = mn.iloc[-1].copy()
-        count = snippet_number
+        count = n_excerpts
 
-        if count > mn_max // snippet_length:
-            count = mn_max // snippet_length
+        if count > mn_max // mn_lengths:
+            count = mn_max // mn_lengths
             print(
                 "Number of snippets exceeds the number of possible snippets. ",
                 "Will extract all possible snippets.",
             )
 
-        valid_mn_starts = np.array(range(1, mn_max, snippet_length))
+        valid_mn_starts = np.array(range(1, mn_max, mn_lengths))
 
-        if (valid_mn_starts[-1] + snippet_length - 1) > mn_max:
+        if (valid_mn_starts[-1] + mn_lengths - 1) > mn_max:
             valid_mn_starts = valid_mn_starts[:-1]
 
         sampled_mn_starts = np.random.choice(valid_mn_starts, count, replace=False)
@@ -1314,7 +1314,7 @@ class MSCX(LoggedClass):
         for mn_start in sampled_mn_starts:
             self.store_excerpt(
                 start_mn=mn_start,
-                end_mn=(mn_start + snippet_length - 1),
+                end_mn=(mn_start + mn_lengths - 1),
                 directory=directory,
                 suffix=suffix,
             )
