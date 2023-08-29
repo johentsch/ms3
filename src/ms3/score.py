@@ -1157,25 +1157,28 @@ class MSCX(LoggedClass):
         else:
             start = start_mc
 
-        mc_measures = measures.set_index("mc", inplace=False)
-        quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
-        if pd.isnull(quarterbeat_start):
-            self.logger.error(
-                f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
-                f"could be inferred. Probably it is a first ending."
-            )
-            global_key, local_key = None, None
-        else:
-            row = get_row_at_quarterbeat(
-                df=self.expanded(), quarterbeat=quarterbeat_start
-            )
+        global_key, local_key = None, None
+        dcml_labels = self.expanded()
+        if dcml_labels is not None and len(dcml_labels) > 0:
+            # try to infer global key and local key from the annotations
+            mc_measures = measures.set_index("mc", inplace=False)
+            quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
+            if pd.isnull(quarterbeat_start):
+                self.logger.error(
+                    f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
+                    f"could be inferred. Probably it is a first ending."
+                )
+            else:
+                row = get_row_at_quarterbeat(
+                    df=dcml_labels, quarterbeat=quarterbeat_start
+                )
 
-            # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns a DataFrame instead of a Series)
-            if isinstance(row, pd.DataFrame):
-                row = row.iloc[-1]
+                # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns several rows)
+                if isinstance(row, pd.DataFrame):
+                    row = row.iloc[-1]
 
-            global_key = row["globalkey"]
-            local_key = row["localkey"]
+                global_key = row["globalkey"]
+                local_key = row["localkey"]
 
         included_mcs = tuple(range(start, end + 1))
 
@@ -1279,8 +1282,7 @@ class MSCX(LoggedClass):
 
         for mn_start in sampled_mn_starts:
             self.store_excerpt(
-                start_mn=mn_start,
-                end_mn=(mn_start + snippet_length - 1),
+                start_mn=mn_start, end_mn=(mn_start + snippet_length - 1)
             )
 
 
