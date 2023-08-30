@@ -1,0 +1,3 @@
+[submodule "frictionless_schemas"]
+	path = frictionless_schemas
+	url = https://github.com/DCMLab/frictionless_schemas
