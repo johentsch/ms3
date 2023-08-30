@@ -311,7 +311,8 @@ def make_offset_col(
     elif isinstance(logger, str):
         logger = logging.getLogger(logger)
     nominal_duration = df[timesig].map(Fraction)
-    shorter_than_nominal_mask = df["act_dur"] < nominal_duration
+    actual_duration = df[act_dur]
+    shorter_than_nominal_mask = actual_duration < nominal_duration
     if shorter_than_nominal_mask.sum() == 0:
         logger.debug(
             "Actual durations do not diverge from nominal durations, hence mc_offset=0 everywhere."
@@ -355,20 +356,22 @@ def make_offset_col(
 
     irregular = df.loc[shorter_than_nominal_mask, columns_to_display]
     if irregular[mc_col].iloc[0] == 1:
-        # Check whether first MC is an anacrusis and mark accordingly
+        # Check whether first MC is an anacrusis and add mc_offset accordingly
         if len(irregular) > 1 and irregular[mc_col].iloc[1] == 2:
-            if not expected_completion(1) + actual_duration[2] == nominal_duration[1]:
-                add_offset(1)
-            else:
-                # regular divided measure, no anacrusis
+            # MCs 1 and 2 are both have irregular lengths
+            if expected_completion(1) + actual_duration[2] == nominal_duration[1]:
+                # first and second MC complement each other to a full bar -> not an anacrusis
                 pass
+            else:
+                # add mc_offset to MC 1
+                add_offset(1)
         else:
-            # is anacrusis
+            # only MC 1 has irregular length and therefore is anacrusis, add mc_offset to MC 1
             add_offset(1)
     for row_values in irregular.itertuples(index=False):
         if section_breaks:
             mc, next_mcs, break_value = row_values
-            if pd.isnull(break_value) or break_value != "section":
+            if pd.isnull(break_value) or "section" not in break_value:
                 next_mcs = list(next_mcs)
             else:
                 next_mcs = [nxt_mc for nxt_mc in next_mcs if nxt_mc <= mc]
@@ -393,8 +396,12 @@ def make_offset_col(
         elif mc2mc_offset[mc] == 0:
             add_offset(mc)
     mc2ix = {m: ix for ix, m in df.mc.items()}
-    result = {mc2ix[m]: offset for m, offset in mc2mc_offset.items()}
-    return pd.Series(result, name=name, dtype="object").reindex(df.index, fill_value=0)
+    result_dict = {mc2ix[m]: offset for m, offset in mc2mc_offset.items()}
+    result_series = pd.Series(result_dict, name=name, dtype="object").reindex(
+        df.index, fill_value=0
+    )
+
+    return result_series
 
 
 def make_repeat_col(
@@ -698,7 +705,7 @@ class MeasureList(LoggedClass):
         )
         # the functions computing the final two columns rely on the previous columns, hence we concatenate here:
         self.ml = pd.concat([self.ml] + new_columns, axis=1)
-        # before adding the final two, where, again, the last relies on the presence of the second last
+        # for the final two, again, the last ('offset') relies on the presence of the second last ('next')
         self.ml = pd.concat(
             [
                 self.ml,
