@@ -2553,6 +2553,8 @@ def compare_two_score_objects(
 ) -> None:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     old_path = old_score.mscx.mscx_src
     new_path = new_score.mscx.mscx_src
     dataframe_pairs = {

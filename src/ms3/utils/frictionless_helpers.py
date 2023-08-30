@@ -279,6 +279,8 @@ def get_schema(
 def store_as_json_or_yaml(descriptor_dict: dict, descriptor_path: str, logger=None):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if descriptor_path.endswith(".yaml"):
         with open(descriptor_path, "w") as f:
             yaml.dump(descriptor_dict, f)
@@ -373,6 +375,8 @@ def make_and_store_resource_descriptor(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     descriptor_extension = descriptor_extension.lstrip(".")
     if descriptor_extension not in ("json", "yaml"):
         raise ValueError(
@@ -412,6 +416,8 @@ def validate_descriptor_at_path(
 ) -> fl.Report:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     report = fl.validate(descriptor_path)
     validation_tasks = []
     if report.valid:
@@ -495,6 +501,8 @@ def make_and_store_and_validate_resource_descriptor(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     descriptor_path = make_and_store_resource_descriptor(
         df=df,
         directory=directory,
@@ -573,6 +581,8 @@ def store_dataframe_resource(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     tsv_name = f"{piece_name}.{facet}.tsv"
     if zipped:
         relative_filepath = f"{piece_name}.zip"
@@ -666,6 +676,8 @@ def store_dataframes_package(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if isinstance(dataframes, pd.DataFrame):
         dataframes = [dataframes]
     facets = resolve_facets_param(facets, TSVtype, none_means_all=False)

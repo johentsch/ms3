@@ -127,6 +127,8 @@ def expand_labels(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     assert (
         sum((absolute, all_in_c)) < 2
     ), "Chord tones can be either 'absolute' or 'all_in_c', not both."
@@ -269,6 +271,8 @@ def split_labels(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if regex is None:
         regex = DCML_REGEX
     if regex.__class__ != re.compile("").__class__:
@@ -357,6 +361,8 @@ def features2type(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(numeral) or numeral in ["Fr", "Ger", "It"]:
         return numeral
     form, figbass = tuple("" if pd.isnull(val) else val for val in (form, figbass))
@@ -424,6 +430,8 @@ def replace_special(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not inplace:
         df = df.copy()
 
@@ -573,6 +581,8 @@ def propagate_keys(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     df = df.copy()
     nunique = df[globalkey].nunique()
     assert nunique > 0, "No global key specified."
@@ -667,6 +677,8 @@ def propagate_pedal(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     df = df.copy()
     # If the index is not unique, it has to be temporarily replaced
     tmp_index = not df.index.is_unique

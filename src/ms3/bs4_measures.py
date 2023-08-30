@@ -30,6 +30,8 @@ def get_volta_structure(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     cols = [mc, volta_start, volta_length]
     sel = measures[volta_start].notna()
     voltas = measures.loc[sel, cols]
@@ -96,6 +98,8 @@ def keep_one_row_each(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if ignore_columns is None:
         ignore_columns = [differentiating_col]
     else:
@@ -252,6 +256,8 @@ def make_next_col(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if volta_structure is None:
         volta_structure = {}
     if sections and (df["breaks"].fillna("") == "section").sum() == 0:
@@ -302,6 +308,8 @@ def make_offset_col(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     nominal_duration = df[timesig].map(Fraction)
     shorter_than_nominal_mask = df["act_dur"] < nominal_duration
     if shorter_than_nominal_mask.sum() == 0:
@@ -420,6 +428,8 @@ def make_timesig_col(
 ) -> pd.Series:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     n = (
         pd.to_numeric(df[sigN_col])
         .astype("Int64")
@@ -489,6 +499,8 @@ def treat_group(mc: int, group: NDArray, logger=None) -> Dict[int, List[int]]:
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     n = group.shape[0]
     mcs, numbers, lengths = group.T
     # check volta numbers

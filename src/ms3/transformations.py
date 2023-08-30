@@ -90,7 +90,7 @@ def add_quarterbeats_col(
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
         | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets(
-        )<ms3.parse.Parse.get_continuous_offsets>`
+          )<ms3.parse.Parse.get_continuous_offsets>`
         | It is not required if the column 'quarterbeats' exists already.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
@@ -102,6 +102,8 @@ def add_quarterbeats_col(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if len(df.index) == 0:
         return df
     has_quarterbeats = "quarterbeats" in df.columns
@@ -243,6 +245,8 @@ def add_weighted_grace_durations(notes, weight=1 / 2, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if "gracenote" not in notes.columns:
         return notes
     grace = notes.gracenote.notna()
@@ -346,6 +350,8 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}, logger=None)
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
 
     df = df.copy()
     # If the index is not unique, it has to be temporarily replaced
@@ -447,6 +453,8 @@ def dfs2quarterbeats(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     assert (
         sum((unfold, quarterbeats, interval_index)) >= 1
     ), "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
@@ -540,6 +548,8 @@ def get_chord_sequences(at, major_minor=True, level=None, column="chord", logger
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if major_minor:
         if "key_segment" not in at.columns:
             logger.info(
@@ -635,6 +645,8 @@ def group_annotations_by_features(at, features="numeral", logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if isinstance(features, str):
         features = [features]
     qb_cols = ["quarterbeats", "duration_qb"]
@@ -769,6 +781,8 @@ def labels2global_tonic(df, cols={}, inplace=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not inplace:
         df = df.copy()
 
@@ -935,6 +949,8 @@ def make_gantt_data(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     at = at[at.numeral.notna() & (at.numeral != "@none")].copy()
     if last_mn is not None or "quarterbeats" not in at.columns:
         position_col = "mn_fraction"
@@ -1176,6 +1192,8 @@ def notes2pcvs(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pitch_class_format in ("tpc", "name"):
         pitch_class_grouper = notes.tpc.values
     elif pitch_class_format == "pc":
@@ -1314,6 +1332,8 @@ def segment_by_adjacency_groups(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if "duration_qb" not in df.columns:
         logger.error("DataFrame is missing the column 'duration_qb'")
     if isinstance(cols, str):
@@ -1382,6 +1402,8 @@ def segment_by_criterion(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if "quarterbeats" not in df.columns:
         raise TypeError("DataFrame is missing the column 'quarterbeats'")
     try:
@@ -1497,6 +1519,8 @@ def transform_multiple(df, func, level=-1, logger=None, **kwargs):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if isinstance(func, str):
         kw2func = {
             "annotations": transform_annotations,
@@ -1615,6 +1639,8 @@ def _treat_level_parameter(level, nlevels, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not isinstance(level, int):
         return level
     if level == 0:
@@ -1728,6 +1754,8 @@ def transform_note_columns(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     transformations = {
         "name": fifths2name,
         "names": fifths2name,

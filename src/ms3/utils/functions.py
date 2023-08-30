@@ -215,6 +215,8 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False, logger=No
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
     # build 2-octave diatonic scale on C major/minor
     root = ["I", "II", "III", "IV", "V", "VI", "VII"].index(num_degree.upper())
@@ -381,6 +383,8 @@ def color_params2rgba(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if all(
         pd.isnull(param)
         for param in [color_name, color_html, color_r, color_g, color_b, color_a]
@@ -451,6 +455,8 @@ def compute_mn_playthrough(measures: pd.DataFrame, logger=None) -> pd.Series:
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     previous_occurrences = defaultdict(lambda: 0)
 
     def get_mn_playthrough(mn):
@@ -500,6 +506,8 @@ def convert(
     """Calls "MS -fo new old", which converts old to new with the given MuseScore executable."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     version = get_major_version_of_musescore_executable(MS)
     if version == 4:
         convert_to_ms4(old=old, new=new, MS=MS, logger=logger)
@@ -524,6 +532,8 @@ def convert_to_ms4(old, new, MS="mscore", logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     version = get_major_version_of_musescore_executable(MS)
     if not (version is None or version == 4):
         if version is None:
@@ -632,6 +642,8 @@ def convert_folder(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     MS = get_musescore(ms, logger=logger)
     assert MS is not None, f"MuseScore not found: {ms}"
     assert any(
@@ -744,6 +756,8 @@ def decode_harmonies(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     df = df.copy()
     drop_cols, compose_label = [], []
     if "nashville" in df.columns:
@@ -863,6 +877,8 @@ def resolve_form_abbreviations(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     mc_string = "" if mc is None else f"MC {mc}: "
     if "," in token:
         logger.warning(
@@ -923,6 +939,8 @@ def distribute_tokens_over_levels(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     column2value = {}
     reading_regex = r"^((?:[ivx]+\&?)+):"
     mc_string = "" if mc is None else f"MC {mc}: "
@@ -1075,6 +1093,8 @@ def expand_form_labels(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(
         r"\s", " ", regex=True
     )
@@ -1600,6 +1620,8 @@ def fifths2name(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     try:
         if pd.isnull(fifths):
             return fifths
@@ -1726,6 +1748,8 @@ def get_musescore(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if MS is None:
         return MS
     if MS == "auto":
@@ -1972,6 +1996,8 @@ def first_level_files_and_subdirs(path):
 def contains_corpus_indicator(path, logger=None):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     for subdir in first_level_subdirs(path):
         if subdir in STANDARD_NAMES_OR_GIT:
             logger.debug(
@@ -1988,6 +2014,8 @@ def get_first_level_corpora(path: str, logger=None) -> List[str]:
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if path is None or not os.path.isdir(path):
         logger.info(f"{path} is not an existing directory.")
         return
@@ -2025,6 +2053,8 @@ def join_tsvs(dfs, sort_cols=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if len(dfs) == 1:
         return dfs[0]
     zero, one, two = [], [], []
@@ -2673,6 +2703,8 @@ def make_continuous_offset_series(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if "mc_playthrough" in measures.columns:
         act_durs = measures.set_index("mc_playthrough").act_dur
     elif "mc" in measures.columns:
@@ -2760,6 +2792,8 @@ def make_interval_index_from_breaks(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     breaks = S.to_list()
     if end_value is not None:
         last = breaks[-1]
@@ -2798,6 +2832,8 @@ def make_playthrough2mc(measures: pd.DataFrame, logger=None) -> Optional[pd.Seri
     """Turns the column 'next' into a mapping of playthrough_mc -> mc."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     ml = measures.set_index("mc")
     try:
         seq = next2sequence(ml.next, logger=logger)
@@ -2829,6 +2865,8 @@ def make_playthrough_info(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     unfolded_measures = unfold_measures_table(measures, logger=logger)
     if unfolded_measures is None:
         return
@@ -2868,6 +2906,8 @@ def merge_ties(df, return_dropped=False, perform_checks=True, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
 
     def merge(df):
         vc = df.tied.value_counts()
@@ -3127,6 +3167,8 @@ def name2fifths(nn, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if nn.__class__ == int or pd.isnull(nn):
         return nn
     name_tpcs = {"C": 0, "D": 2, "E": 4, "F": -1, "G": 1, "A": 3, "B": 5}
@@ -3143,6 +3185,8 @@ def name2pc(nn, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if nn.__class__ == int or pd.isnull(nn):
         logger.warning(f"'{nn}' is not a valid note name.")
         return nn
@@ -3165,6 +3209,8 @@ def next2sequence(next_col: pd.Series, logger=None) -> Optional[List[int]]:
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     mc = next_col.index[0]
     last_mc = next_col.index[-1]
     max_iter = 10 * last_mc
@@ -3197,6 +3243,8 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if df is None:
         return df
     collection_cols = ["next", "chord_tones", "added_tones"]
@@ -3299,6 +3347,8 @@ def path2type(path, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     _, fext = os.path.splitext(path)
     if fext.lower() in SCORE_EXTENSIONS:
         logger.debug(
@@ -3471,6 +3521,8 @@ def roman_numeral2fifths(rn, global_minor=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(rn):
         return rn
     if "/" in rn:
@@ -3494,6 +3546,8 @@ def roman_numeral2semitones(rn, global_minor=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(rn):
         return rn
     if "/" in rn:
@@ -3612,6 +3666,8 @@ def scan_directory(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if file_re is None:
         file_re = r".*"
     if folder_re is None:
@@ -3831,6 +3887,8 @@ def split_alternatives(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not inplace:
         df = df.copy()
     alternatives = df[column].str.split(regex, expand=True)
@@ -3875,6 +3933,8 @@ def split_note_name(nn, count=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     m = re.match("^([A-G]|[a-g])(#*|b*)$", str(nn))
     if m is None:
         logger.error(nn + " is not a valid scale degree.")
@@ -3895,6 +3955,8 @@ def split_scale_degree(sd, count=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
         if "/" in sd:
@@ -3925,6 +3987,8 @@ def split_scale_degree(sd, count=False, logger=None):
 def test_binary(command, logger=None):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if command is None:
         return command
     if os.path.isfile(command):
@@ -4064,6 +4128,8 @@ def adjacency_groups(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     reindex_flag = False
     # reindex is set to True in cases where NA values are being excluded from the operation and restored afterwards
     if prevent_merge:
@@ -4127,6 +4193,8 @@ def unfold_measures_table(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if "mc_playthrough" in measures:
         logger.info(
             "Received a dataframe with the column 'mc_playthrough' that is already unfolded. Returning as is."
@@ -4170,6 +4238,8 @@ def unfold_repeats(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     n_occurrences = df.mc.value_counts()
     result_df = df.set_index("mc")
     if isinstance(playthrough_info, pd.DataFrame):
@@ -4204,6 +4274,8 @@ def unfold_repeats(
 def unpack_mscz(mscz, tmp_dir=None, logger=None):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if tmp_dir is None:
         tmp_dir = os.path.dirname(mscz)
     tmp_file = Temp(suffix=".mscx", prefix=".", dir=tmp_dir, delete=False)
@@ -4243,6 +4315,8 @@ def capture_parse_logs(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     captured_warnings = LogCapturer(level=level)
     logger_object.addHandler(captured_warnings.log_handler)
     yield captured_warnings
@@ -4252,6 +4326,8 @@ def capture_parse_logs(
 def update_labels_cfg(labels_cfg, logger=None):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     keys = [
         "staff",
         "voice",
@@ -4295,6 +4371,8 @@ def write_metadata(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     metadata_df = metadata_df.astype("string")
     metadata_df = enforce_piece_index_for_metadata(metadata_df)
     path = resolve_dir(path)
@@ -4358,6 +4436,8 @@ def enforce_piece_index_for_metadata(
     """Returns a copy of the DataFrame that has an index level called 'piece'."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     possible_column_names = (
         "piece",
         "fname",
@@ -4394,6 +4474,8 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str, logger=None) -> No
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     rename4markdown = {
         "piece": "file_name",
         "last_mn": "measures",
@@ -4500,6 +4582,8 @@ def write_tsv(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     path, file = os.path.split(file_path)
     path = resolve_dir(path)
     os.path.join(path, file)
@@ -4561,6 +4645,8 @@ def abs2rel_key(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(absolute) or pd.isnull(localkey):
         return absolute
     absolute = resolve_relative_keys(absolute)
@@ -4632,6 +4718,8 @@ def rel2abs_key(relative: str, localkey: str, global_minor: bool = False, logger
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(relative) or pd.isnull(localkey):
         return relative
     relative = resolve_relative_keys(relative)
@@ -4709,6 +4797,8 @@ def make_interval_index_from_durations(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
         plural = "s" if len(missing) > 1 else ""
@@ -4771,6 +4861,8 @@ def replace_index_by_intervals(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
         plural = "s" if len(missing) > 1 else ""
@@ -4855,6 +4947,8 @@ def resolve_relative_keys(relativeroot, minor=False, logger=None):
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(relativeroot):
         return relativeroot
     spl = relativeroot.split("/")
@@ -4910,6 +5004,8 @@ def transpose_changes(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(changes):
         return changes
     old = changes2tpc(changes, old_num, minor=old_minor, root_alterations=True)
@@ -4990,6 +5086,8 @@ def features2tpcs(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if pd.isnull(numeral) or numeral == "@none":
         if bass_only or merge_tones:
             return pd.NA
@@ -5290,6 +5388,8 @@ def chord2tpcs(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if regex is None:
         regex = DCML_REGEX
     chord_features = re.match(regex, chord)
@@ -5620,6 +5720,8 @@ def automatically_choose_from_disambiguated_files(
 ) -> File:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if len(disambiguated_choices) == 1:
         return list(disambiguated_choices.keys())[0]
     disamb_series = pd.Series(disambiguated_choices)
@@ -5774,6 +5876,8 @@ def disambiguate_files(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     n_files = len(files)
     if n_files == 0:
         return
@@ -5802,6 +5906,8 @@ def files2disambiguation_dict(
     of distinct strings to distinguish files pertaining to the same type."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     n_files = len(files)
     if n_files == 0:
         return {}
@@ -5919,6 +6025,8 @@ def argument_and_literal_type2list(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if typ is None:
         allowed = None
     else:
@@ -5971,6 +6079,8 @@ def check_argument_against_literal_type(
 ) -> Optional[L]:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if not isinstance(argument, str):
         logger.warning(f"Argument needs to be a string, not '{type(argument)}'")
         return None
@@ -5990,6 +6100,8 @@ def resolve_facets_param(
     """Like :func:`argument_and_literal_type2list`, but also resolves 'tsv' to all non-score facets."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if isinstance(facets, str) and facets in ("tsv", "tsvs"):
         selected_facets = list(literal_type2tuple(facet_type_var))
         if "scores" in selected_facets:
@@ -6023,6 +6135,8 @@ def unpack_json_paths(paths: Collection[str], logger=None) -> None:
     """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     json_ixs = [i for i, p in enumerate(paths) if p.endswith(".json")]
     if len(json_ixs) > 0:
         for i in reversed(json_ixs):
@@ -6054,6 +6168,8 @@ def resolve_paths_argument(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if isinstance(paths, str):
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
@@ -6108,6 +6224,8 @@ def compute_path_from_file(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if folder is not None and (os.path.isabs(folder) or "~" in folder):
         folder = resolve_dir(folder)
         path = folder
@@ -6178,6 +6296,8 @@ def get_git_commit(
 ) -> Optional[git.Commit]:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     try:
         repo = git.Repo(repo_path, search_parent_directories=True)
     except Exception as e:
@@ -6209,6 +6329,8 @@ def parse_tsv_file_at_git_revision(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if file.type == "scores":
         raise NotImplementedError(
             "Parsing older revisions of scores is not implemented. Checkout the revision yourself."
@@ -6246,6 +6368,8 @@ def check_phrase_annotations(df: pd.DataFrame, column: str, logger=None) -> bool
     """"""
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     p_col = df[column]
     opening = p_col.fillna("").str.count("{")
     closing = p_col.fillna("").str.count("}")
@@ -6278,6 +6402,8 @@ def write_messages_to_file_or_remove(
 ) -> bool:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     warnings_path = os.path.dirname(warnings_file)
     if len(warnings) > 0:
         if warnings_path:
@@ -6298,6 +6424,8 @@ def write_warnings_to_file(
 ):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if header is None:
         header = "Warnings encountered during the last execution of ms3 review"
     if write_messages_to_file_or_remove(warnings_file, warnings, header):
@@ -6309,6 +6437,8 @@ def write_validation_errors_to_file(
 ):
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     if header is None:
         header = "Validation error encountered after file creation"
     if write_messages_to_file_or_remove(errors_file, errors, header):

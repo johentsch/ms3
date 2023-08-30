@@ -3160,9 +3160,13 @@ INSTRUMENT_DEFAULTS = pd.read_csv(
     ),
     index_col=0,
 )
-INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]] = INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]].apply(lambda k: list(map(lambda j: eval(j) if j is not None else None, k)))
+INSTRUMENT_DEFAULTS[
+    ["controllers", "ChannelName", "ChannelValue"]
+] = INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]].apply(
+    lambda k: list(map(lambda j: eval(j) if j is not None else None, k))
+)
 for int_column in ["keysig", "useDrumset"]:
-    INSTRUMENT_DEFAULTS[int_column] = INSTRUMENT_DEFAULTS[int_column].astype('Int64')
+    INSTRUMENT_DEFAULTS[int_column] = INSTRUMENT_DEFAULTS[int_column].astype("Int64")
 INSTRUMENT_DEFAULTS.replace({np.nan: None}, inplace=True)
 
 
@@ -3189,7 +3193,7 @@ def get_enlarged_default_dict() -> Dict[str, dict]:
                 "staff_type_name",
                 "defaultClef",
                 "controllers",
-                "keysig"
+                "keysig",
             ]
         )
         .to_dict()
@@ -3233,7 +3237,7 @@ class Instrumentation(LoggedClass):
             "group",
             "staff_type_name",
             "defaultClef",
-            "controllers"
+            "controllers",
         ]
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = (
@@ -3266,16 +3270,21 @@ class Instrumentation(LoggedClass):
                 }
             channel_info = part.find_all("Channel")
             cur_dict = {
-                "id": instrument_tag["id"], "ChannelName": [], "ChannelValue": [], "controllers": []}
+                "id": instrument_tag["id"],
+                "ChannelName": [],
+                "ChannelValue": [],
+                "controllers": [],
+            }
             for elem in channel_info:
-                channel_name = (
-                    None
-                    if "name" not in elem.attrs.keys()
-                    else elem["name"]
-                )
+                channel_name = None if "name" not in elem.attrs.keys() else elem["name"]
                 cur_dict["ChannelName"].append(channel_name)
                 cur_dict["ChannelValue"].append(elem.program)
-                cur_dict["controllers"].append([{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in elem.find_all("controller")])
+                cur_dict["controllers"].append(
+                    [
+                        {"ctrl": elem["ctrl"], "value": elem["value"]}
+                        for elem in elem.find_all("controller")
+                    ]
+                )
             cur_dict.update(staves_dict[staves[0]])
             for name in self.instrumentation_fields:
                 if name not in cur_dict.keys():
@@ -3308,13 +3317,23 @@ class Instrumentation(LoggedClass):
         for key, instr_data in self.soup_references_data.items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
-                if type(tag) in [bs4.element.Tag, list] and tag is not None and tag != [None]:
+                if (
+                    type(tag) in [bs4.element.Tag, list]
+                    and tag is not None
+                    and tag != [None]
+                ):
                     if key_instr_data == "ChannelValue":
                         value = [int(elem["value"]) for elem in tag]
                     elif key_instr_data in ["useDrumset", "keysig"]:
                         value = int(tag.get_text())
                     elif key_instr_data == "controllers":
-                        value = [[{"ctrl": elem["ctrl"], "value": elem["value"]} for elem in channel_elem] for channel_elem in tag]
+                        value = [
+                            [
+                                {"ctrl": elem["ctrl"], "value": elem["value"]}
+                                for elem in channel_elem
+                            ]
+                            for channel_elem in tag
+                        ]
                     elif key_instr_data == "ChannelName":
                         value = [elem for elem in tag]
                     else:
@@ -3396,7 +3415,9 @@ class Instrumentation(LoggedClass):
         :param value: new values to set
         :return: corrected list of parts of the same length as value list
         """
-        l_found, l_value = 1 if found is None else len(found), 1 if value is None else len(value)
+        l_found, l_value = 1 if found is None else len(
+            found
+        ), 1 if value is None else len(value)
         if l_found < l_value:
             for i in range(l_value - l_found):
                 new_tag = self.soup.new_tag("Channel")
@@ -3534,14 +3555,18 @@ class Instrumentation(LoggedClass):
                     field_to_change
                 ] = value
             elif field_to_change == "ChannelName":
-                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
+                channel_data, value = self.modify_list_tags(
+                    changed_part, channel_data, value
+                )
                 if value is not None:
                     for idx_channel, found_channel in enumerate(channel_data):
                         cur_value = value[idx_channel]
                         if cur_value is not None:
                             found_channel["name"] = cur_value
             elif field_to_change == "controllers":
-                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
+                channel_data, value = self.modify_list_tags(
+                    changed_part, channel_data, value
+                )
                 for idx_channel, found_channel in enumerate(channel_data):
                     cur_value = value[idx_channel]
                     found = found_channel.find_all("controller")
@@ -3550,9 +3575,7 @@ class Instrumentation(LoggedClass):
                             new_tag = self.soup.new_tag("controller")
                             new_tag["ctrl"] = cur_value[idx]["ctrl"]
                             new_tag["value"] = cur_value[idx]["value"]
-                            found_channel.append(
-                                new_tag
-                            )
+                            found_channel.append(new_tag)
                         else:
                             found[idx]["ctrl"] = elem["ctrl"]
                             found[idx]["value"] = elem["value"]
@@ -3560,13 +3583,13 @@ class Instrumentation(LoggedClass):
                         for i in range(len(cur_value) - len(found)):
                             found[i + len(found) - 1].extract()
             elif field_to_change == "ChannelValue":
-                channel_data, value = self.modify_list_tags(changed_part, channel_data, value)
+                channel_data, value = self.modify_list_tags(
+                    changed_part, channel_data, value
+                )
                 for idx_channel, found_channel in enumerate(channel_data):
                     cur_value = value[idx_channel]
                     if cur_value is not None:
-                        found_channel.program[
-                            "value"
-                        ] = cur_value
+                        found_channel.program["value"] = cur_value
             elif field_to_change == "group":
                 for elem in staff_type:
                     elem["group"] = value
@@ -3577,7 +3600,9 @@ class Instrumentation(LoggedClass):
                     staff_data, value, changed_part, field_to_change
                 )
             elif field_to_change == "keysig":
-                self.modify_drumset_tags(staff_type, value, changed_part, field_to_change)
+                self.modify_drumset_tags(
+                    staff_type, value, changed_part, field_to_change
+                )
             elif (
                 field_to_change in ["clef", "useDrumset", "keysig"]
                 and self.soup_references_data[staff_id][field_to_change] is not None
@@ -3832,6 +3857,8 @@ def get_vbox(soup: bs4.BeautifulSoup, logger=None) -> Optional[bs4.Tag]:
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     part = soup.find("Part")
     first_staff = part.find_next_sibling("Staff")
     vbox_nodes = first_staff.find_all("VBox")
@@ -3894,6 +3921,8 @@ def make_spanner_cols(
 
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     cols = {
         "nxt_m": "Spanner/next/location/measures",
         "nxt_f": "Spanner/next/location/fractions",
@@ -4292,6 +4321,8 @@ def write_score_to_handler(
 ) -> bool:
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     try:
         mscx_string = bs4_to_mscx(soup)
     except Exception as e:

@@ -285,6 +285,8 @@ def compare(
     """
     if logger is None:
         logger = module_logger
+    elif isinstance(logger, str):
+        logger = logging.getLogger(logger)
     parse_obj.parse(parallel=False)
     if parse_obj.n_parsed_scores == 0:
         parse_obj.logger.warning("Parse object does not include any scores.")
