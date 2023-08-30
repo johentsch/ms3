@@ -11,3 +11,4 @@ Contributors
 ============
 
 * Arina Lozhkina <arina.lozhkina@epfl.ch>
+* Léo Bruneau <leo.bruneau@epfl.ch>
