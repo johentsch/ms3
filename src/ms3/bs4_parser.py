@@ -2389,6 +2389,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         return self._rl
 
     def parse_soup(self):
+        """First step of parsing the MuseScore source. Involves discovering the <staff> tags and storing the
+        <Measure> tags of each in the :attr:`measure_nodes` dictionary.  Also stores the drum_map for each Drumset
+        staff.
+        """
         if self.version[0] not in ("3", "4"):
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
             raise ValueError(

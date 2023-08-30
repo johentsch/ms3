@@ -40,7 +40,9 @@ FIELDS_WITHOUT_MISSING_VALUES = (
     "mc_playthrough",
 )
 FRACTION_REGEX = r"\d+(?:\/\d+)?"  # r"-?\d+(?:\/\d+)?" for including negative fractions
-INT_ARRAY_REGEX = r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$"
+INT_ARRAY_REGEX = r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$"  # allows any number of integers, separated by a comma and/or
+# whitespace, and optionally enclosed in parentheses or square brackets
+EDTF_LIKE_YEAR_REGEX = r"^\d{3,4}|\.{2}$"
 
 
 @cache
@@ -66,8 +68,14 @@ def column_name2frictionless_field(column_name) -> dict:
             field["type"] = "string"
             constraints["pattern"] = FRACTION_REGEX
         elif string_converter == safe_int:
-            field["type"] = "integer"
-            field["bareNumber"] = False  # allow other leading and trailing characters
+            if column_name in ("composed_start", "composed_end"):
+                field["type"] = "string"
+                constraints["pattern"] = EDTF_LIKE_YEAR_REGEX
+            else:
+                field["type"] = "integer"
+                field[
+                    "bareNumber"
+                ] = False  # allow other leading and trailing characters
         elif string_converter == str2inttuple:
             field["type"] = "string"
             constraints["pattern"] = INT_ARRAY_REGEX
