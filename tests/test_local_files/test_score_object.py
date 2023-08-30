@@ -189,7 +189,7 @@ class TestScore:
     def test_phrase_excerpts(self, score_object, tmp_path):
         print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
         dcml_labels = score_object.mscx.expanded(unfold=True)
-        if not dcml_labels:
+        if dcml_labels is None:
             pytest.skip("No labels to extract phrases from.")
         if not check_phrase_annotations(dcml_labels, "phraseend"):
             pytest.skip("Incongruent phrase annotations.")
