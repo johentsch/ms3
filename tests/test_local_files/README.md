@@ -1,6 +1,10 @@
+Files in `test_results` can be re-generated using the command
 
+```bash
+ms3 extract -f MS3 -a -p --raw -D -M test_results -N test_results -L test_results
+```
 
-# Overview
+## Overview
 |         file_name          |measures|labels|annotators |
 |----------------------------|-------:|-----:|-----------|
 |05_symph_fant               |      32|     0|           |
@@ -12,4 +16,4 @@
 |stabat_03_coloured          |      26|    83|           |
 
 
-*Overview table updated using [ms3](https://johentsch.github.io/ms3/) 1.2.4.*
+*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*

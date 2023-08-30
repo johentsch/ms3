@@ -62,7 +62,7 @@ class TestScore:
 
     @pytest.fixture()
     def target_measures_table(self, score_object):
-        piece_name = score_object.fnames["mscx"] + "_measures.tsv"
+        piece_name = score_object.fnames["mscx"] + ".measures.tsv"
         target_path = os.path.join(self.test_results, piece_name)
         return load_tsv(target_path)
 
@@ -91,7 +91,7 @@ class TestScore:
 
     def test_store_and_load_labels(self, score_object):
         if score_object.mscx.has_annotations:
-            piece_name = score_object.fnames["mscx"] + "_labels.tsv"
+            piece_name = score_object.fnames["mscx"] + ".labels.tsv"
             labels_path = os.path.join(self.test_results, piece_name)
             score_object.load_annotations(labels_path, key="tsv")
             score_object.detach_labels("labels")
@@ -117,7 +117,7 @@ class TestScore:
 
     def test_expanded_labels(self, score_object):
         if score_object.mscx.has_annotations:
-            piece_name = score_object.fnames["mscx"] + "_labels.tsv"
+            piece_name = score_object.fnames["mscx"] + ".labels.tsv"
             target_path = os.path.join(self.test_results, piece_name)
             target_labels = decode_harmonies(load_tsv(target_path))
             try:
@@ -149,14 +149,14 @@ class TestScore:
     ):
         extracted_measurelist = no_collections_no_booleans(score_object.mscx.measures())
 
-        tmp_file = tmp_path / (score_object.fnames["mscx"] + "_measures.tsv")
+        tmp_file = tmp_path / (score_object.fnames["mscx"] + ".measures.tsv")
         extracted_measurelist.to_csv(tmp_file, sep="\t", index=False)
         new_measurelist = load_tsv(tmp_file)
         assert len(new_measurelist) > 0
         assert_dfs_equal(target_measures_table, new_measurelist)
 
     def test_parse_to_notelist(self, score_object):
-        piece_name = score_object.fnames["mscx"] + "_notes.tsv"
+        piece_name = score_object.fnames["mscx"] + ".notes.tsv"
         target_path = os.path.join(self.test_results, piece_name)
         target_notelist = load_tsv(target_path)
         try:
