@@ -75,7 +75,7 @@ import os
 import re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import IO, Collection, Literal, Optional, Tuple
+from typing import IO, Collection, List, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -1203,7 +1203,7 @@ class MSCX(LoggedClass):
 
         original_directory, original_filename = os.path.split(excerpt.filepath)
         original_file_name = os.path.splitext(original_filename)[0]
-        new_file_name = original_file_name + f"{suffix}_{start}-{end}" + ".mscx"
+        new_file_name = original_file_name + f"_{suffix}_{start}-{end}" + ".mscx"
         if directory is None:
             excerpt_filepath = os.path.join(original_directory, new_file_name)
         else:
@@ -1211,11 +1211,10 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
-    def store_phrase_excerpts(self, directory: Optional[str] = None):
-        """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
+    def find_phrases(self) -> List[Tuple[int, int]]:
+        """Fids phrases based on the phrase annotations contained in the score, if any. For this purpose,
         the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
-        start and end MC for each phrase are passed to :meth:`store_excerpt`. The resulting excerpts will be
-        named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
+        pairs of start and end MC are then stored in a list of tuples and returne for further use.
         """
 
         expanded = self.expanded(unfold=True)
@@ -1254,13 +1253,25 @@ class MSCX(LoggedClass):
                 )
                 continue
             phrases_without_duplicates.append((start_mc, end_mc))
+            previous_start = start_mc
+        phrases_without_duplicates.reverse()
+        return phrases_without_duplicates
+
+    def store_phrase_excerpts(self, directory: Optional[str] = None):
+        """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
+        the self.find_phrases() method is called; for each pair of start and end MC an excerpt will be stored.
+        The resulting excerpts will be named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
+        """
+
+        phrases_without_duplicates = self.find_phrases()
+
+        for phrase in phrases_without_duplicates:
             self.store_excerpt(
-                start_mc=int(start_mc),
-                end_mc=int(end_mc),
+                start_mc=int(phrase[0]),
+                end_mc=int(phrase[1]),
                 directory=directory,
                 suffix="_phrase",
             )
-            previous_start = start_mc
 
         self.logger.info(
             f"Extracted {len(phrases_without_duplicates)} phrases.\n"
@@ -1328,6 +1339,90 @@ class MSCX(LoggedClass):
                 directory=directory,
                 suffix=suffix,
             )
+
+    def store_random_excerpts_within_phrases(self, directory: Optional[str] = None):
+        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
+        lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
+        will be considered. By default it extracts all possible snippets and stores them at the optional directory path.
+        The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+        """
+
+        phrases = self.find_phrases()
+
+        for phrase in phrases:
+            available_measures = phrase[1] - phrase[0] - 1
+            if available_measures >= 2:
+                for i in range(phrase[0] + 1, phrase[1] - 1):
+                    self.store_excerpt(
+                        start_mc=int(i),
+                        end_mc=int(i + 1),
+                        directory=directory,
+                        suffix="within_phrase",
+                    )
+        return
+
+    def store_random_excerpts_across_phrases(self, directory: Optional[str] = None):
+        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
+        lie across two phrase. This means that within this type of excerpt there will always a phrase ending as
+        well as the beginning of the next phrase. By default it extracts all complying snippets and stores them at
+        the optional directory path. The resulting excerpts will be named
+        ``[original_filename]_across_phrase_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+        """
+        phrases = self.find_phrases()
+        exp = self.expanded()
+
+        for i in range(len(phrases)):
+            # The condition we temporarily use is that we use labels that
+            # contain "}{" and that are on the downbeat of the measure
+            if i < len(phrases) - 1 and int(phrases[i][1]) == int(phrases[i + 1][0]):
+                mc = int(phrases[i][1])
+                df = exp[(exp["mc"] == mc) & (exp["phraseend"].isin(["}{"]))]
+                if len(df) == 1 and mc > 1:
+                    if df["mc_onset"].iloc[0] == 0:
+                        self.store_excerpt(
+                            start_mc=int(mc - 1),
+                            end_mc=int(mc),
+                            directory=directory,
+                            suffix="across_phrase",
+                        )
+        return
+
+    def store_phrase_endings(self, directory: Optional[str] = None):
+        """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
+        excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
+        as the actual end and end MC - 2 as the beginning of the excerpt. The resulting excerpts will be named
+        ``[original_filename]_phrase_end_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            directory : Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+        """
+        phrases = self.find_phrases()
+
+        for i in range(len(phrases)):
+            if phrases[i][1] - 2 >= 1 and i < len(phrases) - 1:
+                self.store_excerpt(
+                    start_mc=int(phrases[i][1] - 2),
+                    end_mc=int(phrases[i + 1][0]),
+                    directory=directory,
+                    suffix="phrase_end",
+                )
+            elif phrases[i][1] - 2 >= 1 and i == len(phrases) - 1:
+                self.store_excerpt(
+                    start_mc=int(phrases[i][1] - 2),
+                    end_mc=int(phrases[i][1]),
+                    directory=directory,
+                    suffix="phrase_end",
+                )
+        return
 
 
 # ######################################################################################################################
