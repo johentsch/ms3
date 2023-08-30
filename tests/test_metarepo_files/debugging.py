@@ -6,9 +6,13 @@ This script contains functions for the mere purpose of triggering a particular a
 debugger. Feel free to add functions and to hardcode paths to your system since this is an auxiliary file where,
 the moment something is considered, it is considered obsolete.
 """
+import os.path
 
 from ms3 import Parse
 from ms3.logger import get_logger
+from ms3.operations import transform_to_resources
+
+CORPUS_PATH = r"C:\Users\hentsche\baroque_keyboard_corpus\bach_en_fr_suites"
 
 
 def ignoring_warning():
@@ -22,15 +26,14 @@ def ignoring_warning():
     _ = p.get_dataframes(expanded=True)
 
 
-def extraction():
-    """Created by executing an ms3 command and coping the object initializing from the output."""
+def parse_object() -> Parse:
     p = Parse(
-        r"C:\Users\hentsche\all_subcorpora\liszt_pelerinage",
+        CORPUS_PATH,
         recursive=True,
         only_metadata_pieces=True,
         include_convertible=False,
         exclude_review=True,
-        file_re="160.06",
+        file_re=None,
         folder_re=None,
         exclude_re=None,
         file_paths=None,
@@ -38,8 +41,27 @@ def extraction():
         ms=None,
         **{"level": "i", "path": None}
     )
+    p.info()
+    return p
+
+
+def extraction():
+    """Created by executing an ms3 command and coping the object initializing from the output."""
+    p = parse_object()
     p.parse_scores()
 
 
+def transform_cmd():
+    p = parse_object()
+    p.parse_tsv()
+    output_folder, filename = os.path.split(CORPUS_PATH)
+    transform_to_resources(
+        ms3_object=p,
+        facets="metadata",
+        filename=filename,
+        output_folder=output_folder,
+    )
+
+
 if __name__ == "__main__":
-    extraction()
+    transform_cmd()
