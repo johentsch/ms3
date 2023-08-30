@@ -96,8 +96,8 @@ def column_name2frictionless_field(column_name) -> dict:
 
 
 def make_frictionless_schema_descriptor(
-    column_names: Tuple[str, ...],
-    primary_key: Optional[Tuple[str, ...]] = None,
+    column_names: Iterable[str],
+    primary_key: Optional[Iterable[str]] = None,
     **custom_data,
 ) -> dict:
     fields = []
@@ -116,7 +116,7 @@ def make_frictionless_schema_descriptor(
         fields.append(field)
     descriptor = dict(fields=fields)
     if primary_key:
-        descriptor["primaryKey"] = primary_key
+        descriptor["primaryKey"] = list(primary_key)
     if len(custom_data) > 0:
         descriptor.update(custom_data)
     return descriptor
