@@ -23,7 +23,7 @@ from ms3.utils import (
         "D973deutscher01.mscx",
         "05_symph_fant.mscx",
         "BWV_0815.mscx",
-        "K281-3.mscx",
+        "K284-3_section_breaks.mscx",
         "76CASM34A33UM.mscx",
         "stabat_03_coloured.mscx",
     ],

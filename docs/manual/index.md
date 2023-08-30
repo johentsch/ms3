@@ -16,15 +16,15 @@ kernelspec:
 This page is a detailed guide for using ms3 for different tasks. The code examples
 suppose you are working in an interactive Python interpreter such as
 IPython, Jupyter, Google Colab, or simply in the Python console. The manual itself
-is written as a [MyST markdown Notebook](https://myst-nb.readthedocs.io/) which can be run 
+is written as a [MyST markdown Notebook](https://myst-nb.readthedocs.io/) which can be run
 in Jupyter if the [Jupytext](https://jupytext.readthedocs.io) extension is installed.
 
 +++
 
 ## Good to know
 
-The principal *raison d'être* of `ms3` is for extracting different types of information, 
-"facets", from MuseScore files and to store them in the form of tabular `.tsv` files, 
+The principal *raison d'être* of `ms3` is for extracting different types of information,
+"facets", from MuseScore files and to store them in the form of tabular `.tsv` files,
 [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values), for further processing.
 Over the years, however, it has gained additional functionality related to corpus curation.
 Therefore, the package operates on a couple of principles that have co-evolved together
@@ -32,7 +32,7 @@ with the [DCML corpus initiative](https://www.epfl.ch/labs/dcml/projects/corpus-
 
 (corpus_structure)=
 
-### Corpus structure 
+### Corpus structure
 
 `ms3` follows a one-folder-per-feature approach (rather than a one-folder-per-file approach).
 
@@ -50,7 +50,7 @@ Consider this fresh `corpus_before` containing only the folder `MS3` with
 ```
 
 The default command that is used on all [DCML corpora](https://github.com/DCMLab/dcml_corpora),
-`ms3 extract -M -N -X -D -a` extracts three TSV files (measures, notes and "eXpanded" harmonies) 
+`ms3 extract -M -N -X -D -a` extracts three TSV files (measures, notes and "eXpanded" harmonies)
 from each score and places them in a separate folder, plus an additional `metadata.tsv` file:
 
 ```{code-cell} ipython3
@@ -66,14 +66,14 @@ because the other three did not contain harmony labels.
 
 The folder structure results from the command's default arguments which are equivalent to
 `ms3 extract -M ../measures -N ../notes -X ../harmonies`. While there are multiple
-ways of specifying output folders (see [below](specifying_folders)), there is an 
-additional mechanism for cases in which outputs are to be placed within the same 
+ways of specifying output folders (see [below](specifying_folders)), there is an
+additional mechanism for cases in which outputs are to be placed within the same
 folder (which is probematic when they have the same name):
 
 #### Using suffixes
 
 Users who need their outputs in the same directory, say `out`, can specify the flag `-s`
-to add suffixes to the file names. For example, using 
+to add suffixes to the file names. For example, using
 `ms3 extract -M out -N out -X out -s` you would get:
 
 ```{code-cell} ipython3
@@ -82,8 +82,8 @@ to add suffixes to the file names. For example, using
 !tree --fromfile out
 ```
 
-Based on these two principles, default folder and suffix names, 
-`ms3` is able to recognize which facet of which piece the files 
+Based on these two principles, default folder and suffix names,
+`ms3` is able to recognize which facet of which piece the files
 represent and to relate them to each other.
 
 +++
@@ -91,7 +91,7 @@ represent and to relate them to each other.
 (keys_and_ids)=
 ### Keys and IDs
 
-```{note} ms3 version 1.0.0 and successors widely replace the mechanisms related to 
+```{note} ms3 version 1.0.0 and successors widely replace the mechanisms related to
 the parameter `key`. Newer versions, instead, use IDs such as
 `corpus_name` and `(corpus_name, piece_name)`. If you come across a method
 where the first parameter is called `key`, you are likely dealing with an
@@ -109,17 +109,17 @@ IDs are tuples that are used to identify corpora, pieces and files:
   * `ms3.Piece[i] -> File`
   * `ms3.Corpus[(piece, i)] -> File`
   * `ms3.Parse[(corpus_name, piece, i)] -> File`
-  
+
 #### The importance of the `piece` ID
-  
+
 The piece IDs `piece` relate to the file names in this way: `piece[suffix].ext`.
 In order to correctly match files together that belong together, without doing
 complicated string matching, `ms3` relies on a list of pieces that it will
 expect to be present in a column called `piece` in a file called `metadata.tsv`
-(see below). Generally, this should be the first column in these files, 
+(see below). Generally, this should be the first column in these files,
 used as index.
 
-```{hint} 
+```{hint}
 If you find yourself stuck with `ms3` producing no output,
 it is likely because no `metadata.tsv` is present. In this case, use the option
 `-a` to parse everything regardless, and `-D` to create a `metadata.tsv`.
@@ -131,27 +131,27 @@ it is likely because no `metadata.tsv` is present. In this case, use the option
 ### The important role of metadata
 
 As mentioned above, `ms3` relies on the `piece` as ID of a piece and uses
-it to identify the various files belonging to it although they may come 
+it to identify the various files belonging to it although they may come
 with additional suffixes (e.g. `_reviewed`) and be scattered all over the
 corpus. Importantly, it uses and expects a file called `metadata.tsv` that
 lists all piece IDs of the corpus in a column called `piece`. Scores and
-other files whose names do not begin with any of strings in that column 
+other files whose names do not begin with any of strings in that column
 are excluded. Files, on the other hand, that begin with any of the strings
 are recognized to belong to this piece and to have a suffix, if they do.
 
-Therefore, creating a `metadata.tsv` is an important first step before 
+Therefore, creating a `metadata.tsv` is an important first step before
 using `ms3` to its full potential. This is done by nagivating to the corpus
 directory and calling `ms3 extract -a -D`, where `-D` stands for "metadata"
-and `-a` for "all", i.e. the directive to process all detected scores, 
+and `-a` for "all", i.e. the directive to process all detected scores,
 including those not listed in a `metadata.tsv` file.
 
 Relying on a particular control file in that manner makes it
-easy to systematically exclude particular scores from processing (by 
+easy to systematically exclude particular scores from processing (by
 dropping them from the table) or to mark alternative versions of a score by
-adding a suffix and not listing them individually. `ms3` will recognize 
+adding a suffix and not listing them individually. `ms3` will recognize
 them as alternatives and, based on the current [View](views_manual), include them
 or not. As an additional feature, you may pre-configure multiple views of
-the corpus by storing their selection of piece IDs in additional 
+the corpus by storing their selection of piece IDs in additional
 `metadata[_suffix].tsv` files. This example file would lead `ms3` to make
 available an additional view called `suffix`. View the chapter on views
 below to learn more.
@@ -164,7 +164,7 @@ below to learn more.
 This chapter still needs to be written. In short:
 
 You can access the view of [Piece](Piece), [Corpus](Corpus), and [Parse](Parse) objects,
-using the accessor `.view`. The two main methods of a [View](View) object are `.include(category, *strings_to_include)` and 
+using the accessor `.view`. The two main methods of a [View](View) object are `.include(category, *strings_to_include)` and
 `.exclude(category, *strings_to_exclude)`. Every view has a name which you can use as an accessor to change the relevant
 object's view. For example, new objects come with the views "default" and "all", so if you have a Corpus object stored under
 the variable `c`, typing `c.all` will activate the view that shows everything.
@@ -172,7 +172,7 @@ the variable `c`, typing `c.all` will activate the view that shows everything.
 +++
 
 (label_types)=
-### Label types 
+### Label types
 
 ms3 recognizes and disambiguates different types of labels, depending on
 how they are encoded in MuseScore, see
@@ -190,7 +190,7 @@ See also {py:meth}`~.Score.infer_label_types`.
 +++
 
 (mc_vs_mn)=
-### Measure counts (MC) vs. measure numbers (MN) 
+### Measure counts (MC) vs. measure numbers (MN)
 
 Measure counts are strictly increasing numbers for all \<measure\> nodes
 in the score, regardless of their length. This information is crucial
@@ -209,7 +209,7 @@ information DataFrames.
 +++
 
 (onsets)=
-### Onset positions 
+### Onset positions
 
 Onsets express positions of events in a score as their distance from the
 beginning of the corresponding {ref}`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note.
@@ -233,7 +233,7 @@ distance from MN 8.
 +++
 
 (read_only)=
-### Read-only mode 
+### Read-only mode
 
 For parsing faster using less memory. Scores parsed in read-only mode
 cannot be changed because the original XML structure is not kept in
@@ -242,7 +242,7 @@ memory.
 +++
 
 (fifths)=
-### Stacks-of-fifths intervals 
+### Stacks-of-fifths intervals
 
 In order to express note names (tonal pitch classes,
 {ref}`tpc <tpc>`), and scale degrees, ms3 uses
@@ -390,7 +390,7 @@ c.rests()
 
 (notes_and_rests)=
 
-### Notes and Rests 
+### Notes and Rests
 
 DataFrame combining {ref}`notes` and
 {ref}`rests`.
@@ -413,8 +413,8 @@ c.notes_and_rests()
 ### Chords
 
 ```{note}
-The word "chords", here, is used in a very specific way and is misleading. 
-It has been adopted from the MuseScore XML source code but is better 
+The word "chords", here, is used in a very specific way and is misleading.
+It has been adopted from the MuseScore XML source code but is better
 understood as "note tuple with unique onset position". If you are interested
 in chord labels, please refer to {ref}`labels` or {ref}`expanded`.
 ```
@@ -444,7 +444,7 @@ exactly the same as (and correspond to) those of a
 {ref}`tpc <tpc>`, and
 {ref}`midi <midi>`.
 
-Such a reduced table -- or one with precisely selected features to extract -- 
+Such a reduced table -- or one with precisely selected features to extract --
 can be retrieved using
 [Score.mscx.parsed.get_chords(mode='strict')](bs4_parser._MSCX_bs4.get_chords)
 {any}`bs4_parser._MSCX_bs4.get_chords`.
@@ -452,7 +452,7 @@ However, most of the time users will be interested to automatically retrieve
 all markup present in the score (as far as `ms3` goes), see below.
 
 (chords_dynamic)=
-#### Dynamic columns 
+#### Dynamic columns
 
 Leaving the standard columns aside, the normal interface for accessing
 chord lists calls
@@ -539,7 +539,7 @@ c.cadences()
 ```
 
 (form_labels)=
-### Form labels 
+### Form labels
 
 ``` python
 >>> s.mscx.form_labels()          # from a Score object
@@ -824,7 +824,7 @@ ms3
     │   ├── BWV_0815.mscx
     │   ├── D973deutscher01.mscx
     │   ├── Did03M-Son_regina-1762-Sarti.mscx
-    │   ├── K281-3.mscx
+    │   ├── K284-3_section_breaks.mscx
     │   └── stabat_03_coloured.mscx
     └── repeat_dummies
         ├── repeats0.mscx
@@ -853,7 +853,7 @@ ms3
     │   ├── BWV_0815.mscx
     │   ├── D973deutscher01.mscx
     │   ├── Did03M-Son_regina-1762-Sarti.mscx
-    │   ├── K281-3.mscx
+    │   ├── K284-3_section_breaks.mscx
     │   └── stabat_03_coloured.mscx
     ├── notes
     │   ├── 05_symph_fant.tsv
@@ -861,7 +861,7 @@ ms3
     │   ├── BWV_0815.tsv
     │   ├── D973deutscher01.tsv
     │   ├── Did03M-Son_regina-1762-Sarti.tsv
-    │   ├── K281-3.tsv
+    │   ├── K284-3_section_breaks.tsv
     │   ├── repeats0.tsv
     │   ├── repeats1.tsv
     │   ├── repeats2.tsv
@@ -900,7 +900,7 @@ folder, e.g. `ms3 extract -N ~/notes`:
 ├── cujus.tsv
 ├── D973deutscher01.tsv
 ├── Did03M-Son_regina-1762-Sarti.tsv
-├── K281-3.tsv
+├── K284-3_section_breaks.tsv
 ├── o_quam.tsv
 ├── quae.tsv
 ├── repeats0.tsv
@@ -971,7 +971,7 @@ which is the one passed to {py:class}`~.parse.Parse`:
         ├── BWV_0815.mscx
         ├── D973deutscher01.mscx
         ├── Did03M-Son_regina-1762-Sarti.mscx
-        └── K281-3.mscx
+        └── K284-3_section_breaks.mscx
 ```
 
 The first level contains the subdirectories `docs` (4 files) and `tests`
@@ -997,7 +997,7 @@ of the home directory `~`, regardless of the original subdirectory structure.
 │   ├── cujus.tsv
 │   ├── D973deutscher01.tsv
 │   ├── Did03M-Son_regina-1762-Sarti.tsv
-│   ├── K281-3.tsv
+│   ├── K284-3_section_breaks.tsv
 │   ├── o_quam.tsv
 │   ├── quae.tsv
 │   └── stabat.tsv
@@ -1008,7 +1008,7 @@ of the home directory `~`, regardless of the original subdirectory structure.
     ├── cujus.tsv
     ├── D973deutscher01.tsv
     ├── Did03M-Son_regina-1762-Sarti.tsv
-    ├── K281-3.tsv
+    ├── K284-3_section_breaks.tsv
     ├── o_quam.tsv
     ├── quae.tsv
     └── stabat.tsv
@@ -1040,7 +1040,7 @@ is recreated in each of the folders:
 │           ├── BWV_0815.tsv
 │           ├── D973deutscher01.tsv
 │           ├── Did03M-Son_regina-1762-Sarti.tsv
-│           └── K281-3.tsv
+│           └── K284-3_section_breaks.tsv
 └── notes
     ├── docs
     │   ├── cujus.tsv
@@ -1054,7 +1054,7 @@ is recreated in each of the folders:
             ├── BWV_0815.tsv
             ├── D973deutscher01.tsv
             ├── Did03M-Son_regina-1762-Sarti.tsv
-            └── K281-3.tsv
+            └── K284-3_section_breaks.tsv
 ```
 
 Note that in this example, we have specified a `root_dir`. Leaving this argument
@@ -1105,7 +1105,7 @@ To exemplify both:
     │   ├── BWV_0815.tsv
     │   ├── D973deutscher01.tsv
     │   ├── Did03M-Son_regina-1762-Sarti.tsv
-    │   └── K281-3.tsv
+    │   └── K284-3_section_breaks.tsv
     └── MS3
         └── notes
             ├── 05_symph_fant.tsv
@@ -1113,7 +1113,7 @@ To exemplify both:
             ├── BWV_0815.tsv
             ├── D973deutscher01.tsv
             ├── Did03M-Son_regina-1762-Sarti.tsv
-            └── K281-3.tsv
+            └── K284-3_section_breaks.tsv
 ```
 
 The `notes` folders are created in directories where MuseScore files are located,

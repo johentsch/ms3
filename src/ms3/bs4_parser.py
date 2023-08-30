@@ -390,8 +390,8 @@ class _MSCX_bs4(LoggedClass):
             # insert before the first tag that is not in the tags_before_label list
             tags_before_label = [
                 "BarLine",
-                "Clef",
-                "Dynamic",
+                "Clef",  # MuseScore is inconsistent: If clef is present, the order is Clef-Harmony-Dynamic
+                "Dynamic",  # but if not, it's Dynamic-Harmony
                 "endTuplet",
                 "FiguredBass",
                 "KeySig",

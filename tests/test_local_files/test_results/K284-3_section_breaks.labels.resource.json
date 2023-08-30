@@ -1,7 +1,7 @@
 {
-  "name": "stabat_03_coloured.labels",
+  "name": "k284-3_section_breaks.labels",
   "type": "table",
-  "path": "stabat_03_coloured.labels.tsv",
+  "path": "K284-3_section_breaks.labels.tsv",
   "scheme": "file",
   "format": "tsv",
   "mediatype": "text/tsv",
@@ -80,46 +80,6 @@
         "description": "A number between 1-4 where 1 is MuseScore's default layer (blue), 2 the second layer in green with downward stems, etc."
       },
       {
-        "name": "absolute_base",
-        "type": "integer",
-        "title": "Int64",
-        "description": "MuseScore encoding the bass pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc."
-      },
-      {
-        "name": "absolute_root",
-        "type": "integer",
-        "title": "Absolute Root",
-        "description": "MuseScore encoding the root pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc."
-      },
-      {
-        "name": "color",
-        "type": "string"
-      },
-      {
-        "name": "color_a",
-        "type": "integer",
-        "title": "Color Alpha",
-        "description": "Value between 0 and 255"
-      },
-      {
-        "name": "color_b",
-        "type": "integer",
-        "title": "Color Blue",
-        "description": "Value between 0 and 255"
-      },
-      {
-        "name": "color_g",
-        "type": "integer",
-        "title": "Color Green",
-        "description": "Value between 0 and 255"
-      },
-      {
-        "name": "color_r",
-        "type": "integer",
-        "title": "Color Red",
-        "description": "Value between 0 and 255"
-      },
-      {
         "name": "harmony_layer",
         "type": "string",
         "title": "Harmony Encoding Layer",
@@ -130,12 +90,6 @@
         "type": "string",
         "title": "Label",
         "description": "String corresponding to the entire annotation label."
-      },
-      {
-        "name": "nashville",
-        "type": "integer",
-        "title": "Nashville",
-        "description": "Numbering system that specifies the root of a chord as scale degree of the local key, e.g. \"1\", \"b3\", \"#5\", \"b7\"."
       },
       {
         "name": "offset_x",
@@ -154,17 +108,11 @@
         "type": "string",
         "title": "Regular Expression Match",
         "description": "The name of the first registered regular expression matching a label. By default, these include \"dcml\" and \"form_labels\"."
-      },
-      {
-        "name": "rootCase",
-        "type": "integer",
-        "title": "Root Case",
-        "description": "Pertaining to MuseScore encoding."
       }
     ],
     "facet": "labels",
-    "identifier": "FVhBuBg3l1e-2g",
-    "filepath": "labels/FVhBuBg3l1e-2g.schema.yaml"
+    "identifier": "3Ii_CmRoiuIj9Q",
+    "filepath": "labels/3Ii_CmRoiuIj9Q.schema.yaml"
   },
   "creator": {
     "@context": "https://schema.org/",

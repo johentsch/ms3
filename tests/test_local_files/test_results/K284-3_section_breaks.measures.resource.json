@@ -1,7 +1,7 @@
 {
-  "name": "k281-3.labels",
+  "name": "k284-3_section_breaks.measures",
   "type": "table",
-  "path": "K281-3.labels.tsv",
+  "path": "K284-3_section_breaks.measures.tsv",
   "scheme": "file",
   "format": "tsv",
   "mediatype": "text/tsv",
@@ -11,7 +11,7 @@
       "delimiter": "\t"
     }
   },
-  "schema": "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/labels/EIW79_7LrfPjFQ.schema.yaml",
+  "schema": "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/measures/oWlUFOdD06d1_A.schema.yaml",
   "creator": {
     "@context": "https://schema.org/",
     "@type": "SoftwareApplication",
