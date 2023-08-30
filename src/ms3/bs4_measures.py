@@ -342,6 +342,29 @@ def make_offset_col(
         # offset == 0 is a neutral value but the presence of mc in mc2mc_offset indicates that it could potentially be
         # an (incomplete) pickup measure which can be offset even if the previous measure is complete
 
+    auxiliary_df = pd.concat(
+        [
+            df[columns_to_display],
+            shorter_than_nominal_mask.rename("shorter_than_nominal"),
+            (nominal_duration - actual_duration).rename("expected_completion"),
+        ],
+        axis=1,
+    ).set_index(mc_col)
+    # auxiliary_df[name] = 0
+    if section_breaks is None:
+        auxiliary_df["potential_anacrusis"] = False
+        auxiliary_df.potential_anacrusis.iloc[0] = True
+    else:
+        auxiliary_df["potential_anacrusis"] = (
+            df[section_breaks].fillna("").str.contains("section").shift().fillna(True)
+        )
+    is_anacrusis = auxiliary_df.shorter_than_nominal & auxiliary_df.potential_anacrusis
+    if is_anacrusis.any():
+        completed_by_subsequent = (
+            actual_duration + actual_duration.shift(-1).fillna(0)
+        ) == nominal_duration
+        is_anacrusis &= ~completed_by_subsequent
+
     mc_indexed = df.set_index(mc_col)
     nominal_duration.index = mc_indexed.index
     actual_duration = mc_indexed[act_dur]
