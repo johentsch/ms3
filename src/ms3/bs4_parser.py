@@ -4523,7 +4523,7 @@ def get_row_at_quarterbeat(df: pd.DataFrame, quarterbeat: float) -> Optional[pd.
 
 def get_row_at_quarterbeat(
     df: pd.DataFrame, quarterbeat: Optional[float] = None
-) -> Optional[pd.Series] | pd.DataFrame:
+) -> Optional[pd.Series]:
     """Returns the row of a DataFrame that is active at a given quarterbeat by interpreting subsequent intervals of
      the given dataframe's "quarterbeat" column as activation intervals. That is, the rows are interpreted as
      consecutive, non-overlapping events and the ``duration_qb`` column is not taken into account for computing the
@@ -4538,9 +4538,10 @@ def get_row_at_quarterbeat(
             If None is passed (default), the whole dataframe is returned.
 
     Returns:
-        The row of the dataframe
+        The row of the dataframe.
     """
-    df = df.copy()
+    df = df[df.quarterbeats.notna()].sort_values("quarterbeats")
+    # ToDo Systematically use quarterbeats_all_endings for excerpt creation
     df.duration_qb = (
         (df.quarterbeats.shift(-1) - df.quarterbeats).astype(float).fillna(np.inf)
     )
@@ -4548,6 +4549,11 @@ def get_row_at_quarterbeat(
     if quarterbeat is None:
         return df
     try:
-        return df.loc[quarterbeat]
+        result = df.loc[quarterbeat]
     except KeyError:
         return
+    if isinstance(result, pd.DataFrame) and len(result) > 1:
+        raise ValueError(
+            f"More than one row active at quarterbeat {quarterbeat}:\n{result}"
+        )
+    return result
