@@ -170,7 +170,9 @@ def make_json_path(file: File) -> str:
 
 
 UTILS_DIR = os.path.dirname(__file__)  # .../ms3/src/ms3/utils/
-SCHEMAS_DIR = os.path.normpath(os.path.join(UTILS_DIR, "..", "..", "..", "schemas"))
+SCHEMAS_DIR = os.path.normpath(
+    os.path.join(UTILS_DIR, "..", "..", "..", "frictionless_schemas")
+)
 os.makedirs(SCHEMAS_DIR, exist_ok=True)
 
 
