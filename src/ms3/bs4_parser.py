@@ -1880,7 +1880,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
-        return Excerpt(
+
+        excerpt = Excerpt(
             soup,
             read_only=False,
             logger_cfg=self.logger_cfg,
@@ -1893,6 +1894,9 @@ and {loc_after} before the subsequent {nxt_name}."""
             globalkey=globalkey,
             localkey=localkey,
         )
+
+        excerpt.filepath = self.filepath
+        return excerpt
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """Regenerate the measure list from the parsed score with advanced options."""
@@ -2929,7 +2933,12 @@ class Excerpt(_MSCX_bs4):
         if not final_barline:
             self.remove_final_barline()
 
-        # tags to amend
+        # sanitize values in case NaN was passed
+        if pd.isnull(globalkey):
+            globalkey = None
+        if pd.isnull(localkey):
+            localkey = None
+        # amend first label to indicate global and/or local key
         if globalkey or localkey:
             self.amend_first_harmony_keys(globalkey, localkey)
 
@@ -3048,10 +3057,16 @@ class Excerpt(_MSCX_bs4):
             first_voice = first_measure.find("voice")
             clef_tag = self.new_tag("Clef", prepend_within=first_voice)
             for tag, value in tag_value_dict.items():
+                if pd.isnull(value):
+                    continue
                 if "/" in tag:
                     self.logger.debug(
                         f"Haven't learned how to deal with secondary Clef tags such as Clef/{tag}. "
                         f"Igoring."
+                    )
+                elif ":" in tag:
+                    self.logger.debug(
+                        f"Inclusion of tag attributes (such as {tag}) not yet implemented."
                     )
                 else:
                     _ = self.new_tag(tag, value=value, append_within=clef_tag)
@@ -4287,7 +4302,7 @@ def get_row_at_quarterbeat(
      the given dataframe's "quarterbeat" column as activation intervals. That is, the rows are interpreted as
      consecutive, non-overlapping events and the ``duration_qb`` column is not taken into account for computing the
      activation intervals. The last interval's right boundary is np.inf, so that all values higher than the latest
-     event resolve to the latest event without needing to now the end of the piece.
+     event resolve to the latest event without needing to know the end of the piece.
 
     Args:
         df: DataFrame in which the column "quarterbeat" is monotonically increasing.
