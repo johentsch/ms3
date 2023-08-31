@@ -227,7 +227,23 @@ class _MSCX_bs4(LoggedClass):
         """{staff -> {MC -> tag} }"""
 
         self.tags = {}  # only used if not self.read_only
-        """{MC -> {staff -> {voice -> tag} } }"""
+        """ Nested dictionary allowing to access the score's XML elements in a convenient and structured manner:
+
+           {MC ->
+             {staff ->
+                {voice ->
+                  {mc_onset ->
+                     [{"name" -> str,
+                       "duration" -> Fraction,
+                       "tag" -> bs4.Tag
+                       },
+                       ...
+                     ]
+                  }
+                }
+             }
+           }
+        """
 
         self.has_annotations = False
         self.n_form_labels = 0
