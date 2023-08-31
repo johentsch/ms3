@@ -337,7 +337,7 @@ def make_offset_col(
                 continue
             following_mcs = list(section_mcs.intersection(next_mcs))
             if len(following_mcs) == 0:
-                print(
+                logger.debug(
                     f"MC {irregular_mc} is not followed by any MC within the same section, not checking."
                 )
                 if section_df.potential_anacrusis[irregular_mc]:
@@ -355,11 +355,12 @@ def make_offset_col(
                     mcs_getting_offset.add(irregular_mc)
                 else:
                     show_mcs = [irregular_mc] + following_mcs
-                    print(
+                    logger.warning(
                         f"Some of the MCs following the potential anacrusis MC {irregular_mc} do, some don't complete "
                         f"it with the expected {expected_completion}, so I cannot decide whether it's an anacrusis or "
                         f"not. Let's say it is. Follow-up warnings may arise.\n"
-                        f"{section_df.loc[show_mcs]}"
+                        f"{section_df.loc[show_mcs]}",
+                        extra={"message_id": (3, irregular_mc)},
                     )
                     mcs_getting_offset.add(irregular_mc)
                 continue
@@ -409,7 +410,10 @@ def make_offset_col(
                 "next",
             ]
             msg += f"\n{section_df.loc[show_mcs, show_columns]}"
-            print(msg)
+            logger.warning(
+                msg,
+                extra={"message_id": (3, irregular_mc)},
+            )
             continue
         return sorted(mcs_getting_offset)
 
