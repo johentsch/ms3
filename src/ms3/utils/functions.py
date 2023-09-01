@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
-from fractions import Fraction as frac
+from fractions import Fraction
 from functools import cache, reduce
 from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
@@ -2127,9 +2127,9 @@ def int2bool(s: str) -> Union[bool, str]:
         return s
 
 
-def safe_frac(s: str) -> Union[frac, str]:
+def safe_frac(s: str) -> Union[Fraction, str]:
     try:
-        return frac(s)
+        return Fraction(s)
     except Exception:
         return s
 
@@ -2674,29 +2674,30 @@ def store_csvw_jsonld(
 
 
 def make_continuous_offset_series(
-    measures, quarters=True, negative_anacrusis=None, logger=None
-):
+    measures: pd.DataFrame,
+    quarters: bool = True,
+    negative_anacrusis: Optional[Fraction] = None,
+    logger: Optional[logging.Logger | str] = None,
+) -> pd.Series:
     """Accepts a measure table without 'quarterbeats' column and computes each MC's offset from the piece's beginning.
     Deal with voltas before passing the table.
 
     If you need an offset_dict and the measures already come with a 'quarterbeats' column, you can call
     :func:`make_offset_dict_from_measures`.
 
-    Parameters
-    ----------
-    measures : :obj:`pandas.DataFrame`
-        A measures table with 'normal' RangeIndex containing the column 'act_durs' and one of
-        'mc' or 'mc_playthrough' (if repeats were unfolded).
-    quarters : :obj:`bool`, optional
-        By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
-        of a whole note.
-    negative_anacrusis : :obj:`fractions.Fraction`
-        By default, the first value is 0. If you pass a fraction here, the first value will be its negative and the
-        second value will be 0.
+    Args:
+        measures:
+            A measures table with 'normal' RangeIndex containing the column 'act_durs' and one of
+            'mc' or 'mc_playthrough' (if repeats were unfolded).
+        quarters:
+            By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
+            of a whole note.
+        negative_anacrusis:
+            By default, the first value is 0. If you pass a fraction here, the first value will be its negative and the
+            second value will be 0.
+        logger:
 
-    Returns
-    -------
-    :obj:`pandas.Series`
+    Returns:
         Cumulative sum of the actual durations, shifted down by 1. Compared to the original DataFrame it has
         length + 2 because it adds the end value twice, once with the next index value, and once with the index 'end'.
         Otherwise the end value would be lost due to the shifting.
@@ -2723,7 +2724,7 @@ def make_continuous_offset_series(
     ending = pd.Series([last_val, last_val], index=[last_ix, "end"])
     res = pd.concat([res, ending])
     if negative_anacrusis is not None:
-        res -= abs(frac(negative_anacrusis))
+        res -= abs(Fraction(negative_anacrusis))
     return res
 
 
