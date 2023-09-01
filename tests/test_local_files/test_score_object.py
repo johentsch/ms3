@@ -115,29 +115,21 @@ class TestScore:
                 tmp_file.close()
                 os.remove(tmp_file.name)
 
-    def test_expanded_labels(self, score_object):
+    def test_expanded_labels(
+        self,
+        score_object,
+        tmp_path,
+    ):
         if score_object.mscx.has_annotations:
             piece_name = score_object.fnames["mscx"] + ".labels.tsv"
             target_path = os.path.join(self.test_results, piece_name)
+            tmp_filepath = str(tmp_path / piece_name)
             target_labels = decode_harmonies(load_tsv(target_path))
-            try:
-                extracted_labels = no_collections_no_booleans(
-                    score_object.mscx.labels()
-                )
-                with tempfile.NamedTemporaryFile(
-                    mode="r+",
-                    suffix=".tsv",
-                    dir=self.test_folder,
-                    encoding="utf-8",
-                    delete=False,
-                ) as tmp_file:
-                    extracted_labels.to_csv(tmp_file, sep="\t", index=False)
-                    new_path = tmp_file.name
-                new_labels = load_tsv(new_path)
-                assert len(new_labels) > 0
-                assert_dfs_equal(target_labels, new_labels)
-            finally:
-                os.remove(tmp_file.name)
+            extracted_labels = no_collections_no_booleans(score_object.mscx.labels())
+            extracted_labels.to_csv(tmp_filepath, sep="\t", index=False)
+            new_labels = load_tsv(tmp_filepath)
+            assert len(new_labels) > 0
+            assert_dfs_equal(target_labels, new_labels)
 
     def test_mc_offset(self, score_object, target_measures_table):
         target_mc_offset = target_measures_table["mc_offset"]
