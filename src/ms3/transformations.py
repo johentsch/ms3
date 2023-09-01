@@ -20,6 +20,7 @@ from .utils import (
     make_continuous_offset_series,
     make_interval_index_from_breaks,
     make_interval_index_from_durations,
+    make_offset_dict_from_measures,
     make_playthrough_info,
     midi2octave,
     name2fifths,
@@ -95,6 +96,7 @@ def add_quarterbeats_col(
         offset_dict_all_endings:
             Argument added later as a straightforward way to add two quarterbeats columns, the second one being the
             'quarterbeats_all_endings' which is so important that with ms3 v2.2.0 it is included by default.
+            It is independent from unfolding because its main purpose is score addressability.
         interval_index:
             Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the
             successful creation of the column ``duration_qb``).
@@ -175,7 +177,7 @@ def add_quarterbeats_col(
         )
     if offset_dict_all_endings is not None:
         new_cols["quarterbeats_all_endings"] = make_quarterbeats_column(
-            mc_column=mc_column,
+            mc_column=df["mc"],
             mc_onset_column=mc_onset_column,
             offset_dict=offset_dict_all_endings,
             name="quarterbeats_all_endings",
@@ -523,6 +525,10 @@ def dfs2quarterbeats(
                 "Unfolding not possible because of incorrect repeat structure."
             )
             return []
+    offset_dict_all_endings = make_offset_dict_from_measures(
+        measures,
+        all_endings=True,
+    )
     if unfold:
         dfs = [
             unfold_repeats(df, playthrough_info, logger=logger)
@@ -534,12 +540,17 @@ def dfs2quarterbeats(
             unfolded_measures = unfold_repeats(
                 measures, playthrough_info, logger=logger
             )
-            continuous_offset = make_continuous_offset_series(
+            offset_dict = make_continuous_offset_series(
                 unfolded_measures, logger=logger
             )
+
             dfs = [
                 add_quarterbeats_col(
-                    df, continuous_offset, interval_index=interval_index, logger=logger
+                    df,
+                    offset_dict=offset_dict,
+                    offset_dict_all_endings=offset_dict_all_endings,
+                    interval_index=interval_index,
+                    logger=logger,
                 )
                 if df is not None
                 else df
@@ -558,10 +569,14 @@ def dfs2quarterbeats(
             measures = measures.drop(
                 index=measures[measures.volta.fillna(2) != 2].index, columns="volta"
             )
-        continuous_offset = make_continuous_offset_series(measures, logger=logger)
+        offset_dict = make_continuous_offset_series(measures, logger=logger)
         dfs = [
             add_quarterbeats_col(
-                df, continuous_offset, interval_index=interval_index, logger=logger
+                df,
+                offset_dict=offset_dict,
+                offset_dict_all_endings=offset_dict_all_endings,
+                interval_index=interval_index,
+                logger=logger,
             )
             if df is not None
             else df
@@ -1441,7 +1456,7 @@ def segment_by_criterion(
     warn_na: bool = False,
     logger=None,
 ) -> pd.DataFrame:
-    """Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb'
+    """Drop all rows where the boolean mask does not match, and adapt the IntervalIndex and the column 'duration_qb'
     accordingly.
 
     Args:

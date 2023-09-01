@@ -740,7 +740,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         chords = add_quarterbeats_col(
             chords,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -1112,7 +1113,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         events = add_quarterbeats_col(
             events,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -1155,7 +1157,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         form = add_quarterbeats_col(
             form,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2252,7 +2255,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         notes = add_quarterbeats_col(
             notes,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2288,7 +2292,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         nrl = add_quarterbeats_col(
             nrl,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2380,7 +2385,8 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 return
         rests = add_quarterbeats_col(
             rests,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
