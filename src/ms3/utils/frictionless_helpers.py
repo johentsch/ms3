@@ -204,7 +204,8 @@ def get_schema_or_url(
     column_names: Tuple[str],
     index_levels: Optional[Tuple[str]] = None,
     base_local_path=SCHEMAS_DIR,
-    base_url="https://raw.githubusercontent.com/johentsch/ms3/main/schemas/",
+    base_url="https://raw.githubusercontent.com/DCMLab/frictionless_schemas/main/",
+    # "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/"
 ) -> str | dict:
     """Given a facet name (=subfolder) and a tuple of [index column names +] column names, compute an identifier and
     if that schema exists under ``<base_url>/<facet>/<identifier>.schema.yaml`` return that URL, or otherwise
