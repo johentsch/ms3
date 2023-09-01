@@ -1095,6 +1095,8 @@ class MSCX(LoggedClass):
         end_mn: Optional[int] = None,
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
+        enforced_tempo: Optional[float] = None,
+        beat_unit: Optional[Fraction] = Fraction(1 / 4),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1208,6 +1210,9 @@ class MSCX(LoggedClass):
             included_mcs=included_mcs,
             start_mc_onset=start_mc_onset,
             end_mc_onset=end_mc_onset,
+            exclude_end=exclude_end,
+            enforced_tempo=enforced_tempo,
+            beat_unit=beat_unit,
             globalkey=global_key,
             localkey=local_key,
         )
@@ -1224,10 +1229,12 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
-    def find_phrases(self) -> List[Tuple[int, int]]:
+    def find_phrases(self) -> List[Tuple[int, int]] | None:
         """Fids phrases based on the phrase annotations contained in the score, if any. For this purpose,
         the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
-        pairs of start and end MC are then stored in a list of tuples and returne for further use.
+        pairs of start and end MC are then stored in a list of tuples and returned for further use.
+        The returned list contains nested tuples where in each element list the first tuple contains the MCs
+        whereas the second one contains the relative onsets of the "{", "}" and "}{" labels.
         """
 
         expanded = self.expanded(unfold=True)
@@ -1270,15 +1277,16 @@ class MSCX(LoggedClass):
         phrases_without_duplicates.reverse()
         return phrases_without_duplicates
 
+    # TODO: implement fine-trimming feature (with onset values)
     def store_phrase_excerpts(self, directory: Optional[str] = None):
         """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
         the self.find_phrases() method is called; for each pair of start and end MC an excerpt will be stored.
         The resulting excerpts will be named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
         """
 
-        phrases_without_duplicates = self.find_phrases()
+        phrases = self.find_phrases()
 
-        for phrase in phrases_without_duplicates:
+        for phrase in phrases:
             self.store_excerpt(
                 start_mc=int(phrase[0]),
                 end_mc=int(phrase[1]),
@@ -1286,10 +1294,7 @@ class MSCX(LoggedClass):
                 suffix="_phrase",
             )
 
-        self.logger.info(
-            f"Extracted {len(phrases_without_duplicates)} phrases.\n"
-            f"Phrases: {phrases_without_duplicates}"
-        )
+        self.logger.info(f"Extracted {len(phrases)} phrases.\n" f"Phrases: {phrases}")
 
     def store_random_excerpts(
         self,
@@ -1353,6 +1358,7 @@ class MSCX(LoggedClass):
                 suffix=suffix,
             )
 
+    # TODO: add constraint of NO CADENCE bars within these excerpts
     def store_within_phrase_excerpts(self, directory: Optional[str] = None):
         """Extract random snippets from the given score. The snippets have the constraint that they must strictly
         lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
@@ -1372,65 +1378,67 @@ class MSCX(LoggedClass):
             available_measures = phrase[1] - phrase[0] - 1
             if available_measures >= 2:
                 for i in range(phrase[0] + 1, phrase[1] - 1):
-                    # self.store_excerpt(
-                    #     start_mc=int(i),
-                    #     end_mc=int(i + 1),
-                    #     directory=directory,
-                    #     suffix="within_phrase",
-                    # )
-                    function_calls.append(
-                        (
-                            self,
-                            int(i),
-                            int(i + 1),
-                            directory,
-                            "within_phrase",
-                        )
+                    self.store_excerpt(
+                        start_mc=int(i),
+                        end_mc=int(i + 1),
+                        directory=directory,
+                        suffix="within_phrase",
                     )
+                    # function_calls.append(
+                    #     (
+                    #         self,
+                    #         int(i),
+                    #         int(i + 1),
+                    #         directory,
+                    #         "within_phrase",
+                    #     )
+                    # )
         return function_calls
 
-    def store_across_phrase_excerpts(self, directory: Optional[str] = None):
-        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
-        lie across two phrase. This means that within this type of excerpt there will always a phrase ending as
-        well as the beginning of the next phrase. By default it extracts all complying snippets and stores them at
-        the optional directory path. The resulting excerpts will be named
-        ``[original_filename]_across_phrase_[start_mc]-[end_mc].mscx``.
+    # TODO: delete this method. It's DEPRECATED
+    # def store_across_phrase_excerpts(self, directory: Optional[str] = None):
+    #     """Extract random snippets from the given score. The snippets have the constraint that they must strictly
+    #     lie across two phrase. This means that within this type of excerpt there will always a phrase ending as
+    #     well as the beginning of the next phrase. By default it extracts all complying snippets and stores them at
+    #     the optional directory path. The resulting excerpts will be named
+    #     ``[original_filename]_across_phrase_[start_mc]-[end_mc].mscx``.
+    #
+    #     Args:
+    #         directory: Optional[str], optional
+    #             name of the directory you want the excerpt saved to, by default None
+    #     """
+    #     phrases = self.find_phrases()
+    #     exp = self.expanded()
+    #
+    #     function_calls = []
+    #
+    #     for i in range(len(phrases)):
+    #         # The condition we temporarily use is that we use labels that
+    #         # contain "}{" and that are on the downbeat of the measure. This implies that
+    #         # we are going to take the previous measure to create the excerpt.
+    #         if i < len(phrases) - 1 and int(phrases[i][0][1]) == int(phrases[i + 1][0][0]):
+    #             mc = int(phrases[i][0][1])
+    #             df = exp[(exp["mc"] == mc) & (exp["phraseend"].isin(["}{"]))]
+    #             if len(df) == 1 and mc > 1:
+    #                 if df["mc_onset"].iloc[0] == 0:
+    #                     self.store_excerpt(
+    #                         start_mc=int(mc - 1),
+    #                         end_mc=int(mc),
+    #                         directory=directory,
+    #                         suffix="across_phrase",
+    #                     )
+    #                     # function_calls.append(
+    #                     #     (
+    #                     #         self,
+    #                     #         int(mc - 1),
+    #                     #         int(mc),
+    #                     #         directory,
+    #                     #         "across_phrase",
+    #                     #     )
+    #                     # )
+    #     return function_calls
 
-        Args:
-            directory: Optional[str], optional
-                name of the directory you want the excerpt saved to, by default None
-        """
-        phrases = self.find_phrases()
-        exp = self.expanded()
-
-        function_calls = []
-
-        for i in range(len(phrases)):
-            # The condition we temporarily use is that we use labels that
-            # contain "}{" and that are on the downbeat of the measure. This implies that
-            # we are going to take the previous measure to create the excerpt.
-            if i < len(phrases) - 1 and int(phrases[i][1]) == int(phrases[i + 1][0]):
-                mc = int(phrases[i][1])
-                df = exp[(exp["mc"] == mc) & (exp["phraseend"].isin(["}{"]))]
-                if len(df) == 1 and mc > 1:
-                    if df["mc_onset"].iloc[0] == 0:
-                        # self.store_excerpt(
-                        #     start_mc=int(mc - 1),
-                        #     end_mc=int(mc),
-                        #     directory=directory,
-                        #     suffix="across_phrase",
-                        # )
-                        function_calls.append(
-                            (
-                                self,
-                                int(mc - 1),
-                                int(mc),
-                                directory,
-                                "across_phrase",
-                            )
-                        )
-        return function_calls
-
+    # TODO: go until cadence
     def store_phrase_endings(self, directory: Optional[str] = None):
         """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
         excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
@@ -1441,44 +1449,57 @@ class MSCX(LoggedClass):
             directory : Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
         """
-        phrases = self.find_phrases()
 
-        function_calls = []
+        phrases = self.find_phrases()
+        phrase_endings = self.find_cadence_endings(phrases=phrases)
+
+        if phrase_endings is not None:
+            for mc, true_end in phrase_endings:
+                if mc > 2:
+                    start = int(mc - 2)
+                else:
+                    start = 1
+                self.store_excerpt(
+                    start_mc=start,
+                    end_mc=int(true_end["mc"]),
+                    end_mc_onset=true_end["mc_onset"],
+                    exclude_end=False,
+                    directory=directory,
+                    suffix="phrase_end",
+                )
+        # return function_calls
+
+    def find_cadence_endings(
+        self, phrases: List[Tuple[int, int]]
+    ) -> List[Tuple[int, dict[str, any]]] | None:
+        print(phrases)
+        expanded = self.expanded()
+        last_mc = expanded["mc"].iloc[-1]
+        cadence_endings = []
 
         for i in range(len(phrases)):
-            if phrases[i][1] - 2 >= 1 and i < len(phrases) - 1:
-                # self.store_excerpt(
-                #     start_mc=int(phrases[i][1] - 2),
-                #     end_mc=int(phrases[i + 1][0]),
-                #     directory=directory,
-                #     suffix="phrase_end",
-                # )
-                function_calls.append(
-                    (
-                        self,
-                        int(phrases[i][1] - 2),
-                        int(phrases[i + 1][0]),
-                        directory,
-                        "phrase_end",
+            if i != len(phrases) - 1:
+                df = expanded[
+                    expanded["mc"].between(
+                        phrases[i][1], phrases[i + 1][0], inclusive="both"
                     )
-                )
-            elif phrases[i][1] - 2 >= 1 and i == len(phrases) - 1:
-                # self.store_excerpt(
-                #     start_mc=int(phrases[i][1] - 2),
-                #     end_mc=int(phrases[i][1]),
-                #     directory=directory,
-                #     suffix="phrase_end",
-                # )
-                function_calls.append(
-                    (
-                        self,
-                        int(phrases[i][1] - 2),
-                        int(phrases[i][1]),
-                        directory,
-                        "phrase_end",
-                    )
-                )
-        return function_calls
+                ]
+            else:
+                df = expanded[
+                    expanded["mc"].between(phrases[i][1], last_mc, inclusive="both")
+                ]
+            true_row = df.loc[df["label"].str.contains("|", regex=False)]
+            if true_row.shape[0] > 1:
+                true_row = true_row.iloc[0:1]
+            elif true_row.shape[0] == 0:
+                continue
+            mc = true_row.iloc[0]["mc"]
+            onset = true_row.iloc[0]["mc_onset"]
+            cadence_endings.append((phrases[i][1], {"mc": mc, "mc_onset": onset}))
+
+        if not cadence_endings:
+            return None
+        return cadence_endings
 
     def store_all_excerpts(self, directory: Optional[str] = None):
         """Calls all the excerpt storing methods in the class. The resulting excerpts will be named

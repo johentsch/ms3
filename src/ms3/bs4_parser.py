@@ -1797,6 +1797,8 @@ and {loc_after} before the subsequent {nxt_name}."""
         start_mc_onset: Optional[Fraction | float],
         end_mc_onset: Optional[Fraction | float],
         exclude_end: Optional[bool] = False,
+        enforced_tempo: Optional[float] = None,
+        beat_unit: Optional[Fraction] = Fraction(1 / 4),
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
     ) -> Excerpt:
@@ -1921,6 +1923,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                     mc_onset=end_mc_onset,
                     exclude_end=exclude_end,
                 ),
+        if enforced_tempo is not None:
+            excerpt.enforce_tempo(tempo=enforced_tempo, beat_unit=beat_unit)
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -3158,14 +3162,15 @@ class Excerpt(_MSCX_bs4):
         self,
         end_mc: int,
         mc_onset: Fraction,
-        # TODO: implement option for exclude end
         exclude_end: bool = False,
     ):
         staves = self.tags[end_mc]
         for staff, voices in staves.items():
             for voice, onsets in voices.items():
                 for onset, tag_dicts in onsets.items():
-                    if onset < mc_onset:
+                    if onset == mc_onset and not exclude_end:
+                        continue
+                    elif onset < mc_onset:
                         continue
                     for tag_dict in tag_dicts:
                         if tag_dict["name"] != "Chord":
@@ -3197,6 +3202,41 @@ class Excerpt(_MSCX_bs4):
         if dots_tag is not None:
             target_tag.append(dots_tag)
         target_tag.append(duration)
+
+    def enforce_tempo(
+        self, tempo: float, beat_unit: Optional[Fraction] = Fraction(1 / 4)
+    ):
+        staves = self.tags[1]
+        # since MuseScore's reference is quarter-beats
+        print(type(beat_unit))
+        scaling = beat_unit * 4.0
+        relative_tempo = np.round((tempo / 60) * scaling, 2)
+        for staff, voices in staves.items():
+            for voice, onsets in voices.items():
+                for onset, tag_dicts in onsets.items():
+                    test = [tag_dict["name"] == "Tempo" for tag_dict in tag_dicts]
+                    if True in test:
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] == "Tempo":
+                                tag_dict["tag"].clear()
+                                self.new_tag(
+                                    name="tempo",
+                                    value=str(relative_tempo),
+                                    append_within=tag_dict["tag"],
+                                )
+                                return
+                    else:
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] == "StaffText":
+                                new_tag = self.new_tag(
+                                    name="Tempo", after=tag_dict["tag"]
+                                )
+                                self.new_tag(
+                                    name="tempo",
+                                    value=str(relative_tempo),
+                                    append_within=new_tag,
+                                )
+                                return
 
 
 class ParsedParts(LoggedClass):
