@@ -476,13 +476,11 @@ class MSCX(LoggedClass):
         self,
         all_endings: bool = False,
         unfold: bool = False,
-        negative_anacrusis: bool = False,
     ) -> dict:
         """{mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
         return self.parsed.offset_dict(
             all_endings=all_endings,
             unfold=unfold,
-            negative_anacrusis=negative_anacrusis,
         )
 
     @property

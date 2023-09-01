@@ -2312,14 +2312,22 @@ and {loc_after} before the subsequent {nxt_name}."""
         self,
         all_endings: bool = False,
         unfold: bool = False,
-        negative_anacrusis: bool = False,
     ) -> dict:
         """Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
         Used for computing quarterbeats for other facets.
 
         Args:
-          all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
-              falls back to the default 'quarterbeats'.
+          all_endings:
+              If a pieces as alternative endings, by default, only the second ending is taken into account for
+              computing quarterbeats in order to make the timeline correspond to a rendition without performing
+              repeats. Events in other endings, notably the first, receive value NA so that they can be filtered out.
+              For score addressability, one might want to apply a continuous timeline to all measures, in which case
+              one would pass True to use the column 'quarterbeats_all_endings' of the measures table if it has one.
+              If not, falls back to the default 'quarterbeats'.
+          unfold:
+              Pass True to compute quarterbeats for a mc_playthrough column resulting from unfolding repeats.
+              The parameter ``all_endings`` is ignored in this case because the unfolded version brings each ending in
+              its correct place.
 
         Returns:
           {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
@@ -2328,7 +2336,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         measures = self.measures(unfold=unfold)
         if unfold:
             offset_dict = make_continuous_offset_series(
-                measures, negative_anacrusis=negative_anacrusis
+                measures,
             ).to_dict()
         else:
             offset_dict = make_offset_dict_from_measures(measures, all_endings)
