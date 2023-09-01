@@ -1,0 +1,153 @@
+{
+  "name": "76casm34a33um.labels",
+  "type": "table",
+  "path": "76CASM34A33UM.labels.tsv",
+  "scheme": "file",
+  "format": "tsv",
+  "mediatype": "text/tsv",
+  "encoding": "utf-8",
+  "dialect": {
+    "csv": {
+      "delimiter": "\t"
+    }
+  },
+  "schema": {
+    "fields": [
+      {
+        "name": "mc",
+        "type": "integer",
+        "title": "Measure Count",
+        "description": "Running count of encoded <Measure> tags which do not necessarily express a full measure (e.g. in case of an anacrusis).",
+        "constraints": {
+          "required": true
+        }
+      },
+      {
+        "name": "mn",
+        "type": "string",
+        "title": "Measure Number",
+        "description": "Measure number as printed in the score, computed from mc, dont_count and numbering_offset."
+      },
+      {
+        "name": "quarterbeats",
+        "type": "string",
+        "title": "Offset from Beginning",
+        "description": "Distance of an event from the piece's beginning. By default, only second endings are taken into account to reflect the proportions of a simply playthrough without repeats.",
+        "constraints": {
+          "pattern": "\\d+(?:\\/\\d+)?"
+        }
+      },
+      {
+        "name": "duration_qb",
+        "type": "number",
+        "title": "Duration in \u2669",
+        "description": "A float corresponding to duration * 4"
+      },
+      {
+        "name": "mc_onset",
+        "type": "string",
+        "title": "Offset within Encoded Measure",
+        "description": "Distance of an event from the beginning of the <Measure> tag.",
+        "constraints": {
+          "pattern": "\\d+(?:\\/\\d+)?"
+        }
+      },
+      {
+        "name": "mn_onset",
+        "type": "string",
+        "title": "Offset within Logical Measure",
+        "description": "Distance from the beginning of the logical measure. Relevant, for example, to compute the metric position of an event.",
+        "constraints": {
+          "pattern": "\\d+(?:\\/\\d+)?"
+        }
+      },
+      {
+        "name": "timesig",
+        "type": "string",
+        "title": "Time Signature",
+        "description": "Given as string, e.g. \"4/4\"."
+      },
+      {
+        "name": "staff",
+        "type": "integer",
+        "title": "Staff",
+        "description": "Number of the staff where an event occurs, 1 designating the top staff."
+      },
+      {
+        "name": "voice",
+        "type": "integer",
+        "title": "Notational Layer",
+        "description": "A number between 1-4 where 1 is MuseScore's default layer (blue), 2 the second layer in green with downward stems, etc."
+      },
+      {
+        "name": "absolute_base",
+        "type": "integer",
+        "title": "Int64",
+        "description": "MuseScore encoding the bass pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc."
+      },
+      {
+        "name": "absolute_root",
+        "type": "integer",
+        "title": "Absolute Root",
+        "description": "MuseScore encoding the root pitch class of an absolute chord label, as MuseScore tonal pitch class such that C=14, G=15, etc."
+      },
+      {
+        "name": "harmony_layer",
+        "type": "string",
+        "title": "Harmony Encoding Layer",
+        "description": "0: \"Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)\",\n1: \"MuseScore's Roman Numeral Annotation format\",\n2: \"MuseScore's Nashville Number format\",\n3: \"Absolute chord encoded by MuseScore"
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "title": "Label",
+        "description": "String corresponding to the entire annotation label."
+      },
+      {
+        "name": "leftParen",
+        "type": "string",
+        "title": "Left Parenthesis",
+        "description": "Pertaining to MuseScore encoding."
+      },
+      {
+        "name": "offset_x",
+        "type": "string",
+        "title": "Horizontal Offset",
+        "description": "Pertaining to MuseScore encoding."
+      },
+      {
+        "name": "offset_y",
+        "type": "string",
+        "title": "Vertical Offset",
+        "description": "Pertaining to MuseScore encoding."
+      },
+      {
+        "name": "regex_match",
+        "type": "string",
+        "title": "Regular Expression Match",
+        "description": "The name of the first registered regular expression matching a label. By default, these include \"dcml\" and \"form_labels\"."
+      },
+      {
+        "name": "rightParen",
+        "type": "string",
+        "title": "Right Parenthesis",
+        "description": "Pertaining to MuseScore encoding."
+      }
+    ],
+    "facet": "labels",
+    "identifier": "E7bBRjG6NYrWyA",
+    "filepath": "labels/E7bBRjG6NYrWyA.schema.yaml"
+  },
+  "creator": {
+    "@context": "https://schema.org/",
+    "@type": "SoftwareApplication",
+    "@id": "https://github.com/johentsch/ms3",
+    "name": "ms3",
+    "description": "A parser for MuseScore 3 files and data factory for annotated music corpora.",
+    "author": {
+      "name": "Johannes Hentschel",
+      "@id": "https://orcid.org/0000-0002-1986-9545"
+    },
+    "softwareVersion": "2.1.1"
+  }
+}

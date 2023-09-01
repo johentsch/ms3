@@ -1,6 +1,10 @@
+Files in `test_results` can be re-generated using the command
 
+```bash
+ms3 extract -f MS3 -a -p --raw -D -M test_results -N test_results -L test_results
+```
 
-# Overview
+## Overview
 |         file_name          |measures|labels|annotators |
 |----------------------------|-------:|-----:|-----------|
 |05_symph_fant               |      32|     0|           |
@@ -8,8 +12,8 @@
 |BWV_0815                    |     234|     0|           |
 |D973deutscher01             |      18|     0|           |
 |Did03M-Son_regina-1762-Sarti|      63|   373|Ana Llorens|
-|K281-3                      |     162|   384|           |
+|K284-3_section_breaks       |     226|   755|           |
 |stabat_03_coloured          |      26|    83|           |
 
 
-*Overview table updated using [ms3](https://johentsch.github.io/ms3/) 1.2.4.*
+*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*

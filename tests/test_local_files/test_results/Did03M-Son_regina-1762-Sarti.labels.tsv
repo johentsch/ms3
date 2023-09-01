@@ -32,7 +32,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 7	6	21	0.5	1/8	1/8	4/4	5	1	1	iio65/v	dcml
 7	6	43/2	0.5	1/4	1/4	4/4	5	1	1	V(6)/v	dcml
 7	6	22	0.5	3/8	3/8	4/4	5	1	1	V/v	dcml
-7	6	45/2	0.5	1/2	1/2	4/4	5	1	1	v}|PAC	
+7	6	45/2	0.5	1/2	1/2	4/4	5	1	1	v}|PAC
 7	6	23	0.5	5/8	5/8	4/4	5	1	1	v{	dcml
 7	6	47/2	0.5	3/4	3/4	4/4	5	1	1	#viio/iv	dcml
 7	6	24	0.5	7/8	7/8	4/4	5	1	1	iv	dcml
@@ -67,7 +67,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 11	10	73/2	1.0	0	0	4/4	5	1	1	i	dcml
 11	10	75/2	0.5	1/4	1/4	4/4	5	1	1	V(4)	dcml
 11	10	38	0.5	3/8	3/8	4/4	5	1	1	i	dcml
-11	10	77/2	0.5	1/2	1/2	4/4	5	1	1	i}|PAC	
+11	10	77/2	0.5	1/2	1/2	4/4	5	1	1	i}|PAC
 11	10	39	1.5	5/8	5/8	4/4	5	1	1	#viio{	dcml
 12	11	81/2	0.5	0	0	4/4	5	1	1	i	dcml
 12	11	41	1.5	1/8	1/8	4/4	5	1	1	iv	dcml
@@ -150,7 +150,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 25	24	95	1.0	5/8	5/8	4/4	5	1	1	i6	dcml
 25	24	96	0.5	7/8	7/8	4/4	5	1	1	i	dcml
 26	25	193/2	2.0	0	0	4/4	5	1	1	It6/V	dcml
-26	25	197/2	0.5	1/2	1/2	4/4	5	1	1	V}|HC	
+26	25	197/2	0.5	1/2	1/2	4/4	5	1	1	V}|HC
 26	25	99	1.0	5/8	5/8	4/4	5	1	1	V{	dcml
 26	25	100	0.5	7/8	7/8	4/4	5	1	1	V2	dcml
 27	26	201/2	0.5	0	0	4/4	5	1	1	i6	dcml
@@ -193,7 +193,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 32	31	243/2	0.5	1/4	1/4	4/4	5	1	1	#viio/v	dcml
 32	31	122	0.5	3/8	3/8	4/4	5	1	1	v	dcml
 32	31	245/2	0.5	1/2	1/2	4/4	5	1	1	viio/VI	dcml
-32	31	123	0.5	5/8	5/8	4/4	5	1	1	 VI	
+32	31	123	0.5	5/8	5/8	4/4	5	1	1	 VI
 32	31	247/2	0.5	3/4	3/4	4/4	5	1	1	viio/VI	dcml
 32	31	124	0.5	7/8	7/8	4/4	5	1	1	VI	dcml
 33	32	249/2	0.5	0	0	4/4	5	1	1	viio/bVII	dcml
@@ -223,7 +223,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 37	36	283/2	0.5	1/4	1/4	4/4	5	1	1	V6	dcml
 37	36	142	0.5	3/8	3/8	4/4	5	1	1	bII/V	dcml
 37	36	285/2	2.0	1/2	1/2	4/4	5	1	1	V	dcml
-38	37	289/2	0.5	0	0	4/4	5	1	1	i}{|PAC	
+38	37	289/2	0.5	0	0	4/4	5	1	1	i}{|PAC
 38	37	145	0.5	1/8	1/8	4/4	5	1	1	iv	dcml
 38	37	291/2	1.0	1/4	1/4	4/4	5	1	1	iio6	dcml
 38	37	293/2	0.5	1/2	1/2	4/4	5	1	1	V2	dcml
@@ -257,7 +257,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 43	42	165	0.5	1/8	1/8	4/4	5	1	1	iio6/v	dcml
 43	42	331/2	0.5	1/4	1/4	4/4	5	1	1	V(4)/v	dcml
 43	42	166	0.5	3/8	3/8	4/4	5	1	1	V/v	dcml
-43	42	333/2	0.5	1/2	1/2	4/4	5	1	1	v}|PAC	
+43	42	333/2	0.5	1/2	1/2	4/4	5	1	1	v}|PAC
 43	42	167	0.5	5/8	5/8	4/4	5	1	1	v{	dcml
 43	42	335/2	0.5	3/4	3/4	4/4	5	1	1	#viio/iv	dcml
 43	42	168	0.5	7/8	7/8	4/4	5	1	1	iv	dcml
@@ -288,7 +288,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 47	46	361/2	1.0	0	0	4/4	5	1	1	i	dcml
 47	46	363/2	0.5	1/4	1/4	4/4	5	1	1	V(4)	dcml
 47	46	182	0.5	3/8	3/8	4/4	5	1	1	V	dcml
-47	46	365/2	0.5	1/2	1/2	4/4	5	1	1	i}|PAC	
+47	46	365/2	0.5	1/2	1/2	4/4	5	1	1	i}|PAC
 47	46	183	1.0	5/8	5/8	4/4	5	1	1	i{	dcml
 47	46	184	0.5	7/8	7/8	4/4	5	1	1	.III.V6	dcml
 48	47	369/2	0.5	0	0	4/4	5	1	1	I	dcml
@@ -324,7 +324,7 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 53	52	208	1.5	7/8	7/8	4/4	5	1	1	V/V/V	dcml
 54	53	419/2	0.5	1/4	1/4	4/4	5	1	1	V6/V	dcml
 54	53	210	0.5	3/8	3/8	4/4	5	1	1	V7/V	dcml
-54	53	421/2	0.5	1/2	1/2	4/4	5	1	1	V}|HC	
+54	53	421/2	0.5	1/2	1/2	4/4	5	1	1	V}|HC
 54	53	211	1.0	5/8	5/8	4/4	5	1	1	bVII.V{	dcml
 54	53	212	0.5	7/8	7/8	4/4	5	1	1	V2	dcml
 55	54	425/2	0.5	0	0	4/4	5	1	1	I6	dcml
@@ -335,11 +335,11 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 56	55	433/2	0.5	0	0	4/4	5	1	1	V	dcml
 56	55	217	2.0	1/8	1/8	4/4	5	1	1	I	dcml
 56	55	219	0.5	5/8	5/8	4/4	5	1	1	V6{	dcml
-56	55	439/2	0.5	3/4	3/4	4/4	5	1	1	I}|IAC	
+56	55	439/2	0.5	3/4	3/4	4/4	5	1	1	I}|IAC
 56	55	220	0.5	7/8	7/8	4/4	5	1	1	vi	dcml
 57	56	441/2	0.5	0	0	4/4	5	1	1	viio/bVII	dcml
 57	56	221	0.5	1/8	1/8	4/4	5	1	1	bVII	dcml
-57	56	443/2	0.5	1/4	1/4	4/4	5	1	1	viiio/bVII	
+57	56	443/2	0.5	1/4	1/4	4/4	5	1	1	viiio/bVII
 57	56	222	0.5	3/8	3/8	4/4	5	1	1	bVII	dcml
 57	56	445/2	0.5	1/2	1/2	4/4	5	1	1	viio	dcml
 57	56	223	0.5	5/8	5/8	4/4	5	1	1	I	dcml
@@ -380,11 +380,11 @@ mc	mn	quarterbeats	duration_qb	mc_onset	mn_onset	timesig	staff	voice	harmony_lay
 62	61	485/2	0.5	1/2	1/2	4/4	5	1	1	ii6	dcml
 62	61	243	0.5	5/8	5/8	4/4	5	1	1	ii	dcml
 62	61	487/2	1.0	3/4	3/4	4/4	5	1	1	V	dcml
-63	62	489/2	0.5	0	0	2/4	5	1	1	I}|PAC	
+63	62	489/2	0.5	0	0	2/4	5	1	1	I}|PAC
 63	62	245	0.5	1/8	1/8	2/4	5	1	1	i.i6{	dcml
 63	62	491/2	0.5	1/4	1/4	2/4	5	1	1	i	dcml
 63	62	246	0.5	3/8	3/8	2/4	5	1	1	V	dcml
 64	63	493/2	1.0	0	0	4/4	5	1	1	i	dcml
 64	63	495/2	0.5	1/4	1/4	4/4	5	1	1	V(4)	dcml
 64	63	248	0.5	3/8	3/8	4/4	5	1	1	V	dcml
-64	63	497/2	2.0	1/2	1/2	4/4	5	1	1	i}|PAC	
+64	63	497/2	2.0	1/2	1/2	4/4	5	1	1	i}|PAC

@@ -1,0 +1,27 @@
+{
+  "name": "05_symph_fant.notes",
+  "type": "table",
+  "path": "05_symph_fant.notes.tsv",
+  "scheme": "file",
+  "format": "tsv",
+  "mediatype": "text/tsv",
+  "encoding": "utf-8",
+  "dialect": {
+    "csv": {
+      "delimiter": "\t"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/notes/mB481dXJx9OrvQ.schema.yaml",
+  "creator": {
+    "@context": "https://schema.org/",
+    "@type": "SoftwareApplication",
+    "@id": "https://github.com/johentsch/ms3",
+    "name": "ms3",
+    "description": "A parser for MuseScore 3 files and data factory for annotated music corpora.",
+    "author": {
+      "name": "Johannes Hentschel",
+      "@id": "https://orcid.org/0000-0002-1986-9545"
+    },
+    "softwareVersion": "2.1.1"
+  }
+}

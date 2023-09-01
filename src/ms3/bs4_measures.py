@@ -292,7 +292,7 @@ def make_offset_col(
     timesig: str = "timesig",
     act_dur: str = "act_dur",
     next_col: str = "next",
-    section_breaks: Optional[str] = None,
+    section_breaks: Optional[str] = "breaks",
     name: str = "mc_offset",
     logger=None,
 ) -> pd.Series:
@@ -310,91 +310,152 @@ def make_offset_col(
         logger = module_logger
     elif isinstance(logger, str):
         logger = logging.getLogger(logger)
+
     nominal_duration = df[timesig].map(Fraction)
-    shorter_than_nominal_mask = df["act_dur"] < nominal_duration
-    if shorter_than_nominal_mask.sum() == 0:
+    actual_duration = df[act_dur]
+    expected_completion = (nominal_duration - actual_duration).rename(
+        "expected_completion"
+    )
+    expected_completion = expected_completion.where(
+        expected_completion > 0, 0
+    )  # no negative completions!!! #92
+    if (expected_completion == 0).all():
         logger.debug(
             "Actual durations do not diverge from nominal durations, hence mc_offset=0 everywhere."
         )
         return pd.Series(0, index=df.index, name=name)
 
-    if (
-        section_breaks is not None
-        and (df[section_breaks].fillna("") == "section").sum() == 0
-    ):
-        logger.debug(
-            f"No section breaks in column {section_breaks!r} to be taken into account."
-        )
-        section_breaks = None
+    def which_mcs_to_offset(section_df: pd.DataFrame) -> List[int]:
+        """Takes one section of an MC-indexed measures table and returns the MCs that need to be offset."""
+        section_mcs = set(section_df.index)
+        shorter_than_nominal = section_df[section_df.expected_completion > 0]
+        mcs_getting_offset = set()
+        for irregular_mc, next_mcs in shorter_than_nominal.next.items():
+            if irregular_mc in mcs_getting_offset:
+                # has already been marked as completing another irregular one and therefore
+                # doesn't require completion itself
+                continue
+            following_mcs = list(section_mcs.intersection(next_mcs))
+            if len(following_mcs) == 0:
+                logger.debug(
+                    f"MC {irregular_mc} is not followed by any MC within the same section, not checking."
+                )
+                if section_df.potential_anacrusis[irregular_mc]:
+                    mcs_getting_offset.add(irregular_mc)
+                continue
+            expected_completion = section_df.expected_completion[irregular_mc]
+            following_do_complete = (
+                section_df.loc[following_mcs, "actual_duration"] == expected_completion
+            )
+            if section_df.potential_anacrusis[irregular_mc]:
+                # this is probably an anacrusis that will itself be offset, unless the following measure(s) complete it
+                if following_do_complete.all():
+                    mcs_getting_offset.update(following_mcs)
+                elif not following_do_complete.any():
+                    mcs_getting_offset.add(irregular_mc)
+                else:
+                    show_mcs = [irregular_mc] + following_mcs
+                    logger.warning(
+                        f"Some of the MCs following the potential anacrusis MC {irregular_mc} do, some don't complete "
+                        f"it with the expected {expected_completion}, so I cannot decide whether it's an anacrusis or "
+                        f"not. Let's say it is. Follow-up warnings may arise.\n"
+                        f"{section_df.loc[show_mcs]}",
+                        extra={"message_id": (3, irregular_mc)},
+                    )
+                    mcs_getting_offset.add(irregular_mc)
+                continue
+            # arrives here if not a potential anacrusis
+            if following_do_complete.all():
+                mcs_getting_offset.update(following_mcs)
+                continue
+
+            # not all or none of the following MCs complete the irregular MC
+            # first, check for the special case where one of the following MCs has another time signature which is
+            # actually completed by the two MCs in question
+            nominal_duration = section_df.nominal_duration[irregular_mc]
+            subsequent_nominal_durations = section_df.loc[
+                following_mcs, "nominal_duration"
+            ]
+            different_timesig = subsequent_nominal_durations != nominal_duration
+            might_be_special_case = ~following_do_complete & different_timesig
+            if might_be_special_case.any():
+                # if a subsequent MC has a different timesig, it may be seen as legitimate completion if its
+                # nominal duration is completed by the two actual durations in question
+                act_dur = section_df.actual_duration
+                for special_mc, other_nominal_duration in subsequent_nominal_durations[
+                    might_be_special_case
+                ].items():
+                    if (
+                        act_dur[irregular_mc] + act_dur[special_mc]
+                        == other_nominal_duration
+                    ):
+                        following_do_complete[special_mc] = True
+            if following_do_complete.all():
+                mcs_getting_offset.update(following_mcs)
+                continue
+
+            # not all or none of the following MCs complete the irregular MC
+            if not following_do_complete.any():
+                msg = f"None of the MCs following the irregular MC {irregular_mc} complete it."
+            else:
+                msg = f"Some of the MCs following the irregular MC {irregular_mc} do, some don't complete it."
+                mcs_getting_offset.update(
+                    following_do_complete.index[following_do_complete]
+                )
+            show_mcs = [irregular_mc] + following_mcs
+            show_columns = [
+                "nominal_duration",
+                "actual_duration",
+                "expected_completion",
+                "next",
+            ]
+            msg += f"\n{section_df.loc[show_mcs, show_columns]}"
+            logger.warning(
+                msg,
+                extra={"message_id": (3, irregular_mc)},
+            )
+            continue
+        return sorted(mcs_getting_offset)
 
     columns_to_display = [mc_col, next_col]
-    if section_breaks is None:
-        mc2mc_offset = {}
-    else:
+    if section_breaks is not None:
         columns_to_display.append(section_breaks)
-        last_mc = df[mc_col].max()
-        mc2mc_offset = {
-            m: 0
-            for m in df[df[section_breaks].fillna("") == "section"].mc + 1
-            if m <= last_mc
-        }
-        # offset == 0 is a neutral value but the presence of mc in mc2mc_offset indicates that it could potentially be
-        # an (incomplete) pickup measure which can be offset even if the previous measure is complete
+        has_section_break = df[section_breaks].fillna("").str.contains("section")
+        if not has_section_break.any():
+            logger.debug(
+                f"No section breaks in column {section_breaks!r} to be taken into account."
+            )
+            section_breaks = None
 
-    mc_indexed = df.set_index(mc_col)
-    nominal_duration.index = mc_indexed.index
-    actual_duration = mc_indexed[act_dur]
+    auxiliary_df = pd.concat(
+        [
+            df[columns_to_display],
+            nominal_duration.rename("nominal_duration"),
+            actual_duration.rename("actual_duration"),
+            expected_completion,
+        ],
+        axis=1,
+    ).set_index(mc_col)
+    if section_breaks is None:
+        auxiliary_df["potential_anacrusis"] = False
+        auxiliary_df.loc[1, "potential_anacrusis"] = True
+    else:
+        auxiliary_df["potential_anacrusis"] = (
+            has_section_break.shift().fillna(True).values  # has df.index
+        )
 
-    def expected_completion(mc) -> Fraction:
-        return nominal_duration[mc] - actual_duration[mc]
+    section_grouper = auxiliary_df.potential_anacrusis.cumsum()
 
-    def add_offset(mc, val=None):
-        if val is None:
-            val = expected_completion(mc)
-        mc2mc_offset[mc] = val
-
-    irregular = df.loc[shorter_than_nominal_mask, columns_to_display]
-    if irregular[mc_col].iloc[0] == 1:
-        # Check whether first MC is an anacrusis and mark accordingly
-        if len(irregular) > 1 and irregular[mc_col].iloc[1] == 2:
-            if not expected_completion(1) + actual_duration[2] == nominal_duration[1]:
-                add_offset(1)
-            else:
-                # regular divided measure, no anacrusis
-                pass
-        else:
-            # is anacrusis
-            add_offset(1)
-    for row_values in irregular.itertuples(index=False):
-        if section_breaks:
-            mc, next_mcs, break_value = row_values
-            if pd.isnull(break_value) or break_value != "section":
-                next_mcs = list(next_mcs)
-            else:
-                next_mcs = [nxt_mc for nxt_mc in next_mcs if nxt_mc <= mc]
-                if len(next_mcs) == 0:
-                    logger.debug(f"MC {mc} ends a section with an incomplete measure.")
-        else:
-            mc, next_mcs = row_values
-            next_mcs = list(next_mcs)
-        if mc not in mc2mc_offset:
-            completions = {m: actual_duration[m] for m in next_mcs if m > -1}
-            expected = expected_completion(mc)
-            errors = sum(c != expected for c in completions.values())
-            if errors > 0:
-                logger.warning(
-                    f"The incomplete MC {mc} (timesig {nominal_duration[mc]}, act_dur {actual_duration[mc]}) is "
-                    f"completed by {errors} incorrect duration{'s' if errors > 1 else ''} "
-                    f"(expected: {expected}):\n{completions}",
-                    extra={"message_id": (3, mc)},
-                )
-            for completion in completions.keys():
-                add_offset(completion)
-        elif mc2mc_offset[mc] == 0:
-            add_offset(mc)
-    mc2ix = {m: ix for ix, m in df.mc.items()}
-    result = {mc2ix[m]: offset for m, offset in mc2mc_offset.items()}
-    return pd.Series(result, name=name, dtype="object").reindex(df.index, fill_value=0)
+    offset_mcs_per_section = [
+        which_mcs_to_offset(section_df)
+        for _, section_df in auxiliary_df.groupby(section_grouper)
+    ]
+    mcs_to_be_offset = sum(offset_mcs_per_section, [])
+    mask = pd.Series(False, index=auxiliary_df.index)
+    mask.loc[mcs_to_be_offset] = True
+    offset_column = auxiliary_df.expected_completion.where(mask, 0).rename(name)
+    offset_column.index = df.index
+    return offset_column
 
 
 def make_repeat_col(
@@ -698,7 +759,7 @@ class MeasureList(LoggedClass):
         )
         # the functions computing the final two columns rely on the previous columns, hence we concatenate here:
         self.ml = pd.concat([self.ml] + new_columns, axis=1)
-        # before adding the final two, where, again, the last relies on the presence of the second last
+        # for the final two, again, the last ('offset') relies on the presence of the second last ('next')
         self.ml = pd.concat(
             [
                 self.ml,
