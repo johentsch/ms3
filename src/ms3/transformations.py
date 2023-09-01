@@ -153,10 +153,14 @@ def add_quarterbeats_col(
                 "Expected to have at least one column called 'mc' or 'mc_playthrough'."
             )
             return df
-        quarterbeats = df[mc_col].map(offset_dict)
+        mc_column = df[mc_col]
         if "mc_onset" in df.columns:
-            quarterbeats += df.mc_onset * 4
-        new_cols["quarterbeats"] = quarterbeats.rename(qb_column_name)
+            mc_onset_column = df.mc_onset
+        else:
+            mc_onset_column = None
+        new_cols["quarterbeats"] = make_quarterbeats_column(
+            mc_column, mc_onset_column, offset_dict, qb_column_name
+        )
     if not has_quarterbeats or not has_duration_qb:
         # recreate duration_qb also when quarterbeats had been missing
         if "duration" in df.columns:
@@ -228,6 +232,30 @@ def add_quarterbeats_col(
     if interval_index and all(c in df.columns for c in ("quarterbeats", "duration_qb")):
         df = replace_index_by_intervals(df, logger=logger)
     return df
+
+
+def make_quarterbeats_column(
+    mc_column: pd.Series,
+    mc_onset_column: Optional[pd.Series],
+    offset_dict: pd.Series | dict,
+    name: str = "quarterbeats",
+) -> pd.Series:
+    """Turn each combination of mc and mc_onset into a quarterbeat value using the offset_dict that maps mc to
+    the measure's quarterbeat position (distance from the beginning of the piece).
+
+    Args:
+        mc_column: A sequence of MC values, each of which will be mapped to its quarterbeats value in ``offset_dict``.
+        mc_onset_column: If specified, these values will be added to the mapped quarterbeats values.
+        offset_dict: {mc -> quarterbeats}, can be a Series.
+        name: Name of the returned Series.
+
+    Returns:
+        Quarterbeats column.
+    """
+    quarterbeats = mc_column.map(offset_dict)
+    if mc_onset_column is not None:
+        quarterbeats += mc_onset_column * 4
+    return quarterbeats.rename(name)
 
 
 def add_weighted_grace_durations(notes, weight=1 / 2, logger=None):
