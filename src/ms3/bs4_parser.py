@@ -37,7 +37,7 @@
 .. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
 .. |metronome_base| replace:: :ref:`metronome_base <metronome_base>`
 .. |metronome_number| replace:: :ref:`metronome_number <metronome_number>`
-.. |metronome_visible| replace:: :ref:`metronome_visible <metronome_visible>`
+.. |tempo_visible| replace:: :ref:`tempo_visible <tempo_visible>`
 .. |midi| replace:: :ref:`midi <midi>`
 .. |mn| replace:: :ref:`mn <mn>`
 .. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
@@ -714,7 +714,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
         |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
         |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |metronome_base|, |metronome_number|,
-        |metronome_visible|, |lyrics:1|, |Ottava:15mb|
+        |tempo_visible|, |lyrics:1|, |Ottava:15mb|
 
         Args:
           mode:
@@ -1385,7 +1385,7 @@ and {loc_after} before the subsequent {nxt_name}."""
                     "qpm",
                     "metronome_base",
                     "metronome_number",
-                    "metronome_visible",
+                    "tempo_visible",
                 ]
             )
         if params["thoroughbass"]:
@@ -2707,14 +2707,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                                             "metronome_number", float(value)
                                         )
                                     try:
-                                        metronome_visible = int(
-                                            tempo_tag.visible.string
-                                        )
+                                        tempo_visible = int(tempo_tag.visible.string)
                                     except AttributeError:
-                                        metronome_visible = 1
-                                    safe_update_event(
-                                        "metronome_visible", metronome_visible
-                                    )
+                                        tempo_visible = 1
+                                    safe_update_event("tempo_visible", tempo_visible)
                                 elif parent_name == "Lyrics":
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find("no")
