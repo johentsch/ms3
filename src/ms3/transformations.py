@@ -89,8 +89,8 @@ def add_quarterbeats_col(
     offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
-        | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets(
-          )<ms3.parse.Parse.get_continuous_offsets>`
+        | You can create the dict using the functions make_continuous_offset_series() or
+          make_offset_dict_from_measures().
         | It is not required if the column 'quarterbeats' exists already.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
@@ -144,8 +144,10 @@ def add_quarterbeats_col(
     if not has_quarterbeats:
         if "mc_playthrough" in df.columns:
             mc_col = "mc_playthrough"
+            qb_column_name = "quarterbeats_playthrough"
         elif "mc" in df.columns:
             mc_col = "mc"
+            qb_column_name = "quarterbeats"
         else:
             logger.error(
                 "Expected to have at least one column called 'mc' or 'mc_playthrough'."
@@ -154,7 +156,7 @@ def add_quarterbeats_col(
         quarterbeats = df[mc_col].map(offset_dict)
         if "mc_onset" in df.columns:
             quarterbeats += df.mc_onset * 4
-        new_cols["quarterbeats"] = quarterbeats.rename("quarterbeats")
+        new_cols["quarterbeats"] = quarterbeats.rename(qb_column_name)
     if not has_quarterbeats or not has_duration_qb:
         # recreate duration_qb also when quarterbeats had been missing
         if "duration" in df.columns:
