@@ -1414,7 +1414,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             additional_cols.extend(
                 [c for c in df.columns if feature in c and c not in main_cols]
             )
-        return df[main_cols + additional_cols]
+        result = df[main_cols + additional_cols]
+        if mode == "auto":
+            return result.dropna(axis=1, how="all")
+        return result.copy()
 
     @cache
     def get_playthrough_mcs(self) -> Optional[pd.Series]:
