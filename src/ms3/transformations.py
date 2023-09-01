@@ -75,30 +75,32 @@ def make_note_name_and_octave_columns(
 
 def add_quarterbeats_col(
     df: pd.DataFrame,
-    offset_dict: Union[pd.Series, dict],
+    offset_dict: pd.Series | dict,
     interval_index: bool = False,
+    name: Optional[str] = None,
     logger=None,
 ) -> pd.DataFrame:
     """Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the values given in the offset_dict.
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame with an ``mc`` or ``mc_playthrough`` column, and an ``mc_onset`` column.
-    offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
-        | If unfolded: {mc_playthrough -> offset}
-        | Otherwise: {mc -> offset}
-        | You can create the dict using the functions make_continuous_offset_series() or
-          make_offset_dict_from_measures().
-        | It is not required if the column 'quarterbeats' exists already.
-    interval_index : :obj:`bool`, optional
-        Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
-        creation of the column ``duration_qb``).
+    Args:
+        df: DataFrame with an ``mc`` or ``mc_playthrough`` column, and an ``mc_onset`` column.
+        offset_dict:
+            | If unfolded: {mc_playthrough -> offset}
+            | Otherwise: {mc -> offset}
+            | You can create the dict using the functions make_continuous_offset_series() or
+              make_offset_dict_from_measures().
+            | It is not required if the column 'quarterbeats' exists already.
+        interval_index:
+            Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the
+            successful creation of the column ``duration_qb``).
+        name:
+            If specified, name of the added column. Defaults to 'quarterbeats' for normal, and
+            'quarterbeats_playthrough' for unfolded dataframes.
+        logger:
 
-    Returns
-    -------
-
+    Returns:
+        The DataFrame with quarterbeats and duration_qb columns added.
     """
     if logger is None:
         logger = module_logger
@@ -153,13 +155,18 @@ def add_quarterbeats_col(
                 "Expected to have at least one column called 'mc' or 'mc_playthrough'."
             )
             return df
+        if name is None:
+            name = qb_column_name
         mc_column = df[mc_col]
         if "mc_onset" in df.columns:
             mc_onset_column = df.mc_onset
         else:
             mc_onset_column = None
         new_cols["quarterbeats"] = make_quarterbeats_column(
-            mc_column, mc_onset_column, offset_dict, qb_column_name
+            mc_column=mc_column,
+            mc_onset_column=mc_onset_column,
+            offset_dict=offset_dict,
+            name=name,
         )
     if not has_quarterbeats or not has_duration_qb:
         # recreate duration_qb also when quarterbeats had been missing
