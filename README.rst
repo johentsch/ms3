@@ -15,6 +15,22 @@
 .. |version| image:: https://img.shields.io/pypi/v/ms3?color=%2300
     :alt: PyPI
 
+.. These are examples of badges you might want to add to your README:
+   please update the URLs accordingly
+
+    .. image:: https://readthedocs.org/projects/ms3/badge/?version=latest
+        :alt: ReadTheDocs
+        :target: https://ms3.readthedocs.io/en/stable/
+    .. image:: https://img.shields.io/coveralls/github/<USER>/ms3/main.svg
+        :alt: Coveralls
+        :target: https://coveralls.io/r/<USER>/ms3
+    .. image:: https://img.shields.io/pypi/v/ms3.svg
+        :alt: PyPI-Server
+        :target: https://pypi.org/project/ms3/
+    .. image:: https://pepy.tech/badge/ms3/month
+        :alt: Monthly Downloads
+        :target: https://pepy.tech/project/ms3
+
 
 ===============================
 ms3 - Parsing MuseScore 3 and 4
@@ -114,6 +130,19 @@ Parsing several corpora
     corpora.parse()
 
 
+.. _pyscaffold-notes:
+
+Making Changes & Contributing
+=============================
+
+This project uses `pre-commit`_, please make sure to install it before making any
+changes::
+
+    cd ms3
+    pip install -e ".[dev]" # includes "pip install pre-commit"
+    pre-commit install
+
+
 Acknowledgements
 ================
 
@@ -121,4 +150,6 @@ Development of this software tool was supported by the Swiss National Science Fo
 Listening – The Development of Harmony over Three Centuries (1700–2000)” (Grant no. 182811). This project is being
 conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr. Claude Latour.
 
-The Python package has been set up using `PyScaffold <https://pyscaffold.org/>`__ 3.2.3.
+.. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
+    :alt: Project generated with PyScaffold
+    :target: https://pyscaffold.org/

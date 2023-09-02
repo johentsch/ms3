@@ -12,7 +12,7 @@
 __pycache__/*
 .cache/*
 .*.swp
-.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
 .DS_Store
 *.mscx,
 *.mscbackup
@@ -24,6 +24,7 @@ _version.py
 .pydevproject
 .settings
 .idea
+.vscode
 tags
 
 # Package files
@@ -35,8 +36,9 @@ tags
 # Unittest and coverage
 htmlcov/*
 .coverage
+.coverage.*
 .tox
-junit.xml
+junit*.xml
 coverage.xml
 .pytest_cache/
 
@@ -52,3 +54,5 @@ MANIFEST
 
 # Per-project virtualenvs
 .venv*/
+.conda*/
+.python-version
