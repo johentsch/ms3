@@ -55,8 +55,8 @@ class TestLogging:
         with capture_parse_logs(b.logger) as captured_msgs:
             b.parse_scores(parallel=True)
             parallel_msgs = captured_msgs.content_list
-        for msg in non_parallel_msgs:
-            assert msg in parallel_msgs
+        not_captured = [msg for msg in non_parallel_msgs if msg not in parallel_msgs]
+        assert len(not_captured) == 0
 
     def test_default(self, small_directory):
         p = Parse(small_directory)
@@ -135,7 +135,7 @@ class TestLogging:
             p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
-        assert len(all_msgs) == 0
+        assert all_msgs == []
 
     def test_capturing_suppressed_warnings(
         self, get_all_warnings, get_all_supressed_warnings

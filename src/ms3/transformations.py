@@ -20,6 +20,7 @@ from .utils import (
     make_continuous_offset_series,
     make_interval_index_from_breaks,
     make_interval_index_from_durations,
+    make_offset_dict_from_measures,
     make_playthrough_info,
     midi2octave,
     name2fifths,
@@ -75,30 +76,37 @@ def make_note_name_and_octave_columns(
 
 def add_quarterbeats_col(
     df: pd.DataFrame,
-    offset_dict: Union[pd.Series, dict],
+    offset_dict: pd.Series | dict,
+    offset_dict_all_endings: Optional[pd.Series | dict] = None,
     interval_index: bool = False,
+    name: Optional[str] = None,
     logger=None,
 ) -> pd.DataFrame:
     """Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the values given in the offset_dict.
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame with an ``mc`` or ``mc_playthrough`` column, and an ``mc_onset`` column.
-    offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
-        | If unfolded: {mc_playthrough -> offset}
-        | Otherwise: {mc -> offset}
-        | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets(
-          )<ms3.parse.Parse.get_continuous_offsets>`
-        | It is not required if the column 'quarterbeats' exists already.
-    interval_index : :obj:`bool`, optional
-        Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
-        creation of the column ``duration_qb``).
+    Args:
+        df: DataFrame with an ``mc`` or ``mc_playthrough`` column, and an ``mc_onset`` column.
+        offset_dict:
+            | If unfolded: {mc_playthrough -> offset}
+            | Otherwise: {mc -> offset}
+            | You can create the dict using the functions make_continuous_offset_series() or
+              make_offset_dict_from_measures().
+            | It is not required if the column 'quarterbeats' exists already.
+        offset_dict_all_endings:
+            Argument added later as a straightforward way to add two quarterbeats columns, the second one being the
+            'quarterbeats_all_endings' which is so important that with ms3 v2.2.0 it is included by default.
+            It is independent from unfolding because its main purpose is score addressability.
+        interval_index:
+            Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the
+            successful creation of the column ``duration_qb``).
+        name:
+            If specified, name of the added column. Defaults to 'quarterbeats' for normal, and
+            'quarterbeats_playthrough' for unfolded dataframes.
+        logger:
 
-    Returns
-    -------
-
+    Returns:
+        The DataFrame with quarterbeats and duration_qb columns added.
     """
     if logger is None:
         logger = module_logger
@@ -106,19 +114,35 @@ def add_quarterbeats_col(
         logger = logging.getLogger(logger)
     if len(df.index) == 0:
         return df
-    has_quarterbeats = "quarterbeats" in df.columns
+
+    if "mc_playthrough" in df.columns:
+        mc_col = "mc_playthrough"
+        qb_column_name = "quarterbeats_playthrough"
+    elif "mc" in df.columns:
+        mc_col = "mc"
+        qb_column_name = "quarterbeats"
+    else:
+        logger.error(
+            "Expected to have at least one column called 'mc' or 'mc_playthrough'."
+        )
+        return df
+    if name is None:
+        name = qb_column_name
+
+    has_quarterbeats = name in df.columns
     has_duration_qb = "duration_qb" in df.columns
     has_duration = "duration" in df.columns
-    if sum((has_quarterbeats, has_duration_qb)) == 2:
+    if (
+        sum((has_quarterbeats, has_duration_qb)) == 2
+        and offset_dict_all_endings is None
+    ):
         if interval_index:
             logger.debug(
-                "'quarterbeats' and 'duration_qb' already present, only creating IntervalIndex"
+                f"{name} and 'duration_qb' already present, only creating IntervalIndex"
             )
             return replace_index_by_intervals(df, logger=logger)
         else:
-            logger.debug(
-                "'quarterbeats' and 'duration_qb' already present, nothing to do."
-            )
+            logger.debug(f"{name} and 'duration_qb' already present, nothing to do.")
             return df
     if offset_dict is None:
         if not has_quarterbeats:
@@ -129,40 +153,43 @@ def add_quarterbeats_col(
                 "Could not create 'duration_qb' because no offset_dict was passed and no 'duration' column is present."
             )
             return df
-    if not has_duration and "end" not in offset_dict:
-        logger.warning(
-            "Could not create 'duration_qb' because offset_dict does not contain the key 'end'."
-        )
-        return df
+
     new_cols = {}
     if has_quarterbeats:
-        new_cols["quarterbeats"] = df.quarterbeats
+        new_cols[name] = df[name]
     if has_duration_qb:
         new_cols["duration_qb"] = df.duration_qb
     if len(new_cols) > 0:
+        # removes existing columns because they will be reinserted later in their canonical position
         df = df.drop(columns=list(new_cols.keys()))
+
+    mc_column = df[mc_col]
+    if "mc_onset" in df.columns:
+        mc_onset_column = df.mc_onset
+    else:
+        mc_onset_column = None
     if not has_quarterbeats:
-        if "mc_playthrough" in df.columns:
-            mc_col = "mc_playthrough"
-        elif "mc" in df.columns:
-            mc_col = "mc"
-        else:
-            logger.error(
-                "Expected to have at least one column called 'mc' or 'mc_playthrough'."
-            )
-            return df
-        quarterbeats = df[mc_col].map(offset_dict)
-        if "mc_onset" in df.columns:
-            quarterbeats += df.mc_onset * 4
-        new_cols["quarterbeats"] = quarterbeats.rename("quarterbeats")
+        new_cols[name] = make_quarterbeats_column(
+            mc_column=mc_column,
+            mc_onset_column=mc_onset_column,
+            offset_dict=offset_dict,
+            name=name,
+        )
+    if offset_dict_all_endings is not None:
+        new_cols["quarterbeats_all_endings"] = make_quarterbeats_column(
+            mc_column=df["mc"],
+            mc_onset_column=mc_onset_column,
+            offset_dict=offset_dict_all_endings,
+            name="quarterbeats_all_endings",
+        )
     if not has_quarterbeats or not has_duration_qb:
         # recreate duration_qb also when quarterbeats had been missing
         if "duration" in df.columns:
             new_cols["duration_qb"] = (
                 (df.duration * 4).astype(float).rename("duration_qb")
             )
-        else:
-            quarterbeats = new_cols["quarterbeats"]
+        elif "end" in offset_dict:
+            quarterbeats = new_cols[name]
             present_qb = quarterbeats.notna()
             selected_qb = quarterbeats[present_qb].astype(float)
             qb_are_sorted = (selected_qb.sort_values().index == selected_qb.index).all()
@@ -210,6 +237,10 @@ def add_quarterbeats_col(
                 logger.warning(
                     f"Error while creating durations from quarterbeats column. Error:\n{e}"
                 )
+        else:
+            logger.warning(
+                "Could not create 'duration_qb' because offset_dict does not contain the key 'end'."
+            )
     if len(new_cols) > 0:
         insert_after = next(
             col
@@ -223,9 +254,33 @@ def add_quarterbeats_col(
         logger.debug(f"Inserted the columns {list(new_cols.keys())}.")
     else:
         logger.debug("No columns were added.")
-    if interval_index and all(c in df.columns for c in ("quarterbeats", "duration_qb")):
-        df = replace_index_by_intervals(df, logger=logger)
+    if interval_index and all(c in df.columns for c in (name, "duration_qb")):
+        df = replace_index_by_intervals(df, position_col=name, logger=logger)
     return df
+
+
+def make_quarterbeats_column(
+    mc_column: pd.Series,
+    mc_onset_column: Optional[pd.Series],
+    offset_dict: pd.Series | dict,
+    name: str = "quarterbeats",
+) -> pd.Series:
+    """Turn each combination of mc and mc_onset into a quarterbeat value using the offset_dict that maps mc to
+    the measure's quarterbeat position (distance from the beginning of the piece).
+
+    Args:
+        mc_column: A sequence of MC values, each of which will be mapped to its quarterbeats value in ``offset_dict``.
+        mc_onset_column: If specified, these values will be added to the mapped quarterbeats values.
+        offset_dict: {mc -> quarterbeats}, can be a Series.
+        name: Name of the returned Series.
+
+    Returns:
+        Quarterbeats column.
+    """
+    quarterbeats = mc_column.map(offset_dict)
+    if mc_onset_column is not None:
+        quarterbeats += mc_onset_column * 4
+    return quarterbeats.rename(name)
 
 
 def add_weighted_grace_durations(notes, weight=1 / 2, logger=None):
@@ -470,6 +525,10 @@ def dfs2quarterbeats(
                 "Unfolding not possible because of incorrect repeat structure."
             )
             return []
+    offset_dict_all_endings = make_offset_dict_from_measures(
+        measures,
+        all_endings=True,
+    )
     if unfold:
         dfs = [
             unfold_repeats(df, playthrough_info, logger=logger)
@@ -481,12 +540,17 @@ def dfs2quarterbeats(
             unfolded_measures = unfold_repeats(
                 measures, playthrough_info, logger=logger
             )
-            continuous_offset = make_continuous_offset_series(
+            offset_dict = make_continuous_offset_series(
                 unfolded_measures, logger=logger
             )
+
             dfs = [
                 add_quarterbeats_col(
-                    df, continuous_offset, interval_index=interval_index, logger=logger
+                    df,
+                    offset_dict=offset_dict,
+                    offset_dict_all_endings=offset_dict_all_endings,
+                    interval_index=interval_index,
+                    logger=logger,
                 )
                 if df is not None
                 else df
@@ -505,10 +569,14 @@ def dfs2quarterbeats(
             measures = measures.drop(
                 index=measures[measures.volta.fillna(2) != 2].index, columns="volta"
             )
-        continuous_offset = make_continuous_offset_series(measures, logger=logger)
+        offset_dict = make_continuous_offset_series(measures, logger=logger)
         dfs = [
             add_quarterbeats_col(
-                df, continuous_offset, interval_index=interval_index, logger=logger
+                df,
+                offset_dict=offset_dict,
+                offset_dict_all_endings=offset_dict_all_endings,
+                interval_index=interval_index,
+                logger=logger,
             )
             if df is not None
             else df
@@ -1388,7 +1456,7 @@ def segment_by_criterion(
     warn_na: bool = False,
     logger=None,
 ) -> pd.DataFrame:
-    """Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb'
+    """Drop all rows where the boolean mask does not match, and adapt the IntervalIndex and the column 'duration_qb'
     accordingly.
 
     Args:

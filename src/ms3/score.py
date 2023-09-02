@@ -338,15 +338,22 @@ class MSCX(LoggedClass):
             expanded = unfolded_expanded
 
         has_chord = expanded.chord.notna()
+        offset_dict_all_endings = self.offset_dict(all_endings=True)
         if not has_chord.all():
             # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
             # cadence labels, which are considered to have duration 0 and not interrupt the prevailing chord
             offset_dict = self.offset_dict(unfold=unfold)
             with_chord = add_quarterbeats_col(
-                expanded[has_chord], offset_dict, logger=self.logger
+                expanded[has_chord],
+                offset_dict=offset_dict,
+                offset_dict_all_endings=offset_dict_all_endings,
+                logger=self.logger,
             )
             without_chord = add_quarterbeats_col(
-                expanded[~has_chord], offset_dict, logger=self.logger
+                expanded[~has_chord],
+                offset_dict=offset_dict,
+                offset_dict_all_endings=offset_dict_all_endings,
+                logger=self.logger,
             )
             without_chord.duration_qb = 0.0
             expanded = pd.concat([with_chord, without_chord]).sort_index()
@@ -355,7 +362,8 @@ class MSCX(LoggedClass):
         else:
             expanded = add_quarterbeats_col(
                 expanded,
-                self.offset_dict(unfold=unfold),
+                offset_dict=self.offset_dict(unfold=unfold),
+                offset_dict_all_endings=self.offset_dict(all_endings=True),
                 interval_index=interval_index,
                 logger=self.logger,
             )
@@ -450,7 +458,8 @@ class MSCX(LoggedClass):
                 return
         labels = add_quarterbeats_col(
             labels,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -476,13 +485,11 @@ class MSCX(LoggedClass):
         self,
         all_endings: bool = False,
         unfold: bool = False,
-        negative_anacrusis: bool = False,
     ) -> dict:
         """{mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
         return self.parsed.offset_dict(
             all_endings=all_endings,
             unfold=unfold,
-            negative_anacrusis=negative_anacrusis,
         )
 
     @property
@@ -2088,7 +2095,8 @@ class Score(LoggedClass):
             else:
                 labels = add_quarterbeats_col(
                     labels,
-                    self.mscx.offset_dict(unfold=unfold),
+                    offset_dict=self.mscx.offset_dict(unfold=unfold),
+                    offset_dict_all_endings=self.mscx.offset_dict(all_endings=True),
                     interval_index=interval_index,
                     logger=self.logger,
                 )

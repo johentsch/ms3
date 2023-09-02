@@ -3140,13 +3140,14 @@ class Corpus(LoggedClass):
                                 f"Would have stored the {facet} from {file.rel_path} as {file_path}."
                             )
                         else:
+                            create_descriptor = frictionless and facet != "events"
                             descriptor_or_resource_path = store_dataframe_resource(
                                 df=df,
                                 directory=directory,
                                 piece_name=piece_name,
                                 facet=facet_param,
                                 zipped=False,
-                                frictionless=frictionless,
+                                frictionless=create_descriptor,
                                 raise_exception=False,
                                 write_or_remove_errors_file=True,
                                 logger=self.logger,

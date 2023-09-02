@@ -1,45 +1,181 @@
-VOLTAS_WITH_DIFFERING_LENGTHS_WARNING (4, 19) ms3.Parse.old_tests.D973deutscher01 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 780) treat_group():
-	Volta group of MC 19 contains voltas with different lengths: [1, 2] Check for correct computation of MNs.
-COMPETING_MEASURE_INFO_WARNING (9, 'mc', 1, 'voice/KeySig/accidental') ms3.Parse.old_tests.05_symph_fant -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 577) squash_staves():
-	mc 1: The values ['3' '2'] in 'voice/KeySig/accidental' of 
-	 'staff' [4, 11] are lost.
-VOLTAS_WITH_DIFFERING_LENGTHS_WARNING (4, 93) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 780) treat_group():
-	Volta group of MC 93 contains voltas with different lengths: [1, 2, 1] Check for correct computation of MNs.
-VOLTAS_WITH_DIFFERING_LENGTHS_WARNING (4, 128) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 780) treat_group():
-	Volta group of MC 128 contains voltas with different lengths: [1, 2] Check for correct computation of MNs.
-MISSING_END_REPEAT_WARNING (5, 97) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 391) start_section():
-	The startRepeat in MC 97 is missing its endRepeat.
-	For correction, MC 111 is interpreted as such because it precedes the next startRepeat.
-INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 111) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 707) make_offset_col():
-	The incomplete MC 111 (timesig 1, act_dur 1/2) is completed by 1 incorrect duration (expected: 1/2):
-	{97: Fraction(1, 2), 112: Fraction(3, 4)}
-INCORRECT_VOLTA_MN_WARNING (2, 96) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 184) check_measure_numbers():
-	MC 96, the 1st measure of a 3rd volta, should have MN 113, not MN 115.
-INCORRECT_VOLTA_MN_WARNING (2, 120) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 184) check_measure_numbers():
-	MC 120, the 1st measure of a 2nd volta, should have MN 138, not MN 139.
-INCORRECT_VOLTA_MN_WARNING (2, 129) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 184) check_measure_numbers():
-	MC 129, the 1st measure of a 2nd volta, should have MN 147, not MN 148.
-INCORRECT_VOLTA_MN_WARNING (2, 138) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 184) check_measure_numbers():
-	MC 138, the 1st measure of a 2nd volta, should have MN 156, not MN 157.
-MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING (1, 1, 40, 85, 97, 131, 139) ms3.Parse.old_tests.BWV_0815 -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 197) check_measure_numbers():
-	MCs 1, 40, 85, 97, 131, 139 seem to be offset from the MN's beginning but have not been excluded from barcount. Context:
-	      mc   mn act_dur mc_offset  dont_count  numbering_offset
-	0      1    1    1/16     15/16        <NA>              <NA>
-	1      2    2       1         0        <NA>              <NA>
-	38    39   59     5/8         0        <NA>              <NA>
-	39    40   60     1/8       5/8        <NA>              <NA>
-	40    41   61     3/4         0        <NA>              <NA>
-	83    84  104     3/4         0        <NA>              <NA>
-	84    85  105     1/2       1/2        <NA>              <NA>
-	85    86  106       1         0        <NA>              <NA>
-	95    96  115     1/2         0        <NA>              <NA>
-	96    97  116     1/2       1/2        <NA>              <NA>
-	97    98  117       1         0        <NA>              <NA>
-	129  130  149     1/4         0        <NA>              <NA>
-	130  131  150     1/2       1/2        <NA>              <NA>
-	131  132  151       1         0        <NA>              <NA>
-	137  138  157     1/2         0        <NA>              <NA>
-	138  139  158     1/2       1/2        <NA>              <NA>
-	139  140  159       1         0        <NA>              <NA>
-INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.old_tests.Did03M-Son_regina-1762-Sarti -- /home/hentsche/PycharmProjects/ms3/src/ms3/bs4_measures.py (line 184) check_measure_numbers():
-	MC 94, the 1st measure of a 2nd volta, should have MN 93, not MN 94.
+FIRST_BAR_MISSING_TEMPO_MARK_WARNING (29,) ms3.Parse.ravel_piano.Ravel_-_Jeux_dEau -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_parser.py (line 2846) perform_checks():
+        No metronome mark found in the very first measure nor anywhere else in the score.
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 17) ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413)
+which_mcs_to_offset():
+        None of the MCs following the irregular MC 17 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        17                1            9/16                7/16  (18,)
+        18                1             1/2                 1/2  (19,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 18) ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413)
+which_mcs_to_offset():
+        None of the MCs following the irregular MC 18 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        18                1             1/2                 1/2  (19,)
+        19                1             1/4                 3/4  (20,)
+MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING (1, 14, 16, 20, 25, 28) ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 890) check_measure_numbers():
+        MCs 14, 16, 20, 25, 28 seem to be offset from the MN's beginning but have not been excluded from barcount. Context:
+            mc  mn act_dur mc_offset  dont_count  numbering_offset
+        12  13  13     1/2         0        <NA>              <NA>
+        13  14  14     1/2       1/2        <NA>              <NA>
+        14  15  15     1/2         0        <NA>              <NA>
+        15  16  16     1/2       1/2        <NA>              <NA>
+        16  17  17    9/16         0        <NA>              <NA>
+        18  19  19     1/4         0        <NA>              <NA>
+        19  20  20     3/4       1/4        <NA>              <NA>
+        20  21  21       1         0        <NA>              <NA>
+        23  24  24     1/2         0        <NA>              <NA>
+        24  25  25     1/2       1/2        <NA>              <NA>
+        25  26  26       1         0        <NA>              <NA>
+        26  27  27     1/2         0        <NA>              <NA>
+        27  28  28     1/2       1/2        <NA>              <NA>
+        28  29  29       1         0        <NA>              <NA>
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 13) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 13 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        13              3/4             1/4                 1/2  (14,)
+        14              3/4             5/8                 1/8  (15,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 14) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 14 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        14              3/4             5/8                 1/8  (15,)
+        15              1/2             1/2                   0  (16,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 25) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 25 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        25              3/4             1/4                 1/2  (26,)
+        26              3/4             5/8                 1/8  (27,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 26) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 26 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        26              3/4             5/8                 1/8  (27,)
+        27              1/2             1/2                   0  (28,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 45) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 45 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        45                1             3/4                 1/4  (46,)
+        46                1             3/8                 5/8  (47,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 46) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 46 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        46                1             3/8                 5/8  (47,)
+        47              3/4             3/4                   0  (48,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 48) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 48 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        48                1             3/4                 1/4  (49,)
+        49                1             3/8                 5/8  (50,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 49) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 49 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        49                1             3/8                 5/8  (50,)
+        50                1             3/4                 1/4  (51,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 50) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 50 complete it.
+           nominal_duration actual_duration expected_completion   next
+        mc
+        50                1             3/4                 1/4  (51,)
+        51              5/4             3/4                 1/2  (52,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 104) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 104 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        104                1             3/4                 1/4  (105,)
+        105                1             3/4                 1/4  (106,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 105) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 105 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        105                1             3/4                 1/4  (106,)
+        106                1             3/4                 1/4  (107,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 106) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 106 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        106                1             3/4                 1/4  (107,)
+        107                1               1                   0  (108,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 147) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 147 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        147              3/4             1/2                 1/4  (148,)
+        148              3/4             1/2                 1/4  (149,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 148) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 148 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        148              3/4             1/2                 1/4  (149,)
+        149              3/4             5/8                 1/8  (150,)
+INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING (3, 149) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 413) which_mcs_to_offset():
+        None of the MCs following the irregular MC 149 complete it.
+            nominal_duration actual_duration expected_completion    next
+        mc
+        149              3/4             5/8                 1/8  (150,)
+        150              3/4             3/4                   0  (151,)
+MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING (1, 6, 18, 35, 43, 52, 79, 84, 102) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_measures.py (line 890) check_measure_numbers():
+        MCs 6, 18, 35, 43, 52, 79, 84, 102 seem to be offset from the MN's beginning but have not been excluded from barcount. Context:
+              mc   mn act_dur mc_offset  dont_count  numbering_offset
+        4      5    5     1/4         0        <NA>              <NA>
+        5      6    6     1/4       1/4        <NA>              <NA>
+        6      7    7     1/2         0        <NA>              <NA>
+        16    17   17     1/4         0        <NA>              <NA>
+        17    18   18     1/4       1/4        <NA>              <NA>
+        18    19   19     1/2         0        <NA>              <NA>
+        33    34   34     1/4         0        <NA>              <NA>
+        34    35   35     1/2       1/4        <NA>              <NA>
+        35    36   36     3/4         0        <NA>              <NA>
+        41    42   42     1/2         0        <NA>              <NA>
+        42    43   43     1/4       1/2        <NA>              <NA>
+        43    44   44     3/4         0        <NA>              <NA>
+        50    51   51     3/4         0        <NA>              <NA>
+        51    52   52     1/2       3/4        <NA>              <NA>
+        52    53   53     1/2         0        <NA>              <NA>
+        77    78   78     3/4         0        <NA>              <NA>
+        78    79   79     1/4       3/4        <NA>              <NA>
+        79    80   80     3/4         0        <NA>              <NA>
+        82    83   83     3/4         0        <NA>              <NA>
+        83    84   84     1/2       3/4        <NA>              <NA>
+        84    85   85     1/2         0        <NA>              <NA>
+        100  101  101     1/2         0        <NA>              <NA>
+        101  102  102     1/2       1/2        <NA>              <NA>
+        102  103  103       1         0        <NA>              <NA>
+FIRST_BAR_MISSING_TEMPO_MARK_WARNING (29,) ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_parser.py (line 2846) perform_checks():
+        No metronome mark found in the very first measure nor anywhere else in the score.
+FIRST_BAR_MISSING_TEMPO_MARK_WARNING (29,) ms3.Parse.ravel_piano.Ravel_-_Miroirs_IV_Alborada_del_gracioso -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_parser.py (line 2846) perform_checks():
+        No metronome mark found in the very first measure nor anywhere else in the score.
+INFO     ms3.Parse.ravel_piano -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\corpus.py (line 2002) parse_scores():
+        All 5 scores have been parsed successfully.
+FIRST_BAR_MISSING_TEMPO_MARK_WARNING (29,) ms3.Parse.sweelinck_keyboard.SwWV258_fantasia_cromatica -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\bs4_parser.py (line 2846) perform_checks():
+        No metronome mark found in the very first measure nor anywhere else in the score.
+INFO     ms3.Parse.sweelinck_keyboard -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\corpus.py (line 2002) parse_scores():
+        The score has been parsed successfully.
+INFO     ms3.Parse.wagner_overtures -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\corpus.py (line 2002) parse_scores():
+        All 2 scores have been parsed successfully.
+WARNING  ms3.check -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\operations.py (line 218) check():
+        Warnings detected while parsing scores (see above).
+DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING (6, 142, 'V7(6b5)') ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\utils\functions.py (line 5332) features2tpcs():
+        MC 142: V7(6b5) results in a chord tone 5th AND its replacement(s) (TPC [-3]). You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.
+DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING (6, 7, 'V64(6b5)') ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\utils\functions.py (line 5332) features2tpcs():
+        MC 7: V64(6b5) results in a chord tone 5th AND its replacement(s) (TPC [2]). You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.
+DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING (6, 87, 'V64(6b5)') ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\utils\functions.py (line 5332) features2tpcs():
+        MC 87: V64(6b5) results in a chord tone 5th AND its replacement(s) (TPC [2]). You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.
+DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING (6, 106, 'V64(6b5)') ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\utils\functions.py (line 5332) features2tpcs():
+        MC 106: V64(6b5) results in a chord tone 5th AND its replacement(s) (TPC [5]). You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.
+DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING (6, 71, 'V64(6b5)') ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\utils\functions.py (line 5332) features2tpcs():
+        MC 71: V64(6b5) results in a chord tone 5th AND its replacement(s) (TPC [2]). You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.
+WRONGLY_ENCODED_POSITION_WARNING (28,) ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia -- c:\users\hentsche\pycharmprojects\ms3\src\ms3\transformations.py (line 211) add_quarterbeats_col():
+        In the following instances the second event occurs before the first one:
+                       mc  mn mc_onset mn_onset timesig  staff  voice      label alt_label globalkey localkey pedal
+        problem index
+        0       284    84  83      5/8      5/8     6/8      2      1  V43(b5)/V      <NA>         a        i   NaN
+                285    85  84     -1/4     -1/4     6/8      2      1         V7      <NA>         a        i   NaN
+        Each second row will not have a 'duration_qb' value.

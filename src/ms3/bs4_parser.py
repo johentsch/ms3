@@ -37,7 +37,7 @@
 .. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
 .. |metronome_base| replace:: :ref:`metronome_base <metronome_base>`
 .. |metronome_number| replace:: :ref:`metronome_number <metronome_number>`
-.. |metronome_visible| replace:: :ref:`metronome_visible <metronome_visible>`
+.. |tempo_visible| replace:: :ref:`tempo_visible <tempo_visible>`
 .. |midi| replace:: :ref:`midi <midi>`
 .. |mn| replace:: :ref:`mn <mn>`
 .. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
@@ -714,7 +714,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
         |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
         |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |metronome_base|, |metronome_number|,
-        |metronome_visible|, |lyrics:1|, |Ottava:15mb|
+        |tempo_visible|, |lyrics:1|, |Ottava:15mb|
 
         Args:
           mode:
@@ -740,7 +740,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         chords = add_quarterbeats_col(
             chords,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -1112,7 +1113,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         events = add_quarterbeats_col(
             events,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -1155,7 +1157,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         form = add_quarterbeats_col(
             form,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -1382,7 +1385,7 @@ and {loc_after} before the subsequent {nxt_name}."""
                     "qpm",
                     "metronome_base",
                     "metronome_number",
-                    "metronome_visible",
+                    "tempo_visible",
                 ]
             )
         if params["thoroughbass"]:
@@ -1411,7 +1414,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             additional_cols.extend(
                 [c for c in df.columns if feature in c and c not in main_cols]
             )
-        return df[main_cols + additional_cols]
+        result = df[main_cols + additional_cols]
+        if mode == "auto":
+            return result.dropna(axis=1, how="all")
+        return result.copy()
 
     @cache
     def get_playthrough_mcs(self) -> Optional[pd.Series]:
@@ -2252,7 +2258,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         notes = add_quarterbeats_col(
             notes,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2288,7 +2295,8 @@ and {loc_after} before the subsequent {nxt_name}."""
                 return
         nrl = add_quarterbeats_col(
             nrl,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2312,14 +2320,22 @@ and {loc_after} before the subsequent {nxt_name}."""
         self,
         all_endings: bool = False,
         unfold: bool = False,
-        negative_anacrusis: bool = False,
     ) -> dict:
         """Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
         Used for computing quarterbeats for other facets.
 
         Args:
-          all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
-              falls back to the default 'quarterbeats'.
+          all_endings:
+              If a pieces as alternative endings, by default, only the second ending is taken into account for
+              computing quarterbeats in order to make the timeline correspond to a rendition without performing
+              repeats. Events in other endings, notably the first, receive value NA so that they can be filtered out.
+              For score addressability, one might want to apply a continuous timeline to all measures, in which case
+              one would pass True to use the column 'quarterbeats_all_endings' of the measures table if it has one.
+              If not, falls back to the default 'quarterbeats'.
+          unfold:
+              Pass True to compute quarterbeats for a mc_playthrough column resulting from unfolding repeats.
+              The parameter ``all_endings`` is ignored in this case because the unfolded version brings each ending in
+              its correct place.
 
         Returns:
           {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
@@ -2328,7 +2344,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         measures = self.measures(unfold=unfold)
         if unfold:
             offset_dict = make_continuous_offset_series(
-                measures, negative_anacrusis=negative_anacrusis
+                measures,
             ).to_dict()
         else:
             offset_dict = make_offset_dict_from_measures(measures, all_endings)
@@ -2366,13 +2382,16 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
           DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
+        if len(rests) == 0:
+            return None
         if unfold:
             rests = self.unfold_facet_df(rests, "rests")
             if rests is None:
                 return
         rests = add_quarterbeats_col(
             rests,
-            self.offset_dict(unfold=unfold),
+            offset_dict=self.offset_dict(unfold=unfold),
+            offset_dict_all_endings=self.offset_dict(all_endings=True),
             interval_index=interval_index,
             logger=self.logger,
         )
@@ -2389,6 +2408,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         return self._rl
 
     def parse_soup(self):
+        """First step of parsing the MuseScore source. Involves discovering the <staff> tags and storing the
+        <Measure> tags of each in the :attr:`measure_nodes` dictionary.  Also stores the drum_map for each Drumset
+        staff.
+        """
         if self.version[0] not in ("3", "4"):
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
             raise ValueError(
@@ -2689,14 +2712,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                                             "metronome_number", float(value)
                                         )
                                     try:
-                                        metronome_visible = int(
-                                            tempo_tag.visible.string
-                                        )
+                                        tempo_visible = int(tempo_tag.visible.string)
                                     except AttributeError:
-                                        metronome_visible = 1
-                                    safe_update_event(
-                                        "metronome_visible", metronome_visible
-                                    )
+                                        tempo_visible = 1
+                                    safe_update_event("tempo_visible", tempo_visible)
                                 elif parent_name == "Lyrics":
                                     lyrics_tag = text_tag.parent
                                     no_tag = lyrics_tag.find("no")
@@ -2798,7 +2817,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             metronome_mark_missing = False
         # here we could insert logic for treating incipit measure groups differently
         if metronome_mark_missing:
-            msg = "No metronome mark found in the very first measure"
+            msg = "No metronome mark found in the first measure"
             tempo_selector = (events.event == "Tempo").fillna(False)
             if tempo_selector.sum() == 0:
                 msg += " nor anywhere else in the score."
