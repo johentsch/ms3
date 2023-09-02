@@ -1,4 +1,5 @@
 jupyter_sphinx
+linkify-it-py
 myst_nb
 pydata_sphinx_theme
 sphinx

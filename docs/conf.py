@@ -73,10 +73,10 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
-'sphinxarg.ext',
-    'sphinxcontrib.programoutput',
-    'myst_nb',
-    'jupyter_sphinx'
+    "sphinxarg.ext",
+    "sphinxcontrib.programoutput",
+    "myst_nb",
+    "jupyter_sphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -87,6 +87,12 @@ source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'myst-nb',
 }
+
+# MyST-NB configuration https://myst-nb.readthedocs.io/en/latest/configuration.html
+myst_enable_extensions = [
+    "colon_fence",
+    "linkify",
+]
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
