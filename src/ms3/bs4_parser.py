@@ -2382,6 +2382,8 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
           DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
+        if len(rests) == 0:
+            return None
         if unfold:
             rests = self.unfold_facet_df(rests, "rests")
             if rests is None:
@@ -2815,7 +2817,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             metronome_mark_missing = False
         # here we could insert logic for treating incipit measure groups differently
         if metronome_mark_missing:
-            msg = "No metronome mark found in the very first measure"
+            msg = "No metronome mark found in the first measure"
             tempo_selector = (events.event == "Tempo").fillna(False)
             if tempo_selector.sum() == 0:
                 msg += " nor anywhere else in the score."
