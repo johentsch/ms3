@@ -135,8 +135,8 @@ Parsing several corpora
 Making Changes & Contributing
 =============================
 
-This project uses `pre-commit`_, please make sure to install it before making any
-changes::
+This project uses `pre-commit <https://pre-commit.com/>`__ to ensure code quality. If you are a developer,
+please make sure to install it before making any changes::
 
     cd ms3
     pip install -e ".[dev]" # includes "pip install pre-commit"
