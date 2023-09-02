@@ -2309,10 +2309,17 @@ and {loc_after} before the subsequent {nxt_name}."""
           recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._nrl) == 0:
-            nr = pd.concat([self.nl(), self.rl()]).astype(
-                {col: "Int64" for col in ["tied", "tpc", "midi", "chord_id"]}
-            )
-            self._nrl = sort_note_list(nr.reset_index(drop=True))
+            rl = self.rl()
+            nl = self.nl()
+            if len(rl) == 0:
+                self._nrl = nl
+            elif len(nl) == 0:
+                self._nrl = rl
+            else:
+                nr = pd.concat([nl, rl]).astype(
+                    {col: "Int64" for col in ["tied", "tpc", "midi", "chord_id"]}
+                )
+                self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
     @cache
