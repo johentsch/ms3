@@ -205,6 +205,7 @@ def get_schema_or_url(
     index_levels: Optional[Tuple[str]] = None,
     base_local_path=SCHEMAS_DIR,
     base_url="https://raw.githubusercontent.com/DCMLab/frictionless_schemas/main/",
+    **kwargs
     # "https://raw.githubusercontent.com/johentsch/ms3/main/schemas/"
 ) -> str | dict:
     """Given a facet name (=subfolder) and a tuple of [index column names +] column names, compute an identifier and
@@ -227,10 +228,14 @@ def get_schema_or_url(
             basis of being required and unique.
         base_local_path:
             Schema descriptors will be created locally under ``<base_local_path>/<facet>/<identifier>.schema.yaml``,
-            unless the schema is found online.
+            unless the schema is found online. The purpose of this is to allow for easy updating of the online
+            repository by setting this argument to a local clone. The default value is ``<ms3>/frictionless_schemas/``,
+            a submodule (if initialized) corresponding to https://github.com/DCMLab/frictionless_schemas.
         base_url:
-            Schema descriptor is found at``<base_url>/<facet>/<identifier>.schema.yaml``, the function returns the
+            If schema descriptor is found at``<base_url>/<facet>/<identifier>.schema.yaml``, the function returns the
             URL rather than the descriptor dict.
+        **kwargs:
+            Arbitrary key-value pairs that will be added to the frictionless schema descriptor as "custom" metadata.
 
     Returns:
 
@@ -268,6 +273,7 @@ def get_schema_or_url(
             facet=facet,
             identifier=schema_identifier,
             filepath=schema_filepath,
+            **kwargs,
         )
         fl.Schema(descriptor).to_yaml(schema_path)
         return descriptor
@@ -277,12 +283,45 @@ def get_schema(
     df: pd.DataFrame,
     facet: str,
     include_index_levels: bool = False,
+    base_local_path=SCHEMAS_DIR,
+    base_url="https://raw.githubusercontent.com/DCMLab/frictionless_schemas/main/",
+    **kwargs,
 ) -> dict | str:
+    """Given a dataframe and a facet name, return a frictionless schema descriptor for the dataframe.
+    If the schema with the exact same sequence of columns (and index levels) is accessible online at
+    ``base_url/facet/<identifier>.schema.yaml``, return that URL, otherwise return the descriptor itself as a dict.
+    In both cases, the schema is stored at ``base_local_path/facet/<identifier>.schema.yaml`` if it does not exist.
+
+    Args:
+        df: Dataframe to create a schema for.
+        facet: Facet that the dataframe describes, used as subfolder and added as custom metadata to the schema.
+        include_index_levels:
+            If False (default), the index levels are not described, assuming that they will not be written to disk
+            (otherwise, validation error). Set to True to add all index levels to the described columns and,
+            in addition, to make them the ``primaryKey`` (which, in frictionless, implies the constraints "required" &
+            "unique").
+        base_local_path:
+            Schema descriptors will be created locally under ``<base_local_path>/<facet>/<identifier>.schema.yaml``,
+            unless the schema is found online. The purpose of this is to allow for easy updating of the online
+            repository by setting this argument to a local clone. The default value is ``<ms3>/frictionless_schemas/``,
+            a submodule (if initialized) corresponding to https://github.com/DCMLab/frictionless_schemas.
+        base_url:
+            If schema descriptor is found at``<base_url>/<facet>/<identifier>.schema.yaml``, the function returns the
+            URL rather than the descriptor dict.
+        **kwargs:
+            Arbitrary key-value pairs that will be added to the frictionless schema descriptor as "custom" metadata.
+
+    Returns:
+
+    """
     index_levels = df.index.names if include_index_levels else None
     result = get_schema_or_url(
         facet=facet,
         column_names=df.columns,
         index_levels=index_levels,
+        base_local_path=base_local_path,
+        base_url=base_url,
+        **kwargs,
     )
     return result
 
@@ -336,7 +375,12 @@ def make_resource_descriptor(
     Returns:
         A frictionless resource descriptor dictionary.
     """
-    schema = get_schema(df=df, facet=facet, include_index_levels=include_index_levels)
+    schema = get_schema(
+        df=df,
+        facet=facet,
+        include_index_levels=include_index_levels,
+        used_in=piece_name,
+    )
     resource_name = f"{piece_name}.{facet}"
     if filepath is None:
         filepath = f"{resource_name}.tsv"
