@@ -16,4 +16,4 @@ ms3 extract -f MS3 -a -p --raw -D -M test_results -N test_results -L test_result
 |stabat_03_coloured          |      26|    83|           |
 
 
-*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*
+*Overview table automatically updated using [ms3](https://ms3.readthedocs.io/).*

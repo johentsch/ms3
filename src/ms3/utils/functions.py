@@ -2645,7 +2645,7 @@ def store_csvw_jsonld(
         "these follow a specific syntax, they can be split into their components (features) and "
         "transformed "
         "into scale degrees. For more information, please refer to the docs at "
-        "https://johentsch.github.io/ms3/columns",
+        "https://ms3.readthedocs.io/columns",
         "measures": "One feature matrix per score, containing one line per stack of <Measure> tags in the score's XML "
         "tree. "
         "They are counted in the column 'mc' starting from 1, whereas the conventional measure numbers "
@@ -2656,10 +2656,10 @@ def store_csvw_jsonld(
         "as well as the "
         "column 'next' which contains follow-up MCs for unfolding a score's repeat structure. For more "
         "information, "
-        "please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "please refer to the docs at https://ms3.readthedocs.io/columns",
         "notes": "One feature matrix per score, containing one row per note head. Not every row represents an "
         "onset because note heads may be tied together (see column 'tied'). "
-        "For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "For more information, please refer to the docs at https://ms3.readthedocs.io/columns",
     }
     title = titles[facet] if facet in titles else facet
     title += " for " + corpus
@@ -4496,7 +4496,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str, logger=None) -> No
     md_table = "#" + str(
         dataframe2markdown(md, name="Overview")
     )  # comes with a first-level heading which we turn into second-level
-    md_table += "\n\n*Overview table automatically updated using [ms3](https://johentsch.github.io/ms3/).*\n"
+    md_table += "\n\n*Overview table automatically updated using [ms3](https://ms3.readthedocs.io/).*\n"
 
     if os.path.isfile(file_path):
         msg = "Updated"

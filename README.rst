@@ -85,7 +85,7 @@ Here comes a list of functionalities to help you decide if this library could be
 
 * offers its functionality via the convenient ``ms3`` commandline interface.
 
-View the `full documentation here <https://johentsch.github.io/ms3/>`__.
+View the `full documentation here <https://ms3.readthedocs.io/>`__.
 
 For a demo video (using an old, pre-1.0.0 version) on YouTube, `click here <https://youtu.be/UBY3wuIS4wc>`__
 
