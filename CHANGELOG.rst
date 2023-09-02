@@ -2,6 +2,64 @@
 Changelog
 =========
 
+Version 2.2.0
+=============
+
+What’s Changed
+--------------
+
+-  Changing the instrumentation to “Drumset” by @arinaLozhkina in
+   `https://github.com/johentsch/ms3/pull/84`__
+
+   -  More robust updating of score instrumentation by modifying
+      ``metadata.tsv`` and calling ``ms3 metadata --instrumentation``
+   -  Ensures playback with the correct MIDI instrument
+   -  Handles a change to ``Drumset`` correctly in terms of changing
+      clef, removing key signature, and playback
+
+-  MSCX class API for creating score excerpts by @leobruneau in
+   `https://github.com/johentsch/ms3/pull/91`__
+
+   -  score excerpts can now be stored using
+      ``score.mscx.store_excerpt()``
+   -  batch excerpt creation via ``MSCX.store_phrase_excerpts()`` and
+      ``MSCX.store_random_excerpts()``
+
+-  Improved algorithm for computing ``mc_offset`` including bugfix by
+   @johentsch in `https://github.com/johentsch/ms3/pull/95`__
+-  Updated schema mechanism following the first trial by @johentsch in
+   `https://github.com/johentsch/ms3/pull/97`__
+
+   -  ``quarterbeats_all_endings`` column now added to all facet
+      dataframes by default
+   -  schema URLs now use the dedicated
+      `DCMLab/frictionless_schemas <https://github.com/DCMLab/frictionless_schemas/>`__
+      and the amount of required schemas was reduced drastically
+
+      -  no schemas are stored for ``events`` anymore
+      -  ``rests`` and ``notes_and_rests`` do not include non-sensical
+         empty columns anymore
+      -  ``chords`` is the only remaining facet where the abundance of
+         schemas due to high combinatoriality of column names is
+         (somewhat) justified.
+
+   -  Renamed columns:
+
+      -  in unfolded dataframes, ``quarterbeats`` is now called
+         ``quarterbeats_playthrough``
+      -  in the ``chords`` facet, ``metronome_visible`` is now called
+         ``tempo_visible``
+
+New Contributors
+----------------
+
+-  @leobruneau made their first contribution in
+   `https://github.com/johentsch/ms3/pull/91`__
+
+**Full Changelog**:
+`https://github.com/johentsch/ms3/compare/v2.1.1…v2.2.0`__
+
+
 Version 2.1.1
 =============
 
