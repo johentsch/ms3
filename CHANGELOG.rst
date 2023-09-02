@@ -50,6 +50,8 @@ What’s Changed
       -  in the ``chords`` facet, ``metronome_visible`` is now called
          ``tempo_visible``
 
+- documentation now hosted at `https://ms3.readthedocs.io/`__
+
 New Contributors
 ----------------
 
