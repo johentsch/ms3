@@ -678,7 +678,14 @@ def make_coloring_reports_and_warnings(
     review_reports = parse_obj.color_non_chord_tones()
     test_passes = True
     for (corpus_name, piece), file_df_pairs in review_reports.items():
-        piece_logger = get_logger(parse_obj[corpus_name].logger_names[piece])
+        try:
+            piece_logger = get_logger(parse_obj[corpus_name].logger_names[piece])
+        except KeyError:
+            piece_logger = parse_obj.logger
+            piece_logger.warning(
+                f"Piece name {piece!r} not found in the logger dict of {corpus_name!r}: "
+                f"{list(parse_obj[corpus_name].logger_names.keys())}"
+            )
         ignored_warning_ids = get_ignored_warning_ids(piece_logger)
         is_first = True
         for file, report in file_df_pairs:
