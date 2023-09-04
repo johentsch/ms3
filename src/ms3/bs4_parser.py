@@ -1128,7 +1128,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         unfold: bool = False,
     ) -> Optional[pd.DataFrame]:
         """DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s
-        rather than in the <Harmony> layer.
+        rather than in the <Harmony> layer (see argument ``exclude_harmony_layer``).
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position
         columns.
 
@@ -1142,6 +1142,7 @@ and {loc_after} before the subsequent {nxt_name}."""
               StaffText).
               Pass True in order to retrieve only StaffText form labels.
           interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+          unfold: Pass True to retrieve a Dat
 
         Returns:
           DataFrame containing all StaffTexts matching the ``detection_regex``
@@ -2086,6 +2087,24 @@ and {loc_after} before the subsequent {nxt_name}."""
             self.logger.debug(f"Inserting 'quarterbeats' after '{insert_after}'")
         elif not self.has_voltas:
             measures.drop(columns="volta", inplace=True)
+        if interval_index:
+            # ToDo: same quarterbeats columns as for all other facets, i.e. always add quarterbeats_all_endings,
+            # for unfolded, rename quarterbeats to quarterbeats_playthrough
+            if unfold:
+                position_col = "quarterbeats_playthrough"
+            else:
+                position_col = "quarterbeats_all_endings"
+            if all(c in measures.columns for c in (position_col, "duration_qb")):
+                measures = replace_index_by_intervals(
+                    measures, position_col=position_col, logger=self.logger
+                )
+                self.logger.debug(
+                    f"IntervalIndex created based on the column {position_col!r}."
+                )
+            else:
+                self.logger.warning(
+                    f"Cannot create interval index because column {position_col!r} is missing."
+                )
         return measures.copy()
 
     def ml(self, recompute: bool = False) -> pd.DataFrame:

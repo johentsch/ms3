@@ -187,7 +187,11 @@ os.makedirs(SCHEMAS_DIR, exist_ok=True)
 def get_truncated_hash(
     S: str | Iterable[str], hash_func=hashlib.sha1, length=10
 ) -> str:
-    """Computes the given hashfunction for the given string(s), and truncates the result."""
+    """Computes the given hashfunction for the given string(s), and truncates the result.
+
+    Raises:
+        ValueError: If the hash function cannot be computed for any of the strings in S.
+    """
     if isinstance(S, str):
         S = [S]
     hasher = hash_func()
@@ -606,7 +610,7 @@ def store_dataframe_resource(
     write_or_remove_errors_file: bool = True,
     logger=None,
     **kwargs,
-):
+) -> Optional[str]:
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
     If the resource comes with a single RangeIndex level, the index will be
     omitted from the TSV and the descriptor. If it comes with more than one level (a MultiIndex) the levels will be
@@ -633,6 +637,10 @@ def store_dataframe_resource(
             Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
             Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above) and,
             if ``zipped=True`` to the corresponding arguments.
+
+    Returns:
+        If ``frictionless=False``, the path to the written resource.
+        If ``frictionless=True``, the path to the written descriptor or None if it could not be generated.
     """
     if logger is None:
         logger = module_logger
@@ -671,24 +679,31 @@ def store_dataframe_resource(
     logger.info(msg)
     if not frictionless:
         return resource_path
-    descriptor_path = make_and_store_resource_descriptor(
-        df=df,
-        directory=directory,
-        facet=facet,
-        piece_name=piece_name,
-        filepath=relative_filepath,
-        innerpath=innerpath,
-        descriptor_extension=descriptor_extension,
-        include_index_levels=include_index_levels,
-        creator=DEFAULT_CREATOR_METADATA,  # custom metadata field for descriptor, passed as kwarg
-        logger=logger,
-    )
-    validate_descriptor_at_path(
-        descriptor_path,
-        raise_exception=raise_exception,
-        write_or_remove_errors_file=write_or_remove_errors_file,
-        logger=logger,
-    )
+    try:
+        descriptor_path = make_and_store_resource_descriptor(
+            df=df,
+            directory=directory,
+            facet=facet,
+            piece_name=piece_name,
+            filepath=relative_filepath,
+            innerpath=innerpath,
+            descriptor_extension=descriptor_extension,
+            include_index_levels=include_index_levels,
+            creator=DEFAULT_CREATOR_METADATA,  # custom metadata field for descriptor, passed as kwarg
+            logger=logger,
+        )
+    except ValueError as e:
+        descriptor_path = None
+        logger.warning(
+            f"Could not create frictionless descriptor for {resource_path} due to this error: {e!r}",
+        )
+    if descriptor_path is not None:
+        validate_descriptor_at_path(
+            descriptor_path,
+            raise_exception=raise_exception,
+            write_or_remove_errors_file=write_or_remove_errors_file,
+            logger=logger,
+        )
     return descriptor_path
 
 

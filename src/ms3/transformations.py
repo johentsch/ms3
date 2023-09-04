@@ -115,7 +115,8 @@ def add_quarterbeats_col(
     if len(df.index) == 0:
         return df
 
-    if "mc_playthrough" in df.columns:
+    is_unfolded = "mc_playthrough" in df.columns
+    if is_unfolded:
         mc_col = "mc_playthrough"
         qb_column_name = "quarterbeats_playthrough"
     elif "mc" in df.columns:
@@ -254,6 +255,22 @@ def add_quarterbeats_col(
         logger.debug(f"Inserted the columns {list(new_cols.keys())}.")
     else:
         logger.debug("No columns were added.")
+    if interval_index:
+        if is_unfolded:
+            position_col = name
+        elif "quarterbeats_all_endings" in df.columns:
+            position_col = "quarterbeats_all_endings"
+        else:
+            position_col = name
+        if all(c in df.columns for c in (position_col, "duration_qb")):
+            df = replace_index_by_intervals(
+                df, position_col=position_col, logger=logger
+            )
+            logger.debug(f"IntervalIndex created based on the column {position_col!r}.")
+        else:
+            logger.warning(
+                f"Cannot create interval index because column {position_col!r} is missing."
+            )
     if interval_index and all(c in df.columns for c in (name, "duration_qb")):
         df = replace_index_by_intervals(df, position_col=name, logger=logger)
     return df

@@ -1109,8 +1109,11 @@ def expand_form_labels(
     assert (extracted_tokens.index == extracted_levels.index).all(), (
         "Indices need to be identical after regex " "extraction."
     )
-    result_dict = {}
-    abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    result_dict: Dict[int, Dict[Tuple[str, str], str]] = {}
+    """{ix -> {(form_tree, level) -> token}}"""
+    abbreviations: Dict[str, str] = (
+        FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    )
     abbreviations.update(kwargs)
     for mc, (i, lvls), (_, tkns) in zip(
         fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()
@@ -1129,61 +1132,85 @@ def expand_form_labels(
             abbreviations=abbreviations,
             logger=logger,
         )
-    res = pd.DataFrame.from_dict(result_dict, orient="index")
-    res.columns = pd.MultiIndex.from_tuples(res.columns)
-    form_types = res.columns.levels[0]
-    if len(form_types) > 1:
-        # columns will be MultiIndex
+    form_labels_without_positions = pd.DataFrame.from_dict(result_dict, orient="index")
+    form_labels_without_positions.columns = pd.MultiIndex.from_tuples(
+        form_labels_without_positions.columns
+    )
+    form_types = form_labels_without_positions.columns.levels[0]
+    has_multiple_trees = len(form_types) > 1
+    if has_multiple_trees:
+        # expanded columns will be ordered by form trees, 'a_0', 'a_1', ..., 'b_0', 'b_1', ...
         if "" in form_types:
             # there are labels pertaining to all form_types
             forms = [f for f in form_types if f != ""]
-            pertaining_to_all = res.loc[:, ""]
+            pertaining_to_all = form_labels_without_positions.loc[:, ""]
             distributed_to_all = pd.concat(
                 [pertaining_to_all] * len(forms), keys=forms, axis=1
             )
-            level_exists = distributed_to_all.columns.isin(res.columns)
+            level_exists = distributed_to_all.columns.isin(
+                form_labels_without_positions.columns
+            )
             existing_level_names = distributed_to_all.columns[level_exists]
-            res = pd.concat(
-                [res.loc[:, forms], distributed_to_all.loc[:, ~level_exists]], axis=1
+            form_labels_without_positions = pd.concat(
+                [
+                    form_labels_without_positions.loc[:, forms],
+                    distributed_to_all.loc[:, ~level_exists],
+                ],
+                axis=1,
             )
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
             check_double_attribution = (
-                res[existing_level_names].notna() & potentially_preexistent.notna()
+                form_labels_without_positions[existing_level_names].notna()
+                & potentially_preexistent.notna()
             )
             if check_double_attribution.any().any():
                 logger.warning(
                     "Did not distribute levels to all form types because some had already been individually specified."
                 )
-            res.loc[:, existing_level_names] = res[existing_level_names].fillna(
+            form_labels_without_positions.loc[
+                :, existing_level_names
+            ] = form_labels_without_positions[existing_level_names].fillna(
                 potentially_preexistent
             )
-        fl_multiindex = pd.concat([fl], keys=[""], axis=1)
-        res = pd.concat([fl_multiindex, res.sort_index(axis=1)], axis=1)
-    else:
-        if form_types[0] == "":
-            res = pd.concat([fl, res.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
-        else:
-            res = pd.concat([fl, res.sort_index(axis=1)], axis=1)
-            logger.info(
-                f"Syntax for several form types used for a single one: '{form_types[0]}'"
-            )
+        # fl_multiindex = pd.concat([fl], keys=[""], axis=1)
+        # result = pd.concat([fl_multiindex, form_labels_without_positions.sort_index(axis=1)], axis=1)
+    # else:
+    # only a single form tree has been encoded
+    # if form_types[0] == "":
+    #     result = pd.concat([fl, form_labels_without_positions.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
+    # else:
+    #     result = pd.concat([fl, form_labels_without_positions.sort_index(axis=1)], axis=1)
+    #     logger.info(
+    #         f"Syntax for several form types used for a single one: '{form_types[0]}'"
+    #     )
+    elif form_types[0] != "":
+        logger.warning(
+            f"Syntax for several form types used for a single one: '{form_types[0]}'"
+        )
+
+    def merge_level_names(level_names):
+        return "_".join(name for name in level_names if name != "")
+
+    form_labels_without_positions.columns = form_labels_without_positions.columns.map(
+        merge_level_names
+    )
+    result = pd.concat([fl, form_labels_without_positions.sort_index(axis=1)], axis=1)
 
     if fill_mn_until is not None:
-        if len(form_types) == 1:
-            mn_col, mn_onset = "mn", "mn_onset"
-        else:
-            mn_col, mn_onset = ("", "mn"), ("", "mn_onset")
+        mn_col, mn_onset = "mn", "mn_onset"
         first_mn = fl.mn.min()
         last_mn = fill_mn_until if fill_mn_until > -1 else fl.mn.max()
         all_mns = set(range(first_mn, last_mn + 1))
-        missing = all_mns.difference(set(res[mn_col]))
-        missing_mn = pd.DataFrame({mn_col: list(missing)}).reindex(res.columns, axis=1)
-        res = (
-            pd.concat([res, missing_mn], ignore_index=True)
+        missing = all_mns.difference(set(result[mn_col]))
+        missing_mn = pd.DataFrame({mn_col: list(missing)}).reindex(
+            result.columns, axis=1
+        )
+        result = (
+            pd.concat([result, missing_mn], ignore_index=True)
             .sort_values([mn_col, mn_onset])
             .reset_index(drop=True)
         )
-    return res
+    return result
 
 
 @overload
