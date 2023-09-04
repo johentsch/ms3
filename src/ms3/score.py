@@ -1096,7 +1096,7 @@ class MSCX(LoggedClass):
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
         enforced_tempo: Optional[float] = None,
-        beat_unit: Optional[Fraction] = Fraction(1 / 4),
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1212,7 +1212,7 @@ class MSCX(LoggedClass):
             end_mc_onset=end_mc_onset,
             exclude_end=exclude_end,
             enforced_tempo=enforced_tempo,
-            beat_unit=beat_unit,
+            beat_factor=beat_factor,
             globalkey=global_key,
             localkey=local_key,
         )
@@ -1439,7 +1439,12 @@ class MSCX(LoggedClass):
     #     return function_calls
 
     # TODO: go until cadence
-    def store_phrase_endings(self, directory: Optional[str] = None):
+    def store_cadence_endings(
+        self,
+        directory: Optional[str] = None,
+        tempo: Optional[float] = None,
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+    ):
         """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
         excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
         as the actual end and end MC - 2 as the beginning of the excerpt. The resulting excerpts will be named
@@ -1464,6 +1469,8 @@ class MSCX(LoggedClass):
                     end_mc=int(true_end["mc"]),
                     end_mc_onset=true_end["mc_onset"],
                     exclude_end=False,
+                    enforced_tempo=tempo,
+                    beat_factor=beat_factor,
                     directory=directory,
                     suffix="phrase_end",
                 )
@@ -1500,44 +1507,6 @@ class MSCX(LoggedClass):
         if not cadence_endings:
             return None
         return cadence_endings
-
-    def store_all_excerpts(self, directory: Optional[str] = None):
-        """Calls all the excerpt storing methods in the class. The resulting excerpts will be named
-        ``[original_filename]_[excerpt_type]_[start_mc]-[end_mc].mscx``. This process uses parallelization
-        by calling the store() function in parallel (function that does the same thing as store_excerpt() method).
-
-        Args:
-            directory : Optional[str], optional
-                name of the directory you want the excerpts saved to, by default None
-        """
-
-        # phrase_endings = self.store_phrase_endings(
-        #     directory=directory + "phrase_endings"
-        # )
-        # within_phrases = self.store_within_phrase_excerpts(
-        #     directory=directory + "within_phrases"
-        # )
-        # across_phrases = self.store_across_phrase_excerpts(
-        #     directory=directory + "across_phrases"
-        # )
-
-        print()
-
-        # store_this = phrase_endings + within_phrases + across_phrases
-
-        # try:
-        #     with mp.Pool(mp.cpu_count()) as pool:
-        #         res = pool.starmap(store, store_this)
-        #         pool.close()
-        #         pool.join()
-        # except Exception as e:
-        #     if self.logger is None:
-        #         module_logger.error(f"Error while storing excerpts: {e}")
-
-        # pool = mp.Pool(mp.cpu_count())
-        # res = pool.starmap(store, store_this)
-        # pool.close()
-        # pool.join()
 
 
 # ######################################################################################################################
@@ -2783,107 +2752,3 @@ def compare_two_score_objects(
             logger.warning(
                 f"The {facet} extracted from '{old_path}' and from the updated '{new_path}' do not match:\n{e}"
             )
-
-
-def store(
-    object: MSCX,
-    start_mc: int,
-    end_mc: int,
-    directory: Optional[str] = None,
-    suffix: Optional[str] = None,
-):
-    """Store an excerpt of the current score as a new .mscx file by defining start and end measure. If no end
-    measure is specified, the excerpt will include everything following the start measure.
-    The original score header and metadata are kept. Start and end measure both can be specified either as MC
-    (the number in MuseScore's status bar) or as MN (the number as displayed in the score).
-
-    Args:
-        start_mc:
-            Measure count of the first measure to be included in the excerpt.
-            If ``start_mc`` is given, ``start_mn`` must be None.
-        start_mn:
-            Measure number of the first measure to be included in the excerpt.
-            If ``start_mn`` is given, ``start_mc`` must be None.
-        end_mc:
-            Measure count of the last measure to be included in the excerpt.
-            If ``end_mc`` is given, ``end_mn`` must be None.
-        end_mn:
-            Measure number of the last measure to be included in the excerpt.
-            If ``end_mn`` is given, ``end_mc`` must be None.
-        directory:
-            Path to the folder where the excerpts are to be stored.
-        suffix:
-            String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
-
-    Returns:
-        Optional[None]: if it was impossible to find a quarterbeat value for the given start measure.
-                        In this case the function will not produce an excerpt.
-
-    """
-    for arg, arg_val in zip(
-        ("start_mc", "end_mc"),
-        (start_mc, end_mc),
-    ):
-        if arg_val is not None and not isinstance(arg_val, int):
-            raise TypeError(
-                f"{arg} must be an integer. Got {arg_val!r} ({type(arg_val)!r})."
-            )
-
-    if suffix is None:
-        suffix = ""
-
-    measures = object.measures()
-    mc = measures["mc"]
-
-    # Setting ending mc value
-    if end_mc is None:
-        end = mc.max()
-    else:
-        end = end_mc
-
-    # Setting starting mc value
-    start = start_mc
-
-    global_key, local_key = None, None
-    dcml_labels = object.expanded()
-    if dcml_labels is not None and len(dcml_labels) > 0:
-        # try to infer global key and local key from the annotations
-        mc_measures = measures.set_index("mc")
-        quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
-        if pd.isnull(quarterbeat_start):
-            object.logger.error(
-                f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
-                f"could be inferred. Probably it is a first ending."
-            )
-        else:
-            row = get_row_at_quarterbeat(df=dcml_labels, quarterbeat=quarterbeat_start)
-
-            # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns several rows)
-            if isinstance(row, pd.DataFrame):
-                row = row.iloc[-1]
-
-            global_key = row["globalkey"]
-            local_key = row["localkey"]
-
-    included_mcs = tuple(range(start, end + 1))
-
-    object.logger.debug(
-        f"Start: {start}, End: {end}. Total number of measures: {len(included_mcs)}"
-    )
-    object.logger.debug(f"Global key: {global_key}, Local key: {local_key}")
-
-    excerpt = object.parsed.make_excerpt(
-        included_mcs=included_mcs, globalkey=global_key, localkey=local_key
-    )
-
-    original_directory, original_filename = os.path.split(excerpt.filepath)
-    original_file_name = os.path.splitext(original_filename)[0]
-    new_file_name = original_file_name + f"_{suffix}_{start}-{end}" + ".mscx"
-    if directory is None:
-        excerpt_filepath = os.path.join(original_directory, new_file_name)
-    else:
-        resolve_dir(directory)
-        os.makedirs(directory, exist_ok=True)
-        excerpt_filepath = os.path.join(directory, new_file_name)
-    excerpt.store_score(excerpt_filepath)
-    object.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")

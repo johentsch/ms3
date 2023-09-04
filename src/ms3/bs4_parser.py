@@ -1798,7 +1798,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         end_mc_onset: Optional[Fraction | float],
         exclude_end: Optional[bool] = False,
         enforced_tempo: Optional[float] = None,
-        beat_unit: Optional[Fraction] = Fraction(1 / 4),
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
     ) -> Excerpt:
@@ -1885,6 +1885,21 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
+        # tempo_selector = events.event == "Tempo"
+        # first_tempo_values = None
+        # if tempo_selector.any():
+        #     tempos = events[tempo_selector].sort_values("quarterbeats")
+        #     if first_quarterbeat not in tempos.quarterbeats.values:
+        #         active_tempo_row = get_row_at_quarterbeat(
+        #             tempos,
+        #             first_quarterbeat,
+        #         )
+        #         if active_tempo_row is not None:
+        #             first_tempo_values = {
+        #                 k[8:]: v
+        #                 for k, v in active_tempo_row.items()
+        #                 if k.startswith("Tempo/")
+        #             }
 
         excerpt = Excerpt(
             soup,
@@ -1924,7 +1939,7 @@ and {loc_after} before the subsequent {nxt_name}."""
                     exclude_end=exclude_end,
                 ),
         if enforced_tempo is not None:
-            excerpt.enforce_tempo(tempo=enforced_tempo, beat_unit=beat_unit)
+            excerpt.enforce_tempo(tempo=enforced_tempo, beat_factor=beat_factor)
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -3204,12 +3219,14 @@ class Excerpt(_MSCX_bs4):
         target_tag.append(duration)
 
     def enforce_tempo(
-        self, tempo: float, beat_unit: Optional[Fraction] = Fraction(1 / 4)
+        self,
+        tempo: float,
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
     ):
         staves = self.tags[1]
         # since MuseScore's reference is quarter-beats
-        print(type(beat_unit))
-        scaling = beat_unit * 4.0
+        print(type(beat_factor))
+        scaling = beat_factor * 4.0
         relative_tempo = np.round((tempo / 60) * scaling, 2)
         for staff, voices in staves.items():
             for voice, onsets in voices.items():
@@ -3227,7 +3244,7 @@ class Excerpt(_MSCX_bs4):
                                 return
                     else:
                         for tag_dict in tag_dicts:
-                            if tag_dict["name"] == "StaffText":
+                            if tag_dict["name"] == "TimeSig":
                                 new_tag = self.new_tag(
                                     name="Tempo", after=tag_dict["tag"]
                                 )
