@@ -2,6 +2,17 @@
 Changelog
 =========
 
+Version 2.2.1
+=============
+
+* Form label columns by @johentsch in `https://github.com/johentsch/ms3/pull/98`__
+
+  * catches exception when resource descriptor cannot be generated
+  * creates IntervalIndex based on the ``quarterbeats_all_endings`` column
+  * always stores form_labels with a single column level instead of MultiIndex
+
+**Full Changelog**: https://github.com/johentsch/ms3/compare/v2.2.0...v2.2.1
+
 Version 2.2.0
 =============
 
