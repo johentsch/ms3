@@ -1817,6 +1817,11 @@ and {loc_after} before the subsequent {nxt_name}."""
     def make_excerpt(
         self,
         included_mcs: Tuple[int] | int,
+        start_mc_onset: Optional[Fraction | float],
+        end_mc_onset: Optional[Fraction | float],
+        exclude_end: Optional[bool] = False,
+        enforced_tempo: Optional[float] = None,
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
     ) -> Excerpt:
@@ -1903,6 +1908,21 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
+        # tempo_selector = events.event == "Tempo"
+        # first_tempo_values = None
+        # if tempo_selector.any():
+        #     tempos = events[tempo_selector].sort_values("quarterbeats")
+        #     if first_quarterbeat not in tempos.quarterbeats.values:
+        #         active_tempo_row = get_row_at_quarterbeat(
+        #             tempos,
+        #             first_quarterbeat,
+        #         )
+        #         if active_tempo_row is not None:
+        #             first_tempo_values = {
+        #                 k[8:]: v
+        #                 for k, v in active_tempo_row.items()
+        #                 if k.startswith("Tempo/")
+        #             }
 
         excerpt = Excerpt(
             soup,
@@ -1917,6 +1937,32 @@ and {loc_after} before the subsequent {nxt_name}."""
             globalkey=globalkey,
             localkey=localkey,
         )
+
+        isTuple = isinstance(included_mcs, tuple)
+        isInt = isinstance(included_mcs, int)
+
+        if start_mc_onset is not None:
+            excerpt.replace_notes_before_onset(
+                start_mc=1,
+                mc_onset=start_mc_onset,
+            )
+
+        if end_mc_onset is not None:
+            if isTuple:
+                true_end_mc = included_mcs[-1] - included_mcs[0] + 1
+                excerpt.replace_notes_after_onset(
+                    end_mc=true_end_mc,
+                    mc_onset=end_mc_onset,
+                    exclude_end=exclude_end,
+                )
+            elif isInt:
+                excerpt.replace_notes_after_onset(
+                    end_mc=1,
+                    mc_onset=end_mc_onset,
+                    exclude_end=exclude_end,
+                ),
+        if enforced_tempo is not None:
+            excerpt.enforce_tempo(tempo=enforced_tempo, beat_factor=beat_factor)
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -2934,6 +2980,8 @@ class Excerpt(_MSCX_bs4):
         final_barline: bool = False,
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
+        start_mc_onset: Optional[Fraction] = None,
+        end_mc_onset: Optional[Fraction] = None,
     ):
         """
 
@@ -3169,6 +3217,104 @@ class Excerpt(_MSCX_bs4):
                 timesig_tag = self.new_tag("TimeSig", prepend_within=first_voice_tag)
                 _ = self.new_tag("sigN", value=sigN, append_within=timesig_tag)
                 _ = self.new_tag("sigD", value=sigD, append_within=timesig_tag)
+
+    def replace_notes_before_onset(
+        self,
+        start_mc: int,
+        mc_onset: Fraction,
+    ):
+        staves = self.tags[start_mc]
+        for staff, voices in staves.items():
+            for voice, onsets in voices.items():
+                for onset, tag_dicts in onsets.items():
+                    if onset >= mc_onset:
+                        continue
+                    for tag_dict in tag_dicts:
+                        if tag_dict["name"] != "Chord":
+                            continue
+                        self.from_chord_to_rest(tag_dict["tag"])
+
+    def replace_notes_after_onset(
+        self,
+        end_mc: int,
+        mc_onset: Fraction,
+        exclude_end: bool = False,
+    ):
+        staves = self.tags[end_mc]
+        for staff, voices in staves.items():
+            for voice, onsets in voices.items():
+                for onset, tag_dicts in onsets.items():
+                    if onset == mc_onset and not exclude_end:
+                        continue
+                    elif onset < mc_onset:
+                        continue
+                    for tag_dict in tag_dicts:
+                        if tag_dict["name"] != "Chord":
+                            continue
+                        self.from_chord_to_rest(tag_dict["tag"])
+
+    def from_chord_to_rest(self, target_tag):
+        grace_tags = [
+            "grace4",
+            "grace4after",
+            "grace8",
+            "grace8after",
+            "grace16",
+            "grace16after",
+            "grace32",
+            "grace32after",
+            "grace64",
+            "grace64after",
+            "appoggiatura",
+            "acciaccatura",
+        ]
+        for grace_tag in target_tag.find_all(grace_tags):
+            target_tag.decompose()
+            return
+        duration = copy(target_tag.find("durationType"))
+        dots_tag = copy(target_tag.find("dots"))
+        target_tag.clear()
+        target_tag.name = "Rest"
+        if dots_tag is not None:
+            target_tag.append(dots_tag)
+        target_tag.append(duration)
+
+    def enforce_tempo(
+        self,
+        tempo: float,
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+    ):
+        staves = self.tags[1]
+        # since MuseScore's reference is quarter-beats
+        print(type(beat_factor))
+        scaling = beat_factor * 4.0
+        relative_tempo = np.round((tempo / 60) * scaling, 2)
+        for staff, voices in staves.items():
+            for voice, onsets in voices.items():
+                for onset, tag_dicts in onsets.items():
+                    test = [tag_dict["name"] == "Tempo" for tag_dict in tag_dicts]
+                    if True in test:
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] == "Tempo":
+                                tag_dict["tag"].clear()
+                                self.new_tag(
+                                    name="tempo",
+                                    value=str(relative_tempo),
+                                    append_within=tag_dict["tag"],
+                                )
+                                return
+                    else:
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] == "TimeSig":
+                                new_tag = self.new_tag(
+                                    name="Tempo", after=tag_dict["tag"]
+                                )
+                                self.new_tag(
+                                    name="tempo",
+                                    value=str(relative_tempo),
+                                    append_within=new_tag,
+                                )
+                                return
 
 
 class ParsedParts(LoggedClass):
