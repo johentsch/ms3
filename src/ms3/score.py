@@ -1402,50 +1402,6 @@ class MSCX(LoggedClass):
                     # )
         return function_calls
 
-    # TODO: delete this method. It's DEPRECATED
-    # def store_across_phrase_excerpts(self, directory: Optional[str] = None):
-    #     """Extract random snippets from the given score. The snippets have the constraint that they must strictly
-    #     lie across two phrase. This means that within this type of excerpt there will always a phrase ending as
-    #     well as the beginning of the next phrase. By default it extracts all complying snippets and stores them at
-    #     the optional directory path. The resulting excerpts will be named
-    #     ``[original_filename]_across_phrase_[start_mc]-[end_mc].mscx``.
-    #
-    #     Args:
-    #         directory: Optional[str], optional
-    #             name of the directory you want the excerpt saved to, by default None
-    #     """
-    #     phrases = self.find_phrases()
-    #     exp = self.expanded()
-    #
-    #     function_calls = []
-    #
-    #     for i in range(len(phrases)):
-    #         # The condition we temporarily use is that we use labels that
-    #         # contain "}{" and that are on the downbeat of the measure. This implies that
-    #         # we are going to take the previous measure to create the excerpt.
-    #         if i < len(phrases) - 1 and int(phrases[i][0][1]) == int(phrases[i + 1][0][0]):
-    #             mc = int(phrases[i][0][1])
-    #             df = exp[(exp["mc"] == mc) & (exp["phraseend"].isin(["}{"]))]
-    #             if len(df) == 1 and mc > 1:
-    #                 if df["mc_onset"].iloc[0] == 0:
-    #                     self.store_excerpt(
-    #                         start_mc=int(mc - 1),
-    #                         end_mc=int(mc),
-    #                         directory=directory,
-    #                         suffix="across_phrase",
-    #                     )
-    #                     # function_calls.append(
-    #                     #     (
-    #                     #         self,
-    #                     #         int(mc - 1),
-    #                     #         int(mc),
-    #                     #         directory,
-    #                     #         "across_phrase",
-    #                     #     )
-    #                     # )
-    #     return function_calls
-
-    # TODO: go until cadence
     def store_cadence_endings(
         self,
         directory: Optional[str] = None,
