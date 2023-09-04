@@ -70,7 +70,6 @@
 .. |volta| replace:: :ref:`volta <volta>`
 .. |voice| replace:: :ref:`voice <voice>`
 """
-import logging
 import os
 import re
 from contextlib import contextmanager
@@ -82,7 +81,7 @@ import pandas as pd
 
 from .annotations import Annotations
 from .bs4_parser import _MSCX_bs4, get_row_at_quarterbeat
-from .logger import LoggedClass, get_log_capture_handler
+from .logger import LoggedClass, get_log_capture_handler, get_logger
 from .transformations import add_quarterbeats_col
 from .utils import (
     assert_dfs_equal,
@@ -102,7 +101,7 @@ from .utils import (
 )
 from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
 
-module_logger = logging.getLogger(__name__)
+module_logger = get_logger(__name__)
 
 
 class MSCX(LoggedClass):
@@ -2562,7 +2561,7 @@ def compare_two_score_objects(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     old_path = old_score.mscx.mscx_src
     new_path = new_score.mscx.mscx_src
     dataframe_pairs = {

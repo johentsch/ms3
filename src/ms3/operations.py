@@ -1,7 +1,6 @@
 """This module contains the functions called by the ms3 commandline interface, which is why they may use
 print() instead of log messages from time to time.
 """
-import logging
 import os
 from typing import Dict, Iterator, List, Literal, Optional, Tuple, Union
 
@@ -32,7 +31,7 @@ from ms3.utils import (
 )
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
 
-module_logger = logging.getLogger(__name__)
+module_logger = get_logger(__name__)
 
 
 def insert_labels_into_score(
@@ -286,7 +285,7 @@ def compare(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     parse_obj.parse(parallel=False)
     if parse_obj.n_parsed_scores == 0:
         parse_obj.logger.warning("Parse object does not include any scores.")
