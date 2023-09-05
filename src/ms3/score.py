@@ -1102,8 +1102,8 @@ class MSCX(LoggedClass):
         end_mn: Optional[int] = None,
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
-        enforced_tempo: Optional[float] = None,
-        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+        user_tempo: Optional[float] = None,
+        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1199,12 +1199,9 @@ class MSCX(LoggedClass):
                     df=dcml_labels, quarterbeat=quarterbeat_start
                 )
 
-                # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns several rows)
-                if isinstance(row, pd.DataFrame):
-                    row = row.iloc[-1]
-
-                global_key = row["globalkey"]
-                local_key = row["localkey"]
+                if row is not None:
+                    global_key = row["globalkey"]
+                    local_key = row["localkey"]
 
         included_mcs = tuple(range(start, end + 1))
 
@@ -1218,8 +1215,8 @@ class MSCX(LoggedClass):
             start_mc_onset=start_mc_onset,
             end_mc_onset=end_mc_onset,
             exclude_end=exclude_end,
-            enforced_tempo=enforced_tempo,
-            beat_factor=beat_factor,
+            user_tempo=user_tempo,
+            user_beat_factor=user_beat_factor,
             globalkey=global_key,
             localkey=local_key,
         )
@@ -1347,8 +1344,7 @@ class MSCX(LoggedClass):
         elif n_excerpts > last_possible_start:
             n_excerpts = last_possible_start
             self.logger.info(
-                "Number of snippets exceeds the number of possible snippets. ",
-                "Will extract all possible snippets.",
+                "Number of snippets exceeds the number of possible snippets. Will extract all possible snippets.",
             )
 
         valid_mn_starts = np.arange(
@@ -1369,7 +1365,8 @@ class MSCX(LoggedClass):
     def store_within_phrase_excerpts(self, directory: Optional[str] = None):
         """Extract random snippets from the given score. The snippets have the constraint that they must strictly
         lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
-        will be considered. By default it extracts all possible snippets and stores them at the optional directory path.
+        will be considered. By default, it extracts all possible snippets and stores them at the optional
+        directory path.
         The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
 
         Args:
@@ -1378,33 +1375,30 @@ class MSCX(LoggedClass):
         """
 
         phrases = self.find_phrases()
+        expanded = self.expanded()
 
-        function_calls = []
+        if phrases:
+            for phrase in phrases:
+                available_measures = phrase[1] - phrase[0] - 1
+                if available_measures >= 2:
+                    for i in range(phrase[0] + 1, phrase[1] - 1):
+                        start, end = int(i), int(i + 1)
+                        labels = expanded[expanded["mc"].isin([start, end])]["label"]
+                        if labels.str.contains("{|}|\\|").any():
+                            continue
+                        self.store_excerpt(
+                            start_mc=start,
+                            end_mc=end,
+                            directory=directory,
+                            suffix="within_phrase",
+                        )
+        else:
+            self.logger.info("No phrases from which to extract.")
 
-        for phrase in phrases:
-            available_measures = phrase[1] - phrase[0] - 1
-            if available_measures >= 2:
-                for i in range(phrase[0] + 1, phrase[1] - 1):
-                    self.store_excerpt(
-                        start_mc=int(i),
-                        end_mc=int(i + 1),
-                        directory=directory,
-                        suffix="within_phrase",
-                    )
-                    # function_calls.append(
-                    #     (
-                    #         self,
-                    #         int(i),
-                    #         int(i + 1),
-                    #         directory,
-                    #         "within_phrase",
-                    #     )
-                    # )
-        return function_calls
-
-    def store_cadence_endings(
+    def store_phrase_endings(
         self,
         directory: Optional[str] = None,
+        suffix: Optional[str] = "phrase_end",
         tempo: Optional[float] = None,
         beat_factor: Optional[Fraction] = Fraction(1 / 4),
     ):
@@ -1416,60 +1410,110 @@ class MSCX(LoggedClass):
         Args:
             directory : Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
+            suffix : TODO: complete docstring
+            tempo : Optional[float], optional
+                the optional tempo value that can be given the excerpt to enforce a given speed.
+                By default, None and should take the most recent active tempo marker.
+            beat_factor : Optional[Fraction], optional
+                allows for the correction of the beat unit when taking external tempo values with unknown
+                beat-unit values
         """
 
-        phrases = self.find_phrases()
-        phrase_endings = self.find_cadence_endings(phrases=phrases)
+        phrase_endings = self.find_phrase_endings()
+        measures = self.measures()
 
-        if phrase_endings is not None:
-            for mc, true_end in phrase_endings:
-                if mc > 2:
-                    start = int(mc - 2)
-                else:
-                    start = 1
-                self.store_excerpt(
-                    start_mc=start,
-                    end_mc=int(true_end["mc"]),
-                    end_mc_onset=true_end["mc_onset"],
-                    exclude_end=False,
-                    enforced_tempo=tempo,
-                    beat_factor=beat_factor,
-                    directory=directory,
-                    suffix="phrase_end",
-                )
-        # return function_calls
+        for phrase in phrase_endings:
+            start = phrase["mcs"][0]
+            end = phrase["mcs"][-1]
 
-    def find_cadence_endings(
-        self, phrases: List[Tuple[int, int]]
-    ) -> List[Tuple[int, dict[str, any]]] | None:
-        print(phrases)
-        expanded = self.expanded()
-        last_mc = expanded["mc"].iloc[-1]
-        cadence_endings = []
-
-        for i in range(len(phrases)):
-            if i != len(phrases) - 1:
-                df = expanded[
-                    expanded["mc"].between(
-                        phrases[i][1], phrases[i + 1][0], inclusive="both"
+            global_key, local_key = None, None
+            dcml_labels = self.expanded()
+            if dcml_labels is not None and len(dcml_labels) > 0:
+                # try to infer global key and local key from the annotations
+                mc_measures = measures.set_index("mc")
+                quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
+                if pd.isnull(quarterbeat_start):
+                    self.logger.error(
+                        f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
+                        f"could be inferred. Probably it is a first ending."
                     )
-                ]
-            else:
-                df = expanded[
-                    expanded["mc"].between(phrases[i][1], last_mc, inclusive="both")
-                ]
-            true_row = df.loc[df["label"].str.contains("|", regex=False)]
-            if true_row.shape[0] > 1:
-                true_row = true_row.iloc[0:1]
-            elif true_row.shape[0] == 0:
-                continue
-            mc = true_row.iloc[0]["mc"]
-            onset = true_row.iloc[0]["mc_onset"]
-            cadence_endings.append((phrases[i][1], {"mc": mc, "mc_onset": onset}))
+                else:
+                    row = get_row_at_quarterbeat(
+                        df=dcml_labels, quarterbeat=quarterbeat_start
+                    )
 
-        if not cadence_endings:
-            return None
-        return cadence_endings
+                    if row is not None:
+                        global_key = row["globalkey"]
+                        local_key = row["localkey"]
+
+            excerpt = self.parsed.make_excerpt(
+                included_mcs=phrase["mcs"],
+                start_mc_onset=Fraction(0 / 1),
+                end_mc_onset=phrase["mc_onset"],
+                exclude_end=False,
+                user_tempo=tempo,
+                user_beat_factor=beat_factor,
+                globalkey=global_key,
+                localkey=local_key,
+                decompose_repeat_tags=True,
+            )
+
+            original_directory, original_filename = os.path.split(excerpt.filepath)
+            original_file_name = os.path.splitext(original_filename)[0]
+            new_file_name = original_file_name + f"_{suffix}_{start}-{end}" + ".mscx"
+            if directory is None:
+                excerpt_filepath = os.path.join(original_directory, new_file_name)
+            else:
+                resolve_dir(directory)
+                os.makedirs(directory, exist_ok=True)
+                excerpt_filepath = os.path.join(directory, new_file_name)
+            excerpt.store_score(excerpt_filepath)
+            self.logger.info(
+                f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}."
+            )
+
+    def find_phrase_endings(self) -> List[dict[str, any]]:
+        expanded = self.expanded(unfold=True)
+        measures = self.measures(unfold=True)
+        filtered = expanded.loc[expanded["label"].str.contains("\\||}|{|}{")]
+
+        phrase_endings = []
+        unique_mcs = set()
+
+        for index, row in filtered.iterrows():
+            if pd.notna(row["phraseend"]):
+                if (row["phraseend"] == "}" or row["phraseend"] == "}{") and "|" in str(
+                    row["label"]
+                ):
+                    mask = measures["mn_playthrough"] == row["mn_playthrough"]
+                    i = measures.index[mask][0]
+                    mcs = tuple(measures.iloc[i - 2 : i + 1]["mc"].values)
+                    mc_onset = row["mc_onset"]
+                    if mcs not in unique_mcs:
+                        unique_mcs.add(mcs)
+                        phrase_endings.append(
+                            {"mcs": mcs, "mc_onset": mc_onset, "repeat_flag": False}
+                        )
+
+                elif row["phraseend"] == "}" and "|" not in str(row["label"]):
+                    if "|" in str(expanded.iloc[index + 1]["label"]) and pd.isna(
+                        expanded.iloc[index + 1]["phraseend"]
+                    ):
+                        mask1 = measures["mn_playthrough"] == row["mn_playthrough"]
+                        mask2 = (
+                            measures["mn_playthrough"]
+                            == expanded.iloc[index + 1]["mn_playthrough"]
+                        )
+                        i1 = measures.index[mask1][0]
+                        i2 = measures.index[mask2][0]
+                        mcs = tuple(measures.iloc[i1 - 2 : i2 + 1]["mc"].values)
+                        mc_onset = expanded.iloc[index + 1]["mc_onset"]
+                        if mcs not in unique_mcs:
+                            unique_mcs.add(mcs)
+                            phrase_endings.append(
+                                {"mcs": mcs, "mc_onset": mc_onset, "repeat_flag": False}
+                            )
+        return phrase_endings
 
 
 # ######################################################################################################################

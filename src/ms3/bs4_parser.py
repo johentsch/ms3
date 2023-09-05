@@ -1820,10 +1820,11 @@ and {loc_after} before the subsequent {nxt_name}."""
         start_mc_onset: Optional[Fraction | float],
         end_mc_onset: Optional[Fraction | float],
         exclude_end: Optional[bool] = False,
-        enforced_tempo: Optional[float] = None,
-        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+        user_tempo: Optional[float] = None,
+        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
+        decompose_repeat_tags: Optional[bool] = True,
     ) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
         the given integers is inconsequential because measures are always printed in the order in which they appear in
@@ -1908,8 +1909,9 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
+
         # tempo_selector = events.event == "Tempo"
-        # first_tempo_values = None
+        first_tempo_tag = None
         # if tempo_selector.any():
         #     tempos = events[tempo_selector].sort_values("quarterbeats")
         #     if first_quarterbeat not in tempos.quarterbeats.values:
@@ -1917,12 +1919,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         #             tempos,
         #             first_quarterbeat,
         #         )
-        #         if active_tempo_row is not None:
-        #             first_tempo_values = {
-        #                 k[8:]: v
-        #                 for k, v in active_tempo_row.items()
-        #                 if k.startswith("Tempo/")
-        #             }
+        # TODO: retrieve the tempo tag corresponding to active_tempo_row
 
         excerpt = Excerpt(
             soup,
@@ -1932,12 +1929,15 @@ and {loc_after} before the subsequent {nxt_name}."""
             first_timesig=first_timesig,
             first_keysig=first_keysig,
             first_harmony_values=first_harmony_values,
+            first_tempo_tag=first_tempo_tag,
             staff2clef=staff2clef,
             final_barline=final_barline,
             globalkey=globalkey,
             localkey=localkey,
+            decompose_repeat_tags=decompose_repeat_tags,
         )
 
+        # TODO: move following code within Excerpt's __init__ method
         isTuple = isinstance(included_mcs, tuple)
         isInt = isinstance(included_mcs, int)
 
@@ -1949,7 +1949,7 @@ and {loc_after} before the subsequent {nxt_name}."""
 
         if end_mc_onset is not None:
             if isTuple:
-                true_end_mc = included_mcs[-1] - included_mcs[0] + 1
+                true_end_mc = len(included_mcs)
                 excerpt.replace_notes_after_onset(
                     end_mc=true_end_mc,
                     mc_onset=end_mc_onset,
@@ -1961,8 +1961,10 @@ and {loc_after} before the subsequent {nxt_name}."""
                     mc_onset=end_mc_onset,
                     exclude_end=exclude_end,
                 ),
-        if enforced_tempo is not None:
-            excerpt.enforce_tempo(tempo=enforced_tempo, beat_factor=beat_factor)
+        if user_tempo is not None:
+            excerpt.enforce_tempo(
+                user_tempo=user_tempo, user_beat_factor=user_beat_factor, user_call=True
+            )
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -2962,6 +2964,33 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
 # ##########################################################################
 
 
+def from_chord_to_rest(target_tag):
+    grace_tags = [
+        "grace4",
+        "grace4after",
+        "grace8",
+        "grace8after",
+        "grace16",
+        "grace16after",
+        "grace32",
+        "grace32after",
+        "grace64",
+        "grace64after",
+        "appoggiatura",
+        "acciaccatura",
+    ]
+    for _ in target_tag.find_all(grace_tags):
+        target_tag.decompose()
+        return
+    duration = copy(target_tag.find("durationType"))
+    dots_tag = copy(target_tag.find("dots"))
+    target_tag.clear()
+    target_tag.name = "Rest"
+    if dots_tag is not None:
+        target_tag.append(dots_tag)
+    target_tag.append(duration)
+
+
 class Excerpt(_MSCX_bs4):
     """Takes a copy of :attr:`_MSCX_bs4.soup` and eliminates all <Measure> tags that do not correspond to the given
     list of MCs.
@@ -2976,10 +3005,12 @@ class Excerpt(_MSCX_bs4):
         first_timesig: Optional[str] = None,
         first_keysig: Optional[int] = None,
         first_harmony_values: Optional[Dict[str, str]] = None,
+        first_tempo_tag: Optional[bs4.Tag] = None,
         staff2clef: Optional[Dict[int, Dict[str, str]]] = None,
         final_barline: bool = False,
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
+        decompose_repeat_tags: Optional[bool] = True,
         start_mc_onset: Optional[Fraction] = None,
         end_mc_onset: Optional[Fraction] = None,
     ):
@@ -3033,6 +3064,8 @@ class Excerpt(_MSCX_bs4):
             self.replace_first_harmony(first_harmony_values)
         if first_timesig:
             self.set_first_timesig(first_timesig)
+        if first_tempo_tag:
+            self.set_first_tempo(first_tempo_tag)
         if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
         if staff2clef:
@@ -3050,6 +3083,9 @@ class Excerpt(_MSCX_bs4):
         # amend first label to indicate global and/or local key
         if globalkey or localkey:
             self.amend_first_harmony_keys(globalkey, localkey)
+
+        if decompose_repeat_tags:
+            self.decompose_repeat_tags(soup=soup)
 
     def amend_first_harmony_keys(
         self,
@@ -3218,6 +3254,9 @@ class Excerpt(_MSCX_bs4):
                 _ = self.new_tag("sigN", value=sigN, append_within=timesig_tag)
                 _ = self.new_tag("sigD", value=sigD, append_within=timesig_tag)
 
+    def set_first_tempo(self, active_tempo_tag: bs4.Tag):
+        self.enforce_tempo(piece_tempo_tag=active_tempo_tag, user_call=False)
+
     def replace_notes_before_onset(
         self,
         start_mc: int,
@@ -3232,7 +3271,7 @@ class Excerpt(_MSCX_bs4):
                     for tag_dict in tag_dicts:
                         if tag_dict["name"] != "Chord":
                             continue
-                        self.from_chord_to_rest(tag_dict["tag"])
+                        from_chord_to_rest(tag_dict["tag"])
 
     def replace_notes_after_onset(
         self,
@@ -3251,70 +3290,67 @@ class Excerpt(_MSCX_bs4):
                     for tag_dict in tag_dicts:
                         if tag_dict["name"] != "Chord":
                             continue
-                        self.from_chord_to_rest(tag_dict["tag"])
-
-    def from_chord_to_rest(self, target_tag):
-        grace_tags = [
-            "grace4",
-            "grace4after",
-            "grace8",
-            "grace8after",
-            "grace16",
-            "grace16after",
-            "grace32",
-            "grace32after",
-            "grace64",
-            "grace64after",
-            "appoggiatura",
-            "acciaccatura",
-        ]
-        for grace_tag in target_tag.find_all(grace_tags):
-            target_tag.decompose()
-            return
-        duration = copy(target_tag.find("durationType"))
-        dots_tag = copy(target_tag.find("dots"))
-        target_tag.clear()
-        target_tag.name = "Rest"
-        if dots_tag is not None:
-            target_tag.append(dots_tag)
-        target_tag.append(duration)
+                        from_chord_to_rest(tag_dict["tag"])
 
     def enforce_tempo(
         self,
-        tempo: float,
-        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+        piece_tempo_tag: Optional[bs4.Tag] = None,
+        user_tempo: Optional[float] = None,
+        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
+        user_call: Optional[bool] = True,
     ):
-        staves = self.tags[1]
         # since MuseScore's reference is quarter-beats
-        print(type(beat_factor))
-        scaling = beat_factor * 4.0
-        relative_tempo = np.round((tempo / 60) * scaling, 2)
-        for staff, voices in staves.items():
-            for voice, onsets in voices.items():
-                for onset, tag_dicts in onsets.items():
-                    test = [tag_dict["name"] == "Tempo" for tag_dict in tag_dicts]
-                    if True in test:
-                        for tag_dict in tag_dicts:
-                            if tag_dict["name"] == "Tempo":
-                                tag_dict["tag"].clear()
-                                self.new_tag(
-                                    name="tempo",
-                                    value=str(relative_tempo),
-                                    append_within=tag_dict["tag"],
-                                )
-                                return
-                    else:
-                        for tag_dict in tag_dicts:
-                            if tag_dict["name"] == "TimeSig":
-                                new_tag = self.new_tag(
-                                    name="Tempo", after=tag_dict["tag"]
-                                )
-                                self.new_tag(
-                                    name="tempo",
-                                    value=str(relative_tempo),
-                                    append_within=new_tag,
-                                )
-                                return
+        scaling = user_beat_factor
+        relative_tempo = np.round((user_tempo / 60) * scaling, 3)
+
+        for measure_tag in self.iter_first_measures():
+            tempo_tag = measure_tag.find("Tempo")
+            timesig_tag = measure_tag.find("TimeSig")
+            if tempo_tag is not None and user_call:
+                tempo_tag.clear()
+                _ = self.new_tag(
+                    name="tempo",
+                    value=str(relative_tempo),
+                    append_within=tempo_tag,
+                )
+                break
+            elif tempo_tag is None and user_call:
+                tempo_tag = self.new_tag(name="Tempo", after=timesig_tag)
+                _ = self.new_tag(
+                    name="tempo",
+                    value=str(relative_tempo),
+                    append_within=tempo_tag,
+                )
+                break
+            elif tempo_tag is not None and not user_call:
+                # Copying active tempo tag from "parent" piece
+                tempo_tag = copy(piece_tempo_tag)
+                timesig_tag.insert_after(tempo_tag)
+                break
+            else:
+                self.logger.warning(
+                    "No active tempo was found and none was set by the user."
+                )
+                break
+
+    def decompose_repeat_tags(self, soup: bs4.BeautifulSoup):
+        tags = [
+            {"name": "endRepeat", "attrs": None},
+            {"name": "startRepeat", "attrs": None},
+            {"name": "noOffset", "attrs": None},
+        ]
+
+        for tag in tags:
+            if tag["attrs"] is None:
+                for _ in soup.find_all(name=tag["name"]):
+                    _.decompose()
+            else:
+                for _ in soup.find_all(tag["name"], tag["attrs"]):
+                    _.decompose()
+
+        # not in the list because has an attribute. Easier this way
+        for _ in soup.find_all("Spanner", type="Volta"):
+            _.decompose()
 
 
 class ParsedParts(LoggedClass):
