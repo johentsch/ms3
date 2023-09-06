@@ -1423,6 +1423,8 @@ class MSCX(LoggedClass):
         measures = self.measures()
 
         for phrase in phrase_endings:
+            if len(phrase) == 0:
+                continue
             start = phrase["mcs"][0]
             end = phrase["mcs"][-1]
 
@@ -1480,6 +1482,8 @@ class MSCX(LoggedClass):
         phrase_endings = []
         unique_mcs = set()
 
+        last_row_index = filtered.index[-1]
+
         for index, row in filtered.iterrows():
             if pd.notna(row["phraseend"]):
                 if (row["phraseend"] == "}" or row["phraseend"] == "}{") and "|" in str(
@@ -1489,14 +1493,14 @@ class MSCX(LoggedClass):
                     i = measures.index[mask][0]
                     mcs = tuple(measures.iloc[i - 2 : i + 1]["mc"].values)
                     mc_onset = row["mc_onset"]
-                    if mcs not in unique_mcs:
+                    if mcs not in unique_mcs and len(mcs) != 0:
                         unique_mcs.add(mcs)
-                        phrase_endings.append(
-                            {"mcs": mcs, "mc_onset": mc_onset, "repeat_flag": False}
-                        )
+                        phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
 
                 elif row["phraseend"] == "}" and "|" not in str(row["label"]):
-                    if "|" in str(expanded.iloc[index + 1]["label"]) and pd.isna(
+                    if index == last_row_index:
+                        continue
+                    elif "|" in str(expanded.iloc[index + 1]["label"]) and pd.isna(
                         expanded.iloc[index + 1]["phraseend"]
                     ):
                         mask1 = measures["mn_playthrough"] == row["mn_playthrough"]
@@ -1508,11 +1512,9 @@ class MSCX(LoggedClass):
                         i2 = measures.index[mask2][0]
                         mcs = tuple(measures.iloc[i1 - 2 : i2 + 1]["mc"].values)
                         mc_onset = expanded.iloc[index + 1]["mc_onset"]
-                        if mcs not in unique_mcs:
+                        if mcs not in unique_mcs and len(mcs) != 0:
                             unique_mcs.add(mcs)
-                            phrase_endings.append(
-                                {"mcs": mcs, "mc_onset": mc_onset, "repeat_flag": False}
-                            )
+                            phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
         return phrase_endings
 
 

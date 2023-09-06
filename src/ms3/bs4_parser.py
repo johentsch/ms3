@@ -3335,18 +3335,16 @@ class Excerpt(_MSCX_bs4):
 
     def decompose_repeat_tags(self, soup: bs4.BeautifulSoup):
         tags = [
-            {"name": "endRepeat", "attrs": None},
-            {"name": "startRepeat", "attrs": None},
-            {"name": "noOffset", "attrs": None},
+            {"name": "endRepeat"},
+            {"name": "startRepeat"},
+            {"name": "noOffset"},
+            {"name": "Jump"},
+            {"name": "Marker"},
         ]
 
         for tag in tags:
-            if tag["attrs"] is None:
-                for _ in soup.find_all(name=tag["name"]):
-                    _.decompose()
-            else:
-                for _ in soup.find_all(tag["name"], tag["attrs"]):
-                    _.decompose()
+            for _ in soup.find_all(name=tag["name"]):
+                _.decompose()
 
         # not in the list because has an attribute. Easier this way
         for _ in soup.find_all("Spanner", type="Volta"):
