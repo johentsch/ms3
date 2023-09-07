@@ -1817,8 +1817,8 @@ and {loc_after} before the subsequent {nxt_name}."""
     def make_excerpt(
         self,
         included_mcs: Tuple[int] | int,
-        start_mc_onset: Optional[Fraction | float],
-        end_mc_onset: Optional[Fraction | float],
+        start_mc_onset: Optional[Fraction | float] = None,
+        end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
         user_tempo: Optional[float] = None,
         user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
@@ -1832,7 +1832,14 @@ and {loc_after} before the subsequent {nxt_name}."""
         the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
         signatures.
 
+        # TODO: complete docstring
         Args:
+            decompose_repeat_tags:
+            user_beat_factor:
+            user_tempo:
+            exclude_end:
+            end_mc_onset:
+            start_mc_onset:
             included_mcs:
                 List of measure counts to be included in the excerpt. Pass a single integer to get an excerpt from
                 that MC to the end of the piece.
@@ -1937,34 +1944,36 @@ and {loc_after} before the subsequent {nxt_name}."""
             decompose_repeat_tags=decompose_repeat_tags,
         )
 
-        # TODO: move following code within Excerpt's __init__ method
-        isTuple = isinstance(included_mcs, tuple)
-        isInt = isinstance(included_mcs, int)
-
-        if start_mc_onset is not None:
-            excerpt.replace_notes_before_onset(
-                start_mc=1,
-                mc_onset=start_mc_onset,
-            )
-
-        if end_mc_onset is not None:
-            if isTuple:
-                true_end_mc = len(included_mcs)
-                excerpt.replace_notes_after_onset(
-                    end_mc=true_end_mc,
-                    mc_onset=end_mc_onset,
-                    exclude_end=exclude_end,
-                )
-            elif isInt:
-                excerpt.replace_notes_after_onset(
-                    end_mc=1,
-                    mc_onset=end_mc_onset,
-                    exclude_end=exclude_end,
-                ),
         if user_tempo is not None:
             excerpt.enforce_tempo(
                 user_tempo=user_tempo, user_beat_factor=user_beat_factor, user_call=True
             )
+
+        if not (start_mc_onset is None and end_mc_onset is None):
+            # TODO: move following code within Excerpt's __init__ method
+            isTuple = isinstance(included_mcs, tuple)
+            isInt = isinstance(included_mcs, int)
+
+            if start_mc_onset is not None:
+                excerpt.replace_notes_before_onset(
+                    start_mc=1,
+                    mc_onset=start_mc_onset,
+                )
+
+            if end_mc_onset is not None:
+                if isTuple:
+                    true_end_mc = len(included_mcs)
+                    excerpt.replace_notes_after_onset(
+                        end_mc=true_end_mc,
+                        mc_onset=end_mc_onset,
+                        exclude_end=exclude_end,
+                    )
+                elif isInt:
+                    excerpt.replace_notes_after_onset(
+                        end_mc=1,
+                        mc_onset=end_mc_onset,
+                        exclude_end=exclude_end,
+                    ),
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -3300,8 +3309,7 @@ class Excerpt(_MSCX_bs4):
         user_call: Optional[bool] = True,
     ):
         # since MuseScore's reference is quarter-beats
-        scaling = user_beat_factor
-        relative_tempo = np.round((user_tempo / 60) * scaling, 3)
+        relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
 
         for measure_tag in self.iter_first_measures():
             tempo_tag = measure_tag.find("Tempo")

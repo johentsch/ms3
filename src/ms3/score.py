@@ -1233,6 +1233,8 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
+    # TODO: implement the fact that it should return a
+    #  list of tuples where each contains all the necessary MCs. This to avoid problems with repeat structures.
     def find_phrases(self) -> List[Tuple[int, int]] | None:
         """Fids phrases based on the phrase annotations contained in the score, if any. For this purpose,
         the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
@@ -1300,133 +1302,26 @@ class MSCX(LoggedClass):
 
         self.logger.info(f"Extracted {len(phrases)} phrases.\n" f"Phrases: {phrases}")
 
-    def store_random_excerpts(
+    def store_measures(
         self,
-        n_excerpts: Optional[int] = None,
-        mn_length: int = 2,
+        included_mcs: Tuple[int],
+        start_mc_onset: Optional[Fraction | float] = None,
+        end_mc_onset: Optional[Fraction | float] = None,
+        exclude_end: Optional[bool] = False,
+        user_tempo: Optional[float] = None,
+        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
-        """Extract random snippets from the given score. The function will generate a list of tuples,
-        where in each pair, the first element is the mc for the snippet
-        beginning and the second will be the mc for the snippet ending.
-        For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
-
-        Args:
-            n_excerpts:
-                Number of snippets to be extracted. If not specified, all possible snippets will be extracted.
-            mn_length:
-                Length of each snippet in terms of MN (measure numbers).
-            directory:
-                Path to the folder where the excerpts are to be stored.
-            suffix:
-                String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
-        """
-
-        if n_excerpts is not None and not isinstance(n_excerpts, int):
-            raise TypeError("snippet_number must be an integer.")
-        if not isinstance(mn_length, int):
-            raise TypeError(
-                "snippet_length must be an integer. Cannot create snippet of non-integral length."
-            )
-
-        last_mn = self.measures().mn.max()
-        if mn_length > last_mn:
-            raise ValueError(
-                f"mn_length ({mn_length}) exceeds the number of measures in the score ({last_mn})."
-            )
-        last_possible_start = last_mn - mn_length + 1
-        if n_excerpts is None:
-            n_excerpts = last_possible_start
-            self.logger.debug(
-                f"Number of snippets not specified. Extracting all {n_excerpts} possible snippets."
-            )
-        elif n_excerpts > last_possible_start:
-            n_excerpts = last_possible_start
-            self.logger.info(
-                "Number of snippets exceeds the number of possible snippets. Will extract all possible snippets.",
-            )
-
-        valid_mn_starts = np.arange(
-            1, last_possible_start + 1
-        )  # systematically excludes anacrusis (MN=0)
-        sampled_mn_starts = np.random.choice(valid_mn_starts, n_excerpts, replace=False)
-        self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
-
-        for mn_start in sampled_mn_starts:
-            self.store_excerpt(
-                start_mn=int(mn_start),
-                end_mn=int(mn_start + mn_length - 1),
-                directory=directory,
-                suffix=suffix,
-            )
-
-    # TODO: add constraint of NO CADENCE bars within these excerpts
-    def store_within_phrase_excerpts(self, directory: Optional[str] = None):
-        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
-        lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
-        will be considered. By default, it extracts all possible snippets and stores them at the optional
-        directory path.
-        The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
-
-        Args:
-            directory: Optional[str], optional
-                name of the directory you want the excerpt saved to, by default None
-        """
-
-        phrases = self.find_phrases()
-        expanded = self.expanded()
-
-        if phrases:
-            for phrase in phrases:
-                available_measures = phrase[1] - phrase[0] - 1
-                if available_measures >= 2:
-                    for i in range(phrase[0] + 1, phrase[1] - 1):
-                        start, end = int(i), int(i + 1)
-                        labels = expanded[expanded["mc"].isin([start, end])]["label"]
-                        if labels.str.contains("{|}|\\|").any():
-                            continue
-                        self.store_excerpt(
-                            start_mc=start,
-                            end_mc=end,
-                            directory=directory,
-                            suffix="within_phrase",
-                        )
-        else:
-            self.logger.info("No phrases from which to extract.")
-
-    def store_phrase_endings(
-        self,
-        directory: Optional[str] = None,
-        suffix: Optional[str] = "phrase_end",
-        tempo: Optional[float] = None,
-        beat_factor: Optional[Fraction] = Fraction(1 / 4),
-    ):
-        """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
-        excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
-        as the actual end and end MC - 2 as the beginning of the excerpt. The resulting excerpts will be named
-        ``[original_filename]_phrase_end_[start_mc]-[end_mc].mscx``.
-
-        Args:
-            directory : Optional[str], optional
-                name of the directory you want the excerpt saved to, by default None
-            suffix : TODO: complete docstring
-            tempo : Optional[float], optional
-                the optional tempo value that can be given the excerpt to enforce a given speed.
-                By default, None and should take the most recent active tempo marker.
-            beat_factor : Optional[Fraction], optional
-                allows for the correction of the beat unit when taking external tempo values with unknown
-                beat-unit values
-        """
-
-        phrase_endings = self.find_phrase_endings()
         measures = self.measures()
 
-        for phrase in phrase_endings:
-            if len(phrase) == 0:
-                continue
-            start = phrase["mcs"][0]
-            end = phrase["mcs"][-1]
+        if len(included_mcs) == 0:
+            self.logger.warning(
+                "Tuple passed as argument was found empty. Nothing to do."
+            )
+        else:
+            start = included_mcs[0]
+            end = included_mcs[-1]
 
             global_key, local_key = None, None
             dcml_labels = self.expanded()
@@ -1449,12 +1344,12 @@ class MSCX(LoggedClass):
                         local_key = row["localkey"]
 
             excerpt = self.parsed.make_excerpt(
-                included_mcs=phrase["mcs"],
-                start_mc_onset=Fraction(0 / 1),
-                end_mc_onset=phrase["mc_onset"],
-                exclude_end=False,
-                user_tempo=tempo,
-                user_beat_factor=beat_factor,
+                included_mcs=included_mcs,
+                start_mc_onset=start_mc_onset,
+                end_mc_onset=end_mc_onset,
+                exclude_end=exclude_end,
+                user_tempo=user_tempo,
+                user_beat_factor=user_beat_factor,
                 globalkey=global_key,
                 localkey=local_key,
                 decompose_repeat_tags=True,
@@ -1462,7 +1357,11 @@ class MSCX(LoggedClass):
 
             original_directory, original_filename = os.path.split(excerpt.filepath)
             original_file_name = os.path.splitext(original_filename)[0]
-            new_file_name = original_file_name + f"_{suffix}_{start}-{end}" + ".mscx"
+            new_file_name = (
+                original_file_name
+                + f"_{suffix if suffix is not None else ''}_{start}-{end}"
+                + ".mscx"
+            )
             if directory is None:
                 excerpt_filepath = os.path.join(original_directory, new_file_name)
             else:
@@ -1473,6 +1372,126 @@ class MSCX(LoggedClass):
             self.logger.info(
                 f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}."
             )
+
+    def store_within_phrase_excerpts(
+        self,
+        tempo: Optional[float],
+        beat_factor: Optional[Fraction | float],
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "within_phrase",
+        random_skip: Optional[bool] = False,
+    ):
+        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
+        lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
+        will be considered. By default, it extracts all possible snippets and stores them at the optional
+        directory path.
+        The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
+
+        # TODO: complete docstring
+        Args:
+            random_skip:
+            suffix:
+            beat_factor:
+            tempo:
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+        """
+
+        expanded = self.expanded(unfold=True)
+        measures = self.measures(unfold=True)
+
+        df = expanded[expanded["label"].str.contains("{|}|\\|")].copy()
+        last_phrase_label = ""
+        rows_to_drop = []
+        for index, row in df.iterrows():
+            if pd.notna(row["phraseend"]):
+                last_phrase_label = row["phraseend"]
+            if (
+                "|" in row["label"]
+                and last_phrase_label == "}"
+                and pd.isna(row["phraseend"])
+            ):
+                rows_to_drop.append(index)
+        df.drop(rows_to_drop, inplace=True)
+
+        available_mcs = [
+            tuple(
+                measures.iloc[
+                    measures.loc[
+                        measures["mn_playthrough"] == df.iloc[i]["mn_playthrough"]
+                    ].index[0]
+                    + 1 : measures.loc[
+                        measures["mn_playthrough"] == df.iloc[i + 1]["mn_playthrough"]
+                    ].index[0]
+                ]["mc"].values
+            )
+            for i in range(len(df) - 1)
+        ]
+
+        available_mcs = [x for x in available_mcs if len(x) >= 2]
+        available_mcs = list(set(available_mcs))
+
+        if available_mcs:
+            for included_mcs in available_mcs:
+                for i in range(len(included_mcs) - 1):
+                    if random_skip and np.random.choice([True, False]):
+                        continue
+                    self.store_measures(
+                        included_mcs=(included_mcs[i : i + 2]),
+                        start_mc_onset=None,
+                        end_mc_onset=None,
+                        user_tempo=tempo,
+                        user_beat_factor=beat_factor,
+                        directory=directory,
+                        suffix=suffix,
+                    )
+        else:
+            self.logger.info("No measures to be stored.")
+
+    def store_phrase_endings(
+        self,
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "phrase_end",
+        tempo: Optional[float] = None,
+        beat_factor: Optional[Fraction] = Fraction(1 / 4),
+        random_skip: Optional[bool] = False,
+    ):
+        """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
+        excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
+        as the actual end and end MC - 2 as the beginning of the excerpt. The resulting excerpts will be named
+        ``[original_filename]_phrase_end_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            random_skip:
+            directory : Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+            suffix : TODO: complete docstring
+            tempo : Optional[float], optional
+                the optional tempo value that can be given the excerpt to enforce a given speed.
+                By default, None and should take the most recent active tempo marker.
+            beat_factor : Optional[Fraction], optional
+                allows for the correction of the beat unit when taking external tempo values with unknown
+                beat-unit values
+        """
+
+        phrase_endings = self.find_phrase_endings()
+
+        if phrase_endings:
+            for phrase in phrase_endings:
+                if random_skip and np.random.choice([True, False]):
+                    continue
+                self.store_measures(
+                    included_mcs=phrase["mcs"],
+                    start_mc_onset=Fraction(0 / 1),
+                    end_mc_onset=phrase["mc_onset"],
+                    exclude_end=False,
+                    user_tempo=tempo,
+                    user_beat_factor=beat_factor,
+                    directory=directory,
+                    suffix=suffix,
+                )
+        else:
+            self.logger.info("No phrases to be stored.")
 
     def find_phrase_endings(self) -> List[dict[str, any]]:
         expanded = self.expanded(unfold=True)
