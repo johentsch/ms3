@@ -6479,12 +6479,12 @@ def replace_extension(filepath: str, new_extension: str) -> str:
     return os.path.splitext(filepath)[0] + new_extension
 
 
-
-def get_value_profile_mask(series: pd.Series,
-                           na_values: str = "group",
-                           prevent_merge: bool = False,
-                           logger: Optional[logging.Logger | str] = None
-                           ) -> pd.Series:
+def get_value_profile_mask(
+    series: pd.Series,
+    na_values: str = "group",
+    prevent_merge: bool = False,
+    logger: Optional[logging.Logger | str] = None,
+) -> pd.Series:
     """Turns a Series into a boolean mask indicating those values that are distinct from their predecessors.
     There are several ways of dealing with NA values.
 
