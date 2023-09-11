@@ -3,9 +3,32 @@ import os
 from collections import Counter
 
 import pytest
-from ms3 import Parse
+from git import Repo
+from ms3 import (
+    Parse,
+    assert_all_lines_equal,
+    get_value_profile_mask,
+    load_tsv,
+    resolve_dir,
+)
 from ms3.dezrann import generate_dez, generate_dez_from_dfs
-from ms3.utils import assert_all_lines_equal, get_value_profile_mask, load_tsv
+
+MOZART_PIANO_SONATAS = "~/all_subcorpora/mozart_piano_sonatas"
+
+
+@pytest.fixture(scope="session")
+def mozart_piano_sonatas() -> str:
+    """Get the path to local clone of DCMLab/mozart_piano_sonatas"""
+    path = resolve_dir(MOZART_PIANO_SONATAS)
+    if not os.path.isdir(path):
+        print(
+            f"Directory does not exist: {path} Clone DCMLab/mozart_piano_sonatas into the CORPUS_DIR specified above."
+        )
+    assert os.path.isdir(path)
+    repo = Repo(path)
+    yield path
+    repo.git.clean("-fdx")  # removes new files potentially generated during test
+
 
 MOZART_MOVEMENTS = [
     "K279-1",
@@ -18,7 +41,6 @@ MOZART_MOVEMENTS = [
     "K283-2",
     "K283-3",
 ]
-
 SETTINGS = dict(cadences=True, harmonies=4, keys=5, phrases=6)
 
 

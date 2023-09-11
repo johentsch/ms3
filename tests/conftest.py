@@ -40,20 +40,6 @@ def small_directory(directory):
     return path
 
 
-@pytest.fixture(scope="session")
-def mozart_piano_sonatas() -> str:
-    """Get the path to local clone of DCMLab/mozart_piano_sonatas"""
-    path = os.path.join(os.path.expanduser(CORPUS_DIR), "mozart_piano_sonatas")
-    if not os.path.isdir(path):
-        print(
-            f"Directory does not exist: {path} Clone DCMLab/mozart_piano_sonatas into the CORPUS_DIR specified above."
-        )
-    assert os.path.isdir(path)
-    repo = Repo(path)
-    yield path
-    repo.git.clean("-fdx")  # removes new files potentially generated during test
-
-
 @pytest.fixture(
     scope="session",
     params=[
