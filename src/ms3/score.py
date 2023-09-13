@@ -1103,7 +1103,7 @@ class MSCX(LoggedClass):
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
         user_tempo: Optional[float] = None,
-        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
+        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1119,12 +1119,26 @@ class MSCX(LoggedClass):
             start_mn:
                 Measure number of the first measure to be included in the excerpt.
                 If ``start_mn`` is given, ``start_mc`` must be None.
+            start_mc_onset:
+                The starting onset value in the first measure. Every note with onset value strictly smaller than
+                ``start_mc_onset`` will be removed from the excerpt.
             end_mc:
                 Measure count of the last measure to be included in the excerpt.
                 If ``end_mc`` is given, ``end_mn`` must be None.
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
+            end_mc_onset:
+                The ending onset value in the last measure. Every not with onset value strictly greate than
+                ``end_mc_onset`` will be removed from the excerpt.
+            exclude_end:
+                If set to True, the note corresponding to ``end_mc_onset`` will be removed as well.
+            user_tempo:
+                The tempo value specified by the user (in bpm) that will be "forced onto" the excerpt
+            user_beat_unit:
+                The unit specified by the user to define the beat units that correspond to the tempo value.
+                1 is the default and (since MuseScore uses by default the quarter-beat as unit) corresponds to the
+                quarter-beat. 1/2 (or .5) will correspond to the eighth note and so on.
             directory:
                 Path to the folder where the excerpts are to be stored.
             suffix:
@@ -1216,7 +1230,7 @@ class MSCX(LoggedClass):
             end_mc_onset=end_mc_onset,
             exclude_end=exclude_end,
             user_tempo=user_tempo,
-            user_beat_factor=user_beat_factor,
+            user_beat_factor=user_beat_unit,
             globalkey=global_key,
             localkey=local_key,
         )
@@ -1297,7 +1311,7 @@ class MSCX(LoggedClass):
                 start_mc=int(phrase[0]),
                 end_mc=int(phrase[1]),
                 directory=directory,
-                suffix="_phrase",
+                suffix="phrase",
             )
 
         self.logger.info(f"Extracted {len(phrases)} phrases.\n" f"Phrases: {phrases}")
@@ -1309,10 +1323,52 @@ class MSCX(LoggedClass):
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
         user_tempo: Optional[float] = None,
-        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
+        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
+        """This method takes a tuple containing the number of the measures that contained in the excerpt to be
+        stored. The method will infer the active global and local keys, relative to the excerpt, from the annotations.
+        It will then store the excerpt in the given (or default) directory with the name
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            included_mcs: Tuple[int]
+                The mc values of the measures to be included in the excerpt
+
+            start_mc_onset: Optional[Fraction | float], optional
+                The value of the chosen onset for the true start of the excerpt. If onset is ``None`` or ``0``, then the
+                excerpt will normally begin on the onset of the first included measure. In the case where this value
+                should be different, for example ``1/2`` or ``.5``, then all the notes with onset strictly smaller than
+                this value will be removed from the first measure.
+
+            end_mc_onset: Optional[Fraction | float], optional
+                This has the same behaviour as the previous parameter. This means that if is set to None or to the value
+                of the last onset in the measure, then the excerpt will normally finish at the end of the last included
+                measure. In the cse where this value should be different, for example ``1/2`` or ``.5``,
+                then all notes with onset strictly greater than this value will be removed from the last measure.
+
+            exclude_end: Optional[bool], optional
+                If set to True the note with onset value equal to ``end_mc_onset`` will also be removed thus
+                excluding the last onset (i.e. the end)
+
+            user_tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            user_beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+        """
         measures = self.measures()
 
         if len(included_mcs) == 0:
@@ -1349,7 +1405,7 @@ class MSCX(LoggedClass):
                 end_mc_onset=end_mc_onset,
                 exclude_end=exclude_end,
                 user_tempo=user_tempo,
-                user_beat_factor=user_beat_factor,
+                user_beat_factor=user_beat_unit,
                 globalkey=global_key,
                 localkey=local_key,
                 decompose_repeat_tags=True,
@@ -1376,25 +1432,38 @@ class MSCX(LoggedClass):
     def store_within_phrase_excerpts(
         self,
         tempo: Optional[float],
-        beat_factor: Optional[Fraction | float],
+        beat_unit: Optional[Fraction | float] = 1,
         directory: Optional[str] = None,
         suffix: Optional[str] = "within_phrase",
         random_skip: Optional[bool] = False,
     ):
         """Extract random snippets from the given score. The snippets have the constraint that they must strictly
         lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
-        will be considered. By default, it extracts all possible snippets and stores them at the optional
-        directory path.
+        will be considered. Not even cadences. By default, it extracts all possible
+        snippets and stores them at the optional directory path.
         The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
 
-        # TODO: complete docstring
         Args:
-            random_skip:
-            suffix:
-            beat_factor:
-            tempo:
+            tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
             directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
         """
 
         expanded = self.expanded(unfold=True)
@@ -1441,7 +1510,7 @@ class MSCX(LoggedClass):
                         start_mc_onset=None,
                         end_mc_onset=None,
                         user_tempo=tempo,
-                        user_beat_factor=beat_factor,
+                        user_beat_unit=beat_unit,
                         directory=directory,
                         suffix=suffix,
                     )
@@ -1450,28 +1519,38 @@ class MSCX(LoggedClass):
 
     def store_phrase_endings(
         self,
+        tempo: Optional[float] = None,
+        beat_unit: Optional[Fraction] = Fraction(1 / 4),
         directory: Optional[str] = None,
         suffix: Optional[str] = "phrase_end",
-        tempo: Optional[float] = None,
-        beat_factor: Optional[Fraction] = Fraction(1 / 4),
         random_skip: Optional[bool] = False,
     ):
-        """Calls the self.find_phrases() method to find all phrases contained in the score, then stores
-        excerpts corresponding to each phrase endind. The code takes, for each phrase, the end MC value
-        as the actual end and end MC - 2 as the beginning of the excerpt. The resulting excerpts will be named
-        ``[original_filename]_phrase_end_[start_mc]-[end_mc].mscx``.
+        """Calls the self.find_phrase_endings() method to find all phrase endings contained in the score, then stores
+        all corresponding excerpts. A phrase ending is specified to finish on a cadence and to start 2 MCs before the
+        corresponding closing bracket that indicates the "end" of the phrase. The resulting excerpts will be named
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``.
 
         Args:
-            random_skip:
-            directory : Optional[str], optional
+            tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
+            directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
-            suffix : TODO: complete docstring
-            tempo : Optional[float], optional
-                the optional tempo value that can be given the excerpt to enforce a given speed.
-                By default, None and should take the most recent active tempo marker.
-            beat_factor : Optional[Fraction], optional
-                allows for the correction of the beat unit when taking external tempo values with unknown
-                beat-unit values
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
         """
 
         phrase_endings = self.find_phrase_endings()
@@ -1486,7 +1565,7 @@ class MSCX(LoggedClass):
                     end_mc_onset=phrase["mc_onset"],
                     exclude_end=False,
                     user_tempo=tempo,
-                    user_beat_factor=beat_factor,
+                    user_beat_unit=beat_unit,
                     directory=directory,
                     suffix=suffix,
                 )
@@ -1494,6 +1573,16 @@ class MSCX(LoggedClass):
             self.logger.info("No phrases to be stored.")
 
     def find_phrase_endings(self) -> List[dict[str, any]]:
+        """This method goes through the unfolded expanded and measures tables to extract the phrase endings contained
+        in the score. A phrase ending is defined to finish on a cadence (at whatever onset value the label might appear)
+        and to start 2 measures before the last closing bracket that indicates the "end" of the phrase.
+
+        Returns:
+            a list of dictionaries where each of these contains two keys: mcs, mc_onset. The first corresponds to a
+            tuple containing all the measures of the phrase whereas the second key corresponds to the onset at which
+            the closing cadence is found (this way when storing the excerpt, all notes after that value will be removed)
+
+        """
         expanded = self.expanded(unfold=True)
         measures = self.measures(unfold=True)
         filtered = expanded.loc[expanded["label"].str.contains("\\||}|{|}{")]
