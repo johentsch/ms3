@@ -101,7 +101,9 @@ def get_int(mn: Union[str, int]) -> int:
 ####
 
 
-def generate_measure_map(file: str, output_file=None, compressed=True) -> List[dict]:
+def generate_measure_map(
+    file: str, output_file=None, compressed=True, full_info=False
+) -> List[dict]:
     """
     Generate a measure map in JSON from
 
@@ -109,10 +111,12 @@ def generate_measure_map(file: str, output_file=None, compressed=True) -> List[d
         file: Path to a '_measures.tsv' file in the 'measure' folder of a DCML corpus.
         Requires the columns {'mc': int, 'mn': int, 'quarterbeats_all_endings': fractions.Fraction} (ms3 >= 1.0.0).
         output_file: TODO
-        compressed: TODO
+        compressed: if True, add only necessary measures (first, last and notable changes).
+        full_info: if True, add all information in the measures' description.
+        Otherwise, only necessary information is displayed.
 
     Returns:
-        Measure map: list of measure description.
+        Measure map: list of measure descriptions.
     """
     try:
         measures_df = pd.read_csv(
@@ -133,30 +137,38 @@ def generate_measure_map(file: str, output_file=None, compressed=True) -> List[d
 
     measure_map = []  # Measure map, list
 
+    start_repeat_list = []
     previous_measure_dict = {"name": "0"}
     current_time_sig = None
     for i_measure, measure in measures_df.iterrows():
         measure_mn = int(measure.mn)
         measure_mc = int(measure.mc)
         measure_dict = {}
-        display_measure = not compressed  # default value
+        """Description of current measure."""
+        display_measure = False
+        """True if current measure needs to be added in compressed version."""
 
         # Time signature, time signature upbeat
-        if Fraction(measure.timesig) != Fraction(measure.act_dur):
-            # Partial measure
+        is_partial_measure = Fraction(measure.timesig) != Fraction(measure.act_dur)
+        if is_partial_measure:
             display_measure = True
+        has_new_timesig = measure.timesig != current_time_sig
+        if has_new_timesig:
+            # (always the case for first measures: always displayed)
+            display_measure = True
+
+        if full_info or is_partial_measure:
             measure_dict["actual_duration"] = float(
                 measure.duration_qb
             )  # str(measure.act_dur)
-        if measure.timesig != current_time_sig:
-            # New time signature
-            # (always the case for first measures: always displayed)
-            display_measure = True
+        if full_info or has_new_timesig:
             measure_dict["time_signature"] = measure.timesig
             current_time_sig = measure.timesig
-            # TODO: nominal_duration
+        if full_info:
+            measure_dict["nominal_duration"] = Fraction(measure.timesig) * 4.0
 
         # Measure number
+        # TODO: handle first/second endings which last more than 1 measure.
         have_same_number = get_int(previous_measure_dict["name"]) == measure_mn
         if i_measure > 0 and have_same_number:
             # Not the next numbered measure
@@ -167,7 +179,8 @@ def generate_measure_map(file: str, output_file=None, compressed=True) -> List[d
             measure_dict["name"] = str(measure_mn) + "b"  # And to current measure
         else:
             measure_dict["name"] = str(measure_mn)
-        # measure_dict["number"] = measure_mn # if needed
+        if full_info:
+            measure_dict["number"] = measure_mn
         measure_dict["count"] = measure_mc
 
         have_consecutive_number = (
@@ -183,14 +196,60 @@ def generate_measure_map(file: str, output_file=None, compressed=True) -> List[d
         else:
             measure_dict["qstamp"] = float(measure.quarterbeats_all_endings)
 
-        if display_measure:
-            # i.e. the measure need to be in the compressed version
+        # Identifier
+        if full_info:
+            # TODO: allow personalised id
+            # By default, from the 'count'
+            measure_dict["id"] = str(measure_dict["count"])
+
+        # Repeats, following measures
+        if full_info:
+            # TODO: cleaner conversion from tsv column?
+            measure_dict["next"] = [
+                int(next_count) for next_count in measure.next.split(", ")
+            ]
+
+            # Start/end repeats
+            # Warning: `start` and `end` columns in TSV does not always contain the information
+            measure_dict["start_repeat"] = False
+            measure_dict["end_repeat"] = False
+            for next_count in measure_dict["next"]:
+                if next_count == -1:
+                    # Last measure
+                    continue
+                if next_count < measure_dict["count"] + 1:
+                    # Link to previous measure: there should be a repeat
+                    measure_dict["end_repeat"] = True
+
+                    # Then, the target measure starts this repeat
+                    # TODO: optimise this; avoid a second loop.
+                    start_repeat_list.append(next_count)
+
+                # Other cases:
+                # next_count == current_count+1: expected link to next printed measure (no repeat)
+                # next_count > current_count+1: possible link to second ending (no repeat)
+
+        # Display the measure
+        if not compressed or display_measure:
             measure_map.append(measure_dict)
         previous_measure_dict = measure_dict
-    # TODO: always add last measure
+    # Always add last measure
+    if previous_measure_dict != measure_map[-1]:
+        if compressed:
+            # Only need the last 'count'
+            measure_map.append({"count": previous_measure_dict["count"]})
+        else:
+            measure_map.append(previous_measure_dict)
 
-    json_str = {"meter": measure_map}
+    # Update start repeats
+    if full_info:
+        for m in measure_map:
+            if m["count"] in start_repeat_list:
+                m["start_repeat"] = True
+
+    # Save output
     if output_file:
+        json_str = {"meter": measure_map}
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(json_str, f, indent=2)
 
@@ -203,13 +262,15 @@ def generate_measure_map(file: str, output_file=None, compressed=True) -> List[d
 
 
 def main_generate_mm(
-    pieces, output_dir=".", verbose=False, compressed=True, stops=False
+    pieces, output_dir=".", verbose=False, compressed=True, full_info=False, stops=False
 ):
     for i, piece in enumerate(pieces):
         output_path = os.path.join(
             output_dir, os.path.basename(piece).replace(".tsv", "_mm.json")
         )
-        measure_map = generate_measure_map(piece, output_path, compressed=compressed)
+        measure_map = generate_measure_map(
+            piece, output_path, compressed=compressed, full_info=full_info
+        )
         if verbose:
             print(os.path.basename(piece))
             pprint(measure_map)
@@ -234,4 +295,5 @@ if __name__ == "__main__":
         verbose=True,
         stops=True,
         compressed=True,
+        full_info=True,
     )
