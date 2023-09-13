@@ -138,8 +138,8 @@ def generate_measure_map(
     measure_map = []  # Measure map, list
 
     start_repeat_list = []
-    previous_measure_dict = {"name": "0"}
-    current_time_sig = None
+    previous_measure_dict = {"name": "0", "count": 0}
+    current_time_sig = "None"
     for i_measure, measure in measures_df.iterrows():
         measure_mn = int(measure.mn)
         measure_mc = int(measure.mc)
@@ -150,24 +150,30 @@ def generate_measure_map(
 
         # Time signature, time signature upbeat
         is_partial_measure = Fraction(measure.timesig) != Fraction(measure.act_dur)
-        if is_partial_measure:
-            display_measure = True
+        """If True, indicates if the printed measure's duration does not match the
+        time signature nominal duration; for example, in anacruses."""
         has_new_timesig = measure.timesig != current_time_sig
-        if has_new_timesig:
-            # (always the case for first measures: always displayed)
+        """If True, indicates a change of time signature. This is always the case
+        for the first measure."""
+        if is_partial_measure or has_new_timesig:
             display_measure = True
 
         if full_info or is_partial_measure:
-            measure_dict["actual_duration"] = float(
-                measure.duration_qb
-            )  # str(measure.act_dur)
+            measure_dict["actual_duration"] = float(measure.duration_qb)
         if full_info or has_new_timesig:
             measure_dict["time_signature"] = measure.timesig
             current_time_sig = measure.timesig
         if full_info:
             measure_dict["nominal_duration"] = Fraction(measure.timesig) * 4.0
 
-        # Measure number
+        # Measure count, identifier
+        measure_dict["count"] = measure_mc
+        if full_info:
+            # TODO: allow personalised id
+            # By default, also the measure counter
+            measure_dict["id"] = str(measure_mc)
+
+        # Measure number, name
         # TODO: handle first/second endings which last more than 1 measure.
         have_same_number = get_int(previous_measure_dict["name"]) == measure_mn
         if i_measure > 0 and have_same_number:
@@ -181,7 +187,6 @@ def generate_measure_map(
             measure_dict["name"] = str(measure_mn)
         if full_info:
             measure_dict["number"] = measure_mn
-        measure_dict["count"] = measure_mc
 
         have_consecutive_number = (
             get_int(previous_measure_dict["name"]) + 1 == measure_mn
@@ -195,12 +200,6 @@ def generate_measure_map(
             measure_dict["qstamp"] = float(measure.quarterbeats)
         else:
             measure_dict["qstamp"] = float(measure.quarterbeats_all_endings)
-
-        # Identifier
-        if full_info:
-            # TODO: allow personalised id
-            # By default, from the 'count'
-            measure_dict["id"] = str(measure_dict["count"])
 
         # Repeats, following measures
         if full_info:
@@ -240,6 +239,17 @@ def generate_measure_map(
             measure_map.append({"count": previous_measure_dict["count"]})
         else:
             measure_map.append(previous_measure_dict)
+
+    # Simplify first measure
+    if (
+        compressed
+        and (measure_map[0]["count"] == 1)
+        and (measure_map[0]["name"] == "1")
+        and (measure_map[0]["qstamp"] < 1e-10)
+    ):
+        del measure_map[0]["count"]
+        del measure_map[0]["name"]
+        del measure_map[0]["qstamp"]
 
     # Update start repeats
     if full_info:
@@ -283,7 +293,7 @@ if __name__ == "__main__":
     INPUT_DIR = os.path.join(  # from ~ms3/src/ms3 as working directory
         "..", "..", "..", "mozart_piano_sonatas", "measures"
     )
-    TEST_PIECES = ["K284-3"]
+    TEST_PIECES = ["K284-1", "K284-3"]
     TEST_INPUT_PATHS = [
         os.path.join(INPUT_DIR, f"{piece}.tsv") for piece in TEST_PIECES
     ]
@@ -295,5 +305,5 @@ if __name__ == "__main__":
         verbose=True,
         stops=True,
         compressed=True,
-        full_info=True,
+        full_info=False,
     )
