@@ -1892,6 +1892,15 @@ and {loc_after} before the subsequent {nxt_name}."""
             staff_tag_iterator = soup.find_all("Staff")
         else:
             staff_tag_iterator = part_tag.find_next_siblings("Staff")
+
+        tempo_tags = []
+        for staff_tag in staff_tag_iterator:
+            for mc, measure_tag in enumerate(staff_tag.find_all("Measure"), 1):
+                if mc <= min(included_mcs):
+                    tempo_tag = measure_tag.find("Tempo")
+                    if tempo_tag is not None:
+                        tempo_tags.append(copy(tempo_tag))
+
         for staff_tag in staff_tag_iterator:
             for mc, measure_tag in enumerate(staff_tag.find_all("Measure"), 1):
                 if mc in excluded_mcs:
@@ -1930,16 +1939,7 @@ and {loc_after} before the subsequent {nxt_name}."""
                         if k.startswith("Harmony/")
                     }
 
-        # tempo_selector = events.event == "Tempo"
-        first_tempo_tag = None
-        # if tempo_selector.any():
-        #     tempos = events[tempo_selector].sort_values("quarterbeats")
-        #     if first_quarterbeat not in tempos.quarterbeats.values:
-        #         active_tempo_row = get_row_at_quarterbeat(
-        #             tempos,
-        #             first_quarterbeat,
-        #         )
-        # TODO: retrieve the tempo tag corresponding to active_tempo_row
+        first_tempo_tag = tempo_tags[-1]
 
         excerpt = Excerpt(
             soup,
@@ -3132,9 +3132,13 @@ class Excerpt(_MSCX_bs4):
 
         # enforcing user-set tempo
         if user_tempo is not None:
+            if first_tempo_tag is not None:
+                self.logger.info("You are overwriting an existing active tempo")
             self.enforce_tempo(
                 user_tempo=user_tempo, user_beat_factor=user_beat_unit, user_call=True
             )
+        elif first_tempo_tag is not None:
+            self.enforce_tempo(piece_tempo_tag=first_tempo_tag, user_call=False)
 
         # cleaning tree from repeat-structure tags
         if decompose_repeat_tags:
@@ -3352,38 +3356,38 @@ class Excerpt(_MSCX_bs4):
         user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
         user_call: Optional[bool] = True,
     ):
-        # since MuseScore's reference is quarter-beats
-        relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
-
         for measure_tag in self.iter_first_measures():
             tempo_tag = measure_tag.find("Tempo")
             timesig_tag = measure_tag.find("TimeSig")
-            if tempo_tag is not None and user_call:
+            if not user_call and piece_tempo_tag is not None and tempo_tag is None:
+                # Copying active tempo tag from "parent" piece
+                timesig_tag.insert_after(piece_tempo_tag)
+                return
+            elif user_call and tempo_tag is not None:
+                # since MuseScore's reference is quarter-beats
+                relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
                 tempo_tag.clear()
                 _ = self.new_tag(
                     name="tempo",
                     value=str(relative_tempo),
                     append_within=tempo_tag,
                 )
-                break
-            elif tempo_tag is None and user_call:
+                return
+            elif user_call and tempo_tag is None:
+                # since MuseScore's reference is quarter-beats
+                relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
                 tempo_tag = self.new_tag(name="Tempo", after=timesig_tag)
                 _ = self.new_tag(
                     name="tempo",
                     value=str(relative_tempo),
                     append_within=tempo_tag,
                 )
-                break
-            elif tempo_tag is not None and not user_call:
-                # Copying active tempo tag from "parent" piece
-                tempo_tag = copy(piece_tempo_tag)
-                timesig_tag.insert_after(tempo_tag)
-                break
-            else:
+                return
+            elif piece_tempo_tag is None and not user_call:
                 self.logger.warning(
                     "No active tempo was found and none was set by the user."
                 )
-                break
+                return
 
     def decompose_repeat_tags(self, soup: bs4.BeautifulSoup):
         tags = [
