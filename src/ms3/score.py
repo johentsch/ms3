@@ -1230,7 +1230,7 @@ class MSCX(LoggedClass):
             end_mc_onset=end_mc_onset,
             exclude_end=exclude_end,
             user_tempo=user_tempo,
-            user_beat_factor=user_beat_unit,
+            user_beat_unit=user_beat_unit,
             globalkey=global_key,
             localkey=local_key,
         )
@@ -1247,8 +1247,6 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
-    # TODO: implement the fact that it should return a
-    #  list of tuples where each contains all the necessary MCs. This to avoid problems with repeat structures.
     def find_phrases(self) -> List[Tuple[int, int]] | None:
         """Fids phrases based on the phrase annotations contained in the score, if any. For this purpose,
         the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
@@ -1275,43 +1273,121 @@ class MSCX(LoggedClass):
         if phrase_starts.sum() != phrase_ends.sum():
             self.logger.error("Phrase labels are incoherent. Not extracting phrases.")
             return
-        start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
-        end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
-        phrases = list(
-            reversed(sorted(zip(start_mcs, end_mcs)))
-        )  # prepare for removal of duplicates due to unfolding
-        self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
-        phrases_without_duplicates = []
-        previous_start = None
-        for start_mc, end_mc in phrases:
-            if start_mc == previous_start:
-                # do not create excerpts with the same start_mc
-                continue
-            if end_mc < start_mc:
-                self.logger.error(
-                    f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
-                )
-                continue
-            phrases_without_duplicates.append((start_mc, end_mc))
-            previous_start = start_mc
-        phrases_without_duplicates.reverse()
-        return phrases_without_duplicates
 
-    # TODO: implement fine-trimming feature (with onset values)
-    def store_phrase_excerpts(self, directory: Optional[str] = None):
+        phrases = []
+        for start, end in zip(
+            phrase_labels[phrase_starts].index, phrase_labels[phrase_ends].index
+        ):
+            phrases.append(
+                tuple(expanded.iloc[start : end + 1]["mc"].drop_duplicates().values)
+            )
+        phrases = list(set(phrases))
+
+        # WARNING: generating list of tuples with ALL contained measures instead of only encoding start and end.
+        # The commented-out code is the "old" version that stored only starting and ending measures for each phrase.
+        # #############################################################################################################
+        #
+        # print(phrases)
+        # start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
+        # end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
+        # phrases = list(
+        #     reversed(sorted(zip(start_mcs, end_mcs)))
+        # )  # prepare for removal of duplicates due to unfolding
+        # self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
+        # phrases_without_duplicates = []
+        # previous_start = None
+        # for start_mc, end_mc in phrases:
+        #     if start_mc == previous_start:
+        #         # do not create excerpts with the same start_mc
+        #         continue
+        #     if end_mc < start_mc:
+        #         self.logger.error(
+        #             f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
+        #         )
+        #         continue
+        #     phrases_without_duplicates.append((start_mc, end_mc))
+        #     previous_start = start_mc
+        # phrases_without_duplicates.reverse()
+        # return phrases_without_duplicates
+        #
+        # #############################################################################################################
+
+        return phrases
+
+    def store_phrase_excerpts(
+        self,
+        tempo: Optional[float] = None,
+        beat_unit: Optional[Fraction | float] = 1,
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "phrase",
+        random_skip: Optional[bool] = False,
+    ):
         """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
         the self.find_phrases() method is called; for each pair of start and end MC an excerpt will be stored.
-        The resulting excerpts will be named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
+        The resulting excerpts will be named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx`` by default or
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx`` if ``suffix`` is specified.
+
+        Args:
+            tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
         """
 
         phrases = self.find_phrases()
+        expanded = (
+            self.expanded()[["mc", "mc_onset", "phraseend"]].dropna().set_index("mc")
+        )
 
         for phrase in phrases:
-            self.store_excerpt(
-                start_mc=int(phrase[0]),
-                end_mc=int(phrase[1]),
+            check = [
+                True if phrase[i] > phrase[i + 1] else False
+                for i in range(len(phrase) - 1)
+            ]
+            if sum(check):
+                print(
+                    "Phrase measures probably span across a repeat structure. Skipping phrase..."
+                )
+                continue
+
+            if random_skip and np.random.choice([True, False]):
+                continue
+
+            start_mc_onset = expanded.loc[phrase[0]]["mc_onset"]
+            if isinstance(start_mc_onset, pd.Series):
+                # If more than one `phraseend` labels appear in the same measure, the opening onset is the last one
+                start_mc_onset = start_mc_onset.iloc[-1]
+
+            end_mc_onset = expanded.loc[phrase[-1]]["mc_onset"]
+            if isinstance(end_mc_onset, pd.Series):
+                # If more than one `phraseend` labels appear in the same measure, the closing onset is the first one
+                end_mc_onset = end_mc_onset.iloc[0]
+
+            self.store_measures(
+                included_mcs=phrase,
+                start_mc_onset=start_mc_onset,
+                end_mc_onset=end_mc_onset,
+                exclude_end=False,
+                user_tempo=tempo,
+                user_beat_unit=beat_unit,
                 directory=directory,
-                suffix="phrase",
+                suffix=suffix,
             )
 
         self.logger.info(f"Extracted {len(phrases)} phrases.\n" f"Phrases: {phrases}")
@@ -1401,13 +1477,13 @@ class MSCX(LoggedClass):
 
             excerpt = self.parsed.make_excerpt(
                 included_mcs=included_mcs,
+                globalkey=global_key,
+                localkey=local_key,
                 start_mc_onset=start_mc_onset,
                 end_mc_onset=end_mc_onset,
                 exclude_end=exclude_end,
                 user_tempo=user_tempo,
-                user_beat_factor=user_beat_unit,
-                globalkey=global_key,
-                localkey=local_key,
+                user_beat_unit=user_beat_unit,
                 decompose_repeat_tags=True,
             )
 
@@ -1431,7 +1507,7 @@ class MSCX(LoggedClass):
 
     def store_within_phrase_excerpts(
         self,
-        tempo: Optional[float],
+        tempo: Optional[float] = None,
         beat_unit: Optional[Fraction | float] = 1,
         directory: Optional[str] = None,
         suffix: Optional[str] = "within_phrase",
@@ -1520,7 +1596,7 @@ class MSCX(LoggedClass):
     def store_phrase_endings(
         self,
         tempo: Optional[float] = None,
-        beat_unit: Optional[Fraction] = Fraction(1 / 4),
+        beat_unit: Optional[Fraction] = 1,
         directory: Optional[str] = None,
         suffix: Optional[str] = "phrase_end",
         random_skip: Optional[bool] = False,

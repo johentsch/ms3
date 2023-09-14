@@ -1817,13 +1817,13 @@ and {loc_after} before the subsequent {nxt_name}."""
     def make_excerpt(
         self,
         included_mcs: Tuple[int] | int,
+        globalkey: Optional[str] = None,
+        localkey: Optional[str] = None,
         start_mc_onset: Optional[Fraction | float] = None,
         end_mc_onset: Optional[Fraction | float] = None,
         exclude_end: Optional[bool] = False,
         user_tempo: Optional[float] = None,
-        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
-        globalkey: Optional[str] = None,
-        localkey: Optional[str] = None,
+        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
         decompose_repeat_tags: Optional[bool] = True,
     ) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
@@ -1832,14 +1832,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         the excerpt will not show correct measure numbers and might be incoherent in terms of missing key and time
         signatures.
 
-        # TODO: complete docstring
         Args:
-            decompose_repeat_tags:
-            user_beat_factor:
-            user_tempo:
-            exclude_end:
-            end_mc_onset:
-            start_mc_onset:
             included_mcs:
                 List of measure counts to be included in the excerpt. Pass a single integer to get an excerpt from
                 that MC to the end of the piece.
@@ -1850,6 +1843,26 @@ and {loc_after} before the subsequent {nxt_name}."""
                 If the excerpt has chord labels, make sure the first label starts with the given local key, e.g.
                 'I' for the major tonic key or '#iv' for the raised subdominant minor key or 'bVII' for the lowered
                 subtonic major key.
+            start_mc_onset:
+                Onset value (either Fraction or float) specified as the "true" start of the first measure. Every note
+                with strictly smaller onset value will be "removed" (i.e. mutated into rest)
+            end_mc_onset:
+                Onset value (either Fraction or float) specified as the "true" end of the last measure. Every note
+                with strictly greater onset value will be "removed" (i.e. mutated into rest)
+            exclude_end:
+                If set to True, the note last note corresponding to ``end_mc_onset`` will also be "removed"
+            user_tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+            user_beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+            decompose_repeat_tags:
+                If set to true, the XML tree will be cleansed from all tags referring to repeat-like structures to
+                avoid possible "broken" structures within the excerpt.
+
         """
         measures = self.measures()
         available_mcs = measures.mc.to_list()
@@ -1930,6 +1943,7 @@ and {loc_after} before the subsequent {nxt_name}."""
 
         excerpt = Excerpt(
             soup,
+            measures=included_mcs,
             read_only=False,
             logger_cfg=self.logger_cfg,
             first_mn=first_mn,
@@ -1941,39 +1955,13 @@ and {loc_after} before the subsequent {nxt_name}."""
             final_barline=final_barline,
             globalkey=globalkey,
             localkey=localkey,
+            start_mc_onset=start_mc_onset,
+            end_mc_onset=end_mc_onset,
+            exclude_end=exclude_end,
+            user_tempo=user_tempo,
+            user_beat_unit=user_beat_unit,
             decompose_repeat_tags=decompose_repeat_tags,
         )
-
-        if user_tempo is not None:
-            excerpt.enforce_tempo(
-                user_tempo=user_tempo, user_beat_factor=user_beat_factor, user_call=True
-            )
-
-        if not (start_mc_onset is None and end_mc_onset is None):
-            # TODO: move following code within Excerpt's __init__ method
-            isTuple = isinstance(included_mcs, tuple)
-            isInt = isinstance(included_mcs, int)
-
-            if start_mc_onset is not None:
-                excerpt.replace_notes_before_onset(
-                    start_mc=1,
-                    mc_onset=start_mc_onset,
-                )
-
-            if end_mc_onset is not None:
-                if isTuple:
-                    true_end_mc = len(included_mcs)
-                    excerpt.replace_notes_after_onset(
-                        end_mc=true_end_mc,
-                        mc_onset=end_mc_onset,
-                        exclude_end=exclude_end,
-                    )
-                elif isInt:
-                    excerpt.replace_notes_after_onset(
-                        end_mc=1,
-                        mc_onset=end_mc_onset,
-                        exclude_end=exclude_end,
-                    ),
 
         excerpt.filepath = self.filepath
         return excerpt
@@ -3008,6 +2996,7 @@ class Excerpt(_MSCX_bs4):
     def __init__(
         self,
         soup: bs4.BeautifulSoup,
+        measures: Tuple[int] | int,
         read_only: bool = False,
         logger_cfg: Optional[dict] = None,
         first_mn: Optional[int] = None,
@@ -3019,14 +3008,18 @@ class Excerpt(_MSCX_bs4):
         final_barline: bool = False,
         globalkey: Optional[str] = None,
         localkey: Optional[str] = None,
-        decompose_repeat_tags: Optional[bool] = True,
         start_mc_onset: Optional[Fraction] = None,
         end_mc_onset: Optional[Fraction] = None,
+        exclude_end: Optional[bool] = False,
+        user_tempo: Optional[float] = None,
+        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
+        decompose_repeat_tags: Optional[bool] = True,
     ):
         """
-
         Args:
             soup: A beautifulsoup4 object representing the MSCX file.
+            measures:
+                The tuple containing the MC values of the included measures
             read_only:
                 If set to True, all references to XML tags will be removed after parsing to allow the object to be
                 pickled.
@@ -3060,7 +3053,25 @@ class Excerpt(_MSCX_bs4):
                 If the excerpt has chord labels, make sure the first label starts with the given local key, e.g.
                 'I' for the major tonic key or '#iv' for the raised subdominant minor key or 'bVII' for the lowered
                 subtonic major key.
-
+            start_mc_onset:
+                Onset value (either Fraction or float) specified as the "true" start of the first measure. Every note
+                with strictly smaller onset value will be "removed" (i.e. mutated into rest)
+            end_mc_onset:
+                Onset value (either Fraction or float) specified as the "true" end of the last measure. Every note
+                with strictly greater onset value will be "removed" (i.e. mutated into rest)
+            exclude_end:
+                If set to True, the note last note corresponding to ``end_mc_onset`` will also be "removed"
+            user_tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+            user_beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+            decompose_repeat_tags:
+                If set to true, the XML tree will be cleansed from all tags referring to repeat-like structures to
+                avoid possible "broken" structures within the excerpt.
         """
         super().__init__(soup=soup, read_only=read_only, logger_cfg=logger_cfg)
 
@@ -3093,6 +3104,39 @@ class Excerpt(_MSCX_bs4):
         if globalkey or localkey:
             self.amend_first_harmony_keys(globalkey, localkey)
 
+        # fine trimming with onset values
+        if not (start_mc_onset is None and end_mc_onset is None):
+            isTuple = isinstance(measures, tuple)
+            isInt = isinstance(measures, int)
+
+            if start_mc_onset is not None:
+                self.replace_notes_before_onset(
+                    start_mc=1,
+                    mc_onset=start_mc_onset,
+                )
+
+            if end_mc_onset is not None:
+                if isTuple:
+                    true_end_mc = len(measures)
+                    self.replace_notes_after_onset(
+                        end_mc=true_end_mc,
+                        mc_onset=end_mc_onset,
+                        exclude_end=exclude_end,
+                    )
+                elif isInt:
+                    self.replace_notes_after_onset(
+                        end_mc=1,
+                        mc_onset=end_mc_onset,
+                        exclude_end=exclude_end,
+                    )
+
+        # enforcing user-set tempo
+        if user_tempo is not None:
+            self.enforce_tempo(
+                user_tempo=user_tempo, user_beat_factor=user_beat_unit, user_call=True
+            )
+
+        # cleaning tree from repeat-structure tags
         if decompose_repeat_tags:
             self.decompose_repeat_tags(soup=soup)
 
