@@ -1253,28 +1253,45 @@ class MSCX(LoggedClass):
             self.logger.info("No DCML labels found to extract phrase information from.")
             return
 
-        phrase_label_mask = expanded["phraseend"].isin(["{", "}{", "}"])
+        phrase_label_mask = expanded["label"].str.contains("{|}|\\|")
         if not phrase_label_mask.any():
             self.logger.info(
                 "DCML labels do not contain phrase labels with curly brackets {}"
             )
             return
 
-        phrase_labels = expanded.loc[phrase_label_mask, "phraseend"]
-        phrase_starts = phrase_labels.str.contains("{")
-        phrase_ends = phrase_labels.str.contains("}")
-        if phrase_starts.sum() != phrase_ends.sum():
-            self.logger.error("Phrase labels are incoherent. Not extracting phrases.")
-            return
+        df = expanded[phrase_label_mask][["mc_onset", "label", "phraseend"]]
+
+        filter1 = df["phraseend"].isna() & (df["phraseend"].shift(1).isin(["{", "}{"]))
+        df = df.drop(df[filter1].index)
+
+        filter2 = (df["phraseend"] == "}") & (df["phraseend"].shift(-1).isna())
+        if df.iloc[-1]["phraseend"] == "}":
+            filter2 &= df.index != df.index[-1]
+        final = df.drop(df[filter2].index)
+
+        start_mask = final["phraseend"].isin(["{", "}{"])
+        end_mask = final["phraseend"].isin(["}", "}{"]) | final["phraseend"].isna()
+
+        start_indexes = final.index[start_mask].tolist()
+        end_indexes = final.index[end_mask].tolist()
+
+        if len(start_indexes) != len(end_indexes):
+            self.logger.warning("Incoherent labels, aborting...")
 
         phrases = []
-        for start, end in zip(
-            phrase_labels[phrase_starts].index, phrase_labels[phrase_ends].index
-        ):
-            phrases.append(
-                tuple(expanded.iloc[start : end + 1]["mc"].drop_duplicates().values)
-            )
-        phrases = list(set(phrases))
+        unique_mcs = []
+        for start, end in zip(start_indexes, end_indexes):
+            phrase = {
+                "mcs": tuple(
+                    expanded.iloc[start : end + 1]["mc"].drop_duplicates().values
+                ),
+                "start_onset": expanded.iloc[start]["mc_onset"],
+                "end_onset": expanded.iloc[end]["mc_onset"],
+            }
+            if phrase["mcs"] not in unique_mcs:
+                phrases.append(phrase)
+                unique_mcs.append(phrase["mcs"])
 
         # WARNING: generating list of tuples with ALL contained measures instead of only encoding start and end.
         # The commented-out code is the "old" version that stored only starting and ending measures for each phrase.
@@ -1344,38 +1361,12 @@ class MSCX(LoggedClass):
         """
 
         phrases = self.find_phrases()
-        expanded = (
-            self.expanded()[["mc", "mc_onset", "phraseend"]].dropna().set_index("mc")
-        )
 
         for phrase in phrases:
-            check = [
-                True if phrase[i] > phrase[i + 1] else False
-                for i in range(len(phrase) - 1)
-            ]
-            if sum(check):
-                print(
-                    "Phrase measures probably span across a repeat structure. Skipping phrase..."
-                )
-                continue
-
-            if random_skip and np.random.choice([True, False]):
-                continue
-
-            start_mc_onset = expanded.loc[phrase[0]]["mc_onset"]
-            if isinstance(start_mc_onset, pd.Series):
-                # If more than one `phraseend` labels appear in the same measure, the opening onset is the last one
-                start_mc_onset = start_mc_onset.iloc[-1]
-
-            end_mc_onset = expanded.loc[phrase[-1]]["mc_onset"]
-            if isinstance(end_mc_onset, pd.Series):
-                # If more than one `phraseend` labels appear in the same measure, the closing onset is the first one
-                end_mc_onset = end_mc_onset.iloc[0]
-
             self.store_measures(
-                included_mcs=phrase,
-                start_mc_onset=start_mc_onset,
-                end_mc_onset=end_mc_onset,
+                included_mcs=phrase["mcs"],
+                start_mc_onset=phrase["start_onset"],
+                end_mc_onset=phrase["end_onset"],
                 exclude_end=False,
                 user_tempo=tempo,
                 user_beat_unit=beat_unit,
