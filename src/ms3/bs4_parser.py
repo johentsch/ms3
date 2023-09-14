@@ -77,7 +77,6 @@
 from __future__ import annotations
 
 import difflib
-import logging
 import os
 import re
 import warnings
@@ -110,7 +109,7 @@ from typing_extensions import Self
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
-from .logger import LoggedClass, temporarily_suppress_warnings
+from .logger import LoggedClass, get_logger, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import (
     adjacency_groups,
@@ -133,7 +132,7 @@ from .utils import (
 )
 from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
 
-module_logger = logging.getLogger(__name__)
+module_logger = get_logger(__name__)
 
 NOTE_SYMBOL_MAP = {
     "metNoteHalfUp": "𝅗𝅥",
@@ -4065,7 +4064,7 @@ def get_vbox(soup: bs4.BeautifulSoup, logger=None) -> Optional[bs4.Tag]:
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     part = soup.find("Part")
     first_staff = part.find_next_sibling("Staff")
     vbox_nodes = first_staff.find_all("VBox")
@@ -4129,7 +4128,7 @@ def make_spanner_cols(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     cols = {
         "nxt_m": "Spanner/next/location/measures",
         "nxt_f": "Spanner/next/location/fractions",
@@ -4529,7 +4528,7 @@ def write_score_to_handler(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     try:
         mscx_string = bs4_to_mscx(soup)
     except Exception as e:

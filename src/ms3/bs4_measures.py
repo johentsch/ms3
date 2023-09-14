@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from fractions import Fraction
 from typing import Dict, List, Optional, Tuple
@@ -7,9 +6,9 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from .logger import LoggedClass
+from .logger import LoggedClass, get_logger
 
-module_logger = logging.getLogger(__name__)
+module_logger = get_logger(__name__)
 
 # region helper functions
 
@@ -31,7 +30,7 @@ def get_volta_structure(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     cols = [mc, volta_start, volta_length]
     sel = measures[volta_start].notna()
     voltas = measures.loc[sel, cols]
@@ -99,7 +98,7 @@ def keep_one_row_each(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     if ignore_columns is None:
         ignore_columns = [differentiating_col]
     else:
@@ -257,7 +256,7 @@ def make_next_col(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     if volta_structure is None:
         volta_structure = {}
     if sections and (df["breaks"].fillna("") == "section").sum() == 0:
@@ -309,7 +308,7 @@ def make_offset_col(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
 
     nominal_duration = df[timesig].map(Fraction)
     actual_duration = df[act_dur]
@@ -490,7 +489,7 @@ def make_timesig_col(
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     n = (
         pd.to_numeric(df[sigN_col])
         .astype("Int64")
@@ -561,7 +560,7 @@ def treat_group(mc: int, group: NDArray, logger=None) -> Dict[int, List[int]]:
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
-        logger = logging.getLogger(logger)
+        logger = get_logger(logger)
     n = group.shape[0]
     mcs, numbers, lengths = group.T
     # check volta numbers
