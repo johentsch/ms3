@@ -1937,8 +1937,10 @@ and {loc_after} before the subsequent {nxt_name}."""
                         for k, v in active_harmony_row.items()
                         if k.startswith("Harmony/")
                     }
-
-        first_tempo_tag = tempo_tags[-1]
+        if tempo_tags:
+            first_tempo_tag = tempo_tags[-1]
+        else:
+            first_tempo_tag = None
 
         excerpt = Excerpt(
             soup,
