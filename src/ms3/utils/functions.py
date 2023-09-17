@@ -3324,7 +3324,16 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
                     "To retain the old behavior, use either.*"
                 ),
             )
-            df.loc[:, bc] = df[bc].astype("boolean").astype("Int64")
+            # try:
+            numeric_column = pd.to_numeric(df[bc], errors="ignore")
+            boolean_column = numeric_column
+            df.loc[:, bc] = boolean_column.astype("Int64")
+            # except TypeError:
+            #     logger.warning(
+            #         f"Could not convert column {bc} to boolean. It contains values other than True, False, and NaN:\n"
+            #         f"{df[bc].unique()}"
+            #     )
+            #     raise
         logger.debug(f"Transformed booleans in the column {bc} to integers.")
     return df
 
