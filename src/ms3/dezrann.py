@@ -240,13 +240,16 @@ def dcml_labels2dicts(
         end_of_score += float(last_mc_row.quarterbeats)
     else:
         # the column 'quarterbeats_all_endings' is present, meaning the piece has first and second endings and the
-        # quarterbeats, which normally leave out first endings, need to be recomputed
-        end_of_score += float(last_mc_row.quarterbeats_all_endings)
-        M = measures.set_index("mc")
-        offset_dict = M["quarterbeats_all_endings"]
-        quarterbeats = labels["mc"].map(offset_dict)
-        quarterbeats = quarterbeats + (labels.mc_onset * 4.0)
-        quarterbeats.rename("quarterbeats", inplace=True)
+        # quarterbeats_all_endings (aka qstamp) need to be computed if not present
+        if "quarterbeats_all_endings" in labels.columns:
+            quarterbeats = labels["quarterbeats_all_endings"]
+        else:
+            end_of_score += float(last_mc_row.quarterbeats_all_endings)
+            M = measures.set_index("mc")
+            offset_dict = M["quarterbeats_all_endings"]
+            quarterbeats = labels["mc"].map(offset_dict)
+            quarterbeats = quarterbeats + (labels.mc_onset * 4.0)
+        quarterbeats = quarterbeats.rename("quarterbeats")
         # also, the first beat of each volta needs to have a label for computing correct durations
         volta_groups = get_volta_groups(M.volta)
     label_and_qb = pd.concat(
