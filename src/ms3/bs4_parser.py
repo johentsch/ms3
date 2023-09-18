@@ -3537,6 +3537,7 @@ class Instrumentation(LoggedClass):
             "defaultClef",
             "controllers",
         ]
+        self.only_drumset_features = ["staff_type_name", "defaultClef"]
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = (
             self.soup_references()
@@ -3612,7 +3613,7 @@ class Instrumentation(LoggedClass):
 
         """
         result = {}
-        for key, instr_data in self.soup_references_data.items():
+        for key, instr_data in self.soup_references().items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
                 if (
@@ -3803,6 +3804,14 @@ class Instrumentation(LoggedClass):
             new_values = self.key2default_instrumentation[trackname_norm]
             self.updated.update({staff_id: new_values["id"]})
 
+        # if no drumset updates we drop redundant features
+        if new_values.useDrumset is None and self.fields[staff_id]["useDrumset"] is None:
+            for elem in self.only_drumset_features:
+                if elem in self.instrumentation_fields:
+                    self.instrumentation_fields.remove(elem)
+        else:
+            self.instrumentation_fields.extend(self.only_drumset_features)
+            self.instrumentation_fields = list(set(self.instrumentation_fields))
         if len(staves_within_part) > 0:
             damaged_upd_staves = [
                 staff_key
@@ -3837,7 +3846,6 @@ class Instrumentation(LoggedClass):
                         f"instruments: \n {pformat(damaged_dict, width=1)}",
                         extra=dict(message_id=(31,)),
                     )
-
         # modification of fields
         staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
         staff_type = [elem.StaffType for elem in staff_data]

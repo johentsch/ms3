@@ -227,7 +227,7 @@ def test_instrumentation_after_instrument_change(source_path):
         print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
         expectation = {
-            f"staff_{staff_id}": INSTRUMENT_DEFAULTS.loc[
+            f"staff_{staff_id}": INSTRUMENT_DEFAULTS[tested_object.instrumentation_fields].loc[
                 expected_instrument_name
             ].to_dict()
             for staff_id, expected_instrument_name in staff_id2expected_instrument.items()
@@ -241,7 +241,7 @@ def test_instrumentation_after_instrument_change(source_path):
             for staff_name in part["staves"]:
                 if staff_name not in expectation:
                     continue
-                test_results[staff_name] = actual_results[staff_name]
+                test_results[staff_name] = {k: actual_results[staff_name][k] for k in tested_object.instrumentation_fields}
         print(f"ASSERT: {test_results} == \n {expectation}")
         if test_results != expectation:
             print(
@@ -265,7 +265,7 @@ def test_accessing_instrumentation_after_instrument_change(source_path):
         print(f"TEST SETTING {staff_to_modify} TO {new_instrument!r}...")
         tested_object.set_instrument(staff_to_modify, new_instrument)
         expectation = {
-            f"staff_{staff_id}": INSTRUMENT_DEFAULTS.loc[
+            f"staff_{staff_id}": INSTRUMENT_DEFAULTS[tested_object.instrumentation_fields].loc[
                 expected_instrument_name
             ].to_dict()
             for staff_id, expected_instrument_name in staff_id2expected_instrument.items()
@@ -274,7 +274,7 @@ def test_accessing_instrumentation_after_instrument_change(source_path):
         for staff_name, actual_result in tested_object.fields.items():
             if staff_name not in expectation:
                 continue
-            test_results[staff_name] = actual_result
+            test_results[staff_name] = {k: actual_result[k] for k in tested_object.instrumentation_fields}
         print(f"ASSERT: {test_results} == {expectation}")
         if test_results != expectation:
             print(
