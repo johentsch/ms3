@@ -540,7 +540,10 @@ class Annotations(LoggedClass):
                             "To retain the old behavior, use either.*"
                         ),
                     )
-                    df.loc[select_dcml, exp.columns] = exp
+                    exp_shared_cols = exp.columns.isin(df.columns.values)
+                    df_shared_cols = df.columns.isin(exp.columns.values)
+                    df.loc[select_dcml, df_shared_cols] = exp.loc[:, exp_shared_cols]
+                    df = pd.concat([df, exp.loc[:, ~exp_shared_cols]], axis=1)
                     df.loc[:, key_cols] = df[key_cols].ffill()
                 self._expanded = df
             drop_cols = [
