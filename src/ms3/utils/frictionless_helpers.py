@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 import re
 from ast import literal_eval
@@ -330,20 +331,32 @@ def get_schema(
     return result
 
 
-def store_as_json_or_yaml(descriptor_dict: dict, descriptor_path: str, logger=None):
+def store_as_json_or_yaml(
+    descriptor_dict: dict | str,
+    descriptor_path: str,
+    logger: Optional[logging.Logger | str] = None,
+):
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
+    directory = os.path.dirname(descriptor_path)
+    os.makedirs(directory, exist_ok=True)
     if descriptor_path.endswith(".yaml"):
         with open(descriptor_path, "w") as f:
-            yaml.dump(descriptor_dict, f)
+            if isinstance(descriptor_dict, str):
+                f.write(descriptor_dict)
+            else:
+                yaml.dump(descriptor_dict, f)
     elif descriptor_path.endswith(".json"):
         with open(descriptor_path, "w") as f:
-            json.dump(descriptor_dict, f, indent=2)
+            if isinstance(descriptor_dict, str):
+                f.write(descriptor_dict)
+            else:
+                json.dump(descriptor_dict, f, indent=2)
     else:
         raise ValueError(
-            f"Descriptor path must end with .yaml or .json: {descriptor_path}"
+            f"descriptor_path must end with .yaml or .json: {descriptor_path}"
         )
     logger.info(f"Stored descriptor at {descriptor_path}.")
 
