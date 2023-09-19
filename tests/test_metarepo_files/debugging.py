@@ -9,10 +9,12 @@ the moment something is considered, it is considered obsolete.
 import os.path
 
 from ms3 import Parse
+from ms3.cli import get_arg_parser, review_cmd
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
+from ms3.utils import resolve_dir
 
-CORPUS_PATH = r"C:\Users\hentsche\baroque_keyboard_corpus\bach_en_fr_suites"
+CORPUS_PATH = "~/all_subcorpora/wagner_overtures"
 
 
 def ignoring_warning():
@@ -27,6 +29,7 @@ def ignoring_warning():
 
 
 def parse_object() -> Parse:
+    """Created by executing an ms3 command and coping the object initializing from the output."""
     p = Parse(
         CORPUS_PATH,
         recursive=True,
@@ -46,9 +49,34 @@ def parse_object() -> Parse:
 
 
 def extraction():
-    """Created by executing an ms3 command and coping the object initializing from the output."""
     p = parse_object()
     p.parse_scores()
+    _ = p.get_facet("expanded")
+    # p.store_extracted_facets(
+    #     root_dir=root_dir,
+    #     notes_folder=notes_folder,
+    #     rests_folder=rests_folder,
+    #     notes_and_rests_folder=notes_and_rests_folder,
+    #     measures_folder=measures_folder,
+    #     events_folder=events_folder,
+    #     labels_folder=labels_folder,
+    #     chords_folder=chords_folder,
+    #     expanded_folder=expanded_folder,
+    #     cadences_folder=cadences_folder,
+    #     form_labels_folder=form_labels_folder,
+    #     metadata_suffix=metadata_suffix,
+    #     markdown=markdown,
+    #     simulate=simulate,
+    #     unfold=unfold,
+    #     interval_index=interval_index,
+    # )
+    return
+
+
+def execute_review_cmd():
+    parser = get_arg_parser()
+    args = parser.parse_args(["review", "-d", resolve_dir(CORPUS_PATH)])
+    review_cmd(args)
 
 
 def transform_cmd():
@@ -64,4 +92,4 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    transform_cmd()
+    execute_review_cmd()
