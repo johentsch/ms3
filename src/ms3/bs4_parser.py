@@ -3547,12 +3547,18 @@ class Instrumentation(LoggedClass):
                 self.updated.update({staff_id: new_values["id"]})
             else:
                 # if there is no data for the trackname to update
-                trackname_norm = difflib.get_close_matches(
+                fuzzy_matches = difflib.get_close_matches(
                     trackname_norm, list(self.key2default_instrumentation.keys()), n=1
-                )[0]
+                )
+                if len(fuzzy_matches) == 0:
+                    suggestion = (
+                        "and no default name was found via fuzzy string matching."
+                    )
+                else:
+                    suggestion = f". Did you mean {fuzzy_matches[0]}?"
                 trackname_old = self.fields[staff_id]["instrumentId"].lower().strip(".")
                 self.logger.warning(
-                    f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? Instrumentation of "
+                    f"Don't recognize trackName '{trackname}'{suggestion} Instrumentation of "
                     f"staves {np.append(staves_within_part, staff_id)} is left unchanged with instrument:"
                     f" {trackname_old}",
                     extra=dict(message_id=(30,)),
@@ -3567,7 +3573,10 @@ class Instrumentation(LoggedClass):
             self.updated.update({staff_id: new_values["id"]})
 
         # if no drumset updates we drop redundant features
-        if new_values.useDrumset is None and self.fields[staff_id]["useDrumset"] is None:
+        if (
+            new_values.useDrumset is None
+            and self.fields[staff_id]["useDrumset"] is None
+        ):
             for elem in self.only_drumset_features:
                 if elem in self.instrumentation_fields:
                     self.instrumentation_fields.remove(elem)
