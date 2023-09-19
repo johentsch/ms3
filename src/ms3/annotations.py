@@ -541,7 +541,7 @@ class Annotations(LoggedClass):
                         ),
                     )
                     df.loc[select_dcml, exp.columns] = exp
-                    df.loc[:, key_cols] = df[key_cols].fillna(method="ffill")
+                    df.loc[:, key_cols] = df[key_cols].ffill()
                 self._expanded = df
             drop_cols = [
                 col for col in ("harmony_layer", "regex_match") if col in df.columns
