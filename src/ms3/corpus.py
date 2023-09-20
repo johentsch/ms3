@@ -3142,7 +3142,7 @@ class Corpus(LoggedClass):
                                 file, root_dir=root_dir, folder=measure_maps_folder
                             )
                             file_path = os.path.join(
-                                directory, f"{piece}.measures.json"
+                                directory, f"{piece}.measuremap.json"
                             )
                             if simulate:
                                 self.logger.info(
