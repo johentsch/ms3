@@ -1262,8 +1262,10 @@ def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
     qstamp_col = qstamp_col.astype(float).rename("qstamp")
     nominal_col = (df.timesig.map(Fraction) * 4.0).rename("nominal_length")
     actual_col = (df.act_dur * 4.0).rename("actual_length")
-    start_repeat_col = df.repeats.str.contains("start").rename("start_repeat")
-    end_repeat_col = df.repeats.str.contains("end").rename("end_repeat")
+    start_repeat_col = (
+        df.repeats.str.contains("start").fillna(False).rename("start_repeat")
+    )
+    end_repeat_col = df.repeats.str.contains("end").fillna(False).rename("end_repeat")
     next_col = df.next.map(list)
 
     measure_map = pd.concat(
