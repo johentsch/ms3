@@ -23,7 +23,7 @@ from ms3.utils.frictionless_helpers import (
     store_as_json_or_yaml,
     store_dataframe_resource,
 )
-from ms3.utils.functions import compute_path_from_file, measures2measure_map
+from ms3.utils.functions import compute_path_from_file
 
 from ._typing import (
     AnnotationsFacet,
@@ -46,6 +46,7 @@ from .logger import (
 )
 from .piece import Piece
 from .score import Score, compare_two_score_objects
+from .transformations import measures2measure_map
 from .utils import (
     File,
     ask_user_to_choose,
