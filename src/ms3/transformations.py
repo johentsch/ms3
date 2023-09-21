@@ -1247,7 +1247,7 @@ def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
     renaming_dict = {
         "mc": "count",
         "mn": "number",
-        "timesig": "time-signature",
+        "timesig": "time_signature",
     }
     mm_columns = list(renaming_dict.values())
     measure_map = df.rename(columns=renaming_dict)[mm_columns]
