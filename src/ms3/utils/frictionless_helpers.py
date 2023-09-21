@@ -332,7 +332,7 @@ def get_schema(
 
 
 def store_as_json_or_yaml(
-    descriptor_dict: dict | str,
+    descriptor_dict: dict | list | str,
     descriptor_path: str,
     logger: Optional[logging.Logger | str] = None,
 ):

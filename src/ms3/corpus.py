@@ -3151,9 +3151,7 @@ class Corpus(LoggedClass):
                                 )
                             else:
                                 measure_map = measures2measure_map(df)
-                                measure_map_json = measure_map.to_json(
-                                    orient="records", indent=2
-                                )
+                                measure_map_json = measure_map.to_dict(orient="records")
                                 store_as_json_or_yaml(
                                     measure_map_json, file_path, logger=self.logger
                                 )
