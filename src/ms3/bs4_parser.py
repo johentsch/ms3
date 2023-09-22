@@ -3299,6 +3299,7 @@ class Instrumentation(LoggedClass):
             "defaultClef",
             "controllers",
         ]
+        self.only_drumset_features = ["staff_type_name", "defaultClef"]
         self.parsed_parts = ParsedParts(soup)
         self.soup_references_data = (
             self.soup_references()
@@ -3374,7 +3375,7 @@ class Instrumentation(LoggedClass):
 
         """
         result = {}
-        for key, instr_data in self.soup_references_data.items():
+        for key, instr_data in self.soup_references().items():
             result[key] = {}
             for key_instr_data, tag in instr_data.items():
                 if (
@@ -3546,12 +3547,18 @@ class Instrumentation(LoggedClass):
                 self.updated.update({staff_id: new_values["id"]})
             else:
                 # if there is no data for the trackname to update
-                trackname_norm = difflib.get_close_matches(
+                fuzzy_matches = difflib.get_close_matches(
                     trackname_norm, list(self.key2default_instrumentation.keys()), n=1
-                )[0]
+                )
+                if len(fuzzy_matches) == 0:
+                    suggestion = (
+                        "and no default name was found via fuzzy string matching."
+                    )
+                else:
+                    suggestion = f". Did you mean {fuzzy_matches[0]}?"
                 trackname_old = self.fields[staff_id]["instrumentId"].lower().strip(".")
                 self.logger.warning(
-                    f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? Instrumentation of "
+                    f"Don't recognize trackName '{trackname}'{suggestion} Instrumentation of "
                     f"staves {np.append(staves_within_part, staff_id)} is left unchanged with instrument:"
                     f" {trackname_old}",
                     extra=dict(message_id=(30,)),
@@ -3565,6 +3572,17 @@ class Instrumentation(LoggedClass):
             new_values = self.key2default_instrumentation[trackname_norm]
             self.updated.update({staff_id: new_values["id"]})
 
+        # if no drumset updates we drop redundant features
+        if (
+            new_values.useDrumset is None
+            and self.fields[staff_id]["useDrumset"] is None
+        ):
+            for elem in self.only_drumset_features:
+                if elem in self.instrumentation_fields:
+                    self.instrumentation_fields.remove(elem)
+        else:
+            self.instrumentation_fields.extend(self.only_drumset_features)
+            self.instrumentation_fields = list(set(self.instrumentation_fields))
         if len(staves_within_part) > 0:
             damaged_upd_staves = [
                 staff_key
@@ -3599,7 +3617,6 @@ class Instrumentation(LoggedClass):
                         f"instruments: \n {pformat(damaged_dict, width=1)}",
                         extra=dict(message_id=(31,)),
                     )
-
         # modification of fields
         staff_data = self.parsed_parts.parts_data[changed_part].find_all("Staff")
         staff_type = [elem.StaffType for elem in staff_data]

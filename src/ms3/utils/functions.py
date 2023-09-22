@@ -953,7 +953,7 @@ def distribute_tokens_over_levels(
         analytical_layers.reading = (analytical_layers.reading + ": ").fillna("")
         # propagate information that has been omitted in the second and following indications,
         # e.g. 2a&b -> [2a:, 2b:]; 1aii&iii -> [1aii:, 1aiii:]; 1ai&b -> [1ai:, 1b] (i.e., readings are not propagated)
-        analytical_layers = analytical_layers.fillna(method="ffill")
+        analytical_layers = analytical_layers.ffill()
         analytical_layers.form_tree = analytical_layers.form_tree.fillna("")
         # split token into alternative components, replace special with normal white-space characters, and strip each
         # component from white space and separating commas
@@ -3324,7 +3324,16 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
                     "To retain the old behavior, use either.*"
                 ),
             )
-            df.loc[:, bc] = df[bc].astype("boolean").astype("Int64")
+            # try:
+            numeric_column = pd.to_numeric(df[bc], errors="ignore")
+            boolean_column = numeric_column
+            df.loc[:, bc] = boolean_column.astype("Int64")
+            # except TypeError:
+            #     logger.warning(
+            #         f"Could not convert column {bc} to boolean. It contains values other than True, False, and NaN:\n"
+            #         f"{df[bc].unique()}"
+            #     )
+            #     raise
         logger.debug(f"Transformed booleans in the column {bc} to integers.")
     return df
 
@@ -4170,8 +4179,10 @@ def adjacency_groups(
             s = S
     elif na_values == "group":
         s = S
-    elif na_values in ("backfill", "bfill", "pad", "ffill"):
-        s = S.fillna(method=na_values)
+    elif na_values in ("backfill", "bfill"):
+        s = S.bfill()
+    elif na_values in ("pad", "ffill"):
+        s = S.ffill()
     else:
         s = S.fillna(value=na_values)
 

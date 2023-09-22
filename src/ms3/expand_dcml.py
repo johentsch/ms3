@@ -626,9 +626,9 @@ def propagate_keys(
             logger.info(
                 "Dataframe needs to have a 'mc' column. Ignoring volta_structure."
             )
-            df[localkey].fillna(method="ffill", inplace=True)
+            df[localkey].ffill(inplace=True)
     else:
-        df[localkey].fillna(method="ffill", inplace=True)
+        df[localkey].ffill(inplace=True)
 
     if add_bool:
         gm = f"{globalkey}_is_minor"

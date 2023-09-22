@@ -190,7 +190,7 @@ def make_keysig_col(
     df: pd.DataFrame, keysig_col: str = "keysig_col", name: str = "keysig"
 ) -> pd.Series:
     if keysig_col in df:
-        return df[keysig_col].fillna(method="ffill").fillna(0).astype(int).rename(name)
+        return df[keysig_col].ffill().fillna(0).astype(int).rename(name)
     return pd.Series(0, index=df.index).rename(name)
 
 
@@ -490,18 +490,8 @@ def make_timesig_col(
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
-    n = (
-        pd.to_numeric(df[sigN_col])
-        .astype("Int64")
-        .fillna(method="ffill")
-        .astype("string")
-    )
-    d = (
-        pd.to_numeric(df[sigD_col])
-        .astype("Int64")
-        .fillna(method="ffill")
-        .astype("string")
-    )
+    n = pd.to_numeric(df[sigN_col]).astype("Int64").ffill().astype("string")
+    d = pd.to_numeric(df[sigD_col]).astype("Int64").ffill().astype("string")
     result = (n + "/" + d).rename(name)
     missing = result.isna()
     if missing.all():
@@ -512,7 +502,7 @@ def make_timesig_col(
         result = result.fillna("4/4")
     elif missing.any():
         # because of the forward fill, only initial measures can have missing values
-        result.fillna(method="bfill", inplace=True)
+        result.bfill(inplace=True)
         fill_value = result.iloc[0]
         if missing.sum() == 1:
             logger.info(
