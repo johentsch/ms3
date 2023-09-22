@@ -34,7 +34,7 @@ the score's beginning (position 0), and the beginning of current measure. Requir
 * `count`: int. Ordinal position of the 'printed' measure in the piece, so that the
 first has counter 1 and the last has the value of the total number of printed measures
 in the piece. This value is unique for each measure of the piece.
-* `id`: str. Unique identifier of the measure in the piece. It defaults to a string
+* `ID`: str. Unique identifier of the measure in the piece. It defaults to a string
 a the `count` value.
 * `time_signature`: str. Fraction corresponding to the time signature in the
 measure. By default, the time signature is equal to the last previously labelled time
@@ -151,7 +151,7 @@ def generate_measure_map(
         # Time signature, time signature upbeat
         is_partial_measure = Fraction(measure.timesig) != Fraction(measure.act_dur)
         """If True, indicates if the printed measure's duration does not match the
-        time signature nominal duration; for example, in anacruses."""
+        time signature nominal length; for example, in anacruses."""
         has_new_timesig = measure.timesig != current_time_sig
         """If True, indicates a change of time signature. This is always the case
         for the first measure."""
@@ -159,19 +159,19 @@ def generate_measure_map(
             display_measure = True
 
         if full_info or is_partial_measure:
-            measure_dict["actual_duration"] = float(measure.duration_qb)
+            measure_dict["actual_length"] = float(measure.duration_qb)
         if full_info or has_new_timesig:
             measure_dict["time_signature"] = measure.timesig
             current_time_sig = measure.timesig
         if full_info:
-            measure_dict["nominal_duration"] = Fraction(measure.timesig) * 4.0
+            measure_dict["nominal_length"] = Fraction(measure.timesig) * 4.0
 
         # Measure count, identifier
         measure_dict["count"] = measure_mc
         if full_info:
             # TODO: allow personalised id
             # By default, also the measure counter
-            measure_dict["id"] = str(measure_mc)
+            measure_dict["ID"] = str(measure_mc)
 
         # Measure number, name
         # TODO: handle first/second endings which last more than 1 measure.
@@ -259,7 +259,7 @@ def generate_measure_map(
 
     # Save output
     if output_file:
-        json_str = {"meter": measure_map}
+        json_str = measure_map  # {"meter": measure_map}
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(json_str, f, indent=2)
 
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     INPUT_DIR = os.path.join(  # from ~ms3/src/ms3 as working directory
         "..", "..", "..", "mozart_piano_sonatas", "measures"
     )
-    TEST_PIECES = ["K284-1", "K284-3"]
+    TEST_PIECES = ["K279-1", "K283-1", "K284-3"]
     TEST_INPUT_PATHS = [
         os.path.join(INPUT_DIR, f"{piece}.tsv") for piece in TEST_PIECES
     ]
@@ -304,6 +304,6 @@ if __name__ == "__main__":
         output_dir=OUTPUT_DIR,
         verbose=True,
         stops=True,
-        compressed=True,
-        full_info=False,
+        compressed=False,
+        full_info=True,
     )
