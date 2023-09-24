@@ -208,3 +208,21 @@ class TestScore:
             directory=str(tmp_path),
         )
         assert len(os.listdir(tmp_path)) == 3
+
+    def test_store_measures(self, score_object, tmp_path):
+        print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_measures(
+            included_mcs=(1, 2),
+            directory=str(tmp_path),
+        )
+        assert len(os.listdir(tmp_path)) == 1
+
+    def test_within_phrase_excerpts(self, score_object, tmp_path):
+        print(f"CREATING WITHIN PHRASE EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_within_phrase_excerpts(directory=str(tmp_path))
+        assert len(os.listdir(tmp_path)) > 0
+
+    def test_phrase_endings(self, score_object, tmp_path):
+        print(f"CREATING PHRASE ENDING EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_phrase_endings(directory=str(tmp_path))
+        assert len(os.listdir(tmp_path)) > 0

@@ -1820,9 +1820,10 @@ and {loc_after} before the subsequent {nxt_name}."""
         localkey: Optional[str] = None,
         start_mc_onset: Optional[Fraction | float] = None,
         end_mc_onset: Optional[Fraction | float] = None,
+        exclude_start: Optional[bool] = False,
         exclude_end: Optional[bool] = False,
-        user_tempo: Optional[float] = None,
-        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction] = Fraction(1 / 1),
         decompose_repeat_tags: Optional[bool] = True,
     ) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
@@ -1848,12 +1849,14 @@ and {loc_after} before the subsequent {nxt_name}."""
             end_mc_onset:
                 Onset value (either Fraction or float) specified as the "true" end of the last measure. Every note
                 with strictly greater onset value will be "removed" (i.e. mutated into rest)
+            exclude_start:
+                If set to True, the first note corresponding to ``start_mc_onset`` will also be "removed"
             exclude_end:
-                If set to True, the note last note corresponding to ``end_mc_onset`` will also be "removed"
-            user_tempo: Optional[float], optional
+                If set to True, the last note corresponding to ``end_mc_onset`` will also be "removed"
+            metronome_tempo: Optional[float], optional
                 The value that the user wants to set as the tempo of the excerpts. The tag will be added
                 to XML tree of the excerpt's file and will have the desired tempo
-            user_beat_unit: Optional[Fraction | float], optional
+            metronome_beat_unit: Optional[Fraction | float], optional
                 To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
                 to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
                 that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
@@ -1958,9 +1961,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             localkey=localkey,
             start_mc_onset=start_mc_onset,
             end_mc_onset=end_mc_onset,
+            exclude_start=exclude_start,
             exclude_end=exclude_end,
-            user_tempo=user_tempo,
-            user_beat_unit=user_beat_unit,
+            metronome_tempo=metronome_tempo,
+            metronome_beat_unit=metronome_beat_unit,
             decompose_repeat_tags=decompose_repeat_tags,
         )
 
@@ -2962,7 +2966,17 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
 # ##########################################################################
 
 
-def from_chord_to_rest(target_tag):
+def replace_chord_tag_with_rest(target_tag):
+    """This functions takes as a parameter a given chord tag from the XML tree and mutates it
+    into a rest tag of the same exact notation. This functionality is useful to `trim` excerpts to have more
+    control over the actual musical elements that are extracted. It also gives the advantage of not changing
+    the relative positions of notes from the original score.
+
+    Args:
+        target_tag: bs4.Tag
+            The chord tag that needs to be mutated into a rest tag of the same duration
+
+    """
     grace_tags = [
         "grace4",
         "grace4after",
@@ -3011,9 +3025,10 @@ class Excerpt(_MSCX_bs4):
         localkey: Optional[str] = None,
         start_mc_onset: Optional[Fraction] = None,
         end_mc_onset: Optional[Fraction] = None,
+        exclude_start: Optional[bool] = False,
         exclude_end: Optional[bool] = False,
-        user_tempo: Optional[float] = None,
-        user_beat_unit: Optional[Fraction] = Fraction(1 / 1),
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction] = Fraction(1 / 1),
         decompose_repeat_tags: Optional[bool] = True,
     ):
         """
@@ -3060,12 +3075,14 @@ class Excerpt(_MSCX_bs4):
             end_mc_onset:
                 Onset value (either Fraction or float) specified as the "true" end of the last measure. Every note
                 with strictly greater onset value will be "removed" (i.e. mutated into rest)
+            exclude_start:
+                If set to True, the note first note corresponding to ``start_mc_onset`` will also be "removed"
             exclude_end:
                 If set to True, the note last note corresponding to ``end_mc_onset`` will also be "removed"
-            user_tempo: Optional[float], optional
+            metronome_tempo: Optional[float], optional
                 The value that the user wants to set as the tempo of the excerpts. The tag will be added
                 to XML tree of the excerpt's file and will have the desired tempo
-            user_beat_unit: Optional[Fraction | float], optional
+            metronome_beat_unit: Optional[Fraction | float], optional
                 To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
                 to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
                 that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
@@ -3085,8 +3102,6 @@ class Excerpt(_MSCX_bs4):
             self.replace_first_harmony(first_harmony_values)
         if first_timesig:
             self.set_first_timesig(first_timesig)
-        if first_tempo_tag:
-            self.set_first_tempo(first_tempo_tag)
         if first_keysig:  # doesn't call if first_keysig == 0 (no accidentals)
             self.set_first_keysig(first_keysig)
         if staff2clef:
@@ -3106,44 +3121,85 @@ class Excerpt(_MSCX_bs4):
             self.amend_first_harmony_keys(globalkey, localkey)
 
         # fine trimming with onset values
-        if not (start_mc_onset is None and end_mc_onset is None):
-            isTuple = isinstance(measures, tuple)
-            isInt = isinstance(measures, int)
+        self.trim(measures, start_mc_onset, end_mc_onset, exclude_start, exclude_end)
 
-            if start_mc_onset is not None:
-                self.replace_notes_before_onset(
-                    start_mc=1,
-                    mc_onset=start_mc_onset,
-                )
+        # enforcing user-set tempo or amending last active metronome mark
+        self.set_tempo(first_tempo_tag, metronome_tempo, metronome_beat_unit)
 
-            if end_mc_onset is not None:
-                if isTuple:
-                    true_end_mc = len(measures)
-                    self.replace_notes_after_onset(
-                        end_mc=true_end_mc,
-                        mc_onset=end_mc_onset,
-                        exclude_end=exclude_end,
-                    )
-                elif isInt:
-                    self.replace_notes_after_onset(
-                        end_mc=1,
-                        mc_onset=end_mc_onset,
-                        exclude_end=exclude_end,
-                    )
+        # cleaning tree from repeat-structure tags
+        if decompose_repeat_tags:
+            self.decompose_repeat_tags()
 
-        # enforcing user-set tempo
-        if user_tempo is not None:
+    def set_tempo(self, first_tempo_tag, metronome_tempo, metronome_beat_unit):
+        """This method handles the enforcing of the tempo at the beginning of the excerpt. If a metronome mark
+        was found in the piece from which the excerpt was taken, and was still active, and no tempo was specified by the
+        user, then it will be set again in the first measure of the excerpt. Otherwise, if the user indeed specified
+        a tempo along with a beat unit, a custom metronome mark will be added to the beginning of the excerpt
+        overwriting any possible pre-existing metronome mark that could've been there.
+
+        Args:
+            first_tempo_tag:
+                The last active metronome mark found in the original piece (if any was found)
+            metronome_tempo:
+                The tempo values specified by the user (usually in beats per minute, bpm)
+            metronome_beat_unit:
+                The beat unit specified by the user that will become the reference for the tempo
+        """
+        if metronome_tempo is not None:
             if first_tempo_tag is not None:
                 self.logger.info("You are overwriting an existing active tempo")
             self.enforce_tempo(
-                user_tempo=user_tempo, user_beat_factor=user_beat_unit, user_call=True
+                metronome_tempo=metronome_tempo,
+                metronome_beat_unit=metronome_beat_unit,
+                user_call=True,
             )
         elif first_tempo_tag is not None:
             self.enforce_tempo(piece_tempo_tag=first_tempo_tag, user_call=False)
 
-        # cleaning tree from repeat-structure tags
-        if decompose_repeat_tags:
-            self.decompose_repeat_tags(soup=soup)
+    def trim(self, measures, start_mc_onset, end_mc_onset, exclude_start, exclude_end):
+        """This method handles the trimming of the excerpt where notes outside of the set onset boundaries are
+        mutated into rests (to not change the relative positions of the notes in the whole excerpt).
+
+        Args:
+            measures:
+                The tuple or integer value representing the MC values of the measures contained in the excerpt.
+            start_mc_onset:
+                The onset value before which we want to mutate all other notes (associated with first measure)
+            end_mc_onset:
+                The onset value after which we want to mutate all other notes (associated with last measure)
+            exclude_start:
+                If set to `True`, the note corresponding to the `start_mc_onset` in the first measure will also be
+                removed
+            exclude_end:
+                If set to `True`, the note corresponding to the `end_mc_onset` in the last measure will also be removed
+        """
+        if not (start_mc_onset is None and end_mc_onset is None):
+            isTuple = isinstance(measures, tuple)
+            isInt = isinstance(measures, int)
+
+            if isInt:
+                self.replace_chords_with_rests(
+                    start_mc=measures,
+                    end_mc=measures,
+                    start_onset=start_mc_onset,
+                    end_onset=end_mc_onset,
+                    exclude_start=exclude_start,
+                    exclude_end=exclude_end,
+                )
+            elif isTuple:
+                self.replace_chords_with_rests(
+                    start_mc=measures[0],
+                    end_mc=measures[-1],
+                    start_onset=start_mc_onset,
+                    end_onset=end_mc_onset,
+                    exclude_start=exclude_start,
+                    exclude_end=exclude_end,
+                )
+        else:
+            self.logger.warning(
+                "At least one onset value (for either the start or the end) must be defined for "
+                + "trimming to occur"
+            )
 
     def amend_first_harmony_keys(
         self,
@@ -3315,72 +3371,125 @@ class Excerpt(_MSCX_bs4):
     def set_first_tempo(self, active_tempo_tag: bs4.Tag):
         self.enforce_tempo(piece_tempo_tag=active_tempo_tag, user_call=False)
 
-    def replace_notes_before_onset(
+    def replace_chords_with_rests(
         self,
-        start_mc: int,
-        mc_onset: Fraction,
+        start_mc: Optional[int] = None,
+        end_mc: Optional[int] = None,
+        start_onset: Optional[Fraction | float] = None,
+        end_onset: Optional[Fraction | float] = None,
+        exclude_start: Optional[bool] = False,
+        exclude_end: Optional[bool] = False,
     ):
-        staves = self.tags[start_mc]
-        for staff, voices in staves.items():
-            for voice, onsets in voices.items():
-                for onset, tag_dicts in onsets.items():
-                    if onset >= mc_onset:
-                        continue
-                    for tag_dict in tag_dicts:
-                        if tag_dict["name"] != "Chord":
-                            continue
-                        from_chord_to_rest(tag_dict["tag"])
+        """The method that given the specific onset and measure values, will handle the silencing of all notes that
+        are not withing the onset bounds. More specifically, notes that appear before the ``start_onset`` in the
+        ``start_mc`` will be mutated to rests (i.e. silenced). Same thing goes for the ``end_mc``. All notes found
+        after the ``end_onset`` will also be mutated to rests.
 
-    def replace_notes_after_onset(
-        self,
-        end_mc: int,
-        mc_onset: Fraction,
-        exclude_end: bool = False,
-    ):
-        staves = self.tags[end_mc]
-        for staff, voices in staves.items():
-            for voice, onsets in voices.items():
-                for onset, tag_dicts in onsets.items():
-                    if onset == mc_onset and not exclude_end:
-                        continue
-                    elif onset < mc_onset:
-                        continue
-                    for tag_dict in tag_dicts:
-                        if tag_dict["name"] != "Chord":
+        Args:
+            start_mc:
+                MC value of the first measure of the excerpt
+            end_mc:
+                MC value of the last measure of the excerpt
+            start_onset:
+                onset value set for the first measure. Everything before this will be silenced
+            end_onset:
+                onset value set for the last measure. Everything after this will be silenced
+            exclude_start:
+                If set to ``True``, the note corresponding to ``start_onset`` in the first measure will also be silenced
+            exclude_end:
+                If set to ``True``, the note corresponding to ``end_onset`` in the last measure will also be silenced
+        """
+        if start_mc is not None and start_onset is not None:
+            staves = self.tags[start_mc]
+            for staff, voices in staves.items():
+                for voice, onsets in voices.items():
+                    for onset, tag_dicts in onsets.items():
+                        if onset == start_onset and not exclude_start:
                             continue
-                        from_chord_to_rest(tag_dict["tag"])
+                        elif onset > start_onset:
+                            continue
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] != "Chord":
+                                continue
+                            replace_chord_tag_with_rest(tag_dict["tag"])
+        else:
+            self.logger.warning(
+                "Both the starting MC value and the onset need to be specified for trimming"
+            )
+
+        if end_mc is not None and end_onset is not None:
+            staves = self.tags[end_mc]
+            for staff, voices in staves.items():
+                for voice, onsets in voices.items():
+                    for onset, tag_dicts in onsets.items():
+                        if onset == end_onset and not exclude_end:
+                            continue
+                        elif onset < end_onset:
+                            continue
+                        for tag_dict in tag_dicts:
+                            if tag_dict["name"] != "Chord":
+                                continue
+                            replace_chord_tag_with_rest(tag_dict["tag"])
+        else:
+            self.logger.warning(
+                "Both the ending MC value and the onset need to be specified for trimming"
+            )
 
     def enforce_tempo(
         self,
         piece_tempo_tag: Optional[bs4.Tag] = None,
-        user_tempo: Optional[float] = None,
-        user_beat_factor: Optional[Fraction] = Fraction(1 / 1),
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
         user_call: Optional[bool] = True,
     ):
+        """Creates the artificial hidden metronome mark that either comes from the last active metronome mark of the
+        original piece or from some specified tempo and beat unit values specified by the user.
+        """
         for measure_tag in self.iter_first_measures():
             tempo_tag = measure_tag.find("Tempo")
             timesig_tag = measure_tag.find("TimeSig")
             if not user_call and piece_tempo_tag is not None and tempo_tag is None:
                 # Copying active tempo tag from "parent" piece
+                _ = self.new_tag(
+                    name="visible",
+                    value=str(0),
+                    append_within=piece_tempo_tag,
+                )
                 timesig_tag.insert_after(piece_tempo_tag)
                 return
             elif user_call and tempo_tag is not None:
-                # since MuseScore's reference is quarter-beats
-                relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
+                relative_tempo = compute_relative_tempo(
+                    metronome_tempo=metronome_tempo,
+                    metronome_beat_unit=metronome_beat_unit,
+                )
                 tempo_tag.clear()
                 _ = self.new_tag(
                     name="tempo",
                     value=str(relative_tempo),
                     append_within=tempo_tag,
                 )
+                # Make marking hidden
+                _ = self.new_tag(
+                    name="visible",
+                    value=str(0),
+                    append_within=tempo_tag,
+                )
                 return
             elif user_call and tempo_tag is None:
-                # since MuseScore's reference is quarter-beats
-                relative_tempo = np.round((user_tempo / 60) * user_beat_factor, 3)
+                relative_tempo = compute_relative_tempo(
+                    metronome_tempo=metronome_tempo,
+                    metronome_beat_unit=metronome_beat_unit,
+                )
                 tempo_tag = self.new_tag(name="Tempo", after=timesig_tag)
                 _ = self.new_tag(
                     name="tempo",
                     value=str(relative_tempo),
+                    append_within=tempo_tag,
+                )
+                # Make marking hidden
+                _ = self.new_tag(
+                    name="visible",
+                    value=str(0),
                     append_within=tempo_tag,
                 )
                 return
@@ -3390,7 +3499,11 @@ class Excerpt(_MSCX_bs4):
                 )
                 return
 
-    def decompose_repeat_tags(self, soup: bs4.BeautifulSoup):
+    def decompose_repeat_tags(self):
+        """Decomposes all tags that refer to repeat structures of any king in the XML tree of the excerpt.
+        This is a safety measure to avoid ending up with broken repeat structures that would alter the proper "timeline"
+        of the excerpt itself."""
+        soup = self.soup
         tags = [
             {"name": "endRepeat"},
             {"name": "startRepeat"},
@@ -3406,6 +3519,14 @@ class Excerpt(_MSCX_bs4):
         # not in the list because has an attribute. Easier this way
         for _ in soup.find_all("Spanner", type="Volta"):
             _.decompose()
+
+
+def compute_relative_tempo(
+    metronome_tempo: float,
+    metronome_beat_unit: Optional[Fraction] = Fraction(1 / 4),
+):
+    unit = Fraction(metronome_beat_unit).limit_denominator(32)
+    return np.round((metronome_tempo / 60) * unit * 4, 3)
 
 
 class ParsedParts(LoggedClass):
@@ -3785,18 +3906,12 @@ class Instrumentation(LoggedClass):
                 self.updated.update({staff_id: new_values["id"]})
             else:
                 # if there is no data for the trackname to update
-                fuzzy_matches = difflib.get_close_matches(
+                trackname_norm = difflib.get_close_matches(
                     trackname_norm, list(self.key2default_instrumentation.keys()), n=1
-                )
-                if len(fuzzy_matches) == 0:
-                    suggestion = (
-                        "and no default name was found via fuzzy string matching."
-                    )
-                else:
-                    suggestion = f". Did you mean {fuzzy_matches[0]}?"
+                )[0]
                 trackname_old = self.fields[staff_id]["instrumentId"].lower().strip(".")
                 self.logger.warning(
-                    f"Don't recognize trackName '{trackname}'{suggestion} Instrumentation of "
+                    f"Don't recognize trackName '{trackname}'. Did you mean {trackname_norm}? Instrumentation of "
                     f"staves {np.append(staves_within_part, staff_id)} is left unchanged with instrument:"
                     f" {trackname_old}",
                     extra=dict(message_id=(30,)),
