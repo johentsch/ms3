@@ -867,7 +867,7 @@ class MSCX(LoggedClass):
                 list(df[cols].drop_duplicates().itertuples(name=None, index=True))
             )
         }
-        changed = pd.Series(changed, index=df.index).fillna(method="ffill")
+        changed = pd.Series(changed, index=df.index).ffill()
         changes = changed.sum()
         if changes > 0:
             self.changed = True

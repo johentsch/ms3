@@ -953,7 +953,7 @@ def distribute_tokens_over_levels(
         analytical_layers.reading = (analytical_layers.reading + ": ").fillna("")
         # propagate information that has been omitted in the second and following indications,
         # e.g. 2a&b -> [2a:, 2b:]; 1aii&iii -> [1aii:, 1aiii:]; 1ai&b -> [1ai:, 1b] (i.e., readings are not propagated)
-        analytical_layers = analytical_layers.fillna(method="ffill")
+        analytical_layers = analytical_layers.ffill()
         analytical_layers.form_tree = analytical_layers.form_tree.fillna("")
         # split token into alternative components, replace special with normal white-space characters, and strip each
         # component from white space and separating commas
@@ -4179,8 +4179,10 @@ def adjacency_groups(
             s = S
     elif na_values == "group":
         s = S
-    elif na_values in ("backfill", "bfill", "pad", "ffill"):
-        s = S.fillna(method=na_values)
+    elif na_values in ("backfill", "bfill"):
+        s = S.bfill()
+    elif na_values in ("pad", "ffill"):
+        s = S.ffill()
     else:
         s = S.fillna(value=na_values)
 
