@@ -3142,9 +3142,7 @@ class Corpus(LoggedClass):
                             directory = compute_path_from_file(
                                 file, root_dir=root_dir, folder=measure_maps_folder
                             )
-                            file_path = os.path.join(
-                                directory, f"{piece}.measuremap.json"
-                            )
+                            file_path = os.path.join(directory, f"{piece}.mm.json")
                             if simulate:
                                 self.logger.info(
                                     f"Would have stored the MeasureMap from {file.rel_path} as {file_path}."

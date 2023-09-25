@@ -694,7 +694,7 @@ def get_arg_parser():
         metavar="folder",
         nargs="?",
         const="../measures",
-        help="Folder where to store measuremap.json files. They are a variant of the 'normal' --measures with renamed "
+        help="Folder where to store <name>.mm.json files. They are a variant of the 'normal' --measures with renamed "
         "columns, satisfying the MeasureMap specification.",
     )
     extract_args.add_argument(
