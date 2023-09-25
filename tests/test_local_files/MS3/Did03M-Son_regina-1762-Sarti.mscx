@@ -749,7 +749,7 @@ Text: Pietro Metastasio (1689-1782)</text>
             </Rest>
           <StaffText>
             <offset x="1.54798" y="-5.6871"/>
-            <text>2i: solo 1|sent - ii: Vocal section|pd, 3i: pres - 3ii: ant|sent, 
+            <text>2i: solo 1|sent - ii: Vocal section|pd, 3i: pres - 3ii: ant|sent,
 4i: bi - ii: pres, 5i: } - ii: bi</text>
             </StaffText>
           <Chord>
@@ -5669,7 +5669,7 @@ Text: Pietro Metastasio (1689-1782)</text>
             </Dynamic>
           <StaffText>
             <offset x="1.40218" y="-3.52522"/>
-            <text>2i: rit|sent - ii: /, 3i: pres - ii: cons|Ritornello phrase, 
+            <text>2i: rit|sent - ii: /, 3i: pres - ii: cons|Ritornello phrase,
 4i: si - ii: pres, 5i: mod - ii: si, 6i: } - ii: mod</text>
             </StaffText>
           <Beam>

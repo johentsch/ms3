@@ -271,7 +271,7 @@
 
 I in Es (Mi♭).
 
-2 Clarinetti.              
+2 Clarinetti.
 
 II in C (Ut).</longName>
         <shortName>Clar. I</shortName>
@@ -387,7 +387,7 @@ II in C (Ut).</longName>
 
 I e II in E (Mi♭)
 
-4 Corni.                   
+4 Corni.
 
 III e IV in C (Ut).</longName>
         <shortName>Cor. I.II.</shortName>
@@ -508,7 +508,7 @@ III e IV in C (Ut).</longName>
 
 I.II.
 
-4 Fagotti        
+4 Fagotti
 
 III.IV.</longName>
         <shortName>Fag. I.II.</shortName>
@@ -918,7 +918,7 @@ III.IV.</longName>
         </Staff>
       <trackName>Timpani</trackName>
       <Instrument>
-        <longName>Timpani I    
+        <longName>Timpani I
 in H (Si) E (Mi)</longName>
         <shortName>Timp. I</shortName>
         <trackName>Timpani</trackName>
@@ -973,7 +973,7 @@ in H (Si) E (Mi)</longName>
         </Staff>
       <trackName>Timpani</trackName>
       <Instrument>
-        <longName>Timpani II        
+        <longName>Timpani II
 in Gis (Sol#) Cis (Ut#)</longName>
         <shortName>Timp. II</shortName>
         <trackName>Timpani</trackName>

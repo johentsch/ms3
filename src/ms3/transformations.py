@@ -1,6 +1,7 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
 import warnings
+from fractions import Fraction
 from fractions import Fraction as frac
 from functools import reduce
 from typing import Dict, List, Optional, Tuple, Union
@@ -1224,6 +1225,62 @@ def make_gantt_data(
         + ("<br>Tonicized local scale degree: " + res.relativeroot).fillna("")
     )
     return res
+
+
+def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
+    """Turns the given measures table into a table corresponding to the MeasureMap specification. This includes
+    renaming columns and applying mild transformations to some of them. The resulting measure map can be converted
+    to JSON format via ``df.to_json(orient='records')``.
+
+    Args:
+        df: Measures table for a single piece.
+
+    Returns:
+        The measure map where each row corresponds to one entry.
+
+    Raises:
+        ValueError:
+            If there are NA values in the quarterbeats column. If a quarterbeats_all_endings column is present,
+            which should never include NA values, it will be used for the "qstamp" column.
+    """
+    # renaming columns
+    renaming_dict = {
+        "mc": "count",
+        "mn": "number",
+        "timesig": "time_signature",
+    }
+    mm_columns = list(renaming_dict.values())
+    measure_map = df.rename(columns=renaming_dict)[mm_columns]
+
+    # quarterbeats_all_endings only present in measures if score has voltas
+    if "quarterbeats_all_endings" in df:
+        qstamp_col = df["quarterbeats_all_endings"]
+    else:
+        qstamp_col = df["quarterbeats"]
+    if qstamp_col.isna().any():
+        raise ValueError(f"There are NA values in the column {qstamp_col.name!r}.")
+    qstamp_col = qstamp_col.astype(float).rename("qstamp")
+    nominal_col = (df.timesig.map(Fraction) * 4.0).rename("nominal_length")
+    actual_col = (df.act_dur * 4.0).rename("actual_length")
+    start_repeat_col = (
+        df.repeats.str.contains("start").fillna(False).rename("start_repeat")
+    )
+    end_repeat_col = df.repeats.str.contains("end").fillna(False).rename("end_repeat")
+    next_col = df.next.map(list)
+
+    measure_map = pd.concat(
+        [
+            measure_map,
+            qstamp_col,
+            nominal_col,
+            actual_col,
+            start_repeat_col,
+            end_repeat_col,
+            next_col,
+        ],
+        axis=1,
+    )
+    return measure_map
 
 
 def notes2pcvs(

@@ -19,7 +19,10 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pathos.multiprocessing as mp
-from ms3.utils.frictionless_helpers import store_dataframe_resource
+from ms3.utils.frictionless_helpers import (
+    store_as_json_or_yaml,
+    store_dataframe_resource,
+)
 from ms3.utils.functions import compute_path_from_file
 
 from ._typing import (
@@ -43,6 +46,7 @@ from .logger import (
 )
 from .piece import Piece
 from .score import Score, compare_two_score_objects
+from .transformations import measures2measure_map
 from .utils import (
     File,
     ask_user_to_choose,
@@ -3046,6 +3050,7 @@ class Corpus(LoggedClass):
         view_name: Optional[str] = None,
         root_dir: Optional[str] = None,
         measures_folder: Optional[str] = None,
+        measure_maps_folder: Optional[str] = None,
         notes_folder: Optional[str] = None,
         rests_folder: Optional[str] = None,
         notes_and_rests_folder: Optional[str] = None,
@@ -3097,11 +3102,19 @@ class Corpus(LoggedClass):
         folder_params = {
             t: lcls[p] for t, p in zip(df_types, folder_vars) if lcls[p] is not None
         }
-        output_metadata = metadata_suffix is not None
-        if len(folder_params) == 0 and not output_metadata:
+        do_store_metadata = metadata_suffix is not None
+        do_store_measure_maps = measure_maps_folder is not None
+        if (
+            len(folder_params) == 0
+            and not do_store_metadata
+            and not do_store_measure_maps
+        ):
             self.logger.warning("Pass at least one parameter to store files.")
             return []
         facets = list(folder_params.keys())
+        do_store_measures_tsv = "measures" in facets
+        if do_store_measure_maps and not do_store_measures_tsv:
+            facets.append("measures")
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
         paths = []
@@ -3124,11 +3137,28 @@ class Corpus(LoggedClass):
                     for facet, df in facet2dataframe.items():
                         if df is None:
                             continue
+                        piece_name = file.piece
+                        if facet == "measures" and do_store_measure_maps:
+                            directory = compute_path_from_file(
+                                file, root_dir=root_dir, folder=measure_maps_folder
+                            )
+                            file_path = os.path.join(directory, f"{piece}.mm.json")
+                            if simulate:
+                                self.logger.info(
+                                    f"Would have stored the MeasureMap from {file.rel_path} as {file_path}."
+                                )
+                            else:
+                                measure_map = measures2measure_map(df)
+                                measure_map_json = measure_map.to_dict(orient="records")
+                                store_as_json_or_yaml(
+                                    measure_map_json, file_path, logger=self.logger
+                                )
+                            if not do_store_measures_tsv:
+                                continue
                         folder = folder_params[facet]
                         directory = compute_path_from_file(
                             file, root_dir=root_dir, folder=folder
                         )
-                        piece_name = file.piece
                         if unfold:
                             piece_name += "_unfolded"
                         facet_param = "harmonies" if facet == "expanded" else facet
@@ -3153,7 +3183,7 @@ class Corpus(LoggedClass):
                                 logger=self.logger,
                             )
                         paths.append(descriptor_or_resource_path)
-        if output_metadata:
+        if do_store_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_tsv_from_parsed_scores(
                     root_dir=root_dir, suffix=metadata_suffix, markdown_file=None

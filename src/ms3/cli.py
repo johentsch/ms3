@@ -43,6 +43,7 @@ def gather_extract_params(args) -> List[str]:
         for name, arg in zip(
             (
                 "measures",
+                "measure_maps",
                 "notes",
                 "rests",
                 "labels",
@@ -53,6 +54,7 @@ def gather_extract_params(args) -> List[str]:
             ),
             (
                 args.measures,
+                args.measure_maps,
                 args.notes,
                 args.rests,
                 args.labels,
@@ -213,6 +215,7 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
         notes_folder=args.notes,
         labels_folder=args.labels,
         measures_folder=args.measures,
+        measure_maps_folder=args.measure_maps,
         rests_folder=args.rests,
         events_folder=args.events,
         chords_folder=args.chords,
@@ -684,6 +687,15 @@ def get_arg_parser():
         nargs="?",
         const="../measures",
         help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.",
+    )
+    extract_args.add_argument(
+        "-MM",
+        "--measure_maps",
+        metavar="folder",
+        nargs="?",
+        const="../measures",
+        help="Folder where to store <name>.mm.json files. They are a variant of the 'normal' --measures with renamed "
+        "columns, satisfying the MeasureMap specification.",
     )
     extract_args.add_argument(
         "-N",

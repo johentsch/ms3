@@ -6488,3 +6488,79 @@ def replace_extension(filepath: str, new_extension: str) -> str:
     if new_extension[0] != ".":
         new_extension = "." + new_extension
     return os.path.splitext(filepath)[0] + new_extension
+
+
+def get_value_profile_mask(
+    series: pd.Series,
+    na_values: str = "group",
+    prevent_merge: bool = False,
+    logger: Optional[logging.Logger | str] = None,
+) -> pd.Series:
+    """Turns a Series into a boolean mask indicating those values that are distinct from their predecessors.
+    There are several ways of dealing with NA values.
+
+    NB: This is a duplicate of a DiMCAT function.
+
+    Args:
+        S: Series in which to group identical adjacent values with each other.
+        na_values:
+            | 'group' creates individual groups for NA values (default).
+            | 'backfill' or 'bfill' groups NA values with the subsequent group
+            | 'pad', 'ffill' groups NA values with the preceding group
+            | Any other string works like 'group', with the difference that the groups will be named with this value.
+            | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and
+              the subsequent value will be based on the preceding value.
+        prevent_merge:
+            By default, if you use the `na_values` argument to fill NA values, they might lead to two ranges merging.
+            Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``:
+            By default, the outcome would be a single range ``[True, False, False]``. However,
+            passing ``prevent_merge=True`` will result in ``[True, False, True]``.
+
+    Returns:
+        A boolean mask where False marks values that are not identical with their preceding values.
+        Using that mask on the input series yields the value profile.
+    """
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    reindex_flag = False
+    if prevent_merge:
+        forced_beginnings = series.notna() & ~series.notna().shift().fillna(False)
+    if na_values is None:
+        if series.isna().any():
+            s = series.dropna()
+            reindex_flag = True
+        else:
+            s = series
+    elif na_values == "group":
+        s = series
+    elif na_values in ("backfill", "bfill", "pad", "ffill"):
+        s = series.fillna(method=na_values)
+    else:
+        s = series.fillna(value=na_values)
+
+    if s.isna().any():
+        if na_values == "group":
+            shifted = s.shift()
+            if pd.isnull(series.iloc[0]):
+                shifted.iloc[0] = True
+            beginnings = ~nan_eq(s, shifted)
+        else:
+            logger.warning(
+                f"After treating the Series '{series.name}' with na_values='{na_values}', "
+                f"there were still {s.isna().sum()} NA values left."
+            )
+            s = s.dropna()
+            beginnings = (s != s.shift()).fillna(False)
+            beginnings.iloc[0] = True
+            reindex_flag = True
+    else:
+        beginnings = s != s.shift()
+        beginnings.iloc[0] = True
+    if prevent_merge:
+        beginnings |= forced_beginnings
+    beginnings = beginnings.astype("boolean")
+    if reindex_flag:
+        return beginnings.reindex(series.index)
+    return beginnings
