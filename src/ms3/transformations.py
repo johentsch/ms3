@@ -1244,13 +1244,23 @@ def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
             which should never include NA values, it will be used for the "qstamp" column.
     """
     # renaming columns
-    renaming_dict = {
-        "mc": "count",
-        "mn": "number",
-        "timesig": "time_signature",
-    }
-    mm_columns = list(renaming_dict.values())
-    measure_map = df.rename(columns=renaming_dict)[mm_columns]
+    count_col = df.mc.rename("count")
+    id_col = count_col.astype(str).rename("ID")
+    number_col = df.mn.rename("number")
+    name_col = number_col.astype(str).rename("name")
+    if "volta" in df:
+
+        def make_repeat_char(val: int) -> str:
+            """Turns a volta number into the corresponding repeat character."""
+            if pd.isnull(val):
+                return ""
+            try:
+                return chr(int(val) + 96)  # 1 -> 'a', 2 -> 'b', etc.
+            except Exception:
+                return ""
+
+        name_col += df.volta.map(make_repeat_char)
+    timesig_col = df["timesig"].rename("time_signature")
 
     # quarterbeats_all_endings only present in measures if score has voltas
     if "quarterbeats_all_endings" in df:
@@ -1270,8 +1280,12 @@ def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
 
     measure_map = pd.concat(
         [
-            measure_map,
+            id_col,
+            count_col,
             qstamp_col,
+            number_col,
+            name_col,
+            timesig_col,
             nominal_col,
             actual_col,
             start_repeat_col,
