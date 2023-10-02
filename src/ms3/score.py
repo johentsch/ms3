@@ -2117,8 +2117,10 @@ class Score(LoggedClass):
         if len(labels_before) == 0:
             self.logger.info("Annotation object does not contain any labels.")
             return False
-        if staff < 1:
-            staff = self.mscx.staff_ids[staff]
+        if staff is not None:
+            staff = int(staff)
+            if staff < 1:
+                staff = self.mscx.staff_ids[staff]
         need_moving = before.get_labels(
             staff=staff,
             voice=voice,
