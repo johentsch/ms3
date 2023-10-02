@@ -3336,7 +3336,7 @@ class Instrumentation(LoggedClass):
                 }
             channel_info = part.find_all("Channel")
             cur_dict = {
-                "id": instrument_tag["id"],
+                "id": instrument_tag.get("id"),
                 "ChannelName": [],
                 "ChannelValue": [],
                 "controllers": [],
