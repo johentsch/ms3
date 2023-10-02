@@ -1981,6 +1981,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             "midi",
             "name",
             "octave",
+            "tuning",
             "chord_id",
         ]
         if self.has_voltas:
@@ -2008,6 +2009,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             staff2drums=self.staff2drum_map,
         )
         append_cols = [pitch_info, tied, names, octaves]
+        if "Note/tuning" in self._notes.columns:
+            detuned_notes = self._notes["Note/tuning"].rename("tuning")
+            detuned_notes = pd.to_numeric(detuned_notes, downcast="float")
+            append_cols.append(detuned_notes)
         self._nl = pd.concat(
             [self._nl.drop(columns=["midi", "tpc"])] + append_cols, axis=1
         )
