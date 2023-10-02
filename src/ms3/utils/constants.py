@@ -314,6 +314,9 @@ FORM_TOKEN_ABBREVIATIONS = {
     "ptchr": "post-chorus",
 }
 
+KEYSIG_DICT_ENTRY_REGEX = r"(\d+): (-?\d+)(?:, )?"
+TIMESIG_DICT_ENTRY_REGEX = r"(\d+): (\d+\/\d+)(?:, )?"
+
 MS3_HTML = {
     "#005500": "ms3_darkgreen",
     "#aa0000": "ms3_darkred",
