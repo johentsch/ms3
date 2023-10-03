@@ -2159,11 +2159,68 @@ def str2timesig_dict(dict_content: str) -> Dict[int, str]:
     return {int(mc): timesig for mc, timesig in entry_tuples}
 
 
+# default values copied from marshmallow's fields.Boolean
+TRUTHY_VALUES = {
+    "t",
+    "T",
+    "true",
+    "True",
+    "TRUE",
+    "on",
+    "On",
+    "ON",
+    "y",
+    "Y",
+    "yes",
+    "Yes",
+    "YES",
+    "1",
+    1,
+    True,
+}
+FALSY_VALUES = {
+    "f",
+    "F",
+    "false",
+    "False",
+    "FALSE",
+    "off",
+    "Off",
+    "OFF",
+    "n",
+    "N",
+    "no",
+    "No",
+    "NO",
+    "0",
+    0,
+    0.0,
+    False,
+}
+
+
 def int2bool(s: str) -> Union[bool, str]:
     try:
         return bool(int(s))
     except Exception:
         return s
+
+
+def value2bool(value: str | float | int | bool) -> bool | str | float | int:
+    if value in TRUTHY_VALUES:
+        return True
+    if value in FALSY_VALUES:
+        return False
+    if isinstance(value, str):
+        try:
+            converted = float(value)
+        except Exception:
+            return value
+        if converted in TRUTHY_VALUES:
+            return True
+        if converted in FALSY_VALUES:
+            return False
+    return value
 
 
 def safe_frac(s: str) -> Union[Fraction, str]:
@@ -2226,9 +2283,9 @@ TSV_COLUMN_CONVERTERS = {
     "composed_end": safe_int,
     "composed_start": safe_int,
     "chord_tones": str2inttuple,
-    "globalkey_is_minor": int2bool,
+    "globalkey_is_minor": value2bool,
     "KeySig": str2keysig_dict,
-    "localkey_is_minor": int2bool,
+    "localkey_is_minor": value2bool,
     "mc_offset": safe_frac,
     "mc_onset": safe_frac,
     "mn_onset": safe_frac,
@@ -2644,6 +2701,7 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
             float: "float",
             int: "integer",
             int2bool: "boolean",
+            value2bool: "boolean",
             safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
             safe_int: "integer",
             str2inttuple: {

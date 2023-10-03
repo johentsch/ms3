@@ -27,7 +27,6 @@ from .functions import (
     TSV_COLUMN_TITLES,
     File,
     eval_string_to_nested_list,
-    int2bool,
     replace_extension,
     resolve_facets_param,
     safe_frac,
@@ -35,6 +34,7 @@ from .functions import (
     str2inttuple,
     str2keysig_dict,
     str2timesig_dict,
+    value2bool,
     write_tsv,
     write_validation_errors_to_file,
 )
@@ -90,7 +90,7 @@ def column_name2frictionless_field(column_name) -> dict:
         elif string_converter == str2inttuple:
             field["type"] = "string"
             constraints["pattern"] = INT_ARRAY_REGEX
-        elif string_converter == int2bool:
+        elif string_converter == value2bool:
             field["type"] = "boolean"
         elif string_converter in (literal_eval, eval_string_to_nested_list):
             field["type"] = "array"
