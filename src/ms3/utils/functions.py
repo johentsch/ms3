@@ -52,6 +52,8 @@ from tqdm import tqdm
 from typing_extensions import Self
 
 from .constants import (
+    BOOLEAN_COLUMNS,
+    COLLECTION_COLUMNS,
     DCML_REGEX,
     DEFAULT_CREATOR_METADATA,
     FORM_LEVEL_CAPTURE_REGEX,
@@ -3384,7 +3386,12 @@ def next2sequence(next_col: pd.Series, logger=None) -> Optional[List[int]]:
     return result
 
 
-def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=None):
+def no_collections_no_booleans(
+    df: pd.DataFrame,
+    collection_columns: Optional[Collection[str]] = None,
+    boolean_columns: Optional[Collection[str]] = None,
+    logger=None,
+):
     """
     Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones', 'volta_mcs] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
@@ -3396,19 +3403,21 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
         logger = get_logger(logger)
     if df is None:
         return df
-    collection_cols = ["next", "chord_tones", "added_tones"]
-    bool_cols = ["globalkey_is_minor", "localkey_is_minor", "has_drumset"]
-    if coll_columns is not None:
-        collection_cols += list(coll_columns)
-    if bool_columns is not None:
-        bool_cols += list(bool_columns)
+    collection_columns = (
+        list(COLLECTION_COLUMNS)
+        if collection_columns is None
+        else list(collection_columns)
+    )
+    boolean_columns = (
+        list(BOOLEAN_COLUMNS) if boolean_columns is None else list(boolean_columns)
+    )
     try:
-        cc = [c for c in collection_cols if c in df.columns]
+        coll_cols = [c for c in collection_columns if c in df.columns]
     except Exception:
         logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
         return df
     df = df.copy()
-    for c in cc:
+    for c in coll_cols:
         null_vals = df[c].isna()
         if null_vals.all():
             continue
@@ -3428,8 +3437,8 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
             df.loc[:, c] = transform(df[c], iterable2str)
         logger.debug(f"Transformed iterables in the column {c} to strings.")
     # df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
-    boolean_columns = [c for c in bool_cols if c in df.columns]
-    for bc in boolean_columns:
+    bool_cols = [c for c in boolean_columns if c in df.columns]
+    for bc in bool_cols:
         null_vals = df[bc].isna()
         if null_vals.all():
             continue
@@ -4719,10 +4728,18 @@ def prepare_metadata_for_writing(metadata_df):
     return metadata_df
 
 
-def ensure_correct_column_types(df: pd.DataFrame) -> pd.DataFrame:
-    global TSV_COLUMN_DTYPES
+def ensure_correct_column_types(
+    df: pd.DataFrame, exclude_columns: Optional[Collection[str]] = None
+) -> pd.DataFrame:
+    excluded_columns = (
+        list(BOOLEAN_COLUMNS + COLLECTION_COLUMNS)
+        if exclude_columns is None
+        else exclude_columns
+    )
     columns_to_convert = {
-        col: TSV_COLUMN_DTYPES[col] for col in df.columns if col in TSV_COLUMN_DTYPES
+        col: TSV_COLUMN_DTYPES[col]
+        for col in df.columns
+        if col in TSV_COLUMN_DTYPES and col not in excluded_columns
     }
     df_converted = df.astype(columns_to_convert)
     return df_converted
