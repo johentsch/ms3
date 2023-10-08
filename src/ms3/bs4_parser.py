@@ -1823,7 +1823,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         exclude_start: Optional[bool] = False,
         exclude_end: Optional[bool] = False,
         metronome_tempo: Optional[float] = None,
-        metronome_beat_unit: Optional[Fraction] = Fraction(1 / 1),
+        metronome_beat_unit: Optional[Fraction] = Fraction(1 / 4),
         decompose_repeat_tags: Optional[bool] = True,
     ) -> Excerpt:
         """Create an excerpt by removing all <Measure> tags that are not selected in ``included_mcs``. The order of
@@ -3400,7 +3400,7 @@ class Excerpt(_MSCX_bs4):
                 If set to ``True``, the note corresponding to ``end_onset`` in the last measure will also be silenced
         """
         if start_mc is not None and start_onset is not None:
-            staves = self.tags[start_mc]
+            staves = self.tags[1]
             for staff, voices in staves.items():
                 for voice, onsets in voices.items():
                     for onset, tag_dicts in onsets.items():
@@ -3417,8 +3417,10 @@ class Excerpt(_MSCX_bs4):
                 "Both the starting MC value and the onset need to be specified for trimming"
             )
 
+        end = end_mc - start_mc + 1
+
         if end_mc is not None and end_onset is not None:
-            staves = self.tags[end_mc]
+            staves = self.tags[end]
             for staff, voices in staves.items():
                 for voice, onsets in voices.items():
                     for onset, tag_dicts in onsets.items():
