@@ -1888,6 +1888,8 @@ and {loc_after} before the subsequent {nxt_name}."""
             f"Cannot create an excerpt not containing no measures, which would be the result for included_mcs="
             f"{included_mcs}."
         )
+        if self.soup is None:
+            self.make_writeable()
         soup = copy(self.soup)
         part_tag = soup.find("Part")
         if part_tag is None:
