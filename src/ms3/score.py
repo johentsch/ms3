@@ -1132,13 +1132,16 @@ class MSCX(LoggedClass):
                 If set to True, the note corresponding to ``start_mc_onset`` will be removed as well.
             exclude_end:
                 If set to True, the note corresponding to ``end_mc_onset`` will be removed as well.
-            metronome_tempo:
-                Specifying this parameter will create a hidden metronome marking that will overwrite the initial
-                tempo indication if present. The new metronome marking will set the tempo as ``metronome_tempo``
-            metronome_beat_unit:
-                The unit specified by the user to define the beat units that correspond to the tempo value.
-                1 is the default and (since MuseScore uses by default the quarter-beat as unit) corresponds to the
-                quarter-beat. 1/2 (or .5) will correspond to the eighth note and so on.
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
             directory:
                 Path to the folder where the excerpts are to be stored.
             suffix:
@@ -1351,14 +1354,16 @@ class MSCX(LoggedClass):
 
         Args:
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
 
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
 
             directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
@@ -1432,14 +1437,16 @@ class MSCX(LoggedClass):
                 removed thus excluding the last onset (i.e. the end)
 
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
 
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
 
             directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
