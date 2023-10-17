@@ -71,7 +71,17 @@ def transform_cmd():
     )
 
 
-if __name__ == "__main__":
-    inspect_raw_notes(
-        "/home/laser/all_subcorpora/bach_solo/MS3/detuned/BWV1011_01_Prelude.mscz"
+def mozart_test():
+    here = os.path.dirname(__file__)
+    local_test_files = os.path.abspath(
+        os.path.join(here, "..", "test_local_files", "MS3")
     )
+    mozart_filepath = os.path.join(local_test_files, "K284-3_section_breaks.mscx")
+    score_object = Score(mozart_filepath)
+    score_object.mscx.store_phrase_excerpts(
+        directory=local_test_files,
+    )
+
+
+if __name__ == "__main__":
+    mozart_test()
