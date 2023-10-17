@@ -8,7 +8,7 @@ the moment something is considered, it is considered obsolete.
 """
 import os.path
 
-from ms3 import Parse
+from ms3 import Parse, Score
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
@@ -45,6 +45,14 @@ def parse_object() -> Parse:
     return p
 
 
+def inspect_raw_notes(filepath):
+    """The table on which _MSCX_bs4.make_standard_notelist() operates."""
+    s = Score(filepath)
+    raw_notes = s.mscx.parsed._notes
+    print(raw_notes.columns.to_list())
+    print(raw_notes)
+
+
 def extraction():
     """Created by executing an ms3 command and coping the object initializing from the output."""
     p = parse_object()
@@ -64,4 +72,6 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    transform_cmd()
+    inspect_raw_notes(
+        "/home/laser/all_subcorpora/bach_solo/MS3/detuned/BWV1011_01_Prelude.mscz"
+    )

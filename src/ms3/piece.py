@@ -1962,6 +1962,8 @@ class Piece(LoggedClass):
                     if (m := re.match(r"^(staff_\d+)_instrument", column)) is None:
                         continue
                     staff_id = m.group(1)
+                    if staff_id not in current_values:
+                        continue
                     if pd.isnull(value):
                         self.logger.warning(
                             f"{file.full_path}: Instrumentation for staff {staff_id} is empty."
