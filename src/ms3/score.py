@@ -1308,35 +1308,6 @@ class MSCX(LoggedClass):
                 phrases.append(phrase)
                 unique_mcs.append(phrase["mcs"])
 
-        # WARNING: generating list of tuples with ALL contained measures instead of only encoding start and end.
-        # The commented-out code is the "old" version that stored only starting and ending measures for each phrase.
-        # #############################################################################################################
-        #
-        # print(phrases)
-        # start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
-        # end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
-        # phrases = list(
-        #     reversed(sorted(zip(start_mcs, end_mcs)))
-        # )  # prepare for removal of duplicates due to unfolding
-        # self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
-        # phrases_without_duplicates = []
-        # previous_start = None
-        # for start_mc, end_mc in phrases:
-        #     if start_mc == previous_start:
-        #         # do not create excerpts with the same start_mc
-        #         continue
-        #     if end_mc < start_mc:
-        #         self.logger.error(
-        #             f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
-        #         )
-        #         continue
-        #     phrases_without_duplicates.append((start_mc, end_mc))
-        #     previous_start = start_mc
-        # phrases_without_duplicates.reverse()
-        # return phrases_without_duplicates
-        #
-        # #############################################################################################################
-
         return phrases
 
     def store_phrase_excerpts(
@@ -1665,63 +1636,6 @@ class MSCX(LoggedClass):
                 )
         else:
             self.logger.info("No phrases to be stored.")
-
-    # WARNING: may become deprecated in the future (the `get_phrase_boundaries()` method is more general
-    #
-    # def find_phrase_endings(self) -> List[dict[str, any]]:
-    #     """This method goes through the unfolded expanded and measures tables to extract the phrase endings contained
-    #     in the score. A phrase ending is defined to finish on a cadence (at whatever onset value the label
-    #     might appear)
-    #     and to start 2 measures before the last closing bracket that indicates the "end" of the phrase.
-    #
-    #     Returns:
-    #         a list of dictionaries where each of these contains two keys: mcs, mc_onset. The first corresponds to a
-    #         tuple containing all the measures of the phrase whereas the second key corresponds to the onset at which
-    #         the closing cadence is found (this way when storing the excerpt, all notes after that value will
-    #         be removed)
-    #
-    #     """
-    #     expanded = self.expanded(unfold=True)
-    #     measures = self.measures(unfold=True)
-    #     filtered = expanded.loc[expanded["label"].str.contains("\\||}|{|}{")]
-    #
-    #     phrase_endings = []
-    #     unique_mcs = set()
-    #
-    #     last_row_index = filtered.index[-1]
-    #
-    #     for index, row in filtered.iterrows():
-    #         if pd.notna(row["phraseend"]):
-    #             if (row["phraseend"] == "}" or row["phraseend"] == "}{") and "|" in str(
-    #                 row["label"]
-    #             ):
-    #                 mask = measures["mn_playthrough"] == row["mn_playthrough"]
-    #                 i = measures.index[mask][0]
-    #                 mcs = tuple(measures.iloc[i - 2 : i + 1]["mc"].values)
-    #                 mc_onset = row["mc_onset"]
-    #                 if mcs not in unique_mcs and len(mcs) != 0:
-    #                     unique_mcs.add(mcs)
-    #                     phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
-    #
-    #             elif row["phraseend"] == "}" and "|" not in str(row["label"]):
-    #                 if index == last_row_index:
-    #                     continue
-    #                 elif "|" in str(expanded.iloc[index + 1]["label"]) and pd.isna(
-    #                     expanded.iloc[index + 1]["phraseend"]
-    #                 ):
-    #                     mask1 = measures["mn_playthrough"] == row["mn_playthrough"]
-    #                     mask2 = (
-    #                         measures["mn_playthrough"]
-    #                         == expanded.iloc[index + 1]["mn_playthrough"]
-    #                     )
-    #                     i1 = measures.index[mask1][0]
-    #                     i2 = measures.index[mask2][0]
-    #                     mcs = tuple(measures.iloc[i1 - 2 : i2 + 1]["mc"].values)
-    #                     mc_onset = expanded.iloc[index + 1]["mc_onset"]
-    #                     if mcs not in unique_mcs and len(mcs) != 0:
-    #                         unique_mcs.add(mcs)
-    #                         phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
-    #     return phrase_endings
 
     def store_random_excerpts(
         self,
