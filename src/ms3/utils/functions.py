@@ -6476,10 +6476,31 @@ def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
     return s
 
 
+def get_name_of_highest_version_tag(
+    repo: git.Repo,
+) -> Optional[str]:
+    descending_tags = repo.git.tag(l=True, sort="-v:refname")
+    latest_version = descending_tags.split("\n")[0]
+    if latest_version:
+        return latest_version
+
+
 @cache
 def get_git_commit(
     repo_path: str, git_revision: str, logger=None
 ) -> Optional[git.Commit]:
+    """Returns the git commit object for the given revision.
+
+    Args:
+        repo_path:
+        git_revision:
+            Any specifier that git understands (branch, tag, commit hash, "HEAD", etc.). In addition,
+            "LATEST_VERSION" can be passed to get the tag with the highest version number.
+        logger:
+
+    Returns:
+        git.Commit object that corresponds to the given revision specifier.
+    """
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
@@ -6489,12 +6510,38 @@ def get_git_commit(
     except Exception as e:
         logger.error(f"{repo_path} is not an existing git repository: {e}")
         return
+    if git_revision == "LATEST_VERSION":
+        git_revision = get_name_of_highest_version_tag(
+            repo, git_revision
+        )  # None if no tags; will resolve to HEAD
     try:
         return repo.commit(git_revision)
     except BadName:
         logger.error(
             f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}."
         )
+
+
+@cache
+def resolve_git_revision(
+    repo_path: str, git_revision: str, logger=None
+) -> Optional[str]:
+    """Returns the commit hash for the given revision.
+
+    Args:
+        repo_path:
+        git_revision:
+            Any specifier that git understands (branch, tag, commit hash, "HEAD", etc.). In addition,
+            "LATEST_VERSION" can be passed to get the tag with the highest version number.
+        logger:
+
+    Returns:
+        Hash of the commit that corresponds to the given revision specifier.
+    """
+    commit = get_git_commit(repo_path, git_revision, logger=logger)
+    if commit is None:
+        return None
+    return commit.hexsha
 
 
 def parse_tsv_file_at_git_revision(
