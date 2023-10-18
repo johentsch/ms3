@@ -1158,7 +1158,7 @@ def run():
         parser.print_help()
         return
     if args.files is not None:
-        args.files = [resolve_dir(path) for path in args.file]
+        args.files = [resolve_dir(path) for path in args.files]
     args.func(args)
 
 
