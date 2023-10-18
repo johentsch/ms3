@@ -8,11 +8,12 @@ the moment something is considered, it is considered obsolete.
 """
 import os.path
 
+import ms3
 from ms3 import Parse
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
-CORPUS_PATH = r"C:\Users\hentsche\baroque_keyboard_corpus\bach_en_fr_suites"
+CORPUS_PATH = r"/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/K279-1.mscx"
 
 
 def ignoring_warning():
@@ -64,4 +65,11 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    transform_cmd()
+    # transform_cmd()
+    score = ms3.Score("/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/K279-1.mscx")
+    score.mscx.store_measures(
+        included_mcs=(10, 11, 12),
+        end_mc_onset=0.5,
+        suffix="sample",
+        directory="/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/test",
+    )
