@@ -8,8 +8,7 @@ the moment something is considered, it is considered obsolete.
 """
 import os.path
 
-import ms3
-from ms3 import Parse
+from ms3 import Parse, Score
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
@@ -65,11 +64,18 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    # transform_cmd()
-    score = ms3.Score("/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/K279-1.mscx")
-    score.mscx.store_measures(
-        included_mcs=(10, 11, 12),
-        end_mc_onset=0.5,
-        suffix="sample",
-        directory="/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/test",
+    here = os.path.abspath(os.path.dirname(__file__))
+    local_test_files = os.path.abspath(
+        os.path.join(here, "..", "test_local_files", "MS3")
     )
+    mozart_filepath = os.path.join(local_test_files, "K284-3_section_breaks.mscx")
+    score_object = Score(mozart_filepath)
+    score_object.mscx.store_phrase_excerpts(
+        directory=local_test_files,
+    )
+    # score_object.mscx.store_measures(
+    #     directory=local_test_files,
+    #     included_mcs=(252, 253, 254, 256),
+    #     start_mc_onset=Fraction(1, 2),
+    #     end_mc_onset=Fraction(0, 1)
+    # )

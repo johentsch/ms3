@@ -3132,7 +3132,8 @@ class Excerpt(_MSCX_bs4):
             self.amend_first_harmony_keys(globalkey, localkey)
 
         # fine trimming with onset values
-        self.trim(measures, start_mc_onset, end_mc_onset, exclude_start, exclude_end)
+        if start_mc_onset is not None or end_mc_onset is not None:
+            self.trim(start_mc_onset, end_mc_onset, exclude_start, exclude_end)
 
         # enforcing user-set tempo or amending last active metronome mark
         self.set_tempo(first_tempo_tag, metronome_tempo, metronome_beat_unit)
@@ -3173,13 +3174,17 @@ class Excerpt(_MSCX_bs4):
         elif first_tempo_tag is not None:
             self.enforce_tempo(piece_tempo_tag=first_tempo_tag, user_call=False)
 
-    def trim(self, measures, start_mc_onset, end_mc_onset, exclude_start, exclude_end):
+    def trim(
+        self,
+        start_mc_onset: Optional[Fraction] = None,
+        end_mc_onset: Optional[Fraction] = None,
+        exclude_start: Optional[bool] = False,
+        exclude_end: Optional[bool] = False,
+    ):
         """This method handles the trimming of the excerpt where notes outside of the set onset boundaries are
         mutated into rests (to not change the relative positions of the notes in the whole excerpt).
 
         Args:
-            measures:
-                The tuple or integer value representing the MC values of the measures contained in the excerpt.
             start_mc_onset:
                 The onset value before which we want to mutate all other notes (associated with first measure)
             end_mc_onset:
@@ -3190,33 +3195,16 @@ class Excerpt(_MSCX_bs4):
             exclude_end:
                 If set to `True`, the note corresponding to the `end_mc_onset` in the last measure will also be removed
         """
-        if not (start_mc_onset is None and end_mc_onset is None):
-            isTuple = isinstance(measures, tuple)
-            isInt = isinstance(measures, int)
+        assert not (
+            start_mc_onset is None and end_mc_onset is None
+        ), "At least one onset value (for either the start or the end) must be defined."
 
-            if isInt:
-                self.replace_chords_with_rests(
-                    start_mc=measures,
-                    end_mc=measures,
-                    start_onset=start_mc_onset,
-                    end_onset=end_mc_onset,
-                    exclude_start=exclude_start,
-                    exclude_end=exclude_end,
-                )
-            elif isTuple:
-                self.replace_chords_with_rests(
-                    start_mc=measures[0],
-                    end_mc=measures[-1],
-                    start_onset=start_mc_onset,
-                    end_onset=end_mc_onset,
-                    exclude_start=exclude_start,
-                    exclude_end=exclude_end,
-                )
-        else:
-            self.logger.warning(
-                "At least one onset value (for either the start or the end) must be defined for "
-                + "trimming to occur"
-            )
+        self.replace_chords_with_rests(
+            start_onset=start_mc_onset,
+            end_onset=end_mc_onset,
+            exclude_start=exclude_start,
+            exclude_end=exclude_end,
+        )
 
     def amend_first_harmony_keys(
         self,
@@ -3390,8 +3378,6 @@ class Excerpt(_MSCX_bs4):
 
     def replace_chords_with_rests(
         self,
-        start_mc: Optional[int] = None,
-        end_mc: Optional[int] = None,
         start_onset: Optional[Fraction | float] = None,
         end_onset: Optional[Fraction | float] = None,
         exclude_start: Optional[bool] = False,
@@ -3403,10 +3389,6 @@ class Excerpt(_MSCX_bs4):
         after the ``end_onset`` will also be mutated to rests.
 
         Args:
-            start_mc:
-                MC value of the first measure of the excerpt
-            end_mc:
-                MC value of the last measure of the excerpt
             start_onset:
                 onset value set for the first measure. Everything before this will be silenced
             end_onset:
@@ -3416,7 +3398,7 @@ class Excerpt(_MSCX_bs4):
             exclude_end:
                 If set to ``True``, the note corresponding to ``end_onset`` in the last measure will also be silenced
         """
-        if start_mc is not None and start_onset is not None:
+        if start_onset is not None:
             staves = self.tags[1]
             for staff, voices in staves.items():
                 for voice, onsets in voices.items():
@@ -3434,9 +3416,9 @@ class Excerpt(_MSCX_bs4):
                 "Both the starting MC value and the onset need to be specified for trimming"
             )
 
-        end = end_mc - start_mc + 1
+        end = max(self.tags.keys())
 
-        if end_mc is not None and end_onset is not None:
+        if end_onset is not None:
             staves = self.tags[end]
             for staff, voices in staves.items():
                 for voice, onsets in voices.items():
