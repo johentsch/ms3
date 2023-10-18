@@ -1335,6 +1335,68 @@ class MSCX(LoggedClass):
                 suffix=suffix,
             )
 
+    def update_metadata(
+        self,
+        composer: Optional[str] = None,
+        workTitle: Optional[str] = None,
+        movementNumber: Optional[str] = None,
+        movementTitle: Optional[str] = None,
+        workNumber: Optional[str] = None,
+        poet: Optional[str] = None,
+        lyricist: Optional[str] = None,
+        arranger: Optional[str] = None,
+        copyright: Optional[str] = None,
+        creationDate: Optional[str] = None,
+        mscVersion: Optional[str] = None,
+        platform: Optional[str] = None,
+        source: Optional[str] = None,
+        translator: Optional[str] = None,
+        compared_against: Optional[str] = None,  # resolve
+        **kwargs,
+    ):
+        """Update the metadata tags of the parsed score."""
+        metadata_update = {
+            key: value
+            for key, value in (
+                ("composer", composer),
+                ("workTitle", workTitle),
+                ("movementNumber", movementNumber),
+                ("movementTitle", movementTitle),
+                ("workNumber", workNumber),
+                ("poet", poet),
+                ("lyricist", lyricist),
+                ("arranger", arranger),
+                ("copyright", copyright),
+                ("creationDate", creationDate),
+                ("mscVersion", mscVersion),
+                ("platform", platform),
+                ("source", source),
+                ("translator", translator),
+                ("compared_against", compared_against),
+            )
+            if value is not None
+        }
+        metadata_update.update({key: value for key, value in kwargs.items() if value})
+        assert (
+            len(metadata_update) > 0
+        ), "Didn't receive any parameters to update the metadata."
+        MSCX = self.parsed
+        current_metadata = MSCX.metatags.fields
+        current_metadata.update(MSCX.prelims.fields)
+        changed = False
+        for field, value in metadata_update.items():
+            specifier = (
+                "New field" if field in field not in current_metadata else "Field"
+            )
+            self.logger.debug(f"{specifier} {field!r} set to {value}.")
+            MSCX.metatags[field] = value
+            changed = True
+        if changed:
+            MSCX.update_metadata()
+            self.changed = True
+        else:
+            self.logger.debug("No metadata updated.")
+
 
 # ######################################################################################################################
 # ######################################################################################################################
@@ -1861,6 +1923,7 @@ class Score(LoggedClass):
         old_color: str = "ms3_darkred",
         detached_is_newer: bool = False,
         add_to_rna: bool = True,
+        metadata_update: Optional[dict] = None,
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been
@@ -1961,6 +2024,11 @@ class Score(LoggedClass):
                 f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in "
                 f"{added_color}."
             )
+        if metadata_update:
+            self.logger.debug(
+                f"Updating the metadata of the compared score with {metadata_update!r}."
+            )
+            self.mscx.update_metadata(**metadata_update)
         res = (color_changes, added_changes)
         new_df = pd.DataFrame(changes_new, columns=compare_cols)
         self.comparison_report = pd.concat([old_df, new_df], keys=["old", "new"])
