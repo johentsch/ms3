@@ -276,7 +276,9 @@ def compare(
       revision_specifier:
           If None, no comparison is undertaken. Passing an empty string will result in a comparison with the parsed
           TSV files included in the current view (if any). Specifying a git revision will result in a comparison
-          with the TSV files at that commit.
+          with the TSV files at that commit. "LATEST_VERSION" is accepted as a revision specifier and will result in
+          a comparison with the TSV files at the tag with the highest version number (falling back to HEAD if no tags
+          have been assigned to the repository).
       flip:
 
     Returns:
@@ -293,11 +295,13 @@ def compare(
     choose = "ask" if ask else "auto"
     if revision_specifier is None:
         key = f"previous_{facet}"
+        metadata_update = None
         logger.info(
             f"Comparing annotations to those contained in the current '{facet}' TSV files..."
         )
     else:
         key = revision_specifier
+        metadata_update = dict(compared_against=revision_specifier)
         logger.info(
             f"Comparing annotations to those contained in the '{facet}' TSV files @ git revision "
             f"{revision_specifier}..."
@@ -310,7 +314,11 @@ def compare(
     logger.info(
         f"Comparisons to be performed:\n{pretty_dict(comparisons_per_corpus, 'Corpus', 'Comparisons')}"
     )
-    return parse_obj.compare_labels(key=key, detached_is_newer=flip)
+    return parse_obj.compare_labels(
+        key=key,
+        detached_is_newer=flip,
+        metadata_update=metadata_update,
+    )
 
 
 def store_scores(

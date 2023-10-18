@@ -6487,7 +6487,7 @@ def get_name_of_highest_version_tag(
 
 @cache
 def get_git_commit(
-    repo_path: str, git_revision: str, logger=None
+    repo_path: str, git_revision: Optional[str], logger=None
 ) -> Optional[git.Commit]:
     """Returns the git commit object for the given revision.
 
@@ -6511,9 +6511,11 @@ def get_git_commit(
         logger.error(f"{repo_path} is not an existing git repository: {e}")
         return
     if git_revision == "LATEST_VERSION":
-        git_revision = get_name_of_highest_version_tag(
-            repo, git_revision
-        )  # None if no tags; will resolve to HEAD
+        git_revision = get_name_of_highest_version_tag(repo)
+        if git_revision is None:
+            logger.error(
+                "Could not find the latest version tag, falling back to current HEAD."
+            )
     try:
         return repo.commit(git_revision)
     except BadName:
@@ -6524,7 +6526,7 @@ def get_git_commit(
 
 @cache
 def resolve_git_revision(
-    repo_path: str, git_revision: str, logger=None
+    repo_path: str, git_revision: Optional[str], logger=None
 ) -> Optional[str]:
     """Returns the commit hash for the given revision.
 
@@ -6532,7 +6534,8 @@ def resolve_git_revision(
         repo_path:
         git_revision:
             Any specifier that git understands (branch, tag, commit hash, "HEAD", etc.). In addition,
-            "LATEST_VERSION" can be passed to get the tag with the highest version number.
+            "LATEST_VERSION" can be passed to get the tag with the highest version number. None defaults
+            to "HEAD".
         logger:
 
     Returns:

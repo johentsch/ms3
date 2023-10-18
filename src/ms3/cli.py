@@ -348,7 +348,7 @@ def precommit_cmd(
             "The --files argument should not be used for ms3 precommit which takes files as "
             "positional arguments."
         )
-    args.files = args.positional_args
+    args.files = args.positional_args  # in the future, maybe use args.include instead
     test_passes = review_cmd(args, parse_obj=parse_obj, wrapped_by_precommit=True)
     repo = git.Repo(args.dir)
     repo.git.add(all=True)
@@ -866,10 +866,11 @@ def get_arg_parser():
         metavar="GIT_REVISION",
         const="",
         help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, "
-        "compared to the version currently "
-        "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from "
-        "another Git commit, additionally "
-        "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.",
+        "compared to the version currently represented in the present TSV files, if any. If instead you want a "
+        "comparison with the TSV files from another Git commit, additionally pass its specifier, e.g. 'HEAD~3', "
+        "<branch-name>, <commit SHA> etc. LATEST_VERSION is accepted as a revision specifier and will result in "
+        "a comparison with the TSV files at the tag with the highest version number (falling back to HEAD if no "
+        "tags  have been assigned to the repository.",
     )
     review_args.add_argument(
         "--threshold",
@@ -941,10 +942,11 @@ In particular, check DCML harmony labels for syntactic correctness.""",
         metavar="GIT_REVISION",
         default="",
         help="By default, the _reviewed file displays removed labels in red and added labels in green, compared to "
-        "the version currently "
-        "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from "
-        "another Git commit, "
-        "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.",
+        "the version currently represented in the present TSV files, if any. If instead you want a "
+        "comparison with the TSV files from another Git commit, additionally pass its specifier, e.g. 'HEAD~3', "
+        "<branch-name>, <commit SHA> etc. LATEST_VERSION is accepted as a revision specifier and will result in "
+        "a comparison with the TSV files at the tag with the highest version number (falling back to HEAD if no "
+        "tags  have been assigned to the repository.",
     )
     compare_parser.add_argument(
         "-s",

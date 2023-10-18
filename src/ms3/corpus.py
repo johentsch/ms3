@@ -16,11 +16,12 @@ from typing import (
     Union,
 )
 
+import git
 import numpy as np
 import pandas as pd
 import pathos.multiprocessing as mp
 from ms3.utils.frictionless_helpers import store_dataframe_resource
-from ms3.utils.functions import compute_path_from_file
+from ms3.utils.functions import compute_path_from_file, get_name_of_highest_version_tag
 
 from ._typing import (
     AnnotationsFacet,
@@ -142,7 +143,7 @@ class Corpus(LoggedClass):
         #     logger_cfg['level'] = 'w'
         super().__init__(subclass="Corpus", logger_cfg=logger_cfg)
 
-        self.files: list = []
+        self.files: List[File] = []
         """
         ``[File]`` list of :obj:`File` data objects containing information on the file location
         etc. for all detected files.
@@ -2629,6 +2630,7 @@ class Corpus(LoggedClass):
         detached_is_newer: bool = False,
         add_to_rna: bool = True,
         view_name: Optional[str] = None,
+        metadata_update: Optional[dict] = None,
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been
@@ -2660,6 +2662,7 @@ class Corpus(LoggedClass):
                 detached_is_newer=detached_is_newer,
                 add_to_rna=add_to_rna,
                 view_name=view_name,
+                metadata_update=metadata_update,
             )
             changed += c
             unchanged += u
@@ -2970,7 +2973,7 @@ class Corpus(LoggedClass):
                         )
                     else:
                         selected = unparsed_files[0]
-                else:
+                else:  # n_parsed > 1
                     selected = disambiguate_files(
                         parsed_files,
                         self.name,
@@ -2984,13 +2987,25 @@ class Corpus(LoggedClass):
         piece2tuples = {}
         for piece, file in piece2selected.items():
             new_file, parsed = parse_tsv_file_at_git_revision(
-                file, git_revision, self.corpus_path, logger=self.ix_logger(file.ix)
+                file=file,
+                git_revision=git_revision,
+                repo_path=self.corpus_path,
+                logger=self.ix_logger(file.ix),
             )
             if parsed is None:
                 self.logger.warning(
-                    f"Could not retrieve {file.rel_path} @ '{git_revision}'."
+                    f"Could not retrieve {file.rel_path} @ {git_revision!r}."
                 )
             else:
+                if git_revision == "LATEST_VERSION":
+                    repo = git.Repo(self.corpus_path)
+                    git_info = get_name_of_highest_version_tag(repo)
+                else:
+                    git_info = git_revision
+                self.logger.info(
+                    f"Successfully retrieved {file.rel_path} @ {git_info!r} "
+                    f"({new_file.commit_sha})."
+                )
                 piece2tuples[piece] = (new_file, parsed)
         if concatenate:
             if len(piece2tuples) > 0:
