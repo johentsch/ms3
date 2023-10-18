@@ -7,11 +7,13 @@ in the ms3.operations module, using a couple of helper functions to that aim.
 """
 
 import argparse
+import logging
 import os
 import re
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Literal, Optional, overload
 
+import git
 from ms3 import Parse, compute_path_from_file, make_coloring_reports_and_warnings
 from ms3._version import __version__
 from ms3.logger import get_logger, inspect_loggers
@@ -335,10 +337,39 @@ def check_dir(d):
     return resolve_dir(d)
 
 
+def precommit_cmd(
+    args,
+    parse_obj: Optional[Parse] = None,
+) -> bool:
+    """Like ms3 review but also adds the resulting files to the Git index."""
+    logger = get_logger("ms3.precommit", level=args.level)
+    if args.files:
+        raise NotImplementedError(
+            "The --files argument should not be used for ms3 precommit which takes files as "
+            "positional arguments."
+        )
+    args.files = args.positional_args
+    test_passes = review_cmd(args, parse_obj=parse_obj, wrapped_by_precommit=True)
+    repo = git.Repo(args.dir)
+    repo.git.add(all=True)
+    deliver_test_result(test_passes, args.fail, logger)
+
+
+@overload
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[False]) -> None:
+    ...
+
+
+@overload
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[True]) -> bool:
+    ...
+
+
 def review_cmd(
     args,
     parse_obj: Optional[Parse] = None,
-) -> None:
+    wrapped_by_precommit: bool = False,
+) -> Optional[bool]:
     """This command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
     logger = get_logger("ms3.review", level=args.level)
     if parse_obj is None:
@@ -457,19 +488,33 @@ def review_cmd(
     logger.info(
         f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}."
     )
-    if test_passes:
-        logger.info("Parsed scores passed all tests.")
-    else:
-        msg = "Not all tests have passed. Please check the relevant warnings in the generated .warnings files."
-        if args.fail:
-            assert test_passes, msg
-        else:
-            logger.info(msg)
     out_dir = "." if args.out is None else args.out
     warnings_file = os.path.join(out_dir, "warnings.log")
     if os.path.isfile(warnings_file):
         logger.info(f"Removing deprecated warnings file: {warnings_file}")
         os.remove(warnings_file)
+    if wrapped_by_precommit:
+        return test_passes
+    deliver_test_result(test_passes, args.fail, logger)
+
+
+def deliver_test_result(
+    test_passes: bool, raise_on_fail: bool, logger: Optional[logging.Logger]
+):
+    def output_text(msg):
+        if logger is not None:
+            print(msg)
+        else:
+            logger.info(msg)
+
+    if test_passes:
+        output_text("Parsed scores passed all tests.")
+    else:
+        msg = "Not all tests have passed. Please check the relevant warnings in the generated .warnings files."
+        if raise_on_fail:
+            assert test_passes, msg
+        else:
+            output_text(msg)
 
 
 def make_parse_obj(args, parse_scores=False, parse_tsv=False, facets=None):
@@ -810,6 +855,31 @@ def get_arg_parser():
         "sets of labels are available that you want to choose from.",
     )
 
+    review_args = argparse.ArgumentParser(
+        add_help=False,
+        parents=[check_args, select_facet_args, compare_args, extract_args, parse_args],
+    )
+    review_args.add_argument(
+        "-c",
+        "--compare",
+        nargs="?",
+        metavar="GIT_REVISION",
+        const="",
+        help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, "
+        "compared to the version currently "
+        "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from "
+        "another Git commit, additionally "
+        "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.",
+    )
+    review_args.add_argument(
+        "--threshold",
+        default=0.6,
+        type=float,
+        help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
+        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to "
+        "0.6 (3:2).",
+    )
+
     # main argument parser
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -986,27 +1056,7 @@ In particular, check DCML harmony labels for syntactic correctness.""",
     review_parser = subparsers.add_parser(
         "review",
         help="Extract facets, check labels, and create _reviewed files.",
-        parents=[check_args, select_facet_args, compare_args, extract_args, parse_args],
-    )
-    review_parser.add_argument(
-        "-c",
-        "--compare",
-        nargs="?",
-        metavar="GIT_REVISION",
-        const="",
-        help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, "
-        "compared to the version currently "
-        "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from "
-        "another Git commit, additionally "
-        "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.",
-    )
-    review_parser.add_argument(
-        "--threshold",
-        default=0.6,
-        type=float,
-        help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
-        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to "
-        "0.6 (3:2).",
+        parents=[review_args],
     )
     review_parser.set_defaults(func=review_cmd)
 
@@ -1148,6 +1198,18 @@ In particular, check DCML harmony labels for syntactic correctness.""",
     )
     update_parser.set_defaults(func=update_cmd)
 
+    precommit_parser = subparsers.add_parser(
+        "precommit",
+        help="Like ms3 review but also adds the resulting files to the Git index.",
+        parents=[review_args],
+    )
+    precommit_parser.add_argument(
+        "positional_args",
+        metavar="FILE",
+        help="Shadows the --files argument because pre-commit passes files as positional arguments.",
+        nargs="+",
+    )
+    precommit_parser.set_defaults(func=precommit_cmd)
     return parser
 
 
