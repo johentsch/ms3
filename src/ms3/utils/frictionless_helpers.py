@@ -15,20 +15,26 @@ from ms3._typing import ScoreFacet, TSVtype, TSVtypes
 from ms3.logger import get_logger
 from pandas.core.dtypes.common import is_integer_dtype
 
-from .constants import DEFAULT_CREATOR_METADATA
+from .constants import (
+    DEFAULT_CREATOR_METADATA,
+    KEYSIG_DICT_ENTRY_REGEX,
+    TIMESIG_DICT_ENTRY_REGEX,
+)
 from .functions import (
     TSV_COLUMN_CONVERTERS,
     TSV_COLUMN_DESCRIPTIONS,
+    TSV_COLUMN_DTYPES,
     TSV_COLUMN_TITLES,
-    TSV_DTYPES,
     File,
     eval_string_to_nested_list,
-    int2bool,
     replace_extension,
     resolve_facets_param,
     safe_frac,
     safe_int,
     str2inttuple,
+    str2keysig_dict,
+    str2timesig_dict,
+    value2bool,
     write_tsv,
     write_validation_errors_to_file,
 )
@@ -43,6 +49,11 @@ FRACTION_REGEX = r"\d+(?:\/\d+)?"  # r"-?\d+(?:\/\d+)?" for including negative f
 INT_ARRAY_REGEX = r"^[([]?(?:-?\d+\s*,?\s*)*[])]?$"  # allows any number of integers, separated by a comma and/or
 # whitespace, and optionally enclosed in parentheses or square brackets
 EDTF_LIKE_YEAR_REGEX = r"^\d{3,4}|\.{2}$"
+# the following regexes match the strings produced when metadata2series() calls dict2oneliner() for TimeSig and KeySig
+KEYSIG_DICT_REGEX = (
+    f"^{{?({KEYSIG_DICT_ENTRY_REGEX})+}}?$"  # may or may not the outer curly braces,
+)
+TIMESIG_DICT_REGEX = f"^{{?({TIMESIG_DICT_ENTRY_REGEX})+}}?$"  # which need to be escaped in the f-strings
 
 
 @cache
@@ -57,13 +68,13 @@ def column_name2frictionless_field(column_name) -> dict:
         constraints = dict()
     title = TSV_COLUMN_TITLES.get(column_name)
     description = TSV_COLUMN_DESCRIPTIONS.get(column_name)
-    pandas_dtype = TSV_DTYPES.get(column_name, str)
+    pandas_dtype = TSV_COLUMN_DTYPES.get(column_name, str)
     string_converter = TSV_COLUMN_CONVERTERS.get(column_name)
     if title:
         field["title"] = title
     if description:
         field["description"] = description
-    if string_converter:
+    if string_converter is not None:
         if string_converter == safe_frac:
             field["type"] = "string"
             constraints["pattern"] = FRACTION_REGEX
@@ -79,12 +90,20 @@ def column_name2frictionless_field(column_name) -> dict:
         elif string_converter == str2inttuple:
             field["type"] = "string"
             constraints["pattern"] = INT_ARRAY_REGEX
-        elif string_converter == int2bool:
+        elif string_converter == value2bool:
             field["type"] = "boolean"
         elif string_converter in (literal_eval, eval_string_to_nested_list):
             field["type"] = "array"
+        elif string_converter == str2keysig_dict:
+            field["type"] = "string"
+            constraints["pattern"] = KEYSIG_DICT_REGEX
+        elif string_converter == str2timesig_dict:
+            field["type"] = "string"
+            constraints["pattern"] = TIMESIG_DICT_REGEX
         else:
-            NotImplementedError(f"Unfamiliar with string converter {string_converter}")
+            raise NotImplementedError(
+                f"Unfamiliar with string converter {string_converter}"
+            )
     elif pandas_dtype:
         if pandas_dtype in (int, "Int64"):
             field["type"] = "integer"
@@ -695,7 +714,7 @@ def store_dataframe_resource(
     except ValueError as e:
         descriptor_path = None
         logger.warning(
-            f"Could not create frictionless descriptor for {resource_path} due to this error: {e!r}",
+            f"Could not create frictionless descriptor for {resource_path} due to this error: {e}",
         )
     if descriptor_path is not None:
         validate_descriptor_at_path(

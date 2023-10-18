@@ -1132,13 +1132,16 @@ class MSCX(LoggedClass):
                 If set to True, the note corresponding to ``start_mc_onset`` will be removed as well.
             exclude_end:
                 If set to True, the note corresponding to ``end_mc_onset`` will be removed as well.
-            metronome_tempo:
-                Specifying this parameter will create a hidden metronome marking that will overwrite the initial
-                tempo indication if present. The new metronome marking will set the tempo as ``metronome_tempo``
-            metronome_beat_unit:
-                The unit specified by the user to define the beat units that correspond to the tempo value.
-                1 is the default and (since MuseScore uses by default the quarter-beat as unit) corresponds to the
-                quarter-beat. 1/2 (or .5) will correspond to the eighth note and so on.
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
             directory:
                 Path to the folder where the excerpts are to be stored.
             suffix:
@@ -1305,35 +1308,6 @@ class MSCX(LoggedClass):
                 phrases.append(phrase)
                 unique_mcs.append(phrase["mcs"])
 
-        # WARNING: generating list of tuples with ALL contained measures instead of only encoding start and end.
-        # The commented-out code is the "old" version that stored only starting and ending measures for each phrase.
-        # #############################################################################################################
-        #
-        # print(phrases)
-        # start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
-        # end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
-        # phrases = list(
-        #     reversed(sorted(zip(start_mcs, end_mcs)))
-        # )  # prepare for removal of duplicates due to unfolding
-        # self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
-        # phrases_without_duplicates = []
-        # previous_start = None
-        # for start_mc, end_mc in phrases:
-        #     if start_mc == previous_start:
-        #         # do not create excerpts with the same start_mc
-        #         continue
-        #     if end_mc < start_mc:
-        #         self.logger.error(
-        #             f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
-        #         )
-        #         continue
-        #     phrases_without_duplicates.append((start_mc, end_mc))
-        #     previous_start = start_mc
-        # phrases_without_duplicates.reverse()
-        # return phrases_without_duplicates
-        #
-        # #############################################################################################################
-
         return phrases
 
     def store_phrase_excerpts(
@@ -1351,14 +1325,16 @@ class MSCX(LoggedClass):
 
         Args:
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
 
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
 
             directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
@@ -1432,14 +1408,16 @@ class MSCX(LoggedClass):
                 removed thus excluding the last onset (i.e. the end)
 
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
 
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
 
             directory: Optional[str], optional
                 name of the directory you want the excerpt saved to, by default None
@@ -1658,63 +1636,6 @@ class MSCX(LoggedClass):
                 )
         else:
             self.logger.info("No phrases to be stored.")
-
-    # WARNING: may become deprecated in the future (the `get_phrase_boundaries()` method is more general
-    #
-    # def find_phrase_endings(self) -> List[dict[str, any]]:
-    #     """This method goes through the unfolded expanded and measures tables to extract the phrase endings contained
-    #     in the score. A phrase ending is defined to finish on a cadence (at whatever onset value the label
-    #     might appear)
-    #     and to start 2 measures before the last closing bracket that indicates the "end" of the phrase.
-    #
-    #     Returns:
-    #         a list of dictionaries where each of these contains two keys: mcs, mc_onset. The first corresponds to a
-    #         tuple containing all the measures of the phrase whereas the second key corresponds to the onset at which
-    #         the closing cadence is found (this way when storing the excerpt, all notes after that value will
-    #         be removed)
-    #
-    #     """
-    #     expanded = self.expanded(unfold=True)
-    #     measures = self.measures(unfold=True)
-    #     filtered = expanded.loc[expanded["label"].str.contains("\\||}|{|}{")]
-    #
-    #     phrase_endings = []
-    #     unique_mcs = set()
-    #
-    #     last_row_index = filtered.index[-1]
-    #
-    #     for index, row in filtered.iterrows():
-    #         if pd.notna(row["phraseend"]):
-    #             if (row["phraseend"] == "}" or row["phraseend"] == "}{") and "|" in str(
-    #                 row["label"]
-    #             ):
-    #                 mask = measures["mn_playthrough"] == row["mn_playthrough"]
-    #                 i = measures.index[mask][0]
-    #                 mcs = tuple(measures.iloc[i - 2 : i + 1]["mc"].values)
-    #                 mc_onset = row["mc_onset"]
-    #                 if mcs not in unique_mcs and len(mcs) != 0:
-    #                     unique_mcs.add(mcs)
-    #                     phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
-    #
-    #             elif row["phraseend"] == "}" and "|" not in str(row["label"]):
-    #                 if index == last_row_index:
-    #                     continue
-    #                 elif "|" in str(expanded.iloc[index + 1]["label"]) and pd.isna(
-    #                     expanded.iloc[index + 1]["phraseend"]
-    #                 ):
-    #                     mask1 = measures["mn_playthrough"] == row["mn_playthrough"]
-    #                     mask2 = (
-    #                         measures["mn_playthrough"]
-    #                         == expanded.iloc[index + 1]["mn_playthrough"]
-    #                     )
-    #                     i1 = measures.index[mask1][0]
-    #                     i2 = measures.index[mask2][0]
-    #                     mcs = tuple(measures.iloc[i1 - 2 : i2 + 1]["mc"].values)
-    #                     mc_onset = expanded.iloc[index + 1]["mc_onset"]
-    #                     if mcs not in unique_mcs and len(mcs) != 0:
-    #                         unique_mcs.add(mcs)
-    #                         phrase_endings.append({"mcs": mcs, "mc_onset": mc_onset})
-    #     return phrase_endings
 
     def store_random_excerpts(
         self,
@@ -2569,8 +2490,10 @@ class Score(LoggedClass):
         if len(labels_before) == 0:
             self.logger.info("Annotation object does not contain any labels.")
             return False
-        if staff < 1:
-            staff = self.mscx.staff_ids[staff]
+        if staff is not None:
+            staff = int(staff)
+            if staff < 1:
+                staff = self.mscx.staff_ids[staff]
         need_moving = before.get_labels(
             staff=staff,
             voice=voice,

@@ -5,6 +5,8 @@ import webcolors
 from ms3._version import __version__
 
 LATEST_MUSESCORE_VERSION = "3.6.2"
+COLLECTION_COLUMNS = ["next", "chord_tones", "added_tones"]
+BOOLEAN_COLUMNS = ["globalkey_is_minor", "localkey_is_minor", "has_drumset"]
 COMPUTED_METADATA_COLUMNS = [
     "TimeSig",
     "KeySig",
@@ -313,6 +315,9 @@ FORM_TOKEN_ABBREVIATIONS = {
     "prchr": "pre-chorus",
     "ptchr": "post-chorus",
 }
+
+KEYSIG_DICT_ENTRY_REGEX = r"(\d+): (-?\d+)(?:, )?"
+TIMESIG_DICT_ENTRY_REGEX = r"(\d+): (\d+\/\d+)(?:, )?"
 
 MS3_HTML = {
     "#005500": "ms3_darkgreen",

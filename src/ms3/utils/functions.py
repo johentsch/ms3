@@ -52,12 +52,15 @@ from tqdm import tqdm
 from typing_extensions import Self
 
 from .constants import (
+    BOOLEAN_COLUMNS,
+    COLLECTION_COLUMNS,
     DCML_REGEX,
     DEFAULT_CREATOR_METADATA,
     FORM_LEVEL_CAPTURE_REGEX,
     FORM_LEVEL_REGEX,
     FORM_LEVEL_SPLIT_REGEX,
     FORM_TOKEN_ABBREVIATIONS,
+    KEYSIG_DICT_ENTRY_REGEX,
     LEGACY_COLUMNS,
     METADATA_COLUMN_ORDER,
     MS3_HTML,
@@ -66,6 +69,7 @@ from .constants import (
     STANDARD_COLUMN_ORDER,
     STANDARD_NAMES,
     STANDARD_NAMES_OR_GIT,
+    TIMESIG_DICT_ENTRY_REGEX,
     rgba,
 )
 
@@ -1811,7 +1815,7 @@ def get_path_component(path, after):
 
 
 # def get_quarterbeats_length(measures: pd.DataFrame, decimals: int = 2) -> Tuple[float, Optional[float]]:
-#     """ Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.
+#     """ Returns the symbolic length and unfolded symbolic length of a piece in ♩.
 #
 #     Parameters
 #     ----------
@@ -1820,7 +1824,7 @@ def get_path_component(path, after):
 #     Returns
 #     -------
 #     float, float
-#         Length and unfolded length, both measuresd in quarter notes.
+#         Length and unfolded length, both measured in ♩.
 #     """
 #     mc_durations = measures.set_index('mc').act_dur * 4.
 #     length_qb = round(mc_durations.sum(), decimals)
@@ -2124,7 +2128,7 @@ def join_tsvs(dfs, sort_cols=False, logger=None):
 
 
 def str2inttuple(tuple_string: str, strict: bool = True) -> Tuple[int]:
-    tuple_string = tuple_string.strip("(),")
+    tuple_string = tuple_string.strip("[](),")
     if tuple_string == "":
         return tuple()
     res = []
@@ -2147,11 +2151,78 @@ def str2inttuple(tuple_string: str, strict: bool = True) -> Tuple[int]:
     return tuple(res)
 
 
+def str2keysig_dict(dict_content: str) -> Dict[int, int]:
+    entry_tuples = re.findall(KEYSIG_DICT_ENTRY_REGEX, dict_content)
+    return {int(mc): int(keysig) for mc, keysig in entry_tuples}
+
+
+def str2timesig_dict(dict_content: str) -> Dict[int, str]:
+    entry_tuples = re.findall(TIMESIG_DICT_ENTRY_REGEX, dict_content)
+    return {int(mc): timesig for mc, timesig in entry_tuples}
+
+
+# default values copied from marshmallow's fields.Boolean
+TRUTHY_VALUES = {
+    "t",
+    "T",
+    "true",
+    "True",
+    "TRUE",
+    "on",
+    "On",
+    "ON",
+    "y",
+    "Y",
+    "yes",
+    "Yes",
+    "YES",
+    "1",
+    1,
+    True,
+}
+FALSY_VALUES = {
+    "f",
+    "F",
+    "false",
+    "False",
+    "FALSE",
+    "off",
+    "Off",
+    "OFF",
+    "n",
+    "N",
+    "no",
+    "No",
+    "NO",
+    "0",
+    0,
+    0.0,
+    False,
+}
+
+
 def int2bool(s: str) -> Union[bool, str]:
     try:
         return bool(int(s))
     except Exception:
         return s
+
+
+def value2bool(value: str | float | int | bool) -> bool | str | float | int:
+    if value in TRUTHY_VALUES:
+        return True
+    if value in FALSY_VALUES:
+        return False
+    if isinstance(value, str):
+        try:
+            converted = float(value)
+        except Exception:
+            return value
+        if converted in TRUTHY_VALUES:
+            return True
+        if converted in FALSY_VALUES:
+            return False
+    return value
 
 
 def safe_frac(s: str) -> Union[Fraction, str]:
@@ -2214,8 +2285,9 @@ TSV_COLUMN_CONVERTERS = {
     "composed_end": safe_int,
     "composed_start": safe_int,
     "chord_tones": str2inttuple,
-    "globalkey_is_minor": int2bool,
-    "localkey_is_minor": int2bool,
+    "globalkey_is_minor": value2bool,
+    "KeySig": str2keysig_dict,
+    "localkey_is_minor": value2bool,
     "mc_offset": safe_frac,
     "mc_onset": safe_frac,
     "mn_onset": safe_frac,
@@ -2227,6 +2299,7 @@ TSV_COLUMN_CONVERTERS = {
     "onset": safe_frac,
     "duration": safe_frac,
     "scalar": safe_frac,
+    "TimeSig": str2timesig_dict,
     "volta_mcs": eval_string_to_nested_list,
 }
 
@@ -2235,6 +2308,7 @@ TSV_COLUMN_TITLES = {
     "absolute_root": "Absolute Root",
     "act_dur": "Actual Length",
     "added_tones": "Added Tones",
+    "all_notes_qb": "Summed Note Duration",
     "alt_label": "Alternative Label",
     "barline": "Barline",
     "base": "Base",
@@ -2263,16 +2337,26 @@ TSV_COLUMN_TITLES = {
     "figbass": "Chord Inversion",
     "fname": "Piece identifier",
     "form": "Chord Category",
+    "form_label_count": "Number of Form Annotation Labels",
     "globalkey": "Global Key",
     "globalkey_is_minor": "Global Key is Minor",
     "gracenote": "Grace Note",
+    "guitar_chord_count": "Number of Guitar/Jazz Chord Labels",
     "harmonies_id": "Label ID",
     "harmony_layer": "Harmony Encoding Layer",
     "i": "Index",
     "keysig": "Key Signature",
+    "KeySig": "Key Signatures",
     "label": "Label",
+    "label_count": "Number of DCML Labels",
     "label_type": "Label Type",
+    "last_mc": "Highest Measure Count",
+    "last_mc_unfolded": "Highest Measure Count (unfolded)",
+    "last_mn": "Highest Measure Number",
+    "last_mn_unfolded": "Highest Measure Number (unfolded)",
     "leftParen": "Left Parenthesis",
+    "length_qb": "Quarter Length",
+    "length_qb_unfolded": "Quarter Length (unfolded)",
     "localkey": "Local Key",
     "localkey_is_minor": "Local Key is Minor",
     "marker": "Marker",
@@ -2287,6 +2371,8 @@ TSV_COLUMN_TITLES = {
     "name": "Name",
     "nashville": "Nashville",
     "next": "Next Measure Counts",
+    "n_onsets": "Number of Note Onsets",
+    "n_onset_positions": "Number of Unique Onset Positions (slices)",
     "nominal_duration": "Nominal Duration",
     "notes_id": "Notes ID",
     "numbering_offset": "Numbering Offset",
@@ -2315,6 +2401,7 @@ TSV_COLUMN_TITLES = {
     "staff": "Staff",
     "tied": "Tied Note",
     "timesig": "Time Signature",
+    "TimeSig": "Time Signatures",
     "tpc": "Tonal Pitch Class",
     "voice": "Notational Layer",
     # 'voices': 'Voices',
@@ -2330,6 +2417,7 @@ TSV_COLUMN_DESCRIPTIONS = {
     "act_dur": "How long a measure actually lasts, which can deviate from the time signature. Relevant, for example, "
     "for pickup measures, split measures, cadenzas.",
     "added_tones": "Chord tones considered as added, expressed as fifth intervals relative to the local tonic.",
+    "all_notes_qb": "The summed duration of all notes in a given piece, measured in ♩.",
     "alt_label": "Another interpretation of the same chord which the annotator finds equally or slightly less "
     "convincing.",
     "barline": "Name of non-default barline.",
@@ -2360,9 +2448,11 @@ TSV_COLUMN_DESCRIPTIONS = {
     "figbass": "7, 65, 43, 2, 64, 6 or empty for root position.",
     "fname": "Name identifier (filename without suffixes) of a piece",
     "form": "%, o, +, M, +M",
+    "form_label_count": "Number of form annotation labels in a piece.",
     "globalkey": "The key of the entire piece as note name, lowercase designating a minor key.",
     "globalkey_is_minor": "Boolean that is 1 if the piece is in minor and 0 if it is in major.",
     "gracenote": 'Name given to a type of grace note in the MuseScore encoding, e.g. "grace16"',
+    "guitar_chord_count": "Number of guitar/jazz/absolute chord labels in a piece.",
     "harmonies_id": "Row in the expanded table.",
     "harmony_layer": '0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; '
     'prevent through leading dot)",\n1: "MuseScore\'s Roman Numeral Annotation format",'
@@ -2370,9 +2460,21 @@ TSV_COLUMN_DESCRIPTIONS = {
     'Number format",\n3: "Absolute chord encoded by MuseScore',
     "i": "An integer serving as row ID",
     "keysig": "Positive integer for number of sharps, negative integer for number of flats.",
+    "KeySig": "All key signatures in a piece and where they occur. Format: '<MC>: <keysig>, <MC>: <keysig>, ...'"
+    "Corresponds to a dictionary without outer curly braces.",
     "label": "String corresponding to the entire annotation label.",
+    "label_count": "Number of chord annotation labels that match the regex of the DCML annotation standard.",
     "label_type": 'Previous name of what now is called "regex_match".',
+    "last_mc": "The highest Measure Count value in the piece. Corresponds to the number of <Measure> tags.",
+    "last_mc_unfolded": "The amount of <Measure> tags of a full playthrough, i.e. when all repeats are unfolded. "
+    "Equals 'last_mc' if piece has no repeat signs.",
+    "last_mn": "The highest Measure Number in the piece. Corresponds roughly to the number of complete bars.",
+    "last_mn_unfolded": "The last Measure Number when all repeats are unfolded. Equals 'last_mn' if piece has no "
+    "repeat signs.",
     "leftParen": "Pertaining to MuseScore encoding.",
+    "length_qb": "The length of a piece in quarter notes.",
+    "length_qb_unfolded": "The length of full playthrough in quarter notes, i.e. when all repeats are unfolded. "
+    "Equals 'length_qb' if piece has no repeat signs.",
     "localkey": "The key that a Roman numeral is relative to, expressed as a Roman numeral relative to the global key.",
     "localkey_is_minor": "Boolean that is 1 if the local key is minor and 0 if it is major.",
     "marker": "Pertaining to MuseScore encoding.",
@@ -2388,6 +2490,10 @@ TSV_COLUMN_DESCRIPTIONS = {
     "position of an event.",
     "movementNumber": "Metadata field for the number of a movement. Should be specified as integer, not as a Roman "
     "number.",
+    "n_onsets": "Number of onsets in a piece. Different from the number of entries in the 'notes' table, because "
+    "that one corresponds to the number of note heads; but notes being tied to do not represent onsets.",
+    "n_onset_positions": "Number of unique onset positions in a piece. Corresponds to the number of slices when "
+    "performing full expansion.",
     "name": "",
     "nashville": 'Numbering system that specifies the root of a chord as scale degree of the local key, e.g. "1", '
     '"b3", "#5", "b7".',
@@ -2429,6 +2535,8 @@ TSV_COLUMN_DESCRIPTIONS = {
     "staff": "Number of the staff where an event occurs, 1 designating the top staff.",
     "tied": "1 if a note is tied to the following one, -1 if it is being tied to by the previous one, 0 if both.",
     "timesig": 'Given as string, e.g. "4/4".',
+    "TimeSig": "All time signatures in a piece and where they occur. Format: '<MC>: <timesig>, <MC>: <timesig>, ...' "
+    "Corresponds to a dictionary without outer curly braces.",
     "tpc": "Specified on the line of fifths such that 0 = C, 1 = G, -1 = F, etc.",
     "voice": "A number between 1-4 where 1 is MuseScore's default layer (blue), 2 the second layer in green with "
     "downward stems, etc.",
@@ -2438,22 +2546,23 @@ TSV_COLUMN_DESCRIPTIONS = {
     "of the <Measure> tags grouped into one ending.",
 }
 
-TSV_DTYPES = {
+TSV_COLUMN_DTYPES = {
     "absolute_base": "Int64",
     "absolute_root": "Int64",
-    "alt_label": str,
-    "barline": str,
+    "all_notes_qb": float,
+    "alt_label": "string",
+    "barline": "string",
     "base": "Int64",
     "bass_note": "Int64",
     "breaks": "string",
-    "cadence": str,
+    "cadence": "string",
     "cadences_id": "Int64",
-    "changes": str,
-    "chord": str,
+    "changes": "string",
+    "chord": "string",
     "chord_id": "Int64",
-    "chord_type": str,
-    "color_name": str,
-    "color_html": str,
+    "chord_type": "string",
+    "color_name": "string",
+    "color_html": "string",
     "color_r": "Int64",
     "color_g": "Int64",
     "color_b": "Int64",
@@ -2462,46 +2571,57 @@ TSV_DTYPES = {
     "dont_count": "Int64",
     "duration_qb": float,
     "expanded_id": "Int64",
-    "figbass": str,
+    "figbass": "string",
     "fname": str,
-    "form": str,
+    "form": "string",
+    "form_label_count": int,
     "globalkey": str,
-    "gracenote": str,
+    "gracenote": "string",
+    "guitar_chord_count": int,
     "harmonies_id": "Int64",
-    "harmony_layer": str,
+    "harmony_layer": "string",
     "i": int,
     "keysig": "Int64",
-    "label": str,
-    "label_type": str,
-    "leftParen": str,
+    "label": "string",
+    "label_count": int,
+    "label_type": "string",
+    "last_mc": int,
+    "last_mc_unfolded": "Int64",
+    "last_mn": int,
+    "last_mn_unfolded": "Int64",
+    "leftParen": "string",
+    "length_qb": float,
+    "length_qb_unfolded": float,
     "localkey": str,
-    "marker": str,
+    "marker": "string",
     "mc": "Int64",
     "mc_playthrough": "Int64",
     "midi": "Int64",
     "mn": str,
-    "name": str,
-    "offset:x": str,
-    "offset_x": str,
-    "offset:y": str,
-    "offset_y": str,
+    "name": "string",
+    "offset:x": "string",
+    "offset_x": "string",
+    "offset:y": "string",
+    "offset_y": "string",
+    "n_onsets": int,
+    "n_onset_positions": int,
     "nashville": "Int64",
     "notes_id": "Int64",
     "numbering_offset": "Int64",
-    "numeral": str,
+    "numeral": "string",
     "octave": "Int64",
-    "pedal": str,
+    "pedal": "string",
     "piece": str,
-    "phraseend": str,
+    "phraseend": "string",
     "playthrough": "Int64",
-    "regex_match": str,
-    "relativeroot": str,
-    "repeats": str,
-    "rightParen": str,
+    "regex_match": "string",
+    "relativeroot": "string",
+    "repeats": "string",
+    "rightParen": "string",
     "root": "Int64",
     "rootCase": "Int64",
-    "slur": str,
-    "special": str,
+    "slur": "string",
+    "special": "string",
     "staff": "Int64",
     "tied": "Int64",
     "timesig": str,
@@ -2531,7 +2651,7 @@ def load_tsv(
         to be using the new `string` datatype that includes the new null type `pd.NA`.
     """
 
-    global TSV_COLUMN_CONVERTERS, TSV_DTYPES
+    global TSV_COLUMN_CONVERTERS, TSV_COLUMN_DTYPES
 
     if converters is None:
         conv = None
@@ -2544,7 +2664,7 @@ def load_tsv(
     elif isinstance(dtype, str):
         types = dtype
     else:
-        types = dict(TSV_DTYPES)
+        types = dict(TSV_COLUMN_DTYPES)
         types.update(dtype)
 
     if stringtype:
@@ -2583,6 +2703,7 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
             float: "float",
             int: "integer",
             int2bool: "boolean",
+            value2bool: "boolean",
             safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
             safe_int: "integer",
             str2inttuple: {
@@ -2594,7 +2715,9 @@ def tsv_column2csvw_datatype() -> Dict[str, str | Dict[str, str]]:
     column2datatype = {
         col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()
     }
-    column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
+    column2datatype.update(
+        {col: mapping[dtype] for col, dtype in TSV_COLUMN_DTYPES.items()}
+    )
     return column2datatype
 
 
@@ -2717,7 +2840,7 @@ def make_continuous_offset_series(
             A measures table with 'normal' RangeIndex containing the column 'act_durs' and one of
             'mc' or 'mc_playthrough' (if repeats were unfolded).
         quarters:
-            By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
+            By default, the continuous offsets are expressed in ♩. Pass false to leave them as fractions
             of a whole note.
         negative_anacrusis:
             By default, the first value is 0. If you pass a fraction here, the first value will be its negative and the
@@ -3021,7 +3144,7 @@ def merge_chords_and_notes(
     return merged
 
 
-def metadata2series(d: dict) -> pd.Series:
+def metadata2series(metadata: dict) -> pd.Series:
     """Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
     Uses: ambitus2oneliner(), dict2oneliner(), parts_info()
 
@@ -3030,15 +3153,15 @@ def metadata2series(d: dict) -> pd.Series:
     :obj:`pandas.Series`
         A series allowing for storing metadata as a row of a DataFrame.
     """
-    d = dict(d)
-    d["TimeSig"] = dict2oneliner(d["TimeSig"])
-    d["KeySig"] = dict2oneliner(d["KeySig"])
-    if "ambitus" in d:
-        d["ambitus"] = ambitus2oneliner(d["ambitus"])
-    if "parts" in d:
-        d.update(parts_info(d["parts"]))
-        del d["parts"]
-    s = pd.Series(d)
+    metadata = dict(metadata)
+    metadata["TimeSig"] = dict2oneliner(metadata["TimeSig"])
+    metadata["KeySig"] = dict2oneliner(metadata["KeySig"])
+    if "ambitus" in metadata:
+        metadata["ambitus"] = ambitus2oneliner(metadata["ambitus"])
+    if "parts" in metadata:
+        metadata.update(parts_info(metadata["parts"]))
+        del metadata["parts"]
+    s = pd.Series(metadata)
     return s
 
 
@@ -3263,7 +3386,12 @@ def next2sequence(next_col: pd.Series, logger=None) -> Optional[List[int]]:
     return result
 
 
-def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=None):
+def no_collections_no_booleans(
+    df: pd.DataFrame,
+    collection_columns: Optional[Collection[str]] = None,
+    boolean_columns: Optional[Collection[str]] = None,
+    logger=None,
+):
     """
     Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones', 'volta_mcs] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
@@ -3275,19 +3403,21 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
         logger = get_logger(logger)
     if df is None:
         return df
-    collection_cols = ["next", "chord_tones", "added_tones"]
-    bool_cols = ["globalkey_is_minor", "localkey_is_minor", "has_drumset"]
-    if coll_columns is not None:
-        collection_cols += list(coll_columns)
-    if bool_columns is not None:
-        bool_cols += list(bool_columns)
+    collection_columns = (
+        list(COLLECTION_COLUMNS)
+        if collection_columns is None
+        else list(collection_columns)
+    )
+    boolean_columns = (
+        list(BOOLEAN_COLUMNS) if boolean_columns is None else list(boolean_columns)
+    )
     try:
-        cc = [c for c in collection_cols if c in df.columns]
+        coll_cols = [c for c in collection_columns if c in df.columns]
     except Exception:
         logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
         return df
     df = df.copy()
-    for c in cc:
+    for c in coll_cols:
         null_vals = df[c].isna()
         if null_vals.all():
             continue
@@ -3307,8 +3437,8 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
             df.loc[:, c] = transform(df[c], iterable2str)
         logger.debug(f"Transformed iterables in the column {c} to strings.")
     # df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
-    boolean_columns = [c for c in bool_cols if c in df.columns]
-    for bc in boolean_columns:
+    bool_cols = [c for c in boolean_columns if c in df.columns]
+    for bc in bool_cols:
         null_vals = df[bc].isna()
         if null_vals.all():
             continue
@@ -3335,6 +3465,10 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None, logger=
             #     )
             #     raise
         logger.debug(f"Transformed booleans in the column {bc} to integers.")
+    if "TimeSig" in df.columns:
+        df.TimeSig = df.TimeSig.map(dict2oneliner)
+    if "KeySig" in df.columns:
+        df.KeySig = df.KeySig.map(dict2oneliner)
     return df
 
 
@@ -4594,8 +4728,21 @@ def prepare_metadata_for_writing(metadata_df):
     return metadata_df
 
 
-def ensure_correct_column_types(df):
-    return df
+def ensure_correct_column_types(
+    df: pd.DataFrame, exclude_columns: Optional[Collection[str]] = None
+) -> pd.DataFrame:
+    excluded_columns = (
+        list(BOOLEAN_COLUMNS + COLLECTION_COLUMNS)
+        if exclude_columns is None
+        else exclude_columns
+    )
+    columns_to_convert = {
+        col: TSV_COLUMN_DTYPES[col]
+        for col in df.columns
+        if col in TSV_COLUMN_DTYPES and col not in excluded_columns
+    }
+    df_converted = df.astype(columns_to_convert)
+    return df_converted
 
 
 def write_tsv(

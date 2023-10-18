@@ -1854,13 +1854,15 @@ and {loc_after} before the subsequent {nxt_name}."""
             exclude_end:
                 If set to True, the last note corresponding to ``end_mc_onset`` will also be "removed"
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
             decompose_repeat_tags:
                 If set to true, the XML tree will be cleansed from all tags referring to repeat-like structures to
                 avoid possible "broken" structures within the excerpt.
@@ -1888,6 +1890,8 @@ and {loc_after} before the subsequent {nxt_name}."""
             f"Cannot create an excerpt not containing no measures, which would be the result for included_mcs="
             f"{included_mcs}."
         )
+        if self.soup is None:
+            self.make_writeable()
         soup = copy(self.soup)
         part_tag = soup.find("Part")
         if part_tag is None:
@@ -2032,6 +2036,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             "midi",
             "name",
             "octave",
+            "tuning",
             "chord_id",
         ]
         if self.has_voltas:
@@ -2059,6 +2064,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             staff2drums=self.staff2drum_map,
         )
         append_cols = [pitch_info, tied, names, octaves]
+        if "Note/tuning" in self._notes.columns:
+            detuned_notes = self._notes["Note/tuning"].rename("tuning")
+            detuned_notes = pd.to_numeric(detuned_notes, downcast="float")
+            append_cols.append(detuned_notes)
         self._nl = pd.concat(
             [self._nl.drop(columns=["midi", "tpc"])] + append_cols, axis=1
         )
@@ -3080,13 +3089,15 @@ class Excerpt(_MSCX_bs4):
             exclude_end:
                 If set to True, the note last note corresponding to ``end_mc_onset`` will also be "removed"
             metronome_tempo: Optional[float], optional
-                The value that the user wants to set as the tempo of the excerpts. The tag will be added
-                to XML tree of the excerpt's file and will have the desired tempo
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
             metronome_beat_unit: Optional[Fraction | float], optional
-                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
-                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
-                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
-                eighth note etc.)
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
             decompose_repeat_tags:
                 If set to true, the XML tree will be cleansed from all tags referring to repeat-like structures to
                 avoid possible "broken" structures within the excerpt.
@@ -3140,10 +3151,16 @@ class Excerpt(_MSCX_bs4):
         Args:
             first_tempo_tag:
                 The last active metronome mark found in the original piece (if any was found)
-            metronome_tempo:
-                The tempo values specified by the user (usually in beats per minute, bpm)
-            metronome_beat_unit:
-                The beat unit specified by the user that will become the reference for the tempo
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
         """
         if metronome_tempo is not None:
             if first_tempo_tag is not None:
@@ -3446,6 +3463,24 @@ class Excerpt(_MSCX_bs4):
     ):
         """Creates the artificial hidden metronome mark that either comes from the last active metronome mark of the
         original piece or from some specified tempo and beat unit values specified by the user.
+
+
+        Args:
+            piece_tempo_tag:
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
+            user_call:
+
+        Returns:
+
         """
         for measure_tag in self.iter_first_measures():
             tempo_tag = measure_tag.find("Tempo")
@@ -3692,7 +3727,7 @@ class Instrumentation(LoggedClass):
                 }
             channel_info = part.find_all("Channel")
             cur_dict = {
-                "id": instrument_tag["id"],
+                "id": instrument_tag.get("id"),
                 "ChannelName": [],
                 "ChannelValue": [],
                 "controllers": [],
