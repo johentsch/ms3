@@ -8,8 +8,9 @@ from ms3.logger import get_logger
 from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 
-CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
-TEST_COMMIT = "5899afe" # commit of DCMLab/unittest_metacorpus for which the tests should pass
+CORPUS_DIR = "~/git/meta_repositories/"        # Directory holding your clone of DCMLab/unittest_metacorpus
+UNITTEST_METACORPUS = os.path.join(os.path.expanduser(CORPUS_DIR), "unittest_metacorpus")
+TEST_COMMIT = "bb8bb60" # commit of DCMLab/unittest_metacorpus for which the tests should pass
 MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), '..', '..'))
 DOCS_DIR = os.path.join(MS3_DIR, 'docs')
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
@@ -17,7 +18,7 @@ DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
 @pytest.fixture(scope="session")
 def directory():
     """Compose the path for the test corpus."""
-    path = os.path.join(os.path.expanduser(CORPUS_DIR), "unittest_metacorpus")
+    path = UNITTEST_METACORPUS
     if not os.path.isdir(path):
         print(f"Directory does not exist: {path} Clone DCMLab/unittest_metacorpus, checkout ms3_tests branch, "
               f"and specify CORPUS_DIR above.")
@@ -202,3 +203,5 @@ def get_all_supressed_warnings(directory):
         _ = p.get_dataframes(expanded=True)
         all_msgs = captured_msgs.content_list
     return ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
+
+

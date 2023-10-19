@@ -12,7 +12,7 @@ from ms3 import Parse, Score
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
-CORPUS_PATH = r"/Users/subnaulitus/Desktop/excerpts/mozart_sonatas/K279-1.mscx"
+CORPUS_PATH = "~/unittest_metacorpus/wagner_overtures"
 
 
 def ignoring_warning():
@@ -49,6 +49,7 @@ def extraction():
     """Created by executing an ms3 command and coping the object initializing from the output."""
     p = parse_object()
     p.parse_scores()
+    p.store_extracted_facets(expanded_folder="..")
 
 
 def transform_cmd():
@@ -64,18 +65,4 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    here = os.path.abspath(os.path.dirname(__file__))
-    local_test_files = os.path.abspath(
-        os.path.join(here, "..", "test_local_files", "MS3")
-    )
-    mozart_filepath = os.path.join(local_test_files, "K284-3_section_breaks.mscx")
-    score_object = Score(mozart_filepath)
-    score_object.mscx.store_phrase_excerpts(
-        directory=local_test_files,
-    )
-    # score_object.mscx.store_measures(
-    #     directory=local_test_files,
-    #     included_mcs=(252, 253, 254, 256),
-    #     start_mc_onset=Fraction(1, 2),
-    #     end_mc_onset=Fraction(0, 1)
-    # )
+    extraction()

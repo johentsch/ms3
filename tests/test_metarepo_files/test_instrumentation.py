@@ -17,15 +17,13 @@ from git import Repo
 from ms3 import Score
 from ms3.bs4_parser import INSTRUMENT_DEFAULTS, Instrumentation
 
-from ..conftest import TEST_COMMIT
-
-UNITTEST_METACORPUS = "~/unittest_metacorpus"
+from ..conftest import TEST_COMMIT, UNITTEST_METACORPUS
 
 
 @lru_cache()
 def check_metarepo_commit(directory) -> str:
     repo = Repo(directory)
-    commit = repo.commit("HEAD")
+    commit = repo.commit()
     sha = commit.hexsha[: len(TEST_COMMIT)]
     if sha != TEST_COMMIT:
         print(f"Please checkout unittest_metarepo to {TEST_COMMIT}")
