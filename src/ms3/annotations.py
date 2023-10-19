@@ -528,13 +528,12 @@ class Annotations(LoggedClass):
                     # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
                     # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
                     # See also: https://stackoverflow.com/q/74057367/859591
+                    # addition: pandas 2.1.0 throws "FutureWarning: Setting an item of incompatible dtype is
+                    # deprecated and will raise in a future error of pandas." because all new columns are interpreted
+                    # seem to default to dtype float64.
                     warnings.filterwarnings(
                         "ignore",
                         category=FutureWarning,
-                        message=(
-                            ".*will attempt to set the values inplace instead of always setting a new array. "
-                            "To retain the old behavior, use either.*"
-                        ),
                     )
                     df.loc[select_dcml, exp.columns] = exp
                     df.loc[:, key_cols] = df[key_cols].ffill()
