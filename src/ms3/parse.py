@@ -1118,7 +1118,7 @@ class Parse(LoggedClass):
         key: str = "detached",
         staff: int = None,
         voice: Literal[1, 2, 3, 4] = None,
-        harmony_layer: Literal[0, 1, 2] = None,
+        harmony_layer: Optional[Literal[0, 1, 2]] = None,
         check_for_clashes: bool = True,
     ):
         """Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their
@@ -1605,7 +1605,7 @@ class Parse(LoggedClass):
         key: str = "removed",
         staff: int = None,
         voice: Literal[1, 2, 3, 4] = None,
-        harmony_layer: Literal[0, 1, 2, 3] = None,
+        harmony_layer: Optional[Literal[0, 1, 2, 3]] = None,
         delete: bool = True,
     ):
         for name, corpus in self.iter_corpora(view_name):

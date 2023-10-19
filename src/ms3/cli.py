@@ -305,7 +305,7 @@ def update_cmd(args, parse_obj: Optional[Parse] = None):
         suffix="" if args.suffix is None else args.suffix,
         overwrite=True,
         staff=int(args.staff),
-        harmony_layer=args.type,
+        harmony_layer=int(args.type),
         above=args.above,
         safe=args.safe,
     )

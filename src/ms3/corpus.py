@@ -2498,7 +2498,7 @@ class Corpus(LoggedClass):
         key: str = "detached",
         staff: int = None,
         voice: Literal[1, 2, 3, 4] = None,
-        harmony_layer: Literal[0, 1, 2] = None,
+        harmony_layer: Optional[Literal[0, 1, 2]] = None,
         check_for_clashes: bool = True,
     ) -> Tuple[int, int]:
         """Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their
@@ -2889,7 +2889,7 @@ class Corpus(LoggedClass):
         key: str = "removed",
         staff: int = None,
         voice: Literal[1, 2, 3, 4] = None,
-        harmony_layer: Literal[0, 1, 2, 3] = None,
+        harmony_layer: Optional[Literal[0, 1, 2, 3]]  = None,
         delete: bool = True,
     ):
         """Calls :py:meth:`Score.detach_labels <ms3.score.Score.detach_labels` on every parsed score under the

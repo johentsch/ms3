@@ -2,6 +2,7 @@ import sys
 import warnings
 from functools import cache
 from inspect import stack
+from typing import Optional, Literal
 
 import pandas as pd
 
@@ -142,8 +143,12 @@ class Annotations(LoggedClass):
         self.df[label_col] = self.df[label_col].map(add_dots)
 
     def prepare_for_attaching(
-        self, staff=None, voice=None, harmony_layer=1, check_for_clashes=True
-    ):
+        self,
+            staff: Optional[int] = None,
+            voice: Optional[Literal[1, 2, 3, 4]] =None,
+            harmony_layer: Optional[Literal[0, 1, 2, 3]] =1,
+            check_for_clashes: bool=True
+    ) -> pd.DataFrame:
         if self.mscx_obj is None:
             self.logger.warning(
                 f"Annotations object not aware to which MSCX object it is attached."
@@ -196,6 +201,8 @@ class Annotations(LoggedClass):
                     "Annotations don't have harmony_layer information. Using the default, 1 (Roman numerals)."
                 )
                 harmony_layer = 1
+            else:
+                harmony_layer = int(harmony_layer)
             df[layer_col] = harmony_layer
         else:
             if harmony_layer is None:
@@ -206,7 +213,7 @@ class Annotations(LoggedClass):
                     )
                     df[layer_col].fillna(harmony_layer, inplace=True)
             else:
-                df[layer_col] = harmony_layer
+                df[layer_col] = int(harmony_layer)
 
         error = False
         if self.cols["mc"] not in cols:
@@ -311,15 +318,15 @@ class Annotations(LoggedClass):
 
     def get_labels(
         self,
-        staff=None,
-        voice=None,
-        harmony_layer=None,
-        positioning=False,
-        decode=True,
-        drop=False,
-        inverse=False,
-        column_name=None,
-        color_format=None,
+        staff: Optional[int] =None,
+        voice: Optional[Literal[1, 2, 3, 4]] =None,
+        harmony_layer: Optional[Literal[0, 1, 2, 3]] =None,
+        positioning: bool=False,
+        decode: bool=True,
+        drop: bool=False,
+        inverse: bool=False,
+        column_name: Optional[str]=None,
+        color_format: Optional[Literal['html', 'rgb', 'rgba', 'name']]=None,
         regex=None,
     ):
         """Returns a DataFrame of annotation labels.
