@@ -4584,8 +4584,13 @@ def write_metadata(
         new_cols = metadata_df.columns.difference(previous.columns)
         shared_cols = metadata_df.columns.intersection(previous.columns)
         new_rows = metadata_df.index.difference(previous.index)
-        previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
-        previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
+        with warnings.catch_warnings():
+            # pandas 2.1.0: "FutureWarning: The behavior of array concatenation with empty entries is deprecated. In
+            # a future version, this will no longer exclude empty items when determining the result dtype. To retain
+            # the old behavior, exclude the empty entries before the concat operation."
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
+            previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
         previous.update(metadata_df)
         legacy_columns = [c for c in LEGACY_COLUMNS if c in previous.columns]
         if len(legacy_columns) > 0:
