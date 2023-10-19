@@ -2372,18 +2372,22 @@ class Score(LoggedClass):
         color_changes = sum(
             self.mscx.change_label_color(*t, **change_to_params) for t in changes_new
         )
-        old_df = pd.DataFrame(changes_old, columns=compare_cols)
-        for k, v in added_color_params.items():
-            old_df[k] = v
-        if add_to_rna:
-            old_df["harmony_layer"] = 1
-            anno = Annotations(df=old_df, **self.logger_cfg)
-            anno.remove_initial_dots()
+        if len(changes_old) == 0:
+            added_changes = 0
+            old_df = None
         else:
-            old_df["harmony_layer"] = 0
-            anno = Annotations(df=old_df, **self.logger_cfg)
-            anno.add_initial_dots()
-        added_changes = self.mscx.add_labels(anno)
+            old_df = pd.DataFrame(changes_old, columns=compare_cols)
+            for k, v in added_color_params.items():
+                old_df[k] = v
+            if add_to_rna:
+                old_df["harmony_layer"] = 1
+                anno = Annotations(df=old_df, **self.logger_cfg)
+                anno.remove_initial_dots()
+            else:
+                old_df["harmony_layer"] = 0
+                anno = Annotations(df=old_df, **self.logger_cfg)
+                anno.add_initial_dots()
+            added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
@@ -2399,7 +2403,10 @@ class Score(LoggedClass):
             self.mscx.update_metadata(**metadata_update)
         res = (color_changes, added_changes)
         new_df = pd.DataFrame(changes_new, columns=compare_cols)
-        self.comparison_report = pd.concat([old_df, new_df], keys=["old", "new"])
+        if old_df is None:
+            self.comparison_report = pd.concat([new_df], keys=["new"])
+        else:
+            self.comparison_report = pd.concat([old_df, new_df], keys=["old", "new"])
         return res
 
     def detach_labels(

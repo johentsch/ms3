@@ -594,7 +594,7 @@ class Annotations(LoggedClass):
             )
             sel = decoded.notna()
             if not sel.any():
-                self.logger.info(f"No labels present: {self.df}")
+                self.logger.debug(f"No labels present: {self.df}")
                 return
             if "regex_match" not in self.df.columns and sel.any():
                 regex_col = pd.Series(index=self.df.index, dtype="object")
