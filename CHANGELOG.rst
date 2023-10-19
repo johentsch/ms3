@@ -2,6 +2,65 @@
 Changelog
 =========
 
+Version 2.3.0
+=============
+
+-  Adds ‘ms3 precommit’ and makes the repo usable as a hook by
+   @johentsch in https://github.com/johentsch/ms3/pull/106
+
+   -  The new ``ms3 precommit`` command is simply a wrapper around
+      ``ms3 review`` that accepts the ``--files`` arguments as
+      positional arguments. This is required for the command to be
+      useable as an entry point for a `Git
+      pre-commit <https://pre-commit.com/>`__, which passes the paths of
+      modified or added files as positional arguments. In addition, the
+      command executes ``git add -A`` after the review so that all
+      changed files are included.
+   -  This is to work in the first version of the new, localized, DCML
+      annotation workflow that runs on the annotator’s machine before
+      committing, rather than on a GitHub runner after pushing. Things
+      that might be changed in the future:
+
+      -  The ``ms3 precommit`` command could convert the positional
+         arguments into a regular expression to be passed to
+         ``-i/--include`` instead of using the deprecated ``--files``.
+      -  At some point a mechanism might be needed that makes it
+         possible for the hook to ignore warnings that were already
+         there, i.e., which are not caused/added by the current commit.
+         Currently one would have to remove ``--fail`` from the repo’s
+         args configuration but that would let all warnings pass and
+         would be besides the point.
+
+   -  New method ``score.mscx.update_metadata()`` to facilitate (manual)
+      updating of the key-value pairs.
+   -  Comparison files come with the metadata key
+      ``compared_against=<commit hash>`` when the comparison has been
+      performed against a particular git revision.
+   -  ``"LATEST_VERSION"`` is now accepted as argument to
+      ``git_revision`` and resolves to the latest version tag (falling
+      back to the current HEAD if the repo has no tags)
+
+-  Extended excerpting functionality by @leobruneau in
+   https://github.com/johentsch/ms3/pull/105
+
+   -  It is now possible to replace head and tail of an excerpt with
+      rests. This does not look pretty but it is an easy way to create
+      audio excerpts starting and ending at the given points in time.
+   -  It is now possible to set an arbitrary tempo by inserting an
+      invisible metronome mark at the beginning of excerpts.
+   -  ``score.mscx.store_phrase_excerpts()`` makes use of this to omit
+      notes before and after the actual phrase
+   -  new methods accessible via ``score.mscx``:
+
+      -  ``store_measures()``
+      -  ``store_within_phrase_excerpts()``
+      -  ``store_phrase_endings()``
+      -  ``store_random_excerpts()``
+
+
+
+**Full Changelog**: https://github.com/johentsch/ms3/compare/v2.2.2...v2.3.0
+
 Version 2.2.1
 =============
 
