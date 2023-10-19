@@ -197,10 +197,10 @@ class TestScore:
 
     def test_storing_all_excerpts(self, score_object, tmp_path):
         print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
-        last_mn = score_object.mscx.measures().mn.max()
-        mn_length = last_mn - 2
+        last_mc = score_object.mscx.measures().mc.max()
+        mn_length = last_mc - 2
         score_object.mscx.store_random_excerpts(
-            mn_length=int(mn_length),
+            mc_length=int(mn_length),
             directory=str(tmp_path),
         )
         assert len(os.listdir(tmp_path)) == 3

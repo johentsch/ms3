@@ -1640,7 +1640,7 @@ class MSCX(LoggedClass):
     def store_random_excerpts(
         self,
         n_excerpts: Optional[int] = None,
-        mn_length: Optional[int] = 2,
+        mc_length: Optional[int] = 2,
         metronome_tempo: Optional[float] = None,
         metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
         directory: Optional[str] = None,
@@ -1653,7 +1653,7 @@ class MSCX(LoggedClass):
         Args:
             n_excerpts:
                 The number of random excerpts to be created
-            mn_length:
+            mc_length:
                 The allowed number of measures for each excerpt
             metronome_tempo:
                 The tempo value that the user might specify to overwrite the original piece tempo
@@ -1666,14 +1666,14 @@ class MSCX(LoggedClass):
                 Suffix to be added to the name of the generated excerpts
         """
         measures = self.measures()
-        mn_values = np.array(measures["mc"].tolist())
-        max_mc = int(max(mn_values))
+        mc_values = np.array(measures["mc"].tolist())
+        max_mc = int(max(mc_values))
 
-        if len(mn_values) != max_mc:
+        if len(mc_values) != max_mc:
             self.logger.error("Incoherent measures table. Aborting...")
             return
 
-        if mn_length >= max_mc:
+        if mc_length >= max_mc:
             self.logger.warning(
                 "You are either requesting an excerpt longer than the original piece or with the same "
                 "length. Aborting..."
@@ -1681,23 +1681,17 @@ class MSCX(LoggedClass):
             return
 
         rng = np.random.default_rng()
-        available_starts = mn_values[: -mn_length + 1] - 1
+        available_starts = mc_values[: -mc_length + 1] - 1
 
         if n_excerpts is None:
             random_excerpts = [
-                tuple(mn_values[x : x + mn_length]) for x in available_starts
+                tuple(mc_values[x : x + mc_length]) for x in available_starts
             ]
-            # DEBUG:
-            # print(available_starts)
-            # [print(x, len(x)) for x in random_excerpts]
         else:
             random_excerpts = [
-                tuple(mn_values[x : x + mn_length])
+                tuple(mc_values[x : x + mc_length])
                 for x in rng.choice(available_starts, n_excerpts, replace=False)
             ]
-            # DEBUG:
-            # print(available_starts)
-            # [print(x, len(x)) for x in random_excerpts]
 
         for excerpt in random_excerpts:
             self.store_measures(
@@ -1707,6 +1701,7 @@ class MSCX(LoggedClass):
                 directory=directory,
                 suffix=suffix,
             )
+
 
     def update_metadata(
         self,
