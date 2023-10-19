@@ -179,12 +179,8 @@ class TestScore:
         assert len(os.listdir(tmp_path)) == 3
 
     def test_phrase_excerpts(self, score_object, tmp_path):
+        skip_if_no_annotation_labels(score_object)
         print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
-        dcml_labels = score_object.mscx.expanded(unfold=True)
-        if dcml_labels is None:
-            pytest.skip("No labels to extract phrases from.")
-        if not check_phrase_annotations(dcml_labels, "phraseend"):
-            pytest.skip("Incongruent phrase annotations.")
         score_object.mscx.store_phrase_excerpts(
             directory=str(tmp_path),
         )
@@ -201,10 +197,38 @@ class TestScore:
 
     def test_storing_all_excerpts(self, score_object, tmp_path):
         print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
-        last_mn = score_object.mscx.measures().mn.max()
-        mn_length = last_mn - 2
+        last_mc = score_object.mscx.measures().mc.max()
+        mn_length = last_mc - 2
         score_object.mscx.store_random_excerpts(
-            mn_length=int(mn_length),
+            mc_length=int(mn_length),
             directory=str(tmp_path),
         )
         assert len(os.listdir(tmp_path)) == 3
+
+    def test_store_measures(self, score_object, tmp_path):
+        print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_measures(
+            included_mcs=(1, 2),
+            directory=str(tmp_path),
+        )
+        assert len(os.listdir(tmp_path)) == 1
+
+    def test_within_phrase_excerpts(self, score_object, tmp_path):
+        skip_if_no_annotation_labels(score_object)
+        print(f"CREATING WITHIN PHRASE EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_within_phrase_excerpts(directory=str(tmp_path))
+        assert len(os.listdir(tmp_path)) > 0
+
+    def test_phrase_endings(self, score_object, tmp_path):
+        skip_if_no_annotation_labels(score_object)
+        print(f"CREATING PHRASE ENDING EXCERPTS IN {tmp_path}")
+        score_object.mscx.store_phrase_endings(directory=str(tmp_path))
+        assert len(os.listdir(tmp_path)) > 0
+
+
+def skip_if_no_annotation_labels(score_object):
+    dcml_labels = score_object.mscx.expanded(unfold=True)
+    if dcml_labels is None or len(dcml_labels) == 0:
+        pytest.skip("No labels to extract phrase endings from.")
+    if not check_phrase_annotations(dcml_labels, "phraseend"):
+        pytest.skip("Incongruent phrase annotations.")

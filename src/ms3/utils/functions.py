@@ -2454,10 +2454,11 @@ TSV_COLUMN_DESCRIPTIONS = {
     "gracenote": 'Name given to a type of grace note in the MuseScore encoding, e.g. "grace16"',
     "guitar_chord_count": "Number of guitar/jazz/absolute chord labels in a piece.",
     "harmonies_id": "Row in the expanded table.",
-    "harmony_layer": '0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; '
-    'prevent through leading dot)",\n1: "MuseScore\'s Roman Numeral Annotation format",'
-    "\n2: \"MuseScore's Nashville "
-    'Number format",\n3: "Absolute chord encoded by MuseScore',
+    "harmony_layer": "0: Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; "
+                     "prevent through leading dot);\n"
+                    "1: MuseScore's Roman Numeral Annotation format;\n"
+                    "2: MuseScore's Nashville Number format;\n"
+                    "3: Absolute chord encoded by MuseScore.",
     "i": "An integer serving as row ID",
     "keysig": "Positive integer for number of sharps, negative integer for number of flats.",
     "KeySig": "All key signatures in a piece and where they occur. Format: '<MC>: <keysig>, <MC>: <keysig>, ...'"
@@ -2579,7 +2580,7 @@ TSV_COLUMN_DTYPES = {
     "gracenote": "string",
     "guitar_chord_count": int,
     "harmonies_id": "Int64",
-    "harmony_layer": "string",
+    "harmony_layer": "Int64",
     "i": int,
     "keysig": "Int64",
     "label": "string",
@@ -4583,8 +4584,13 @@ def write_metadata(
         new_cols = metadata_df.columns.difference(previous.columns)
         shared_cols = metadata_df.columns.intersection(previous.columns)
         new_rows = metadata_df.index.difference(previous.index)
-        previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
-        previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
+        with warnings.catch_warnings():
+            # pandas 2.1.0: "FutureWarning: The behavior of array concatenation with empty entries is deprecated. In
+            # a future version, this will no longer exclude empty items when determining the result dtype. To retain
+            # the old behavior, exclude the empty entries before the concat operation."
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
+            previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
         previous.update(metadata_df)
         legacy_columns = [c for c in LEGACY_COLUMNS if c in previous.columns]
         if len(legacy_columns) > 0:
@@ -4741,7 +4747,9 @@ def ensure_correct_column_types(
         for col in df.columns
         if col in TSV_COLUMN_DTYPES and col not in excluded_columns
     }
-    df_converted = df.astype(columns_to_convert)
+    df_converted = df.astype(columns_to_convert, errors="ignore") # without "ignore", pandas 2.1.0 complains about NA
+                                                                  # values in the duration_qb (float!) column 🙄
+
     return df_converted
 
 

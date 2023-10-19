@@ -12,7 +12,7 @@ from ms3 import Parse, Score
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
-CORPUS_PATH = r"C:\Users\hentsche\baroque_keyboard_corpus\bach_en_fr_suites"
+CORPUS_PATH = "~/unittest_metacorpus/wagner_overtures"
 
 
 def ignoring_warning():
@@ -45,18 +45,11 @@ def parse_object() -> Parse:
     return p
 
 
-def inspect_raw_notes(filepath):
-    """The table on which _MSCX_bs4.make_standard_notelist() operates."""
-    s = Score(filepath)
-    raw_notes = s.mscx.parsed._notes
-    print(raw_notes.columns.to_list())
-    print(raw_notes)
-
-
 def extraction():
     """Created by executing an ms3 command and coping the object initializing from the output."""
     p = parse_object()
     p.parse_scores()
+    p.store_extracted_facets(expanded_folder="..")
 
 
 def transform_cmd():
@@ -72,6 +65,4 @@ def transform_cmd():
 
 
 if __name__ == "__main__":
-    inspect_raw_notes(
-        "/home/laser/all_subcorpora/bach_solo/MS3/detuned/BWV1011_01_Prelude.mscz"
-    )
+    extraction()

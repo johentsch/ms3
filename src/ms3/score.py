@@ -73,6 +73,7 @@
 import os
 import re
 from contextlib import contextmanager
+from fractions import Fraction
 from tempfile import NamedTemporaryFile as Temp
 from typing import IO, Collection, Literal, Optional, Tuple
 
@@ -1092,8 +1093,14 @@ class MSCX(LoggedClass):
         self,
         start_mc: Optional[int] = None,
         start_mn: Optional[int] = None,
+        start_mc_onset: Optional[Fraction | float] = None,
         end_mc: Optional[int] = None,
         end_mn: Optional[int] = None,
+        end_mc_onset: Optional[Fraction | float] = None,
+        exclude_start: Optional[bool] = False,
+        exclude_end: Optional[bool] = False,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction] = Fraction(1 / 4),
         directory: Optional[str] = None,
         suffix: Optional[str] = None,
     ):
@@ -1109,12 +1116,32 @@ class MSCX(LoggedClass):
             start_mn:
                 Measure number of the first measure to be included in the excerpt.
                 If ``start_mn`` is given, ``start_mc`` must be None.
+            start_mc_onset:
+                The starting onset value in the first measure. Every note with onset value strictly smaller than
+                ``start_mc_onset`` will be removed from the excerpt.
             end_mc:
                 Measure count of the last measure to be included in the excerpt.
                 If ``end_mc`` is given, ``end_mn`` must be None.
             end_mn:
                 Measure number of the last measure to be included in the excerpt.
                 If ``end_mn`` is given, ``end_mc`` must be None.
+            end_mc_onset:
+                The ending onset value in the last measure. Every not with onset value strictly greate than
+                ``end_mc_onset`` will be removed from the excerpt.
+            exclude_start:
+                If set to True, the note corresponding to ``start_mc_onset`` will be removed as well.
+            exclude_end:
+                If set to True, the note corresponding to ``end_mc_onset`` will be removed as well.
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
             directory:
                 Path to the folder where the excerpts are to be stored.
             suffix:
@@ -1189,12 +1216,9 @@ class MSCX(LoggedClass):
                     df=dcml_labels, quarterbeat=quarterbeat_start
                 )
 
-                # TODO: Check if this is correct (sometimes get_row_at_quarterbeat returns several rows)
-                if isinstance(row, pd.DataFrame):
-                    row = row.iloc[-1]
-
-                global_key = row["globalkey"]
-                local_key = row["localkey"]
+                if row is not None:
+                    global_key = row["globalkey"]
+                    local_key = row["localkey"]
 
         included_mcs = tuple(range(start, end + 1))
 
@@ -1204,7 +1228,15 @@ class MSCX(LoggedClass):
         self.logger.debug(f"Global key: {global_key}, Local key: {local_key}")
 
         excerpt = self.parsed.make_excerpt(
-            included_mcs=included_mcs, globalkey=global_key, localkey=local_key
+            included_mcs=included_mcs,
+            start_mc_onset=start_mc_onset,
+            end_mc_onset=end_mc_onset,
+            exclude_start=exclude_start,
+            exclude_end=exclude_end,
+            metronome_tempo=metronome_tempo,
+            metronome_beat_unit=metronome_beat_unit,
+            globalkey=global_key,
+            localkey=local_key,
         )
 
         original_directory, original_filename = os.path.split(excerpt.filepath)
@@ -1217,11 +1249,18 @@ class MSCX(LoggedClass):
         excerpt.store_score(excerpt_filepath)
         self.logger.info(f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}.")
 
-    def store_phrase_excerpts(self, directory: Optional[str] = None):
-        """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
-        the :meth:`expanded` table is unfolded (to guarantee the correct sequence of phrase starts and ends),
-        start and end MC for each phrase are passed to :meth:`store_excerpt`. The resulting excerpts will be
-        named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx``.
+    def get_phrase_boundaries(self):
+        """This method uses the `expanded` and `unfolded` labels to find all the phrase boundaries where a beginning
+        is defined by an opening bracket `{` and the end is defined by a cadence. This cadence can either come with a
+        closing bracket `}` or after the end of a phrase and before the beginning of the next one. The start and end
+        point are also associated with onset values to precisely know the position of the labels within the measure
+        in order to be able to trim `"unrelated"` notes later on.
+
+        Returns:
+            a list of all unique maps that identify all phrases in the score. Each map has three keys: `"mcs"`,
+            `"start_onset"`, `"end_onset"`. The first one corresponds to a tuple containing all the measure counts
+            included in the phrase, the second is onset value of the starting label and the last key is the onset
+            value for the ending label.
         """
 
         expanded = self.expanded(unfold=True)
@@ -1229,111 +1268,440 @@ class MSCX(LoggedClass):
             self.logger.info("No DCML labels found to extract phrase information from.")
             return
 
-        phrase_label_mask = expanded["phraseend"].isin(["{", "}{", "}"])
+        phrase_label_mask = expanded["label"].str.contains("{|}|\\|")
         if not phrase_label_mask.any():
             self.logger.info(
                 "DCML labels do not contain phrase labels with curly brackets {}"
             )
             return
 
-        phrase_labels = expanded.loc[phrase_label_mask, "phraseend"]
-        phrase_starts = phrase_labels.str.contains("{")
-        phrase_ends = phrase_labels.str.contains("}")
-        if phrase_starts.sum() != phrase_ends.sum():
-            self.logger.error("Phrase labels are incoherent. Not extracting phrases.")
-            return
-        start_mcs = expanded.loc[phrase_labels[phrase_starts].index, "mc"].values
-        end_mcs = expanded.loc[phrase_labels[phrase_ends].index, "mc"].values
-        phrases = list(
-            reversed(sorted(zip(start_mcs, end_mcs)))
-        )  # prepare for removal of duplicates due to unfolding
-        self.logger.debug(f"Found {len(phrases)} phrases.", f"Phrases: {phrases}")
-        phrases_without_duplicates = []
-        previous_start = None
-        for start_mc, end_mc in phrases:
-            if start_mc == previous_start:
-                # do not create excerpts with the same start_mc
-                continue
-            if end_mc < start_mc:
-                self.logger.error(
-                    f"Phrase end {end_mc} is smaller than phrase start {start_mc}, skipping excerpt."
-                )
-                continue
-            phrases_without_duplicates.append((start_mc, end_mc))
-            self.store_excerpt(
-                start_mc=int(start_mc),
-                end_mc=int(end_mc),
-                directory=directory,
-                suffix="_phrase",
-            )
-            previous_start = start_mc
+        df = expanded[phrase_label_mask][["mc_onset", "label", "phraseend"]]
 
-        self.logger.info(
-            f"Extracted {len(phrases_without_duplicates)} phrases.\n"
-            f"Phrases: {phrases_without_duplicates}"
-        )
+        filter1 = df["phraseend"].isna() & (df["phraseend"].shift(1).isin(["{", "}{"]))
+        df = df.drop(df[filter1].index)
+
+        filter2 = (df["phraseend"] == "}") & (df["phraseend"].shift(-1).isna())
+        if df.iloc[-1]["phraseend"] == "}":
+            filter2 &= df.index != df.index[-1]
+        final = df.drop(df[filter2].index)
+
+        start_mask = final["phraseend"].isin(["{", "}{"])
+        end_mask = final["phraseend"].isin(["}", "}{"]) | final["phraseend"].isna()
+
+        start_indexes = final.index[start_mask].tolist()
+        end_indexes = final.index[end_mask].tolist()
+
+        if len(start_indexes) != len(end_indexes):
+            self.logger.warning("Incoherent labels, aborting...")
+
+        phrases = []
+        unique_mcs = []
+        for start, end in zip(start_indexes, end_indexes):
+            phrase = {
+                "mcs": tuple(
+                    expanded.iloc[start : end + 1]["mc"].drop_duplicates().values
+                ),
+                "start_onset": expanded.iloc[start]["mc_onset"],
+                "end_onset": expanded.iloc[end]["mc_onset"],
+            }
+            if phrase["mcs"] not in unique_mcs:
+                phrases.append(phrase)
+                unique_mcs.append(phrase["mcs"])
+
+        return phrases
+
+    def store_phrase_excerpts(
+        self,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "phrase",
+        random_skip: Optional[bool] = False,
+    ):
+        """Store excerpts based on the phrase annotations contained in the score, if any. For this purpose,
+        the self.find_phrases() method is called; for each pair of start and end MC an excerpt will be stored.
+        The resulting excerpts will be named ``[original_filename]_phrase_[start_mc]-[end_mc].mscx`` by default or
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx`` if ``suffix`` is specified.
+
+        Args:
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
+        """
+
+        phrases = self.get_phrase_boundaries()
+
+        for phrase in phrases:
+            if random_skip and np.random.choice([True, False]):
+                continue
+            self.store_measures(
+                included_mcs=phrase["mcs"],
+                start_mc_onset=phrase["start_onset"],
+                end_mc_onset=phrase["end_onset"],
+                exclude_end=False,
+                metronome_tempo=metronome_tempo,
+                metronome_beat_unit=metronome_beat_unit,
+                directory=directory,
+                suffix=suffix,
+            )
+
+        self.logger.info(f"Extracted {len(phrases)} phrases.\n" f"Phrases: {phrases}")
+
+    def store_measures(
+        self,
+        included_mcs: Tuple[int, ...],
+        start_mc_onset: Optional[Fraction | float] = None,
+        end_mc_onset: Optional[Fraction | float] = None,
+        exclude_start: Optional[bool] = False,
+        exclude_end: Optional[bool] = False,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
+        directory: Optional[str] = None,
+        suffix: Optional[str] = None,
+    ):
+        """This method takes a tuple containing the number of the measures that contained in the excerpt to be
+        stored. The method will infer the active global and local keys, relative to the excerpt, from the annotations.
+        It will then store the excerpt in the given (or default) directory with the name
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            included_mcs: Tuple[int]
+                The mc values of the measures to be included in the excerpt
+
+            start_mc_onset: Optional[Fraction | float], optional
+                The value of the chosen onset for the true start of the excerpt. If onset is ``None`` or ``0``, then the
+                excerpt will normally begin on the onset of the first included measure. In the case where this value
+                should be different, for example ``1/2`` or ``.5``, then all the notes with onset strictly smaller than
+                this value will be removed from the first measure.
+
+            end_mc_onset: Optional[Fraction | float], optional
+                This has the same behaviour as the previous parameter. This means that if is set to None or to the value
+                of the last onset in the measure, then the excerpt will normally finish at the end of the last included
+                measure. In the cse where this value should be different, for example ``1/2`` or ``.5``,
+                then all notes with onset strictly greater than this value will be removed from the last measure.
+
+            exclude_start: Optional[bool], optional
+                If set to True the note (in first measure) with onset value equal to ``start_mc_onset`` will also be
+                removed thus excluding the first onset (i.e. the end)
+
+            exclude_end: Optional[bool], optional
+                If set to True the note (in last measure) with onset value equal to ``end_mc_onset`` will also be
+                removed thus excluding the last onset (i.e. the end)
+
+            metronome_tempo: Optional[float], optional
+                Setting this value will override the tempo at the beginning of the excerpt which, otherwise, is created
+                automatically according to the tempo in vigour at that moment in the score. This is achieved by
+                inserting a hidden metronome marking with a value that depends on the specified "beats per minute",
+                where "beat" depends on the value of the ``metronome_beat_unit`` parameter.
+
+            metronome_beat_unit: Optional[Fraction | float], optional
+                Defaults to 1/4, which stands for a quarter note. Please note that for now,
+                the combination of beat unit and tempo is converted and expressed as quarter notes per
+                minute in the (invisible) metronome marking. For example, specifying 1/8=100 will effectively result
+                in 1/4=50 (which is equivalent).
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+        """
+        measures = self.measures()
+
+        if len(included_mcs) == 0:
+            self.logger.warning(
+                "Tuple passed as argument was found empty. Nothing to do."
+            )
+        else:
+            start = included_mcs[0]
+            end = included_mcs[-1]
+
+            global_key, local_key = None, None
+            dcml_labels = self.expanded()
+            if dcml_labels is not None and len(dcml_labels) > 0:
+                # try to infer global key and local key from the annotations
+                mc_measures = measures.set_index("mc")
+                quarterbeat_start = mc_measures.loc[start, "quarterbeats"]
+                if pd.isnull(quarterbeat_start):
+                    self.logger.error(
+                        f"The given start MC {start} has no quarterbeat value and no globalkey and localkey "
+                        f"could be inferred. Probably it is a first ending."
+                    )
+                else:
+                    row = get_row_at_quarterbeat(
+                        df=dcml_labels, quarterbeat=quarterbeat_start
+                    )
+
+                    if row is not None:
+                        global_key = row["globalkey"]
+                        local_key = row["localkey"]
+
+            excerpt = self.parsed.make_excerpt(
+                included_mcs=included_mcs,
+                globalkey=global_key,
+                localkey=local_key,
+                start_mc_onset=start_mc_onset,
+                end_mc_onset=end_mc_onset,
+                exclude_start=exclude_start,
+                exclude_end=exclude_end,
+                metronome_tempo=metronome_tempo,
+                metronome_beat_unit=metronome_beat_unit,
+                decompose_repeat_tags=True,
+            )
+
+            original_directory, original_filename = os.path.split(excerpt.filepath)
+            original_file_name = os.path.splitext(original_filename)[0]
+            new_file_name = (
+                original_file_name
+                + f"_{suffix if suffix is not None else ''}_{start}-{end}"
+                + ".mscx"
+            )
+            if directory is None:
+                excerpt_filepath = os.path.join(original_directory, new_file_name)
+            else:
+                resolve_dir(directory)
+                os.makedirs(directory, exist_ok=True)
+                excerpt_filepath = os.path.join(directory, new_file_name)
+            excerpt.store_score(excerpt_filepath)
+            self.logger.info(
+                f"Excerpt for MCs {start}-{end} stored at {excerpt_filepath}."
+            )
+
+    def store_within_phrase_excerpts(
+        self,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "within_phrase",
+        random_skip: Optional[bool] = False,
+    ):
+        """Extract random snippets from the given score. The snippets have the constraint that they must strictly
+        lie within a phrase. This means that within this type of excerpt neither phrase beginnings nor phrase endings
+        will be considered. Not even cadences. By default, it extracts all possible
+        snippets and stores them at the optional directory path.
+        The resulting excerpts will be named ``[original_filename]_within_phrase_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            metronome_tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            metronome_beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
+        """
+
+        expanded = self.expanded(unfold=True)
+        measures = self.measures(unfold=True)
+
+        df = expanded[expanded["label"].str.contains("{|}|\\|")].copy()
+        last_phrase_label = ""
+        rows_to_drop = []
+        for index, row in df.iterrows():
+            if pd.notna(row["phraseend"]):
+                last_phrase_label = row["phraseend"]
+            if (
+                "|" in row["label"]
+                and last_phrase_label == "}"
+                and pd.isna(row["phraseend"])
+            ):
+                rows_to_drop.append(index)
+        df.drop(rows_to_drop, inplace=True)
+
+        available_mcs = [
+            tuple(
+                measures.iloc[
+                    measures.loc[
+                        measures["mn_playthrough"] == df.iloc[i]["mn_playthrough"]
+                    ].index[0]
+                    + 1 : measures.loc[
+                        measures["mn_playthrough"] == df.iloc[i + 1]["mn_playthrough"]
+                    ].index[0]
+                ]["mc"].values
+            )
+            for i in range(len(df) - 1)
+        ]
+
+        available_mcs = [x for x in available_mcs if len(x) >= 2]
+        available_mcs = list(set(available_mcs))
+
+        if available_mcs:
+            for included_mcs in available_mcs:
+                for i in range(len(included_mcs) - 1):
+                    if random_skip and np.random.choice([True, False]):
+                        continue
+                    self.store_measures(
+                        included_mcs=(included_mcs[i : i + 2]),
+                        start_mc_onset=None,
+                        end_mc_onset=None,
+                        metronome_tempo=metronome_tempo,
+                        metronome_beat_unit=metronome_beat_unit,
+                        directory=directory,
+                        suffix=suffix,
+                    )
+        else:
+            self.logger.info("No measures to be stored.")
+
+    def store_phrase_endings(
+        self,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
+        max_excerpt_length: Optional[int] = 2,
+        directory: Optional[str] = None,
+        suffix: Optional[str] = "phrase_end",
+        random_skip: Optional[bool] = False,
+    ):
+        """Calls the self.find_phrase_endings() method to find all phrase endings contained in the score, then stores
+        all corresponding excerpts. A phrase ending is specified to finish on a cadence and to start 2 MCs before the
+        corresponding closing bracket that indicates the "end" of the phrase. The resulting excerpts will be named
+        ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``.
+
+        Args:
+            metronome_tempo: Optional[float], optional
+                The value that the user wants to set as the tempo of the excerpts. The tag will be added
+                to XML tree of the excerpt's file and will have the desired tempo
+
+            metronome_beat_unit: Optional[Fraction | float], optional
+                To obtain the correct value for the tempo it is important to specify the beat unit that corresponds
+                to the given tempo value. Since MuseScore works in quarter-beats, the convention is that 1 indicates
+                that the unit is the quarter beat and all other values are relative to this one (i.e. 1/2 would be the
+                eighth note etc.)
+
+            max_excerpt_length: Optional[int], optional
+                This parameter specifies the maximum number of measures to be included in the excerpt. For example,
+                if `max_excerpt_length` is set to `3`, all phrase endings excerpts will contain a max. of 3 measures.
+
+            directory: Optional[str], optional
+                name of the directory you want the excerpt saved to, by default None
+
+            suffix: Optional[str], optional
+                It is the string "category identifier" of your excerpts. For instance the name of the output files will
+                in general be ``[original_filename]_[suffix]_[start_mc]-[end_mc].mscx``
+
+            random_skip: Optional[bool], optional
+                This boolean value, if True, will make the method randomly skip extracted
+                excerpts and don't generate them. This parameter is set by default to False.
+        """
+
+        # phrase_endings = self.find_phrase_endings()
+        phrase_boundaries = self.get_phrase_boundaries()
+
+        if phrase_boundaries:
+            for phrase in phrase_boundaries:
+                if random_skip and np.random.choice([True, False]):
+                    continue
+                included_mcs = phrase["mcs"][-max_excerpt_length:]
+                self.store_measures(
+                    included_mcs=included_mcs,
+                    start_mc_onset=0,
+                    end_mc_onset=phrase["end_onset"],
+                    exclude_end=False,
+                    metronome_tempo=metronome_tempo,
+                    metronome_beat_unit=metronome_beat_unit,
+                    directory=directory,
+                    suffix=suffix,
+                )
+        else:
+            self.logger.info("No phrases to be stored.")
 
     def store_random_excerpts(
         self,
         n_excerpts: Optional[int] = None,
-        mn_length: int = 2,
+        mc_length: Optional[int] = 2,
+        metronome_tempo: Optional[float] = None,
+        metronome_beat_unit: Optional[Fraction | float] = Fraction(1 / 4),
         directory: Optional[str] = None,
-        suffix: Optional[str] = None,
+        suffix: Optional[str] = "random",
     ):
-        """Extract random snippets from the given score. The function will generate a list of tuples,
-        where in each pair, the first element is the mc for the snippet
-        beginning and the second will be the mc for the snippet ending.
-        For each of these pairs, the function will call make_excerpt() to generate an excerpt for the snippet.
+        """Method that stores ``n_excerpts`` random excerpts each ``mn_lengths`` measures long. If ``n_excerpts`` is
+        not specified then the method will create the maximum possible number of different excerpts containing
+        ``mn_length`` measures each.
 
         Args:
             n_excerpts:
-                Number of snippets to be extracted. If not specified, all possible snippets will be extracted.
-            mn_length:
-                Length of each snippet in terms of MN (measure numbers).
+                The number of random excerpts to be created
+            mc_length:
+                The allowed number of measures for each excerpt
+            metronome_tempo:
+                The tempo value that the user might specify to overwrite the original piece tempo
+            metronome_beat_unit:
+                Beat unit value that goes with the specified tempo value. Might be ``1/4`` if the unit is the quarter
+                note, ``1/8`` if the unit is the eighth note and so on.
             directory:
-                Path to the folder where the excerpts are to be stored.
+                Name of the directory into which the excerpts need to be stored
             suffix:
-                String to be inserted in the excerpts filename[suffix]_[start_mc]-[end_mc]
+                Suffix to be added to the name of the generated excerpts
         """
+        measures = self.measures()
+        mc_values = np.array(measures["mc"].tolist())
+        max_mc = int(max(mc_values))
 
-        if n_excerpts is not None and not isinstance(n_excerpts, int):
-            raise TypeError("snippet_number must be an integer.")
-        if not isinstance(mn_length, int):
-            raise TypeError(
-                "snippet_length must be an integer. Cannot create snippet of non-integral length."
-            )
+        if len(mc_values) != max_mc:
+            self.logger.error("Incoherent measures table. Aborting...")
+            return
 
-        last_mn = self.measures().mn.max()
-        if mn_length > last_mn:
-            raise ValueError(
-                f"mn_length ({mn_length}) exceeds the number of measures in the score ({last_mn})."
+        if mc_length >= max_mc:
+            self.logger.warning(
+                "You are either requesting an excerpt longer than the original piece or with the same "
+                "length. Aborting..."
             )
-        last_possible_start = last_mn - mn_length + 1
+            return
+
+        rng = np.random.default_rng()
+        available_starts = mc_values[: -mc_length + 1] - 1
+
         if n_excerpts is None:
-            n_excerpts = last_possible_start
-            self.logger.debug(
-                f"Number of snippets not specified. Extracting all {n_excerpts} possible snippets."
-            )
-        elif n_excerpts > last_possible_start:
-            n_excerpts = last_possible_start
-            self.logger.info(
-                "Number of snippets exceeds the number of possible snippets. ",
-                "Will extract all possible snippets.",
-            )
+            random_excerpts = [
+                tuple(mc_values[x : x + mc_length]) for x in available_starts
+            ]
+        else:
+            random_excerpts = [
+                tuple(mc_values[x : x + mc_length])
+                for x in rng.choice(available_starts, n_excerpts, replace=False)
+            ]
 
-        valid_mn_starts = np.arange(
-            1, last_possible_start + 1
-        )  # systematically excludes anacrusis (MN=0)
-        sampled_mn_starts = np.random.choice(valid_mn_starts, n_excerpts, replace=False)
-        self.logger.debug(f"Sampled starting points: {sampled_mn_starts}")
-
-        for mn_start in sampled_mn_starts:
-            self.store_excerpt(
-                start_mn=int(mn_start),
-                end_mn=int(mn_start + mn_length - 1),
+        for excerpt in random_excerpts:
+            self.store_measures(
+                included_mcs=excerpt,
+                metronome_tempo=metronome_tempo,
+                metronome_beat_unit=metronome_beat_unit,
                 directory=directory,
                 suffix=suffix,
             )
+
 
     def update_metadata(
         self,
@@ -2004,18 +2372,22 @@ class Score(LoggedClass):
         color_changes = sum(
             self.mscx.change_label_color(*t, **change_to_params) for t in changes_new
         )
-        old_df = pd.DataFrame(changes_old, columns=compare_cols)
-        for k, v in added_color_params.items():
-            old_df[k] = v
-        if add_to_rna:
-            old_df["harmony_layer"] = 1
-            anno = Annotations(df=old_df, **self.logger_cfg)
-            anno.remove_initial_dots()
+        if len(changes_old) == 0:
+            added_changes = 0
+            old_df = None
         else:
-            old_df["harmony_layer"] = 0
-            anno = Annotations(df=old_df, **self.logger_cfg)
-            anno.add_initial_dots()
-        added_changes = self.mscx.add_labels(anno)
+            old_df = pd.DataFrame(changes_old, columns=compare_cols)
+            for k, v in added_color_params.items():
+                old_df[k] = v
+            if add_to_rna:
+                old_df["harmony_layer"] = 1
+                anno = Annotations(df=old_df, **self.logger_cfg)
+                anno.remove_initial_dots()
+            else:
+                old_df["harmony_layer"] = 0
+                anno = Annotations(df=old_df, **self.logger_cfg)
+                anno.add_initial_dots()
+            added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
@@ -2031,7 +2403,10 @@ class Score(LoggedClass):
             self.mscx.update_metadata(**metadata_update)
         res = (color_changes, added_changes)
         new_df = pd.DataFrame(changes_new, columns=compare_cols)
-        self.comparison_report = pd.concat([old_df, new_df], keys=["old", "new"])
+        if old_df is None:
+            self.comparison_report = pd.concat([new_df], keys=["new"])
+        else:
+            self.comparison_report = pd.concat([old_df, new_df], keys=["old", "new"])
         return res
 
     def detach_labels(
