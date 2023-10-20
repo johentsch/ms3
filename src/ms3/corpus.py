@@ -21,7 +21,11 @@ import numpy as np
 import pandas as pd
 import pathos.multiprocessing as mp
 from ms3.utils.frictionless_helpers import store_dataframe_resource
-from ms3.utils.functions import compute_path_from_file, get_name_of_highest_version_tag
+from ms3.utils.functions import (
+    compute_path_from_file,
+    get_git_repo,
+    get_name_of_highest_version_tag,
+)
 
 from ._typing import (
     AnnotationsFacet,
@@ -131,6 +135,9 @@ class Corpus(LoggedClass):
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
         self.corpus_path: str = directory
         """Path where the corpus is located."""
+        self.repo: Optional[git.Repo] = None
+        """If the corpus is part of a git repository, this attribute holds the corresponding :obj:`git.Repo` object."""
+        self.repo = get_git_repo(directory, logger=self.logger)
         self.name = os.path.basename(directory).strip(r"\/")
         """Folder name of the corpus."""
         if (
@@ -3007,8 +3014,7 @@ class Corpus(LoggedClass):
                 )
             else:
                 if git_revision == "LATEST_VERSION":
-                    repo = git.Repo(self.corpus_path)
-                    git_info = get_name_of_highest_version_tag(repo)
+                    git_info = get_name_of_highest_version_tag(self.repo)
                 else:
                     git_info = git_revision
                 self.logger.info(

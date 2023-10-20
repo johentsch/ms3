@@ -68,8 +68,23 @@ class Piece(LoggedClass):
     _deprecated_elements = ["get_dataframe"]
 
     def __init__(
-        self, pname: str, view: View = None, labels_cfg={}, ms=None, **logger_cfg
+        self,
+        pname: str,
+        view: Optional[View] = None,
+        labels_cfg: Optional[dict] = None,
+        ms=None,
+        **logger_cfg,
     ):
+        """
+
+        Args:
+            pname: Piece name, that is the file name without any suffixes or extensions.
+            view: :obj:`View` object to be used as default.
+            labels_cfg:
+                Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels`.
+            ms: MuseScore executable if convertible files (not MSCX or MSCZ) are to be parsed.
+            **logger_cfg
+        """
         super().__init__(subclass="Piece", logger_cfg=logger_cfg)
         self.name = pname
         available_types = ("scores",) + Score.dataframe_types
@@ -125,7 +140,8 @@ class Piece(LoggedClass):
         Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
         :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
         """
-        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
+        if labels_cfg is not None:
+            self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
     def all_facets_present(
         self, view_name: Optional[str] = None, selected_facets: Optional[Facets] = None

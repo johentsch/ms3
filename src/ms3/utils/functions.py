@@ -17,6 +17,7 @@ from fractions import Fraction
 from functools import cache, reduce
 from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
+from pathlib import Path
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from typing import (
@@ -1749,6 +1750,29 @@ def _fifths2str(fifths: int, steps: Collection[str], inverted: bool = False) -> 
     if inverted:
         return steps[fifths % 7] + acc
     return acc + steps[fifths % 7]
+
+
+def get_git_repo(
+    directory: str | Path,
+    search_parent_directories: bool = True,
+    logger: Optional[logging.Logger | str] = None,
+) -> Optional[git.Repo]:
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    try:
+        repo = git.Repo(directory, search_parent_directories=search_parent_directories)
+        logger.debug(
+            f"{directory!r} has been recognized to be (part of) the git repository "
+            f"{repo.working_tree_dir}."
+        )
+    except Exception as e:
+        repo = None
+        logger.debug(
+            f"{directory!r} is not (part of) an existing git repository: {e!r}"
+        )
+    return repo
 
 
 def get_ms_version(mscx_file):

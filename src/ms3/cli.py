@@ -13,8 +13,12 @@ import re
 from collections import defaultdict
 from typing import List, Literal, Optional, overload
 
-import git
-from ms3 import Parse, compute_path_from_file, make_coloring_reports_and_warnings
+from ms3 import (
+    Parse,
+    compute_path_from_file,
+    get_git_repo,
+    make_coloring_reports_and_warnings,
+)
 from ms3._version import __version__
 from ms3.logger import get_logger, inspect_loggers
 from ms3.operations import (
@@ -355,8 +359,9 @@ def precommit_cmd(
         )
     args.files = args.positional_args  # in the future, maybe use args.include instead
     test_passes = review_cmd(args, parse_obj=parse_obj, wrapped_by_precommit=True)
-    repo = git.Repo(args.dir)
-    repo.git.add(all=True)
+    repo = get_git_repo(args.dir)
+    if repo is not None:
+        repo.git.add(all=True)
     deliver_test_result(test_passes, args.fail, logger)
 
 
