@@ -24,6 +24,7 @@ from ms3.utils.frictionless_helpers import store_dataframe_resource
 from ms3.utils.functions import (
     compute_path_from_file,
     get_git_repo,
+    get_git_version_info,
     get_name_of_highest_version_tag,
 )
 
@@ -135,9 +136,6 @@ class Corpus(LoggedClass):
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
         self.corpus_path: str = directory
         """Path where the corpus is located."""
-        self.repo: Optional[git.Repo] = None
-        """If the corpus is part of a git repository, this attribute holds the corresponding :obj:`git.Repo` object."""
-        self.repo = get_git_repo(directory, logger=self.logger)
         self.name = os.path.basename(directory).strip(r"\/")
         """Folder name of the corpus."""
         if (
@@ -149,6 +147,10 @@ class Corpus(LoggedClass):
         # if 'level' not in logger_cfg or (logger_cfg['level'] is None):
         #     logger_cfg['level'] = 'w'
         super().__init__(subclass="Corpus", logger_cfg=logger_cfg)
+
+        self.repo: Optional[git.Repo] = None
+        """If the corpus is part of a git repository, this attribute holds the corresponding :obj:`git.Repo` object."""
+        self.repo = get_git_repo(directory, logger=self.logger)
 
         self.files: List[File] = []
         """
@@ -1385,6 +1387,17 @@ class Corpus(LoggedClass):
             )
             result.update(detected_facets.keys())
         return list(result)
+
+    def get_version_info(self, only_if_clean: bool = True) -> Dict[str, str]:
+        if self.repo is None:
+            self.logger.debug("No git repo, no version info.")
+            return {}
+        version_info = get_git_version_info(self.repo, only_if_clean=only_if_clean)
+        if only_if_clean and not version_info:
+            self.logger.info(
+                "Git repo is dirty and only_if_clean=True. Returning empty version info."
+            )
+        return version_info
 
     def get_view(self, view_name: Optional[str] = None, **config) -> View:
         """Retrieve an existing or create a new View object, potentially while updating the config."""
@@ -3143,6 +3156,10 @@ class Corpus(LoggedClass):
         self.logger.info(
             f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores."
         )
+        if frictionless:
+            version_info = self.get_version_info()
+        else:
+            version_info = None
         if target > 0:
             for piece, piece_obj in self.iter_pieces(view_name=view_name):
                 for file, facet2dataframe in piece_obj.iter_extracted_facets(
@@ -3181,6 +3198,7 @@ class Corpus(LoggedClass):
                                 raise_exception=False,
                                 write_or_remove_errors_file=True,
                                 logger=self.logger,
+                                custom_metadata=version_info,
                             )
                         paths.append(descriptor_or_resource_path)
         if output_metadata:

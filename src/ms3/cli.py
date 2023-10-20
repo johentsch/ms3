@@ -17,6 +17,7 @@ from ms3 import (
     Parse,
     compute_path_from_file,
     get_git_repo,
+    get_git_version_info,
     make_coloring_reports_and_warnings,
 )
 from ms3._version import __version__
@@ -284,6 +285,19 @@ def transform_cmd(args):
             "-X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)"
         )
         return
+
+    repo = get_git_repo(args.dir)
+    if repo is None:
+        version_info = None
+    elif repo.is_dirty():
+        print(
+            "The repository is dirty. Please commit or stash your changes before running ms3 transform. This is "
+            "important because the version information in the JSON descriptor(s) needs to be consistent with the "
+            "repository state."
+        )
+        return
+    else:
+        version_info = get_git_version_info(repo=repo)
     parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
     filename = os.path.basename(args.dir)
     func = transform_to_resources if args.resources else transform_to_package
@@ -300,6 +314,7 @@ def transform_cmd(args):
         zipped=not args.uncompressed,
         overwrite=args.safe,
         log_level=args.level,
+        custom_metadata=version_info,
     )
 
 

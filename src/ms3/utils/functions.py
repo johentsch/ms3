@@ -1856,6 +1856,81 @@ def get_git_repo(
     return repo
 
 
+def get_git_revision(
+    repo: Optional[git.Repo] = None,
+    repo_path: Optional[str] = None,
+) -> str:
+    if repo is None:
+        repo = get_git_repo(repo_path)
+        assert repo is not None, "No git repo to get the version from."
+    else:
+        assert repo_path is None, "Pass either repo or repo_path, not both."
+    return repo.head.commit.hexsha
+
+
+@overload
+def get_git_tag(
+    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[True]
+) -> str:
+    ...
+
+
+@overload
+def get_git_tag(
+    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[False]
+) -> Optional[str]:
+    ...
+
+
+def get_git_tag(
+    repo: Optional[git.Repo] = None,
+    repo_path: Optional[str] = None,
+    always: bool = True,
+) -> Optional[str]:
+    """If always is set to True and no tags are found, the commit short hash is returned instead."""
+    if repo is None:
+        repo = get_git_repo(repo_path)
+        assert repo is not None, "No git repo to get the version from."
+    else:
+        assert repo_path is None, "Pass either repo or repo_path, not both."
+    if always:
+        return repo.git.describe(tags=True, always=always)
+    try:
+        return repo.git.describe(tags=True)
+    except Exception:
+        return
+
+
+def get_git_version_info(
+    repo: Optional[git.Repo] = None,
+    repo_path: Optional[str] = None,
+    only_if_clean: bool = True,
+):
+    if repo is None:
+        repo = get_git_repo(repo_path)
+        assert repo is not None, "No git repo to get the version from."
+    else:
+        assert repo_path is None, "Pass either repo or repo_path, not both."
+    if only_if_clean and repo.is_dirty():
+        return {}
+    return dict(
+        git_revision=get_git_revision(repo=repo),
+        git_tag=get_git_tag(repo=repo, always=True),
+    )
+
+
+def git_repo_is_clean(
+    repo: Optional[git.Repo] = None,
+    repo_path: Optional[str] = None,
+) -> bool:
+    if repo is None:
+        repo = get_git_repo(repo_path)
+        assert repo is not None, "No git repo to get the version from."
+    else:
+        assert repo_path is None, "Pass either repo or repo_path, not both."
+    return not repo.is_dirty()
+
+
 def get_ms_version(mscx_file):
     with open(mscx_file, encoding="utf-8") as file:
         for i, l in enumerate(file):

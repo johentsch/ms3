@@ -8,7 +8,7 @@ the moment something is considered, it is considered obsolete.
 """
 import os.path
 
-from ms3 import Parse, Score
+from ms3 import Parse
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 

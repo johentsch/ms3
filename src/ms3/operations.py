@@ -5,27 +5,25 @@ import os
 from typing import Dict, Iterator, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
-from ms3 import (
-    Corpus,
-    Parse,
-    make_valid_frictionless_name,
-    resolve_facets_param,
-    store_dataframe_resource,
-    store_dataframes_package,
-)
 from ms3._typing import AnnotationsFacet, TSVtype, TSVtypes
+from ms3.corpus import Corpus
 from ms3.logger import (
     MessageType,
     get_ignored_warning_ids,
     get_logger,
     temporarily_suppress_warnings,
 )
+from ms3.parse import Parse
 from ms3.utils import (
     capture_parse_logs,
     check_argument_against_literal_type,
     compute_path_from_file,
     fifths2name,
+    make_valid_frictionless_name,
     pretty_dict,
+    resolve_facets_param,
+    store_dataframe_resource,
+    store_dataframes_package,
     tpc2scale_degree,
     write_tsv,
 )
@@ -504,6 +502,7 @@ def transform_to_resources(
     raise_exception: bool = False,
     write_or_remove_errors_file: bool = True,
     log_level="i",
+    custom_metadata: Optional[dict] = None,
 ):
     logger = get_logger("ms3.transform", level=log_level)
     for df, facet, output_folder, prefix, msg in _transform(
@@ -530,6 +529,7 @@ def transform_to_resources(
             descriptor_extension="json",
             raise_exception=raise_exception,
             write_or_remove_errors_file=write_or_remove_errors_file,
+            custom_metadata=custom_metadata,
         )
         logger.info(msg)
 
@@ -548,6 +548,7 @@ def transform_to_package(
     raise_exception: bool = False,
     write_or_remove_errors_file: bool = True,
     log_level="i",
+    custom_metadata: Optional[dict] = None,
 ):
     logger = get_logger("ms3.transform", level=log_level)
     dfs, returned_facets = [], []
@@ -581,6 +582,7 @@ def transform_to_package(
         raise_exception=raise_exception,
         write_or_remove_errors_file=write_or_remove_errors_file,
         logger=logger,
+        custom_metadata=custom_metadata,
     )
 
 

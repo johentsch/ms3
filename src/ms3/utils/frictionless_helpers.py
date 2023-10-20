@@ -628,6 +628,7 @@ def store_dataframe_resource(
     raise_exception: bool = True,
     write_or_remove_errors_file: bool = True,
     logger=None,
+    custom_metadata: dict = None,
     **kwargs,
 ) -> Optional[str]:
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
@@ -699,6 +700,8 @@ def store_dataframe_resource(
     if not frictionless:
         return resource_path
     try:
+        if custom_metadata is None:
+            custom_metadata = {}
         descriptor_path = make_and_store_resource_descriptor(
             df=df,
             directory=directory,
@@ -710,6 +713,7 @@ def store_dataframe_resource(
             include_index_levels=include_index_levels,
             creator=DEFAULT_CREATOR_METADATA,  # custom metadata field for descriptor, passed as kwarg
             logger=logger,
+            **custom_metadata,
         )
     except ValueError as e:
         descriptor_path = None
@@ -738,6 +742,7 @@ def store_dataframes_package(
     raise_exception: bool = True,
     write_or_remove_errors_file: bool = True,
     logger=None,
+    custom_metadata: Optional[dict] = None,
 ):
     """Write a DataFrame to a TSV or CSV file together with its frictionless resource descriptor.
     Uses: :py:func:`write_tsv`
@@ -774,6 +779,7 @@ def store_dataframes_package(
         name=piece_name,
         resources=[],
     )
+
     for df, facet in zip(dataframes, facets):
         resource_path = store_dataframe_resource(
             df=df,
@@ -797,6 +803,8 @@ def store_dataframes_package(
     if not frictionless:
         return
     package_descriptor["creator"] = DEFAULT_CREATOR_METADATA  # custom metadata field
+    if custom_metadata is not None:
+        package_descriptor.update(custom_metadata)
     package_descriptor_filepath = f"{piece_name}.datapackage.{descriptor_extension}"
     package_descriptor_path = os.path.join(directory, package_descriptor_filepath)
     store_as_json_or_yaml(

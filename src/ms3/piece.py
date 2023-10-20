@@ -40,6 +40,7 @@ from .utils import (
     compute_path_from_file,
     disambiguate_files,
     files2disambiguation_dict,
+    get_git_version_info,
     get_musescore,
     infer_tsv_type,
     load_tsv,
@@ -1787,6 +1788,15 @@ class Piece(LoggedClass):
             if unfold:
                 piece_name += "_unfolded"
             directory = compute_path_from_file(file, root_dir=root_dir, folder=folder)
+            version_info = None
+            if create_descriptor:
+                try:
+                    version_info = get_git_version_info(
+                        repo_path=file.directory,
+                        only_if_clean=True,
+                    )
+                except AssertionError:
+                    pass
             store_dataframe_resource(
                 df=df,
                 directory=directory,
@@ -1797,6 +1807,7 @@ class Piece(LoggedClass):
                 raise_exception=raise_exception,
                 write_or_remove_errors_file=write_or_remove_errors_file,
                 logger=self.logger,
+                custom_metadata=version_info,
             )
 
     # def store_parsed_scores(self,
