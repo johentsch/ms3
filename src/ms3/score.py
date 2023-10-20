@@ -1702,7 +1702,6 @@ class MSCX(LoggedClass):
                 suffix=suffix,
             )
 
-
     def update_metadata(
         self,
         composer: Optional[str] = None,
@@ -2293,7 +2292,6 @@ class Score(LoggedClass):
         add_to_rna: bool = True,
         metadata_update: Optional[dict] = None,
         force_metadata_update: bool = False,
-
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been

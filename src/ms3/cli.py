@@ -141,7 +141,7 @@ def compare_cmd(args, parse_obj=None, output: bool = True, logger=None) -> None:
             only_changed=not args.force,
             root_dir=args.out,
             simulate=args.test,
-            suffix=args.suffix
+            suffix=args.suffix,
         )
         changed = sum(map(len, corpus2paths.values()))
         logger.info(
@@ -483,17 +483,15 @@ def review_cmd(
             ask=args.ask,
             revision_specifier=revision,
             flip=args.flip,
-            force=True, # metadata be updated even if no diffs found because reviewed scores are written either way
+            force=True,  # metadata be updated even if no diffs found because reviewed scores are written either way
             logger=logger,
         )
         logger.debug(
             f"{n_changed} files changed labels during comparison, {n_unchanged} didn't."
         )
     corpus2paths = store_scores(
-        p,
-        only_changed=not args.force,
-        root_dir=args.out,
-        simulate=args.test)
+        p, only_changed=not args.force, root_dir=args.out, simulate=args.test
+    )
     changed = sum(map(len, corpus2paths.values()))
     logger.info(
         f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}."

@@ -627,7 +627,7 @@ class Parse(LoggedClass):
         add_to_rna: bool = True,
         view_name: Optional[str] = None,
         metadata_update: Optional[dict] = None,
-            force_metadata_update: bool = False,
+        force_metadata_update: bool = False,
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been
@@ -667,7 +667,7 @@ class Parse(LoggedClass):
                 add_to_rna=add_to_rna,
                 view_name=view_name,
                 metadata_update=metadata_update,
-                force_metadata_update=force_metadata_update
+                force_metadata_update=force_metadata_update,
             )
             changed += c
             unchanged += u

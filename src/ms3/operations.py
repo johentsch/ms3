@@ -628,7 +628,7 @@ def update(
     overwrite: bool = False,
     staff: int = -1,
     voice: Literal[1, 2, 3, 4] = 1,
-    harmony_layer: Optional[Literal[0, 1, 2, 3]]  = 1,
+    harmony_layer: Optional[Literal[0, 1, 2, 3]] = 1,
     above: bool = False,
     safe: bool = True,
     parallel: bool = True,

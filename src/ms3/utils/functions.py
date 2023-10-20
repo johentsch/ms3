@@ -2455,10 +2455,10 @@ TSV_COLUMN_DESCRIPTIONS = {
     "guitar_chord_count": "Number of guitar/jazz/absolute chord labels in a piece.",
     "harmonies_id": "Row in the expanded table.",
     "harmony_layer": "0: Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; "
-                     "prevent through leading dot);\n"
-                    "1: MuseScore's Roman Numeral Annotation format;\n"
-                    "2: MuseScore's Nashville Number format;\n"
-                    "3: Absolute chord encoded by MuseScore.",
+    "prevent through leading dot);\n"
+    "1: MuseScore's Roman Numeral Annotation format;\n"
+    "2: MuseScore's Nashville Number format;\n"
+    "3: Absolute chord encoded by MuseScore.",
     "i": "An integer serving as row ID",
     "keysig": "Positive integer for number of sharps, negative integer for number of flats.",
     "KeySig": "All key signatures in a piece and where they occur. Format: '<MC>: <keysig>, <MC>: <keysig>, ...'"
@@ -4747,8 +4747,10 @@ def ensure_correct_column_types(
         for col in df.columns
         if col in TSV_COLUMN_DTYPES and col not in excluded_columns
     }
-    df_converted = df.astype(columns_to_convert, errors="ignore") # without "ignore", pandas 2.1.0 complains about NA
-                                                                  # values in the duration_qb (float!) column 🙄
+    df_converted = df.astype(
+        columns_to_convert, errors="ignore"
+    )  # without "ignore", pandas 2.1.0 complains about NA
+    # values in the duration_qb (float!) column 🙄
 
     return df_converted
 

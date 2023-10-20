@@ -2,7 +2,7 @@ import sys
 import warnings
 from functools import cache
 from inspect import stack
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 import pandas as pd
 
@@ -76,15 +76,17 @@ class Annotations(LoggedClass):
         cols : :obj:`dict`
             If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
             Required columns: label, mc, mc_onset, staff, voice
-            Additional columns: harmony_layer, regex_match, absolute_root, rootCase, absolute_base, leftParen, rightParen, offset_x, offset_y, nashville, decoded, color_name,
+            Additional columns: harmony_layer, regex_match, absolute_root, rootCase, absolute_base, leftParen,
+            rightParen, offset_x, offset_y, nashville, decoded, color_name,
             color_html, color_r, color_g, color_b, color_a, placement, minDistance, style, z
         index_col
         sep
         mscx_obj
         infer_types : :obj:`dict`, optional
-            If you want to check all labels against one or several regular expressions, pass them as a {label_type -> regEx} dictionary.
-            The column regex_match will display the label_type of the last matched regEx. If you pass None, the default behaviour
-            is detecting labels of the DCML harmony annotation standard's current version.
+            If you want to check all labels against one or several regular expressions, pass them as a
+            {label_type -> regEx} dictionary.
+            The column regex_match will display the label_type of the last matched regEx. If you pass None, the
+            default behaviour is detecting labels of the DCML harmony annotation standard's current version.
         read_only
         logger_cfg : :obj:`dict`, optional
             The following options are available:
@@ -134,24 +136,29 @@ class Annotations(LoggedClass):
     def add_initial_dots(self):
         if self.read_only:
             self.logger.warning(
-                f"Cannot change labels attached to a score. Detach them first."
+                "Cannot change labels attached to a score. Detach them first."
             )
             return
         label_col = self.cols["label"]
         notes = {"a", "b", "c", "d", "e", "f", "g", "h"}
-        add_dots = lambda s: "." + s if s[0].lower() in notes else s
+
+        def add_dots(s):
+            if s[0].lower() in notes:
+                return "." + s
+            return s
+
         self.df[label_col] = self.df[label_col].map(add_dots)
 
     def prepare_for_attaching(
         self,
-            staff: Optional[int] = None,
-            voice: Optional[Literal[1, 2, 3, 4]] =None,
-            harmony_layer: Optional[Literal[0, 1, 2, 3]] =1,
-            check_for_clashes: bool=True
+        staff: Optional[int] = None,
+        voice: Optional[Literal[1, 2, 3, 4]] = None,
+        harmony_layer: Optional[Literal[0, 1, 2, 3]] = 1,
+        check_for_clashes: bool = True,
     ) -> pd.DataFrame:
         if self.mscx_obj is None:
             self.logger.warning(
-                f"Annotations object not aware to which MSCX object it is attached."
+                "Annotations object not aware to which MSCX object it is attached."
             )
             return pd.DataFrame()
         df = self.df.copy()
@@ -220,25 +227,25 @@ class Annotations(LoggedClass):
             mn_col = self.cols["mn"] if "mn" in self.cols else "mn"
             if mn_col not in cols:
                 self.logger.error(
-                    f"Annotations need to have at least one column named 'mn' or 'mc'."
+                    "Annotations need to have at least one column named 'mn' or 'mc'."
                 )
                 error = True
             else:
                 inferred_positions = self.infer_mc_from_mn()
                 if inferred_positions.isna().any().any():
                     self.logger.error(
-                        f"Measure counts and corresponding mc_onsets could not be successfully inferred."
+                        "Measure counts and corresponding mc_onsets could not be successfully inferred."
                     )
                     error = True
                 else:
                     if "mn_onset" not in self.cols:
                         self.logger.info(
-                            f"Measure counts successfully inferred. Since there is no 'mn_onset' column, all "
-                            f"mc_onsets have been set to 0."
+                            "Measure counts successfully inferred. Since there is no 'mn_onset' column, all "
+                            "mc_onsets have been set to 0."
                         )
                     else:
                         self.logger.info(
-                            f"Measure counts and corresponding mc_onsets successfully inferred."
+                            "Measure counts and corresponding mc_onsets successfully inferred."
                         )
                     df.insert(df.columns.get_loc("mn"), "mc", inferred_positions["mc"])
                     df.loc[:, "mc_onset"] = inferred_positions["mc_onset"]
@@ -267,7 +274,7 @@ class Annotations(LoggedClass):
                     error = True
         elif check_for_clashes:
             self.logger.error(
-                f"Check for clashes could not be performed because there are columns missing."
+                "Check for clashes could not be performed because there are columns missing."
             )
 
         if error:
@@ -318,15 +325,15 @@ class Annotations(LoggedClass):
 
     def get_labels(
         self,
-        staff: Optional[int] =None,
-        voice: Optional[Literal[1, 2, 3, 4]] =None,
-        harmony_layer: Optional[Literal[0, 1, 2, 3]] =None,
-        positioning: bool=False,
-        decode: bool=True,
-        drop: bool=False,
-        inverse: bool=False,
-        column_name: Optional[str]=None,
-        color_format: Optional[Literal['html', 'rgb', 'rgba', 'name']]=None,
+        staff: Optional[int] = None,
+        voice: Optional[Literal[1, 2, 3, 4]] = None,
+        harmony_layer: Optional[Literal[0, 1, 2, 3]] = None,
+        positioning: bool = False,
+        decode: bool = True,
+        drop: bool = False,
+        inverse: bool = False,
+        column_name: Optional[str] = None,
+        color_format: Optional[Literal["html", "rgb", "rgba", "name"]] = None,
         regex=None,
     ):
         """Returns a DataFrame of annotation labels.
@@ -427,7 +434,7 @@ class Annotations(LoggedClass):
             elif has_rgb:
                 res.color = rgb2format(res, color_format)
             else:
-                logger.warning(
+                self.logger.warning(
                     f"Color format '{color_format}' could not be computed from columns {present_cols}."
                 )
             res.drop(columns=present_cols, inplace=True)
@@ -448,7 +455,8 @@ class Annotations(LoggedClass):
         all_in_c=False,
         **kwargs,
     ):
-        """Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
+        """
+        Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
         Parameters
         ----------
@@ -492,13 +500,17 @@ class Annotations(LoggedClass):
         df = self.get_labels(**kwargs)
         select_dcml = (df.regex_match == "dcml").fillna(False)
         if not select_dcml.any():
-            self.logger.info(f"Score does not contain any DCML harmonic annotations.")
+            self.logger.info("Score does not contain any DCML harmonic annotations.")
             return
         if not drop_others:
             warn_about_others = False
         if warn_about_others and (~select_dcml).any():
+            syntax_errors = decode_harmonies(
+                df[~select_dcml], keep_layer=True, logger=self.logger
+            )[["mc", "mn", "label", "harmony_layer"]].to_string()
             self.logger.warning(
-                f"Score contains {(~select_dcml).sum()} labels that don't (and {select_dcml.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~select_dcml], keep_layer=True, logger=self.logger)[['mc', 'mn', 'label', 'harmony_layer']].to_string()}",
+                f"Score contains {(~select_dcml).sum()} labels that don't (and {select_dcml.sum()} that do) match the "
+                f"DCML standard:\n{syntax_errors}",
                 extra={"message_id": (15,)},
             )
         df = df[select_dcml]
@@ -555,7 +567,7 @@ class Annotations(LoggedClass):
     def infer_mc_from_mn(self, mscx_obj=None):
         if mscx_obj is None and self.mscx_obj is None:
             self.logger.error(
-                f"Either pass an MSCX object or load this Annotations object to a score using load_annotations()."
+                "Either pass an MSCX object or load this Annotations object to a score using load_annotations()."
             )
             return False
 
@@ -600,7 +612,7 @@ class Annotations(LoggedClass):
                 column_position = self.df.columns.get_loc("harmony_layer") + 1
                 self.df.insert(column_position, "regex_match", regex_col)
             for name, regex in regex_dict.items():
-                # TODO: Check if in the loop, previously matched regex names are being overwritten by those matched after
+                # TODO Check if in the loop, previously matched regex names are being overwritten by those matched after
                 try:
                     mtch = decoded[sel].str.match(regex)
                 except AttributeError:
@@ -613,7 +625,7 @@ class Annotations(LoggedClass):
     def remove_initial_dots(self):
         if self.read_only:
             self.logger.warning(
-                f"Cannot change labels attached to a score. Detach them first."
+                "Cannot change labels attached to a score. Detach them first."
             )
             return
         label_col = self.cols["label"]
@@ -660,6 +672,7 @@ class Annotations(LoggedClass):
                 plural = len(not_found) > 1
                 plural_s = "s" if plural else ""
                 self.logger.warning(
-                    f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: {', '.join(not_found)}"
+                    f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: "
+                    f"{', '.join(not_found)}"
                 )
         return [all_types[t] for t in lt if t in all_types]
