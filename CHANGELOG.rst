@@ -2,6 +2,22 @@
 Changelog
 =========
 
+Version 2.4.0
+=============
+
+* adds ``git_revision`` and ``git_tag`` to frictionless JSON descriptors whenever the git repo is clean (5b76a815)
+
+  * This includes the new property ``Corpus.repo`` that makes the ``git.Repo`` object available if applicable.
+
+* adds ``--force`` to ``ms3 compare`` and ``ms3 review`` commands, allowing to output comparison files (potentially
+  including the ``compared_against`` metadata key) even if no differences were found (5b76a815)
+
+
+Version 2.3.1
+=============
+
+Ignoring pandas 2.1.0 FutureWarning which cause some intimidating output when using the ms3 precommit hook.
+
 Version 2.3.0
 =============
 
