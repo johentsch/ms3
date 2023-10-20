@@ -264,7 +264,8 @@ def compare(
     facet: AnnotationsFacet,
     ask: bool = False,
     revision_specifier: Optional[str] = None,
-    flip=False,
+    flip: bool = False,
+    force: bool = False,
     logger=None,
 ) -> Tuple[int, int]:
     """
@@ -280,6 +281,7 @@ def compare(
           a comparison with the TSV files at the tag with the highest version number (falling back to HEAD if no tags
           have been assigned to the repository).
       flip:
+      force: Output comparison files even when no differences are found.
 
     Returns:
 
@@ -314,10 +316,12 @@ def compare(
     logger.info(
         f"Comparisons to be performed:\n{pretty_dict(comparisons_per_corpus, 'Corpus', 'Comparisons')}"
     )
+    print(f"METADATA_UPDATE: {metadata_update}")
     return parse_obj.compare_labels(
         key=key,
         detached_is_newer=flip,
         metadata_update=metadata_update,
+        force_metadata_update=force,
     )
 
 

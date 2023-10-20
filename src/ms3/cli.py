@@ -123,6 +123,7 @@ def compare_cmd(args, parse_obj=None, output: bool = True, logger=None) -> None:
             ask=args.ask,
             revision_specifier=revision,
             flip=args.flip,
+            force=args.force,
             logger=p.logger,
         )
     except TypeError:
@@ -136,7 +137,11 @@ def compare_cmd(args, parse_obj=None, output: bool = True, logger=None) -> None:
     )
     if output:
         corpus2paths = store_scores(
-            p, root_dir=args.out, simulate=args.test, suffix=args.suffix
+            p,
+            only_changed=not args.force,
+            root_dir=args.out,
+            simulate=args.test,
+            suffix=args.suffix
         )
         changed = sum(map(len, corpus2paths.values()))
         logger.info(
@@ -478,12 +483,17 @@ def review_cmd(
             ask=args.ask,
             revision_specifier=revision,
             flip=args.flip,
+            force=True, # metadata be updated even if no diffs found because reviewed scores are written either way
             logger=logger,
         )
         logger.debug(
             f"{n_changed} files changed labels during comparison, {n_unchanged} didn't."
         )
-    corpus2paths = store_scores(p, root_dir=args.out, simulate=args.test)
+    corpus2paths = store_scores(
+        p,
+        only_changed=not args.force,
+        root_dir=args.out,
+        simulate=args.test)
     changed = sum(map(len, corpus2paths.values()))
     logger.info(
         f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}."
@@ -719,6 +729,11 @@ def get_arg_parser():
     )
     compare_args.add_argument(
         "--safe", action="store_false", help="Don't overwrite existing files."
+    )
+    compare_args.add_argument(
+        "--force",
+        action="store_true",
+        help="Output comparison files even when no differences are found.",
     )
 
     extract_args = argparse.ArgumentParser(add_help=False)

@@ -602,6 +602,7 @@ class Piece(LoggedClass):
         add_to_rna: bool = True,
         view_name: Optional[str] = None,
         metadata_update: Optional[dict] = None,
+            force_metadata_update: bool = False,
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been
@@ -619,6 +620,13 @@ class Piece(LoggedClass):
           add_to_rna:
               By default, new labels are attached to the Roman Numeral layer.
               Pass False to attach them to the chord layer instead.
+          metadata_update:
+             Dictionary containing metadata that is to be included in the comparison score. Notably, ms3 uses the key
+             'compared_against' when the comparison is performed against a given git_revision.
+           force_metadata_update:
+             By default, the metadata is only updated if the comparison yields at least one difference to avoid
+             outputting comparison scores not displaying any changes. Pass True to force the metadata update, which
+             results in the properts :attr:`changed` being set to True.
 
         Returns:
           Number of scores in which labels have changed.
@@ -634,6 +642,7 @@ class Piece(LoggedClass):
                     detached_is_newer=detached_is_newer,
                     add_to_rna=add_to_rna,
                     metadata_update=metadata_update,
+                    force_metadata_update=force_metadata_update
                 )
                 if changes > (0, 0):
                     changed += 1

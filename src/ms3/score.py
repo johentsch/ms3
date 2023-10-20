@@ -2292,6 +2292,8 @@ class Score(LoggedClass):
         detached_is_newer: bool = False,
         add_to_rna: bool = True,
         metadata_update: Optional[dict] = None,
+        force_metadata_update: bool = False,
+
     ) -> Tuple[int, int]:
         """Compare detached labels ``key`` to the ones attached to the Score to create a diff.
         By default, the attached labels are considered as the reviewed version and labels that have changed or been
@@ -2299,16 +2301,24 @@ class Score(LoggedClass):
         labels are attached to the Score in red, just like any deleted label.
 
         Args:
-          key: Key of the detached labels you want to compare to the ones in the score.
-          new_color, old_color:
-              The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can
-              be CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-          detached_is_newer:
-              Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-              will turn ``old_color``, as opposed to the default.
-          add_to_rna:
-              By default, new labels are attached to the Roman Numeral layer.
-              Pass False to attach them to the chord layer instead.
+           key: Key of the detached labels you want to compare to the ones in the score.
+           new_color, old_color:
+             The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can
+             be CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+           detached_is_newer:
+             Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+             will turn ``old_color``, as opposed to the default.
+           add_to_rna:
+             By default, new labels are attached to the Roman Numeral layer.
+             Pass False to attach them to the chord layer instead.
+           metadata_update:
+             Dictionary containing metadata that is to be included in the comparison score. Notably, ms3 uses the key
+             'compared_against' when the comparison is performed against a given git_revision.
+           force_metadata_update:
+             By default, the metadata is only updated if the comparison yields at least one difference to avoid
+             outputting comparison scores not displaying any changes. Pass True to force the metadata update, which
+             results in the properts :attr:`changed` being set to True.
+
 
         Returns:
           Number of attached labels that were not present in the old version and whose color has been changed.
@@ -2351,6 +2361,12 @@ class Score(LoggedClass):
         changes_new = new_vals - unchanged
         if len(changes_new) == 0 and len(changes_old) == 0:
             self.mscx.logger.info("Comparison yielded no changes.")
+            if force_metadata_update and metadata_update:
+                self.logger.debug(
+                    f"Updating the metadata of the compared score with {metadata_update!r}, even though no differences "
+                    f"have been detected."
+                )
+                self.mscx.update_metadata(**metadata_update)
             return (0, 0)
 
         new_rgba = color2rgba(new_color)
