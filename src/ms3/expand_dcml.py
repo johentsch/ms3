@@ -619,9 +619,7 @@ def propagate_keys(
             }
             for volta_no in sorted(volta_exclusion.keys(), reverse=True):
                 selector = ~df.mc.isin(volta_exclusion[volta_no])
-                df.loc[selector, localkey] = df.loc[selector, localkey].fillna(
-                    method="ffill"
-                )
+                df.loc[selector, localkey] = df.loc[selector, localkey].ffill()
         else:
             logger.info(
                 "Dataframe needs to have a 'mc' column. Ignoring volta_structure."
