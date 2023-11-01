@@ -5247,6 +5247,11 @@ def replace_index_by_intervals(
     mask = (
         df[position_col].notna() & (df[position_col] != "") & df[duration_col].notna()
     )
+    if not mask.any():
+        logger.warning(
+            f"Either position_col {position_col!r} or duration_col {duration_col!r} are empty."
+        )
+        return df
     n_dropped = (~mask).sum()
     if filter_zero_duration:
         mask &= df[duration_col] > 0
