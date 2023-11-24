@@ -889,8 +889,10 @@ def dataframe2markdown(
     return writer
 
 
-def dict2oneliner(d):
+def dict2oneliner(d: dict) -> str:
     """Turns a dictionary into a single-line string without brackets."""
+    if pd.isnull(d) or isinstance(d, str):
+        return d
     return ", ".join(f"{k}: {v}" for k, v in d.items())
 
 
