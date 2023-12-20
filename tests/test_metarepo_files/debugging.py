@@ -8,7 +8,7 @@ the moment something is considered, it is considered obsolete.
 """
 import os.path
 
-from ms3 import Parse
+from ms3 import Parse, Score
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
@@ -64,5 +64,19 @@ def transform_cmd():
     )
 
 
+def single_score():
+    path = "~/distant_listening_corpus/ABC/MS3/n13op130_06.mscx"
+    return Score(path)
+
+
 if __name__ == "__main__":
-    extraction()
+    score = single_score()
+    score.mscx.store_excerpt(
+        start_mc=62,
+        start_mc_onset=0,
+        end_mc=102,
+        end_mc_onset=0,
+        exclude_end=True,
+        directory="/home/laser/Documents/phd/phrase_excerpts/231220_distant_listening_corpus",
+        suffix="_phrase776",
+    )

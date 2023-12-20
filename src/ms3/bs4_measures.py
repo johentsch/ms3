@@ -831,6 +831,16 @@ class MeasureList(LoggedClass):
         dont_count="dont_count",
         numbering_offset="numbering_offset",
     ):
+        """Checks if ms3's conventions for counting measure-like units are respected by the score and warns about
+        discrepancies. Conventions can be satisfied either by using "Exclude from bar count" or by setting values for
+        "Add to bar number".
+
+        * anacrusis has MN 0; otherwise first measure as MN 1
+        * Subsequent measures with irregular length shorter than the TimeSig's nominal length should add up and only
+          the first increases the measure number, the other don't so that they have the same number
+        * the measure of each alternative ending (volta) need to start with the same measure number
+        """
+
         def ordinal(i):
             if i == 1:
                 return "1st"
@@ -843,15 +853,21 @@ class MeasureList(LoggedClass):
         mc2mn = dict(self.ml[[mc_col, mn_col]].itertuples(index=False))
         # Check measure numbers in voltas
         for volta_group in self.volta_structure.values():
-            for i, t in enumerate(zip(*volta_group.values()), start=1):
-                m = t[0]
-                mn = mc2mn[m]
-                for j, mc in enumerate(t[1:], start=2):
-                    current_mn = mc2mn[mc]
+            for volta_count, volta_mcs in enumerate(
+                zip(*volta_group.values()), start=1
+            ):
+                m = volta_mcs[0]
+                if not (mn := mc2mn.get(m)):
+                    # this may arise when we are dealing with an excerpt where the volta has been removed
+                    continue
+                for mc_count, mc in enumerate(volta_mcs[1:], start=2):
+                    if not (current_mn := mc2mn.get(mc)):
+                        # this may arise when we are dealing with an excerpt where the volta is only partially included
+                        continue
                     if current_mn != mn:
                         self.logger.warning(
-                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, "
-                            f"not MN {current_mn}.",
+                            f"MC {mc}, the {ordinal(volta_count)} measure of a {ordinal(mc_count)} volta, should have "
+                            f"MN {mn}, not MN {current_mn}.",
                             extra={"message_id": (2, mc)},
                         )
 
