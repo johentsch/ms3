@@ -5318,7 +5318,7 @@ def replace_boolean_mode_by_strings(df) -> pd.DataFrame:
 
 
 def resolve_relative_keys(relativeroot, minor=False, logger=None):
-    """Resolve nested relative keys, e.g. 'V/V/V' => 'VI'.
+    """Resolve nested relative keys, e.g. 'V/V/V' => 'VI' if minor is False (default) or '#VI' if True.
 
     Uses: :py:func:`rel2abs_key`, :py:func:`str_is_minor`
 
@@ -5326,7 +5326,8 @@ def resolve_relative_keys(relativeroot, minor=False, logger=None):
         One or several relative keys, e.g. iv/v/VI (fourth scale degree of the fifth scale degree of the sixth scale
             degree)
     minor : :obj:`bool`, optional
-        Pass True if the last of the relative keys is to be interpreted within a minor context.
+        Pass True if the last of the relative keys is to be interpreted within a minor context, and therefore the
+        result.
     """
     if logger is None:
         logger = module_logger
