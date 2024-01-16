@@ -13,8 +13,6 @@
 * converts CHANGELOG rst =&gt; md and adds the release-please workflow ([04e26cb](https://github.com/johentsch/ms3/commit/04e26cbfd8f93313fd57720efe7b5851e625846f))
 * updates changelog ([306cea7](https://github.com/johentsch/ms3/commit/306cea7ea85d850a7bd2c3a398826a7b8d8bc7e4))
 
-## Changelog
-
 ## Version 2.4.2
 
 **Full Changelog**: https://github.com/johentsch/ms3/compare/v2.4.1...v2.4.2
