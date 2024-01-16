@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 2.4.2
+
+**Full Changelog**: https://github.com/johentsch/ms3/compare/v2.4.1...v2.4.2
+
+## Version 2.4.1
+
+**Full Changelog**: https://github.com/johentsch/ms3/compare/v2.4.0...v2.4.1
+
 ## Version 2.4.0
 
 -   adds `git_revision` and `git_tag` to frictionless JSON descriptors
