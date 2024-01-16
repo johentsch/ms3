@@ -14,7 +14,7 @@ Table of Contents
    Contributions & Help <contributing>
    License <license>
    Authors <authors>
-   Changelog <changelog>
+   Changelog <CHANGELOG>
 ..  Module Reference <api/modules>
 
 
