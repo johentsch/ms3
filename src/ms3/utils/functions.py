@@ -3534,7 +3534,7 @@ def name2pc(nn, logger=None):
 
 def nan_eq(a, b):
     """Returns True if a and b are equal or both null. Works on two Series or two elements."""
-    return (a == b) | (pd.isnull(a) & pd.isnull(b))
+    return (a == b).fillna(False) | (pd.isnull(a) & pd.isnull(b))
 
 
 def next2sequence(next_col: pd.Series, logger=None) -> Optional[List[int]]:
@@ -4299,7 +4299,9 @@ def split_note_name(nn, count=False, logger=None):
     return accidentals, note_name
 
 
-def split_scale_degree(sd, count=False, logger=None):
+def split_scale_degree(
+    sd, count=False, logger=None
+) -> Tuple[Optional[int], Optional[str]]:
     """Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
 
     sd : :obj:`str`
@@ -4506,8 +4508,6 @@ def adjacency_groups(
     if s.isna().any():
         if na_values == "group":
             shifted = s.shift()
-            if pd.isnull(S.iloc[0]):
-                shifted.iloc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
             logger.warning(
@@ -4516,11 +4516,10 @@ def adjacency_groups(
             )
             s = s.dropna()
             beginnings = (s != s.shift()).fillna(False)
-            beginnings.iloc[0] = True
             reindex_flag = True
     else:
         beginnings = s != s.shift()
-        beginnings.iloc[0] = True
+    beginnings.iat[0] = True
     if prevent_merge:
         beginnings |= forced_beginnings
     groups = beginnings.cumsum()
@@ -5064,7 +5063,9 @@ def abs2rel_key(
     return acc + result_numeral
 
 
-def rel2abs_key(relative: str, localkey: str, global_minor: bool = False, logger=None):
+def rel2abs_key(
+    relative: str, localkey: str, global_minor: bool = False, logger=None
+) -> Optional[str]:
     """Expresses a Roman numeral that is expressed relative to a localkey
     as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
     the result changes depending on whether the global key is major or minor.
@@ -5121,6 +5122,8 @@ def rel2abs_key(relative: str, localkey: str, global_minor: bool = False, logger
     localkey_accidentals, localkey = split_scale_degree(
         localkey, count=True, logger=logger
     )
+    if relative is None or localkey is None:
+        return
     resulting_accidentals = relative_accidentals + localkey_accidentals
     numerals = maj_rn if relative.isupper() else min_rn
     rel_num = numerals.index(relative)

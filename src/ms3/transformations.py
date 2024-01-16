@@ -1,4 +1,5 @@
 """Functions for transforming DataFrames as output by ms3."""
+import logging
 import sys
 import warnings
 from fractions import Fraction as frac
@@ -369,7 +370,13 @@ def add_weighted_grace_durations(notes, weight=1 / 2, logger=None):
     return notes
 
 
-def compute_chord_tones(df, bass_only=False, expand=False, cols={}, logger=None):
+def compute_chord_tones(
+    df: pd.DataFrame,
+    bass_only: bool = False,
+    expand: bool = False,
+    cols: Optional[dict] = None,
+    logger: Optional[logging.Logger] = None,
+) -> pd.DataFrame | pd.Series:
     """
     Compute the chord tones for DCML harmony labels. They are returned as lists
     of tonal pitch classes in close position, starting with the bass note. The
@@ -386,35 +393,18 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}, logger=None)
 
     Uses: :py:func:`features2tpcs`
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        Dataframe containing DCML chord labels that have been split by split_labels()
-        and where the keys have been propagated using propagate_keys(add_bool=True).
-    bass_only : :obj:`bool`, optional
-        Pass True if you need only the bass note.
-    expand : :obj:`bool`, optional
-        Pass True if you need chord tones and added tones in separate columns.
-    cols : :obj:`dict`, optional
-        In case the column names for ``['mc', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey',
-        'globalkey']`` deviate, pass a dict, such as
+    Args:
+        df:
+            Dataframe containing DCML chord labels that have been split by :func:`split_labels`
+            and where the keys have been propagated using propagate_keys(add_bool=True).
+        bass_only: Pass True if you need only the bass note.
+        expand: Pass True if you need chord tones and added tones in separate columns. Otherwise a Series is returned.
+        cols:
+            In case the column names for ``['mc', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey',
+            'globalkey']`` deviate, pass a dict, such as
+        logger:
 
-        .. code-block:: python
-
-            {'mc':              'mc',
-             'numeral':         'numeral_col_name',
-             'form':            'form_col_name',
-             'figbass':         'figbass_col_name',
-             'changes':         'changes_col_name',
-             'relativeroot':    'relativeroot_col_name',
-             'localkey':        'localkey_col_name',
-             'globalkey':       'globalkey_col_name'}
-
-        You may also deactivate columns by setting them to None, e.g. {'changes': None}
-
-    Returns
-    -------
-    :obj:`pandas.Series` or :obj:`pandas.DataFrame`
+    Returns:
         For every row of `df` one tuple with chord tones, expressed as tonal pitch classes.
         If `expand` is True, the function returns a DataFrame with four columns:
         Two with tuples for chord tones and added tones, one with the chord root,
@@ -424,7 +414,8 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}, logger=None)
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
-
+    if cols is None:
+        cols = {}
     df = df.copy()
     # If the index is not unique, it has to be temporarily replaced
     tmp_index = not df.index.is_unique
@@ -1898,7 +1889,14 @@ def transpose_chord_tones_by_localkey(df, by_global=False):
     :obj:`pandas.DataFrame`
     """
     df = df.copy()
-    ct_cols = ["chord_tones", "added_tones", "root", "bass_note"]
+    ct_cols = [
+        col
+        for col in ("chord_tones", "added_tones", "root", "bass_note")
+        if col in df.columns
+    ]
+    assert (
+        ct_cols
+    ), "Found none of the expected chord-tone columns {'chord_tones', 'added_tones', 'root', 'bass_note'}."
     ct = df[ct_cols]
     transpose_by = transform(
         df, roman_numeral2fifths, ["localkey", "globalkey_is_minor"]
