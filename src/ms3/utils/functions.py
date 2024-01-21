@@ -67,6 +67,7 @@ from .constants import (
     MS3_HTML,
     MS3_RGB,
     SCORE_EXTENSIONS,
+    SLICE_INTERVAL_REGEX,
     STANDARD_COLUMN_ORDER,
     STANDARD_NAMES,
     STANDARD_NAMES_OR_GIT,
@@ -2451,7 +2452,7 @@ def parse_interval_index_column(df, column=None, closed="left"):
     -------
     :obj:`pandas.IntervalIndex`
     """
-    iv_regex = r"[\[\(]([0-9]*\.[0-9]+), ([0-9]*\.[0-9]+)[\)\]]"
+    iv_regex = SLICE_INTERVAL_REGEX
     if column is None:
         iv_strings = df.index
     else:

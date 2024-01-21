@@ -318,6 +318,11 @@ FORM_TOKEN_ABBREVIATIONS = {
 
 KEYSIG_DICT_ENTRY_REGEX = r"(\d+): (-?\d+)(?:, )?"
 TIMESIG_DICT_ENTRY_REGEX = r"(\d+): (\d+\/\d+)(?:, )?"
+SLICE_INTERVAL_REGEX = (
+    r"[\[\)]((?:\d+\.?\d*)|(?:\.\d+)), ((?:\d+\.?\d*)|(?:\.\d+))[\)\]]"
+)
+"""Regular expression for slice interval in open/closed notation and any flavour of floating point numbers,
+e.g. [0, 1.5) or (.5, 2.]"""
 
 MS3_HTML = {
     "#005500": "ms3_darkgreen",
