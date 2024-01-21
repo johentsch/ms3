@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.4](https://github.com/johentsch/ms3/compare/v2.4.3...v2.4.4) (2024-01-21)
+
+
+### Documentation
+
+* updates changelog ([70fd82e](https://github.com/johentsch/ms3/commit/70fd82ec744e13d2b718f3d637b5fac44eaf9115))
+
 ## [2.4.3](https://github.com/johentsch/ms3/compare/v2.4.2...v2.4.3) (2024-01-16)
 
 
