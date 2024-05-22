@@ -21,6 +21,7 @@ from pathlib import Path
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from typing import (
+    IO,
     Any,
     Callable,
     Collection,
@@ -37,6 +38,7 @@ from typing import (
 )
 from zipfile import ZipFile as Zip
 
+import bs4
 import git
 import numpy as np
 import pandas as pd
@@ -6806,3 +6808,127 @@ def replace_extension(filepath: str, new_extension: str) -> str:
     if new_extension[0] != ".":
         new_extension = "." + new_extension
     return os.path.splitext(filepath)[0] + new_extension
+
+
+# region Functions for writing BeautifulSoup to MSCX file
+
+
+def escape_string(s):
+    return (
+        str(s)
+        .replace("&", "&amp;")
+        .replace('"', "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def opening_tag(node, closed=False):
+    result = f"<{node.name}"
+    attributes = node.attrs
+    if len(attributes) > 0:
+        result += " " + " ".join(
+            f'{attr}="{escape_string(value)}"' for attr, value in attributes.items()
+        )
+    closing = "/" if closed else ""
+    return f"{result}{closing}>"
+
+
+def closing_tag(node_name):
+    return f"</{node_name}>"
+
+
+def make_oneliner(node):
+    """Pass a tag of which the layout does not spread over several lines."""
+    result = opening_tag(node)
+    for c in node.children:
+        if isinstance(c, bs4.element.Tag):
+            result += make_oneliner(c)
+        else:
+            result += escape_string(c)
+    result += closing_tag(node.name)
+    return result
+
+
+def format_node(node, indent):
+    """Recursively format Beautifulsoup tag as in an MSCX file."""
+    nxt_indent = indent + 2
+    space = indent * " "
+    node_name = node.name
+    # The following tags are exceptionally not abbreviated when empty,
+    # so for instance you get <metaTag></metaTag> and not <metaTag/>
+    if node_name in [
+        "continueAt",
+        "continueText",
+        "endText",
+        "LayerTag",
+        "metaTag",
+        "name",
+        "programRevision",
+        "text",
+        "trackName",
+    ]:
+        return f"{space}{make_oneliner(node)}\n"
+    children = node.find_all(recursive=False)
+    if len(children) > 0:
+        result = f"{space}{opening_tag(node)}\n"
+        result += "".join(format_node(child, nxt_indent) for child in children)
+        result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
+        return result
+    if node.string == "\n":
+        return (
+            f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
+        )
+    if node.string is None:
+        return f"{space}{opening_tag(node, closed=True)}\n"
+    return f"{space}{make_oneliner(node)}\n"
+
+
+def bs4_to_mscx(soup: bs4.BeautifulSoup):
+    """Turn the BeautifulSoup into a string representing an MSCX file"""
+    assert soup is not None, "BeautifulSoup XML structure is None"
+    initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
+    first_tag = soup.find()
+    return initial_tag + format_node(first_tag, indent=0)
+
+
+def write_score_to_handler(
+    soup: bs4.BeautifulSoup,
+    file_handler: IO,
+    logger=None,
+) -> bool:
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    try:
+        mscx_string = bs4_to_mscx(soup)
+    except Exception as e:
+        logger.error(f"Couldn't output score because of the following error:\n{e}")
+        return False
+    file_handler.write(mscx_string)
+    return True
+
+
+def write_soup_to_mscx_file(
+    soup: bs4.Tag,
+    mscx_path: str,
+    overwrite: bool = False,
+    logger=None,
+) -> bool:
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    if not mscx_path.endswith(".mscx"):
+        logger.error(f"File {mscx_path} does not have the .mscx extension.")
+        return False
+    filepath = resolve_dir(mscx_path)
+    if os.path.isfile(filepath) and not overwrite:
+        logger.error(f"File {filepath} already exists and overwrite is set to False.")
+        return False
+    with open(filepath, "w", encoding="utf-8") as file_handler:
+        return write_score_to_handler(soup, file_handler, logger=logger)
+
+
+# endregion Functions for writing BeautifulSoup to MSCX file
