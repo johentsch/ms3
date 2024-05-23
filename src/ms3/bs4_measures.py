@@ -908,11 +908,7 @@ class NextColumnMaker(LoggedClass):
             self.logger.warning(
                 "MC column contains NaN which will lead to an incorrect 'next' column."
             )
-        nxt = (
-            self.mc.shift(-1)
-            .astype("Int64")
-            .map(lambda x: [x] if not pd.isnull(x) else [-1])
-        )
+        nxt = self.mc.astype("Int64").shift(-1).fillna(-1).map(lambda x: [x])
         last_row = df.iloc[-1]
         self.last_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
