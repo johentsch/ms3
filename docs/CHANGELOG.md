@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.5.0](https://github.com/johentsch/ms3/compare/v2.4.4...v2.5.0) (2024-05-23)
+
+
+### Features
+
+* adds helper function write_soup_to_mscx_file() ([48fa73c](https://github.com/johentsch/ms3/commit/48fa73cd6e0a0fa5c57741c603a9781a15b0adac))
+
+
+### Bug Fixes
+
+* for scores that encode multiple parts, take into account only the main score ([6115ea6](https://github.com/johentsch/ms3/commit/6115ea67ab47fa37cfd6d251830d4adac35b3daa))
+
+
+### Documentation
+
+* updates CONTRIBUTING.rst ([4689897](https://github.com/johentsch/ms3/commit/4689897ce5c32f5775fc1a8f60961a31349b8682))
+
 ## [2.4.4](https://github.com/johentsch/ms3/compare/v2.4.3...v2.4.4) (2024-01-21)
 
 
