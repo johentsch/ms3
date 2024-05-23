@@ -12,7 +12,7 @@ UNITTEST_METACORPUS = os.path.join(
     os.path.expanduser(CORPUS_DIR), "unittest_metacorpus"
 )
 TEST_COMMIT = (
-    "bb8bb60"  # commit of DCMLab/unittest_metacorpus for which the tests should pass
+    "aeebac1"  # commit of DCMLab/unittest_metacorpus for which the tests should pass
 )
 MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", ".."))
 DOCS_DIR = os.path.join(MS3_DIR, "docs")
