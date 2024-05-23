@@ -2493,7 +2493,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             self.make_standard_restlist()
         return self._rl
 
-    def parse_soup(self):
+    def parse_soup(self) -> None:
         """First step of parsing the MuseScore source. Involves discovering the <staff> tags and storing the
         <Measure> tags of each in the :attr:`measure_nodes` dictionary.  Also stores the drum_map for each Drumset
         staff.
@@ -2505,12 +2505,31 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 f"Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert."
             )
 
+        root_tag = self.soup.find("museScore")
+        if root_tag is None:
+            self.logger.error(
+                "This does not seem to be a MuseScore file because it lacks the <museScore> tag that "
+                "would normally be the root of the XML tree."
+            )
+            return
+
+        score_tags = root_tag.find_all("Score")
+        if len(score_tags) == 0:
+            score_tag = root_tag
+        else:
+            score_tag = score_tags[0]
+            if len(score_tags) > 1:
+                self.logger.warning(
+                    "The file seems to include separately encoded parts, encoded with their own "
+                    "<Score> tags. Only the first one will be considered."
+                )
+
         # Check if any of the <Part> tags contains a pitch -> drumset instrument map
         # all_part_tags = self.soup.find_all('Part')
         # if len(all_part_tags) == 0:
         #     self.logger.error(f"Looks like an empty score to me.")
         part_tag = None
-        for part_tag in self.soup.find_all("Part"):
+        for part_tag in score_tag.find_all("Part", recursive=False):
             drum_tags = part_tag.find_all("Drum")
             staff_tag = part_tag.find("Staff")
             if len(drum_tags) == 0 or staff_tag is None:
@@ -2528,11 +2547,11 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
         if part_tag is None:
-            iterator = self.soup.find_all("Staff")
+            staff_iterator = score_tag.find_all("Staff")
         else:
-            iterator = part_tag.find_next_siblings("Staff")
+            staff_iterator = part_tag.find_next_siblings("Staff")
         staff = None
-        for staff in iterator:
+        for staff in staff_iterator:
             staff_id = int(staff["id"])
             self.measure_nodes[staff_id] = {}
             for mc, measure in enumerate(
