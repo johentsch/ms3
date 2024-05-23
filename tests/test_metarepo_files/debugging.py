@@ -7,12 +7,14 @@ debugger. Feel free to add functions and to hardcode paths to your system since 
 the moment something is considered, it is considered obsolete.
 """
 import os.path
+from argparse import Namespace
 
 from ms3 import Parse, Score
+from ms3.cli import review_cmd
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
-CORPUS_PATH = "~/unittest_metacorpus/wagner_overtures"
+CORPUS_PATH = "~/git/389_chorale_settings/original_complete/"
 
 
 def ignoring_warning():
@@ -33,7 +35,7 @@ def parse_object() -> Parse:
         only_metadata_pieces=True,
         include_convertible=False,
         exclude_review=True,
-        file_re=None,
+        file_re="B378",
         folder_re=None,
         exclude_re=None,
         file_paths=None,
@@ -65,18 +67,54 @@ def transform_cmd():
 
 
 def single_score():
-    path = "~/distant_listening_corpus/ABC/MS3/n13op130_06.mscx"
+    path = "/home/laser/git/389_chorale_settings/original_complete/MS3/B378.mscx"
     return Score(path)
 
 
 if __name__ == "__main__":
-    score = single_score()
-    score.mscx.store_excerpt(
-        start_mc=62,
-        start_mc_onset=0,
-        end_mc=102,
-        end_mc_onset=0,
-        exclude_end=True,
-        directory="/home/laser/Documents/phd/phrase_excerpts/231220_distant_listening_corpus",
-        suffix="_phrase776",
+    args = Namespace(
+        action="review",
+        ignore_scores=False,
+        ignore_labels=False,
+        fail=True,
+        ignore_metronome=False,
+        ask=False,
+        use="expanded",
+        flip=False,
+        safe=True,
+        force=False,
+        measures="../measures",
+        notes="../notes",
+        rests=None,
+        labels=None,
+        expanded="../harmonies",
+        form_labels="../form_labels",
+        events=None,
+        chords="../chords",
+        joined_chords=None,
+        metadata="",
+        positioning=False,
+        raw=True,
+        unfold=False,
+        interval_index=False,
+        corpuswise=False,
+        dir="/home/laser/git/389_chorale_settings",
+        out=None,
+        nonrecursive=False,
+        all=False,
+        include=None,
+        exclude=None,
+        folders=None,
+        musescore=None,
+        reviewed=False,
+        files=["/home/laser/git/389_chorale_settings/original_complete/MS3/B378.mscx"],
+        iterative=False,
+        level="i",
+        log=None,
+        test=False,
+        verbose=False,
+        compare="LATEST_VERSION",
+        threshold=0.6,
+        # func=review_cmd
     )
+    review_cmd(args)

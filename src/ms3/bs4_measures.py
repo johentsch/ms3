@@ -152,11 +152,15 @@ def keep_one_row_each(
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
                     msg = (
-                        f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', "
+                        f"{compress_col} {which}: The missing value in '{col_name}' was filled with '{new_val}', "
                         f"present in '{differentiating_col}' "
-                        f"{remaining.loc[remaining[col_name] == new_val, differentiating_col].to_list()}."
+                        f"{remaining.loc[remaining[col_name] == new_val, differentiating_col].to_list()}. "
+                        f"In rare cases, this may lead to incorrect values in the measures table because it ambiguous "
+                        f"which staff contains the relevant information."
+                    )  # ToDo: Currently there is nothing the user can do to influence this behavior!
+                    log_this(
+                        msg, extra={"message_id": (9, compress_col, which, col_name)}
                     )
-                    log_this(msg)
                     continue
                 msg = (
                     f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of '{differentiating_col}' "
