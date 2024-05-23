@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.1](https://github.com/johentsch/ms3/compare/v2.5.0...v2.5.1) (2024-05-23)
+
+
+### Bug Fixes
+
+* enables ignoring the COMPETING_MEASURE_INFO_WARNING ([5c727dd](https://github.com/johentsch/ms3/commit/5c727ddb652f5b2a0f6739663cdcd61b9f6801a4))
+* resolves [#112](https://github.com/johentsch/ms3/issues/112) ([2f03b79](https://github.com/johentsch/ms3/commit/2f03b79efad442efeaaeb25baee92c4f0a9542ea))
+
 ## [2.5.0](https://github.com/johentsch/ms3/compare/v2.4.4...v2.5.0) (2024-05-23)
 
 
