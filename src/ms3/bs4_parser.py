@@ -129,6 +129,7 @@ from .utils import (
     sort_note_list,
     unfold_measures_table,
     unfold_repeats,
+    write_score_to_handler,
 )
 from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
 
@@ -2492,7 +2493,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             self.make_standard_restlist()
         return self._rl
 
-    def parse_soup(self):
+    def parse_soup(self) -> None:
         """First step of parsing the MuseScore source. Involves discovering the <staff> tags and storing the
         <Measure> tags of each in the :attr:`measure_nodes` dictionary.  Also stores the drum_map for each Drumset
         staff.
@@ -2504,12 +2505,31 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 f"Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert."
             )
 
+        root_tag = self.soup.find("museScore")
+        if root_tag is None:
+            self.logger.error(
+                "This does not seem to be a MuseScore file because it lacks the <museScore> tag that "
+                "would normally be the root of the XML tree."
+            )
+            return
+
+        score_tags = root_tag.find_all("Score")
+        if len(score_tags) == 0:
+            score_tag = root_tag
+        else:
+            score_tag = score_tags[0]
+            if len(score_tags) > 1:
+                self.logger.warning(
+                    "The file seems to include separately encoded parts, encoded with their own "
+                    "<Score> tags. Only the first one will be considered."
+                )
+
         # Check if any of the <Part> tags contains a pitch -> drumset instrument map
         # all_part_tags = self.soup.find_all('Part')
         # if len(all_part_tags) == 0:
         #     self.logger.error(f"Looks like an empty score to me.")
         part_tag = None
-        for part_tag in self.soup.find_all("Part"):
+        for part_tag in score_tag.find_all("Part", recursive=False):
             drum_tags = part_tag.find_all("Drum")
             staff_tag = part_tag.find("Staff")
             if len(drum_tags) == 0 or staff_tag is None:
@@ -2527,11 +2547,11 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
         if part_tag is None:
-            iterator = self.soup.find_all("Staff")
+            staff_iterator = score_tag.find_all("Staff")
         else:
-            iterator = part_tag.find_next_siblings("Staff")
+            staff_iterator = part_tag.find_next_siblings("Staff")
         staff = None
-        for staff in iterator:
+        for staff in staff_iterator:
             staff_id = int(staff["id"])
             self.measure_nodes[staff_id] = {}
             for mc, measure in enumerate(
@@ -4685,109 +4705,6 @@ def decode_harmony_tag(tag):
     if tag.rightParen is not None:
         label += ")"
     return label
-
-
-# region Functions for writing BeautifulSoup to MSCX file
-
-
-def escape_string(s):
-    return (
-        str(s)
-        .replace("&", "&amp;")
-        .replace('"', "&quot;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
-
-
-def opening_tag(node, closed=False):
-    result = f"<{node.name}"
-    attributes = node.attrs
-    if len(attributes) > 0:
-        result += " " + " ".join(
-            f'{attr}="{escape_string(value)}"' for attr, value in attributes.items()
-        )
-    closing = "/" if closed else ""
-    return f"{result}{closing}>"
-
-
-def closing_tag(node_name):
-    return f"</{node_name}>"
-
-
-def make_oneliner(node):
-    """Pass a tag of which the layout does not spread over several lines."""
-    result = opening_tag(node)
-    for c in node.children:
-        if isinstance(c, bs4.element.Tag):
-            result += make_oneliner(c)
-        else:
-            result += escape_string(c)
-    result += closing_tag(node.name)
-    return result
-
-
-def format_node(node, indent):
-    """Recursively format Beautifulsoup tag as in an MSCX file."""
-    nxt_indent = indent + 2
-    space = indent * " "
-    node_name = node.name
-    # The following tags are exceptionally not abbreviated when empty,
-    # so for instance you get <metaTag></metaTag> and not <metaTag/>
-    if node_name in [
-        "continueAt",
-        "continueText",
-        "endText",
-        "LayerTag",
-        "metaTag",
-        "name",
-        "programRevision",
-        "text",
-        "trackName",
-    ]:
-        return f"{space}{make_oneliner(node)}\n"
-    children = node.find_all(recursive=False)
-    if len(children) > 0:
-        result = f"{space}{opening_tag(node)}\n"
-        result += "".join(format_node(child, nxt_indent) for child in children)
-        result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
-        return result
-    if node.string == "\n":
-        return (
-            f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
-        )
-    if node.string is None:
-        return f"{space}{opening_tag(node, closed=True)}\n"
-    return f"{space}{make_oneliner(node)}\n"
-
-
-def bs4_to_mscx(soup: bs4.BeautifulSoup):
-    """Turn the BeautifulSoup into a string representing an MSCX file"""
-    assert soup is not None, "BeautifulSoup XML structure is None"
-    initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
-    first_tag = soup.find()
-    return initial_tag + format_node(first_tag, indent=0)
-
-
-def write_score_to_handler(
-    soup: bs4.BeautifulSoup,
-    file_handler: IO,
-    logger=None,
-) -> bool:
-    if logger is None:
-        logger = module_logger
-    elif isinstance(logger, str):
-        logger = get_logger(logger)
-    try:
-        mscx_string = bs4_to_mscx(soup)
-    except Exception as e:
-        logger.error(f"Couldn't output score because of the following error:\n{e}")
-        return False
-    file_handler.write(mscx_string)
-    return True
-
-
-# endregion Functions for writing BeautifulSoup to MSCX file
 
 
 def text_tag2str(tag: bs4.Tag) -> str:
