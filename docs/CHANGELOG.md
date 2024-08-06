@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.2](https://github.com/johentsch/ms3/compare/v2.5.1...v2.5.2) (2024-08-06)
+
+
+### Bug Fixes
+
+* hardcodes CSS_COLORS rather than creating it from a webcolors constant (fixes [#115](https://github.com/johentsch/ms3/issues/115)) ([b680f45](https://github.com/johentsch/ms3/commit/b680f452e77d421f4b8124d46ad6f1b5ee15d7a3))
+
 ## [2.5.1](https://github.com/johentsch/ms3/compare/v2.5.0...v2.5.1) (2024-05-23)
 
 
