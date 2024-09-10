@@ -3641,9 +3641,8 @@ def no_collections_no_booleans(
                 ),
             )
             # try:
-            numeric_column = pd.to_numeric(df[bc], errors="ignore")
-            boolean_column = numeric_column
-            df.loc[:, bc] = boolean_column.astype("Int64")
+            numeric_column = pd.to_numeric(df[bc], errors="coerce")
+            df[bc] = numeric_column.astype("Int64")
             # except TypeError:
             #     logger.warning(
             #         f"Could not convert column {bc} to boolean. It contains values other than True, False, and NaN:\n"

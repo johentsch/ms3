@@ -1476,7 +1476,7 @@ and {loc_after} before the subsequent {nxt_name}."""
             columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True
         )
         if "harmony_layer" in df.columns:
-            df.harmony_layer.fillna(0, inplace=True)
+            df.harmony_layer = df.harmony_layer.fillna(0)
         columns = [c for c in main_cols if c in df.columns]
         additional_cols = {
             c: c[8:]
