@@ -4,35 +4,9 @@ import argparse
 import os
 
 import pandas as pd
+from ms3.cli import check_and_create, check_dir
+from ms3.utils import dataframe2markdown
 from pytablewriter import MarkdownTableWriter
-
-
-def resolve_dir(d):
-    """Resolves '~' to HOME directory and turns ``d`` into an absolute path."""
-    if d is None:
-        return None
-    d = str(d)
-    if "~" in d:
-        return os.path.expanduser(d)
-    return os.path.abspath(d)
-
-
-def check_and_create(d):
-    """Turn input into an existing, absolute directory path."""
-    if not os.path.isdir(d):
-        d = resolve_dir(os.path.join(os.getcwd(), d))
-        if not os.path.isdir(d):
-            os.makedirs(d)
-            print(f"Created directory {d}")
-    return resolve_dir(d)
-
-
-def check_dir(d):
-    if not os.path.isdir(d):
-        d = resolve_dir(os.path.join(os.getcwd(), d))
-        if not os.path.isdir(d):
-            raise argparse.ArgumentTypeError(d + " needs to be an existing directory")
-    return resolve_dir(d)
 
 
 def concat_metadata(path):
@@ -111,7 +85,7 @@ def metadata2markdown(concatenated):
     result = "# Overview"
     for corpus_name, df in concatenated[rename4markdown.values()].groupby(level=0):
         heading = f"\n\n## {corpus_name}\n\n"
-        md = str(df2md(df.fillna("")))
+        md = str(dataframe2markdown(df.fillna("")))
         result += heading + md
     return result
 
