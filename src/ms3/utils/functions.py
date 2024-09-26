@@ -57,6 +57,7 @@ from typing_extensions import Self
 from .constants import (
     BOOLEAN_COLUMNS,
     COLLECTION_COLUMNS,
+    CSS_COLORS,
     DCML_REGEX,
     DEFAULT_CREATOR_METADATA,
     FORM_LEVEL_CAPTURE_REGEX,
@@ -250,9 +251,11 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False, logger=No
             added,
             acc,
             chord_interval,
-            (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root)
-            if chord_interval not in ["3", "5"]
-            else None,
+            (
+                (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root)
+                if chord_interval not in ["3", "5"]
+                else None
+            ),
         )
         for full, added, acc, chord_interval in alts
     ]
@@ -357,7 +360,7 @@ def color_name2format(n, format="rgb"):
     """Converts a single CSS3 name into one of 'HTML', 'rgb', or 'rgba'"""
     if pd.isnull(n):
         return n
-    if n in webcolors.CSS3_NAMES_TO_HEX:
+    if n in CSS_COLORS:
         html = webcolors.name_to_hex(n)
     elif n in MS3_HTML.values():
         html = next(k for k, v in MS3_HTML.items() if v == n)
@@ -1210,10 +1213,10 @@ def expand_form_labels(
                 logger.warning(
                     "Did not distribute levels to all form types because some had already been individually specified."
                 )
-            form_labels_without_positions.loc[
-                :, existing_level_names
-            ] = form_labels_without_positions[existing_level_names].fillna(
-                potentially_preexistent
+            form_labels_without_positions.loc[:, existing_level_names] = (
+                form_labels_without_positions[existing_level_names].fillna(
+                    potentially_preexistent
+                )
             )
         # fl_multiindex = pd.concat([fl], keys=[""], axis=1)
         # result = pd.concat([fl_multiindex, form_labels_without_positions.sort_index(axis=1)], axis=1)
@@ -1257,23 +1260,19 @@ def expand_form_labels(
 
 
 @overload
-def add_collections(left: pd.Series, right: Collection, dtype: Dtype) -> pd.Series:
-    ...
+def add_collections(left: pd.Series, right: Collection, dtype: Dtype) -> pd.Series: ...
 
 
 @overload
-def add_collections(left: NDArray, right: Collection, dtype: Dtype) -> NDArray:
-    ...
+def add_collections(left: NDArray, right: Collection, dtype: Dtype) -> NDArray: ...
 
 
 @overload
-def add_collections(left: list, right: Collection, dtype: Dtype) -> list:
-    ...
+def add_collections(left: list, right: Collection, dtype: Dtype) -> list: ...
 
 
 @overload
-def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple:
-    ...
+def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple: ...
 
 
 def add_collections(
@@ -1296,23 +1295,19 @@ def add_collections(
 
 
 @overload
-def cast2collection(coll: pd.Series, func: Callable, *args, **kwargs) -> pd.Series:
-    ...
+def cast2collection(coll: pd.Series, func: Callable, *args, **kwargs) -> pd.Series: ...
 
 
 @overload
-def cast2collection(coll: NDArray, func: Callable, *args, **kwargs) -> NDArray:
-    ...
+def cast2collection(coll: NDArray, func: Callable, *args, **kwargs) -> NDArray: ...
 
 
 @overload
-def cast2collection(coll: list, func: Callable, *args, **kwargs) -> list:
-    ...
+def cast2collection(coll: list, func: Callable, *args, **kwargs) -> list: ...
 
 
 @overload
-def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple:
-    ...
+def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple: ...
 
 
 def cast2collection(
@@ -1335,28 +1330,23 @@ def cast2collection(
 
 
 @overload
-def fifths2acc(fifths: int) -> str:
-    ...
+def fifths2acc(fifths: int) -> str: ...
 
 
 @overload
-def fifths2acc(fifths: pd.Series) -> pd.Series:
-    ...
+def fifths2acc(fifths: pd.Series) -> pd.Series: ...
 
 
 @overload
-def fifths2acc(fifths: NDArray[int]) -> NDArray[str]:
-    ...
+def fifths2acc(fifths: NDArray[int]) -> NDArray[str]: ...
 
 
 @overload
-def fifths2acc(fifths: List[int]) -> List[str]:
-    ...
+def fifths2acc(fifths: List[int]) -> List[str]: ...
 
 
 @overload
-def fifths2acc(fifths: Tuple[int]) -> Tuple[str]:
-    ...
+def fifths2acc(fifths: Tuple[int]) -> Tuple[str]: ...
 
 
 def fifths2acc(
@@ -1381,8 +1371,7 @@ def fifths2iv(
     minor: str,
     augmented: str,
     diminished: str,
-) -> Optional[str]:
-    ...
+) -> Optional[str]: ...
 
 
 @overload
@@ -1394,8 +1383,7 @@ def fifths2iv(
     minor: str,
     augmented: str,
     diminished: str,
-) -> Optional[pd.Series]:
-    ...
+) -> Optional[pd.Series]: ...
 
 
 @overload
@@ -1407,8 +1395,7 @@ def fifths2iv(
     minor: str,
     augmented: str,
     diminished: str,
-) -> Optional[NDArray[str]]:
-    ...
+) -> Optional[NDArray[str]]: ...
 
 
 @overload
@@ -1420,8 +1407,7 @@ def fifths2iv(
     minor: str,
     augmented: str,
     diminished: str,
-) -> Optional[List[str]]:
-    ...
+) -> Optional[List[str]]: ...
 
 
 @overload
@@ -1433,8 +1419,7 @@ def fifths2iv(
     minor: str,
     augmented: str,
     diminished: str,
-) -> Optional[Tuple[str]]:
-    ...
+) -> Optional[Tuple[str]]: ...
 
 
 def fifths2iv(
@@ -1524,36 +1509,31 @@ def fifths2iv(
 
 
 @overload
-def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> Optional[str]:
-    ...
+def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> Optional[str]: ...
 
 
 @overload
 def tpc2name(
     tpc: pd.Series, ms: bool = False, minor: bool = False
-) -> Optional[pd.Series]:
-    ...
+) -> Optional[pd.Series]: ...
 
 
 @overload
 def tpc2name(
     tpc: NDArray[int], ms: bool = False, minor: bool = False
-) -> Optional[NDArray[str]]:
-    ...
+) -> Optional[NDArray[str]]: ...
 
 
 @overload
 def tpc2name(
     tpc: List[int], ms: bool = False, minor: bool = False
-) -> Optional[List[str]]:
-    ...
+) -> Optional[List[str]]: ...
 
 
 @overload
 def tpc2name(
     tpc: Tuple[int], ms: bool = False, minor: bool = False
-) -> Optional[Tuple[str]]:
-    ...
+) -> Optional[Tuple[str]]: ...
 
 
 def tpc2name(
@@ -1639,36 +1619,31 @@ def tpc2scale_degree(
 @overload
 def fifths2name(
     fifths: int, midi: Optional[int], ms: bool, minor: bool
-) -> Optional[str]:
-    ...
+) -> Optional[str]: ...
 
 
 @overload
 def fifths2name(
     fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool
-) -> Optional[pd.Series]:
-    ...
+) -> Optional[pd.Series]: ...
 
 
 @overload
 def fifths2name(
     fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool
-) -> Optional[NDArray[str]]:
-    ...
+) -> Optional[NDArray[str]]: ...
 
 
 @overload
 def fifths2name(
     fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool
-) -> Optional[List[str]]:
-    ...
+) -> Optional[List[str]]: ...
 
 
 @overload
 def fifths2name(
     fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool
-) -> Optional[Tuple[str]]:
-    ...
+) -> Optional[Tuple[str]]: ...
 
 
 def fifths2name(
@@ -1876,15 +1851,13 @@ def get_git_revision(
 @overload
 def get_git_tag(
     repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[True]
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
 def get_git_tag(
     repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[False]
-) -> Optional[str]:
-    ...
+) -> Optional[str]: ...
 
 
 def get_git_tag(
@@ -3352,28 +3325,23 @@ def metadata2series(metadata: dict) -> pd.Series:
 
 
 @overload
-def midi_and_tpc2octave(midi: int, tpc: int) -> int:
-    ...
+def midi_and_tpc2octave(midi: int, tpc: int) -> int: ...
 
 
 @overload
-def midi_and_tpc2octave(midi: pd.Series, tpc: pd.Series) -> pd.Series:
-    ...
+def midi_and_tpc2octave(midi: pd.Series, tpc: pd.Series) -> pd.Series: ...
 
 
 @overload
-def midi_and_tpc2octave(midi: NDArray[int], tpc: NDArray[int]) -> NDArray[int]:
-    ...
+def midi_and_tpc2octave(midi: NDArray[int], tpc: NDArray[int]) -> NDArray[int]: ...
 
 
 @overload
-def midi_and_tpc2octave(midi: List[int], tpc: List[int]) -> List[int]:
-    ...
+def midi_and_tpc2octave(midi: List[int], tpc: List[int]) -> List[int]: ...
 
 
 @overload
-def midi_and_tpc2octave(midi: Tuple[int], tpc: Tuple[int]) -> Tuple[int]:
-    ...
+def midi_and_tpc2octave(midi: Tuple[int], tpc: Tuple[int]) -> Tuple[int]: ...
 
 
 def midi_and_tpc2octave(
@@ -3393,28 +3361,23 @@ def midi_and_tpc2octave(
 
 
 @overload
-def midi2octave(midi: int, fifths: Optional[int]) -> int:
-    ...
+def midi2octave(midi: int, fifths: Optional[int]) -> int: ...
 
 
 @overload
-def midi2octave(midi: pd.Series, fifths: Optional[pd.Series]) -> pd.Series:
-    ...
+def midi2octave(midi: pd.Series, fifths: Optional[pd.Series]) -> pd.Series: ...
 
 
 @overload
-def midi2octave(midi: NDArray[int], fifths: Optional[NDArray]) -> NDArray[int]:
-    ...
+def midi2octave(midi: NDArray[int], fifths: Optional[NDArray]) -> NDArray[int]: ...
 
 
 @overload
-def midi2octave(midi: List[int], fifths: Optional[List[int]]) -> List[int]:
-    ...
+def midi2octave(midi: List[int], fifths: Optional[List[int]]) -> List[int]: ...
 
 
 @overload
-def midi2octave(midi: Tuple[int], fifths: Optional[Tuple[int]]) -> Tuple[int]:
-    ...
+def midi2octave(midi: Tuple[int], fifths: Optional[Tuple[int]]) -> Tuple[int]: ...
 
 
 def midi2octave(
@@ -3922,30 +3885,31 @@ def roman_numeral2semitones(rn, global_minor=False, logger=None):
 
 
 @overload
-def scale_degree2name(fifths: int, localkey: str, globalkey: str) -> str:
-    ...
+def scale_degree2name(fifths: int, localkey: str, globalkey: str) -> str: ...
 
 
 @overload
-def scale_degree2name(fifths: pd.Series, localkey: str, globalkey: str) -> pd.Series:
-    ...
+def scale_degree2name(
+    fifths: pd.Series, localkey: str, globalkey: str
+) -> pd.Series: ...
 
 
 @overload
 def scale_degree2name(
     fifths: NDArray[int], localkey: str, globalkey: str
-) -> NDArray[str]:
-    ...
+) -> NDArray[str]: ...
 
 
 @overload
-def scale_degree2name(fifths: List[int], localkey: str, globalkey: str) -> List[str]:
-    ...
+def scale_degree2name(
+    fifths: List[int], localkey: str, globalkey: str
+) -> List[str]: ...
 
 
 @overload
-def scale_degree2name(fifths: Tuple[int], localkey: str, globalkey: str) -> Tuple[str]:
-    ...
+def scale_degree2name(
+    fifths: Tuple[int], localkey: str, globalkey: str
+) -> Tuple[str]: ...
 
 
 def scale_degree2name(
