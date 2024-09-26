@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.3](https://github.com/johentsch/ms3/compare/v2.5.2...v2.5.3) (2024-09-26)
+
+
+### Bug Fixes
+
+* pins numpy&lt;2.0.0 ([b75e671](https://github.com/johentsch/ms3/commit/b75e67104d1ac0e0d8118b04696cf92acc96593d))
+* replaces webcolors constant with the local one introduced in b680f452 ([06dad93](https://github.com/johentsch/ms3/commit/06dad933ceaba08aa49c5181b1024103c4749a3c))
+* update syntax of inplace operations ([b34a323](https://github.com/johentsch/ms3/commit/b34a323b63d8432850d67122200c7814aeb19a01))
+
 ## [2.5.2](https://github.com/johentsch/ms3/compare/v2.5.1...v2.5.2) (2024-08-06)
 
 
