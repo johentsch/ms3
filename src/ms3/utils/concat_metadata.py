@@ -9,7 +9,7 @@ from ms3.utils import dataframe2markdown
 from pytablewriter import MarkdownTableWriter
 
 
-def concat_metadata(path):
+def concat_metadata_tsv_files(path):
     _, folders, _ = next(os.walk(path))
     tsv_paths, keys = [], []
     for subdir in sorted(folders):
@@ -82,8 +82,11 @@ def metadata2markdown(concatenated):
         "harmony_version": "standard",
     }
     concatenated = concatenated.rename(columns=rename4markdown)
+    existing_columns = [
+        col for col in rename4markdown.values() if col in concatenated.columns
+    ]
     result = "# Overview"
-    for corpus_name, df in concatenated[rename4markdown.values()].groupby(level=0):
+    for corpus_name, df in concatenated[existing_columns].groupby(level=0):
         heading = f"\n\n## {corpus_name}\n\n"
         md = str(dataframe2markdown(df.fillna("")))
         result += heading + md
@@ -114,16 +117,28 @@ def write_tsv(df, tsv_path):
     print(f"Concatenated metadata written to {tsv_path}.")
 
 
-def main(args):
-    concatenated = concat_metadata(args.dir)
+def concat_metadata(
+    meta_corpus_dir: str,
+    out: str,
+    tsv_name="concatenated_metadata.tsv",
+):
+    concatenated = concat_metadata_tsv_files(meta_corpus_dir)
     if len(concatenated) == 0:
-        print(f"No metadata found in the child directories of {args.dir}.")
+        print(f"No metadata found in the child directories of {meta_corpus_dir}.")
         return
-    tsv_path = os.path.join(args.out, "concatenated_metadata.tsv")
+    tsv_path = os.path.join(out, tsv_name)
     write_tsv(concatenated, tsv_path)
     md_str = metadata2markdown(concatenated)
-    md_path = os.path.join(args.out, "README.md")
+    md_path = os.path.join(out, "README.md")
     write_md(md_str, md_path)
+
+
+def run(args):
+    """Unpack the arguments and run the main function."""
+    concat_metadata(
+        meta_corpus_dir=args.dir,
+        out=args.out,
+    )
 
 
 ################################################################################
@@ -144,18 +159,19 @@ if __name__ == "__main__":
         "--dir",
         metavar="DIR",
         type=check_dir,
-        help="Pass the root of the repository clone to gather metadata.tsv files from its child directories.",
+        help="Pass the root of the repository clone to gather metadata.tsv files from its child directories. "
+        "Defaults to current working directory.",
     )
     parser.add_argument(
         "-o",
         "--out",
         metavar="OUT_DIR",
         type=check_and_create,
-        help="""Output directory for TSV and MD file.""",
+        help="""Output directory for TSV and MD file. Defaults to current working directory.""",
     )
     args = parser.parse_args()
     if args.dir is None:
         args.dir = os.getcwd()
     if args.out is None:
         args.out = os.getcwd()
-    main(args)
+    run(args)
