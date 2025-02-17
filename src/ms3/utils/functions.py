@@ -1350,7 +1350,7 @@ def fifths2acc(fifths: Tuple[int]) -> Tuple[str]: ...
 
 
 def fifths2acc(
-    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
 ) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """Returns accidentals for a stack of fifths that can be combined with a
     basic representation of the seven steps."""
@@ -2453,6 +2453,7 @@ TSV_COLUMN_CONVERTERS = {
     "next": str2inttuple,
     "nominal_duration": safe_frac,
     "quarterbeats": safe_frac,
+    "quarterbeats_playthrough": safe_frac,
     "quarterbeats_all_endings": safe_frac,
     "onset": safe_frac,
     "duration": safe_frac,
@@ -2545,8 +2546,10 @@ TSV_COLUMN_TITLES = {
     "phraseend": "Phrase Annotation",
     "piece": "Piece identifier",
     # 'playthrough':
-    "quarterbeats": "Offset from Beginning",
-    "quarterbeats_all_endings": "Offset from Beginning (Including Endings)",
+    "quarterbeats": "Offset from Beginning (leaving out alternative endings)",
+    "quarterbeats_playthrough": "Offset from the beginning, including all repeats (in unfolded tables)",
+    "quarterbeats_all_endings": "Offset from Beginning (counting through alternative "
+    "endings as if they were adjacent bars)",
     "regex_match": "Regular Expression Match",
     "relativeroot": "Relative Root",
     "repeats": "Repeats",
