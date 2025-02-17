@@ -5,11 +5,15 @@ import os
 
 import pandas as pd
 from ms3.cli import check_and_create, check_dir
-from ms3.utils import dataframe2markdown
-from pytablewriter import MarkdownTableWriter
+from ms3.utils import (
+    dataframe2markdown,
+    overwrite_overview_section_in_markdown_file,
+    write_tsv,
+)
 
 
-def concat_metadata_tsv_files(path):
+def concat_metadata_tsv_files(path: str) -> pd.DataFrame:
+    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
     _, folders, _ = next(os.walk(path))
     tsv_paths, keys = [], []
     for subdir in sorted(folders):
@@ -57,16 +61,7 @@ def concat_metadata_tsv_files(path):
     return concatenated
 
 
-def df2md(df, name=None):
-    """Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string."""
-    writer = MarkdownTableWriter()
-    writer.table_name = name
-    writer.header_list = list(df.columns.values)
-    writer.value_matrix = df.values.tolist()
-    return writer
-
-
-def metadata2markdown(concatenated):
+def concatenated_metadata2markdown(concatenated):
     try:
         fname_col = next(
             col for col in ("piece", "fname", "fnames") if col in concatenated.columns
@@ -93,44 +88,21 @@ def metadata2markdown(concatenated):
     return result
 
 
-def write_md(md_str, md_path):
-    if os.path.isfile(md_path):
-        msg = "Updated"
-        with open(md_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    else:
-        msg = "Created"
-        lines = []
-    with open(md_path, "w", encoding="utf-8") as f:
-        for line in lines:
-            if "# Overview" in line:
-                break
-            f.write(line)
-        else:
-            f.write("\n\n")
-        f.write(md_str)
-    print(f"{msg} {md_path}")
-
-
-def write_tsv(df, tsv_path):
-    df.to_csv(tsv_path, sep="\t", index=True)
-    print(f"Concatenated metadata written to {tsv_path}.")
-
-
 def concat_metadata(
     meta_corpus_dir: str,
     out: str,
     tsv_name="concatenated_metadata.tsv",
 ):
+    """Concatenate metadata.tsv files from the sub-corpora of a meta-corpus, adapt the file paths, update the README."""
     concatenated = concat_metadata_tsv_files(meta_corpus_dir)
     if len(concatenated) == 0:
         print(f"No metadata found in the child directories of {meta_corpus_dir}.")
         return
     tsv_path = os.path.join(out, tsv_name)
     write_tsv(concatenated, tsv_path)
-    md_str = metadata2markdown(concatenated)
+    md_str = concatenated_metadata2markdown(concatenated)
     md_path = os.path.join(out, "README.md")
-    write_md(md_str, md_path)
+    overwrite_overview_section_in_markdown_file(md_str, md_path)
 
 
 def run(args):
