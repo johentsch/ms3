@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.4](https://github.com/johentsch/ms3/compare/v2.5.3...v2.5.4) (2025-02-28)
+
+
+### Bug Fixes
+
+* adds "quarterbeats_playthrough" to the correctly parsed columns ([77c05ac](https://github.com/johentsch/ms3/commit/77c05acde4123220c4814b1a247ac23a7aa4f5e8))
+* adds concat_metadata.py ([a2465be](https://github.com/johentsch/ms3/commit/a2465bee6d56b0f6d1e2a9f9e02a01276825f401))
+* fixes a small bug re: missing columns and prepares the code for integration into utils ([4b8c740](https://github.com/johentsch/ms3/commit/4b8c74007ac13a4f9762d1edddad8c6863065bc5))
+
 ## [2.5.3](https://github.com/johentsch/ms3/compare/v2.5.2...v2.5.3) (2024-09-26)
 
 
