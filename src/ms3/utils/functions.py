@@ -1350,7 +1350,7 @@ def fifths2acc(fifths: Tuple[int]) -> Tuple[str]: ...
 
 
 def fifths2acc(
-    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]
+    fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
 ) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """Returns accidentals for a stack of fifths that can be combined with a
     basic representation of the seven steps."""
@@ -2453,6 +2453,7 @@ TSV_COLUMN_CONVERTERS = {
     "next": str2inttuple,
     "nominal_duration": safe_frac,
     "quarterbeats": safe_frac,
+    "quarterbeats_playthrough": safe_frac,
     "quarterbeats_all_endings": safe_frac,
     "onset": safe_frac,
     "duration": safe_frac,
@@ -2545,8 +2546,10 @@ TSV_COLUMN_TITLES = {
     "phraseend": "Phrase Annotation",
     "piece": "Piece identifier",
     # 'playthrough':
-    "quarterbeats": "Offset from Beginning",
-    "quarterbeats_all_endings": "Offset from Beginning (Including Endings)",
+    "quarterbeats": "Offset from Beginning (leaving out alternative endings)",
+    "quarterbeats_playthrough": "Offset from the beginning, including all repeats (in unfolded tables)",
+    "quarterbeats_all_endings": "Offset from Beginning (counting through alternative "
+    "endings as if they were adjacent bars)",
     "regex_match": "Regular Expression Match",
     "relativeroot": "Relative Root",
     "repeats": "Repeats",
@@ -4789,6 +4792,31 @@ def enforce_piece_index_for_metadata(
     return metadata_df.set_index("piece", append=append)
 
 
+def overwrite_overview_section_in_markdown_file(file_path, md_str, logger=None):
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    if os.path.isfile(file_path):
+        msg = "Updated"
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    else:
+        msg = "Created"
+        lines = []
+    # in case the README.md exists, everything from the line including '# Overview' (or last line otherwise) is
+    # overwritten
+    with open(file_path, "w", encoding="utf-8") as f:
+        for line in lines:
+            if "# Overview" in line:
+                break
+            f.write(line)
+        else:
+            f.write("\n\n")
+        f.write(md_str)
+    logger.info(f"{msg} {file_path}")
+
+
 def write_markdown(metadata_df: pd.DataFrame, file_path: str, logger=None) -> None:
     """
     Write a subset of the DataFrame ``metadata_df`` to ``path`` in markdown format. If the file exists, it will be
@@ -4823,24 +4851,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str, logger=None) -> No
     )  # comes with a first-level heading which we turn into second-level
     md_table += "\n\n*Overview table automatically updated using [ms3](https://ms3.readthedocs.io/).*\n"
 
-    if os.path.isfile(file_path):
-        msg = "Updated"
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    else:
-        msg = "Created"
-        lines = []
-    # in case the README.md exists, everything from the line including '# Overview' (or last line otherwise) is
-    # overwritten
-    with open(file_path, "w", encoding="utf-8") as f:
-        for line in lines:
-            if "# Overview" in line:
-                break
-            f.write(line)
-        else:
-            f.write("\n\n")
-        f.write(md_table)
-    logger.info(f"{msg} {file_path}")
+    overwrite_overview_section_in_markdown_file(file_path, md_table, logger)
 
 
 def prepare_metadata_for_writing(metadata_df):
@@ -6895,3 +6906,104 @@ def write_soup_to_mscx_file(
 
 
 # endregion Functions for writing BeautifulSoup to MSCX file
+# region concatenating sub-corpus metadata
+
+
+def concat_metadata_tsv_files(path: str) -> pd.DataFrame:
+    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
+    _, folders, _ = next(os.walk(path))
+    tsv_paths, keys = [], []
+    for subdir in sorted(folders):
+        potential = os.path.join(path, subdir, "metadata.tsv")
+        if os.path.isfile(potential):
+            tsv_paths.append(potential)
+            keys.append(subdir)
+    if len(tsv_paths) == 0:
+        return pd.DataFrame()
+    dfs = [pd.read_csv(tsv_path, sep="\t", dtype="string") for tsv_path in tsv_paths]
+    try:
+        concatenated = pd.concat(dfs, keys=keys)
+    except AssertionError:
+        info = "Levels: " + ", ".join(
+            f"{key}: {df.index.nlevels} ({df.index.names})"
+            for key, df in zip(keys, dfs)
+        )
+        print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
+        raise
+    try:
+        rel_path_col = next(
+            col for col in ("subdirectory", "rel_paths") if col in concatenated.columns
+        )
+    except StopIteration:
+        raise ValueError(
+            "Metadata is expected to come with a column called 'subdirectory' or (previously) 'rel_paths'."
+        )
+    rel_paths = [
+        os.path.join(corpus, rel_path)
+        for corpus, rel_path in zip(
+            concatenated.index.get_level_values(0), concatenated[rel_path_col].values
+        )
+    ]
+    concatenated.loc[:, rel_path_col] = rel_paths
+    if "rel_path" in concatenated.columns:
+        rel_paths = [
+            os.path.join(corpus, rel_path)
+            for corpus, rel_path in zip(
+                concatenated.index.get_level_values(0), concatenated.rel_path.values
+            )
+        ]
+        concatenated.loc[:, "rel_path"] = rel_paths
+    concatenated = concatenated.droplevel(1)
+    concatenated.index.rename("corpus", inplace=True)
+    return concatenated
+
+
+def concatenated_metadata2markdown(concatenated):
+    try:
+        fname_col = next(
+            col for col in ("piece", "fname", "fnames") if col in concatenated.columns
+        )
+    except StopIteration:
+        raise ValueError(
+            "Metadata is expected to come with a column called 'piece' or (previously) 'fname' or 'fnames'."
+        )
+    rename4markdown = {
+        fname_col: "file_name",
+        "last_mn": "measures",
+        "label_count": "labels",
+        "harmony_version": "standard",
+    }
+    concatenated = concatenated.rename(columns=rename4markdown)
+    existing_columns = [
+        col for col in rename4markdown.values() if col in concatenated.columns
+    ]
+    result = "# Overview"
+    for corpus_name, df in concatenated[existing_columns].groupby(level=0):
+        heading = f"\n\n## {corpus_name}\n\n"
+        md = str(dataframe2markdown(df.fillna("")))
+        result += heading + md
+    return result
+
+
+def concat_metadata(
+    meta_corpus_dir: str, out: str, tsv_name="concatenated_metadata.tsv", logger=None
+):
+    """Concatenate metadata.tsv files from the sub-corpora of a meta-corpus, adapt the file paths, update the README."""
+    if logger is None:
+        logger = module_logger
+    elif isinstance(logger, str):
+        logger = get_logger(logger)
+    concatenated = concat_metadata_tsv_files(meta_corpus_dir)
+    if len(concatenated) == 0:
+        print(f"No metadata found in the child directories of {meta_corpus_dir}.")
+        return
+    tsv_path = os.path.join(out, tsv_name)
+    write_tsv(concatenated, tsv_path)
+    md_str = concatenated_metadata2markdown(concatenated)
+    md_path = os.path.join(out, "README.md")
+    overwrite_overview_section_in_markdown_file(
+        file_path=md_path, md_str=md_str, logger=logger
+    )
+
+
+# endregion concatenating sub-corpus metadata
