@@ -175,7 +175,7 @@ def convert_cmd(args):
             update_logger.info(
                 f"Argument '{argument_name}' is currently being ignored."
             )
-    out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
+    out_dir = "." if args.out is None else args.out
     ms = "auto" if args.musescore is None else args.musescore
     convert_folder(
         directory=args.dir,
@@ -630,7 +630,8 @@ def get_arg_parser():
         "--out",
         metavar="OUT_DIR",
         type=check_and_create_unresolved,
-        help="Output directory.",
+        help="Output directory. For conversion, an absolute path will result in a copy of the original sub-folder "
+        "structure, whereas a relative path will contain all converted files next to each other.",
     )
     parse_args.add_argument(
         "-n",

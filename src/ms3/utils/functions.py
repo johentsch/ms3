@@ -705,6 +705,7 @@ def convert_folder(
         exclude_re = ""
     if target_dir is None:
         target_dir = directory
+    resolved_target_dir = resolve_dir(target_dir)
     new_dirs = {}
     subdir_file_tuples = iter([])
     if directory is not None:
@@ -729,15 +730,15 @@ def convert_folder(
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
         else:
-            if target_dir is None:
-                new_subdir = subdir
-            else:
+            if os.path.isabs(target_dir):
                 old_subdir = os.path.relpath(subdir, directory)
                 new_subdir = (
                     os.path.join(target_dir, old_subdir)
                     if old_subdir != "."
                     else target_dir
                 )
+            else:
+                new_subdir = resolved_target_dir
             os.makedirs(new_subdir, exist_ok=True)
             new_dirs[subdir] = new_subdir
         name, _ = os.path.splitext(file)
