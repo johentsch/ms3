@@ -766,6 +766,55 @@ def convert_folder(
             convert(old=old, new=new, MS=MS, logger=logger)
 
 
+def convert_from_metadata_tsv(
+    directory=None,
+    file_paths=None,
+    target_dir=None,
+    extensions=[],
+    target_extension="mscx",
+    regex=".*",
+    suffix=None,
+    recursive=True,
+    ms="mscore",
+    overwrite=False,
+    parallel=False,
+    logger=None,
+):
+    if file_paths is None:
+        file_paths = []
+    else:
+        file_paths = list(file_paths)
+    tsv_files = set(f for f in os.listdir(directory) if f.endswith(".tsv"))
+    if "metadata.tsv" in tsv_files:
+        metadata_fname = "metadata.tsv"
+    else:
+        for f in tsv_files:
+            if f.endswith(".metadata.tsv"):
+                metadata_fname = f
+                break
+        else:
+            raise FileNotFoundError(
+                f"No metadata TSV found in {directory}. Use --all/-a to detect files."
+            )
+    metadata_path = os.path.join(directory, metadata_fname)
+    metadata = load_tsv(metadata_path)
+    file_paths += [os.path.join(directory, rel_path) for rel_path in metadata.rel_path]
+    convert_folder(
+        directory=None,
+        file_paths=file_paths,
+        target_dir=target_dir,
+        extensions=extensions,
+        target_extension=target_extension,
+        regex=regex,
+        suffix=suffix,
+        recursive=recursive,
+        ms=ms,
+        overwrite=overwrite,
+        parallel=parallel,
+        logger=logger,
+    )
+
+
 def decode_harmonies(
     df,
     label_col="label",

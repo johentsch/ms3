@@ -16,6 +16,7 @@ from typing import List, Literal, Optional, overload
 from ms3 import (
     Parse,
     compute_path_from_file,
+    convert_from_metadata_tsv,
     get_git_repo,
     get_git_version_info,
     make_coloring_reports_and_warnings,
@@ -164,7 +165,6 @@ def convert_cmd(args):
     #    '\nTARGET_DIR: ' + target
     update_logger = get_logger("ms3.convert", level=args.level)
     for argument_name, argument, default in (
-        ("-a/--all", args.all, False),
         ("-e/--exclude", args.exclude, None),
         ("-f/--folders", args.folders, None),
         ("--reviewed", args.reviewed, False),
@@ -177,20 +177,36 @@ def convert_cmd(args):
             )
     out_dir = "." if args.out is None else args.out
     ms = "auto" if args.musescore is None else args.musescore
-    convert_folder(
-        directory=args.dir,
-        file_paths=args.files,
-        target_dir=out_dir,
-        extensions=args.extensions,
-        target_extension=args.format,
-        regex=args.include,
-        suffix=args.suffix,
-        recursive=not args.nonrecursive,
-        ms=ms,
-        overwrite=args.safe,
-        parallel=not args.iterative,
-        logger=update_logger,
-    )
+    if args.all:
+        convert_folder(
+            directory=args.dir,
+            file_paths=args.files,
+            target_dir=out_dir,
+            extensions=args.extensions,
+            target_extension=args.format,
+            regex=args.include,
+            suffix=args.suffix,
+            recursive=not args.nonrecursive,
+            ms=ms,
+            overwrite=args.safe,
+            parallel=not args.iterative,
+            logger=update_logger,
+        )
+    else:
+        convert_from_metadata_tsv(
+            directory=args.dir,
+            file_paths=args.files,
+            target_dir=out_dir,
+            extensions=args.extensions,
+            target_extension=args.format,
+            regex=args.include,
+            suffix=args.suffix,
+            recursive=not args.nonrecursive,
+            ms=ms,
+            overwrite=args.safe,
+            parallel=not args.iterative,
+            logger=update_logger,
+        )
 
 
 def empty(args, parse_obj: Optional[Parse] = None):
