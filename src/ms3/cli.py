@@ -339,18 +339,22 @@ def update_cmd(args, parse_obj: Optional[Parse] = None):
         print("Nothing to do.")
 
 
-def check_and_create(d):
+def check_and_create(d, resolve=True):
     """Turn input into an existing, absolute directory path."""
     if not os.path.isdir(d):
-        d = resolve_dir(os.path.join(os.getcwd(), d))
-        if not os.path.isdir(d):
-            if input(d + " does not exist. Create? (y|n)") == "y":
-                os.mkdir(d)
+        d_resolved = resolve_dir(os.path.join(os.getcwd(), d))
+        if not os.path.isdir(d_resolved):
+            if input(d_resolved + " does not exist. Create? (y|n)") == "y":
+                os.mkdir(d_resolved)
             else:
                 raise argparse.ArgumentTypeError(
                     d + " needs to be an existing directory"
                 )
-    return resolve_dir(d)
+    return d_resolved if resolve else d
+
+
+def check_and_create_unresolved(d):
+    return check_and_create(d, resolve=False)
 
 
 def check_dir(d):
@@ -381,13 +385,11 @@ def precommit_cmd(
 
 
 @overload
-def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[False]) -> None:
-    ...
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[False]) -> None: ...
 
 
 @overload
-def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[True]) -> bool:
-    ...
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[True]) -> bool: ...
 
 
 def review_cmd(
@@ -627,7 +629,7 @@ def get_arg_parser():
         "-o",
         "--out",
         metavar="OUT_DIR",
-        type=check_and_create,
+        type=check_and_create_unresolved,
         help="Output directory.",
     )
     parse_args.add_argument(
@@ -1006,7 +1008,7 @@ In particular, check DCML harmony labels for syntactic correctness.""",
         "--format",
         default="mscx",
         help="Output format of converted files. Defaults to mscx. Other options are "
-        "{png, svg, pdf, mscz, wav, mp3, flac, ogg, xml, mxl, mid}",
+        "{png, svg, pdf, mscz, wav, mp3, flac, ogg, musicxml, mxl, mid}",
     )
     convert_parser.add_argument(
         "--extensions",
