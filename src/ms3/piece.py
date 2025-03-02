@@ -43,6 +43,7 @@ from .utils import (
     get_git_version_info,
     get_musescore,
     infer_tsv_type,
+    literal_type2tuple,
     load_tsv,
     make_file_path,
     metadata2series,
@@ -212,8 +213,7 @@ class Piece(LoggedClass):
         view_name: Optional[str],
         choose: Literal["auto", "ask"],
         as_dict: Literal[False],
-    ) -> pd.Series:
-        ...
+    ) -> pd.Series: ...
 
     @overload
     def score_metadata(
@@ -221,8 +221,7 @@ class Piece(LoggedClass):
         view_name: Optional[str],
         choose: Literal["auto", "ask"],
         as_dict: Literal[True],
-    ) -> dict:
-        ...
+    ) -> dict: ...
 
     def score_metadata(
         self,
@@ -1331,8 +1330,8 @@ class Piece(LoggedClass):
     ) -> FileDataframeTupleMaybe:
         facets = argument_and_literal_type2list(facet, TSVtype, logger=self.logger)
         assert (
-            len(facet) == 1
-        ), f"Pass exactly one valid TSV type {TSVtype.__args__} or use _.get_parsed_tsvs()"
+            len(facets) == 1
+        ), f"Pass exactly one valid TSV type {literal_type2tuple(TSVtype)} or use _.get_parsed_tsvs()\nGot: {facets}"
         facet = facets[0]
         return self.get_parsed(facet, view_name=view_name, choose=choose)
 
