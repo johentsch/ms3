@@ -2683,9 +2683,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                                 event["mc_onset"] = current_position
                                 chord_info["mc_onset"] = current_position
                             if tremolo_type:
-                                chord_info[
-                                    "tremolo"
-                                ] = f"{tremolo_duration_string}_{tremolo_type}_{tremolo_component}"
+                                chord_info["tremolo"] = (
+                                    f"{tremolo_duration_string}_{tremolo_type}_{tremolo_component}"
+                                )
                                 if tremolo_component in (0, 2):
                                     # delete 'tremolo_type' which signals that the <Chord> is part of a tremolo
                                     tremolo_type = None
@@ -2793,7 +2793,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                                 # block
                                 parent_name = text_tag.parent.name
                                 text_including_html = text_tag2str(text_tag)
-                                text_excluding_html = text_tag2str_recursive(text_tag)
+                                text_excluding_html = text_tag2str_recursive(
+                                    text_tag, join_char=" "
+                                )
                                 if parent_name == "Fingering":
                                     # fingerings occur within <Note> tags, if they are to be extracted, they should go
                                     # into the notes table
@@ -3304,14 +3306,14 @@ class Excerpt(_MSCX_bs4):
         )
 
     @overload
-    def get_onset_zero_harmony(self, return_layer: Literal[False]) -> Optional[bs4.Tag]:
-        ...
+    def get_onset_zero_harmony(
+        self, return_layer: Literal[False]
+    ) -> Optional[bs4.Tag]: ...
 
     @overload
     def get_onset_zero_harmony(
         self, return_layer: Literal[True]
-    ) -> Tuple[Optional[bs4.Tag], int, int]:
-        ...
+    ) -> Tuple[Optional[bs4.Tag], int, int]: ...
 
     def get_onset_zero_harmony(self, return_layer: bool = False) -> Optional[bs4.Tag]:
         """Iterate through all tags at mc_onset 0 for all notational (staff, voice) layers and return the first
@@ -3618,10 +3620,10 @@ INSTRUMENT_DEFAULTS = pd.read_csv(
     ),
     index_col=0,
 )
-INSTRUMENT_DEFAULTS[
-    ["controllers", "ChannelName", "ChannelValue"]
-] = INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]].apply(
-    lambda k: list(map(lambda j: eval(j) if j is not None else None, k))
+INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]] = (
+    INSTRUMENT_DEFAULTS[["controllers", "ChannelName", "ChannelValue"]].apply(
+        lambda k: list(map(lambda j: eval(j) if j is not None else None, k))
+    )
 )
 for int_column in ["keysig", "useDrumset"]:
     INSTRUMENT_DEFAULTS[int_column] = INSTRUMENT_DEFAULTS[int_column].astype("Int64")
@@ -3874,9 +3876,9 @@ class Instrumentation(LoggedClass):
         :param value: new values to set
         :return: corrected list of parts of the same length as value list
         """
-        l_found, l_value = 1 if found is None else len(
-            found
-        ), 1 if value is None else len(value)
+        l_found, l_value = 1 if found is None else len(found), (
+            1 if value is None else len(value)
+        )
         if l_found < l_value:
             for i in range(l_value - l_found):
                 new_tag = self.soup.new_tag("Channel")
@@ -4795,15 +4797,13 @@ DEFAULT_THOROUGHBASS_BRACKETS = {
 @overload
 def find_tag_get_string(
     parent_tag: bs4.Tag, tag_to_find: str, fallback: Literal[None]
-) -> Tuple[Optional[bs4.Tag], Optional[str]]:
-    ...
+) -> Tuple[Optional[bs4.Tag], Optional[str]]: ...
 
 
 @overload
 def find_tag_get_string(
     parent_tag: bs4.Tag, tag_to_find: str, fallback: Hashable
-) -> Tuple[Optional[bs4.Tag], Optional[Hashable]]:
-    ...
+) -> Tuple[Optional[bs4.Tag], Optional[Hashable]]: ...
 
 
 def find_tag_get_string(
@@ -4884,13 +4884,13 @@ def process_thoroughbass(
 @overload
 def get_row_at_quarterbeat(
     df: pd.DataFrame, quarterbeat: Literal[None]
-) -> pd.DataFrame:
-    ...
+) -> pd.DataFrame: ...
 
 
 @overload
-def get_row_at_quarterbeat(df: pd.DataFrame, quarterbeat: float) -> Optional[pd.Series]:
-    ...
+def get_row_at_quarterbeat(
+    df: pd.DataFrame, quarterbeat: float
+) -> Optional[pd.Series]: ...
 
 
 def get_row_at_quarterbeat(
