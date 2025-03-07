@@ -2727,8 +2727,10 @@ TSV_COLUMN_DESCRIPTIONS = {
     "was \\\\",
     "piece": "Name identifier (filename without suffixes) of a piece",
     # 'playthrough':
-    "quarterbeats": "Distance of an event from the piece's beginning. By default, only second endings are taken into "
+    "quarterbeats": "Distance from the piece's beginning. By default, only second endings are taken into "
     "account to reflect the proportions of a simply playthrough without repeats.",
+    "quarterbeats_playthrough": "Distance from the piece's beginning, including all repeats. This column is present "
+    "in unfolded representations that correspond to a full 'playthrough' including all repetitions.",
     "quarterbeats_all_endings": "Distance from the piece's beginning, taking all endings into account for "
     "addressability purposes.",
     "regex_match": "The name of the first registered regular expression matching a label. By default, these include "
