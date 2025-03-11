@@ -1,4 +1,5 @@
 """Functions for transforming DataFrames as output by ms3."""
+
 import logging
 import sys
 import warnings
@@ -117,19 +118,20 @@ def add_quarterbeats_col(
         return df
 
     is_unfolded = "mc_playthrough" in df.columns
+    qb_column_name = "quarterbeats"
+    mc_col = "mc"
     if is_unfolded:
         mc_col = "mc_playthrough"
         qb_column_name = "quarterbeats_playthrough"
     elif "mc" in df.columns:
         mc_col = "mc"
-        qb_column_name = "quarterbeats"
-    else:
+    if name is None:
+        name = qb_column_name
+    if not any(col in df.columns for col in ("mc", "mc_playthrough", name)):
         logger.error(
             "Expected to have at least one column called 'mc' or 'mc_playthrough'."
         )
         return df
-    if name is None:
-        name = qb_column_name
 
     has_quarterbeats = name in df.columns
     has_duration_qb = "duration_qb" in df.columns
@@ -165,19 +167,18 @@ def add_quarterbeats_col(
         # removes existing columns because they will be reinserted later in their canonical position
         df = df.drop(columns=list(new_cols.keys()))
 
-    mc_column = df[mc_col]
     if "mc_onset" in df.columns:
         mc_onset_column = df.mc_onset
     else:
         mc_onset_column = None
-    if not has_quarterbeats:
+    if not has_quarterbeats and mc_col in df.columns:
         new_cols[name] = make_quarterbeats_column(
-            mc_column=mc_column,
+            mc_column=df[mc_col],
             mc_onset_column=mc_onset_column,
             offset_dict=offset_dict,
             name=name,
         )
-    if offset_dict_all_endings is not None:
+    if offset_dict_all_endings is not None and "mc" in df.columns:
         new_cols["quarterbeats_all_endings"] = make_quarterbeats_column(
             mc_column=df["mc"],
             mc_onset_column=mc_onset_column,
@@ -539,9 +540,11 @@ def dfs2quarterbeats(
     )
     if unfold:
         dfs = [
-            unfold_repeats(df, playthrough_info, logger=logger)
-            if df is not None
-            else df
+            (
+                unfold_repeats(df, playthrough_info, logger=logger)
+                if df is not None
+                else df
+            )
             for df in dfs
         ]
         if quarterbeats:
@@ -553,15 +556,17 @@ def dfs2quarterbeats(
             )
 
             dfs = [
-                add_quarterbeats_col(
-                    df,
-                    offset_dict=offset_dict,
-                    offset_dict_all_endings=offset_dict_all_endings,
-                    interval_index=interval_index,
-                    logger=logger,
+                (
+                    add_quarterbeats_col(
+                        df,
+                        offset_dict=offset_dict,
+                        offset_dict_all_endings=offset_dict_all_endings,
+                        interval_index=interval_index,
+                        logger=logger,
+                    )
+                    if df is not None
+                    else df
                 )
-                if df is not None
-                else df
                 for df in dfs
             ]
     elif quarterbeats:
@@ -579,15 +584,17 @@ def dfs2quarterbeats(
             )
         offset_dict = make_continuous_offset_series(measures, logger=logger)
         dfs = [
-            add_quarterbeats_col(
-                df,
-                offset_dict=offset_dict,
-                offset_dict_all_endings=offset_dict_all_endings,
-                interval_index=interval_index,
-                logger=logger,
+            (
+                add_quarterbeats_col(
+                    df,
+                    offset_dict=offset_dict,
+                    offset_dict_all_endings=offset_dict_all_endings,
+                    interval_index=interval_index,
+                    logger=logger,
+                )
+                if df is not None
+                else df
             )
-            if df is not None
-            else df
             for df in dfs
         ]
     return dfs

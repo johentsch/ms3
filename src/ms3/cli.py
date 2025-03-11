@@ -16,6 +16,7 @@ from typing import List, Literal, Optional, overload
 from ms3 import (
     Parse,
     compute_path_from_file,
+    convert_from_metadata_tsv,
     get_git_repo,
     get_git_version_info,
     make_coloring_reports_and_warnings,
@@ -164,7 +165,6 @@ def convert_cmd(args):
     #    '\nTARGET_DIR: ' + target
     update_logger = get_logger("ms3.convert", level=args.level)
     for argument_name, argument, default in (
-        ("-a/--all", args.all, False),
         ("-e/--exclude", args.exclude, None),
         ("-f/--folders", args.folders, None),
         ("--reviewed", args.reviewed, False),
@@ -175,22 +175,38 @@ def convert_cmd(args):
             update_logger.info(
                 f"Argument '{argument_name}' is currently being ignored."
             )
-    out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
+    out_dir = "." if args.out is None else args.out
     ms = "auto" if args.musescore is None else args.musescore
-    convert_folder(
-        directory=args.dir,
-        file_paths=args.files,
-        target_dir=out_dir,
-        extensions=args.extensions,
-        target_extension=args.format,
-        regex=args.include,
-        suffix=args.suffix,
-        recursive=not args.nonrecursive,
-        ms=ms,
-        overwrite=args.safe,
-        parallel=not args.iterative,
-        logger=update_logger,
-    )
+    if args.all:
+        convert_folder(
+            directory=args.dir,
+            file_paths=args.files,
+            target_dir=out_dir,
+            extensions=args.extensions,
+            target_extension=args.format,
+            regex=args.include,
+            suffix=args.suffix,
+            recursive=not args.nonrecursive,
+            ms=ms,
+            overwrite=args.safe,
+            parallel=not args.iterative,
+            logger=update_logger,
+        )
+    else:
+        convert_from_metadata_tsv(
+            directory=args.dir,
+            file_paths=args.files,
+            target_dir=out_dir,
+            extensions=args.extensions,
+            target_extension=args.format,
+            regex=args.include,
+            suffix=args.suffix,
+            recursive=not args.nonrecursive,
+            ms=ms,
+            overwrite=args.safe,
+            parallel=not args.iterative,
+            logger=update_logger,
+        )
 
 
 def empty(args, parse_obj: Optional[Parse] = None):
@@ -290,12 +306,15 @@ def transform_cmd(args):
     if repo is None:
         version_info = None
     elif repo.is_dirty():
-        print(
-            "The repository is dirty. Please commit or stash your changes before running ms3 transform. This is "
-            "important because the version information in the JSON descriptor(s) needs to be consistent with the "
-            "repository state."
-        )
-        return
+        if args.dirty:
+            version_info = None
+        else:
+            print(
+                "The repository is dirty. Please commit or stash your changes before running ms3 transform. This is "
+                "important because the version information in the JSON descriptor(s) needs to be consistent with the "
+                "repository state. To ignore this warning, add the --dirty flag to the command."
+            )
+            return
     else:
         version_info = get_git_version_info(repo=repo)
     parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
@@ -339,18 +358,22 @@ def update_cmd(args, parse_obj: Optional[Parse] = None):
         print("Nothing to do.")
 
 
-def check_and_create(d):
+def check_and_create(d, resolve=True):
     """Turn input into an existing, absolute directory path."""
     if not os.path.isdir(d):
-        d = resolve_dir(os.path.join(os.getcwd(), d))
-        if not os.path.isdir(d):
-            if input(d + " does not exist. Create? (y|n)") == "y":
-                os.mkdir(d)
+        d_resolved = resolve_dir(os.path.join(os.getcwd(), d))
+        if not os.path.isdir(d_resolved):
+            if input(d_resolved + " does not exist. Create? (y|n)") == "y":
+                os.mkdir(d_resolved)
             else:
                 raise argparse.ArgumentTypeError(
                     d + " needs to be an existing directory"
                 )
-    return resolve_dir(d)
+    return d_resolved if resolve else d
+
+
+def check_and_create_unresolved(d):
+    return check_and_create(d, resolve=False)
 
 
 def check_dir(d):
@@ -381,13 +404,11 @@ def precommit_cmd(
 
 
 @overload
-def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[False]) -> None:
-    ...
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[False]) -> None: ...
 
 
 @overload
-def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[True]) -> bool:
-    ...
+def review_cmd(args, parse_obj, wrapped_by_precommit: Literal[True]) -> bool: ...
 
 
 def review_cmd(
@@ -627,8 +648,9 @@ def get_arg_parser():
         "-o",
         "--out",
         metavar="OUT_DIR",
-        type=check_and_create,
-        help="Output directory.",
+        type=check_and_create_unresolved,
+        help="Output directory. For conversion, an absolute path will result in a copy of the original sub-folder "
+        "structure, whereas a relative path will contain all converted files next to each other.",
     )
     parse_args.add_argument(
         "-n",
@@ -1006,7 +1028,7 @@ In particular, check DCML harmony labels for syntactic correctness.""",
         "--format",
         default="mscx",
         help="Output format of converted files. Defaults to mscx. Other options are "
-        "{png, svg, pdf, mscz, wav, mp3, flac, ogg, xml, mxl, mid}",
+        "{png, svg, pdf, mscz, wav, mp3, flac, ogg, musicxml, mxl, mid}",
     )
     convert_parser.add_argument(
         "--extensions",
@@ -1195,6 +1217,11 @@ In particular, check DCML harmony labels for syntactic correctness.""",
         "--uncompressed",
         action="store_true",
         help="Store the transformed files as uncompressed TSVs rather than writing them into a ZIP file.",
+    )
+    transform_parser.add_argument(
+        "--dirty",
+        action="store_true",
+        help="Allows to override the 'This repository is dirty' blocker.",
     )
     transform_parser.set_defaults(func=transform_cmd)
 

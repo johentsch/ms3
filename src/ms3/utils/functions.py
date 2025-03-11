@@ -705,6 +705,7 @@ def convert_folder(
         exclude_re = ""
     if target_dir is None:
         target_dir = directory
+    resolved_target_dir = resolve_dir(target_dir)
     new_dirs = {}
     subdir_file_tuples = iter([])
     if directory is not None:
@@ -729,15 +730,15 @@ def convert_folder(
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
         else:
-            if target_dir is None:
-                new_subdir = subdir
-            else:
+            if os.path.isabs(target_dir):
                 old_subdir = os.path.relpath(subdir, directory)
                 new_subdir = (
                     os.path.join(target_dir, old_subdir)
                     if old_subdir != "."
                     else target_dir
                 )
+            else:
+                new_subdir = resolved_target_dir
             os.makedirs(new_subdir, exist_ok=True)
             new_dirs[subdir] = new_subdir
         name, _ = os.path.splitext(file)
@@ -763,6 +764,55 @@ def convert_folder(
     else:
         for old, new, MS in conversion_params:
             convert(old=old, new=new, MS=MS, logger=logger)
+
+
+def convert_from_metadata_tsv(
+    directory=None,
+    file_paths=None,
+    target_dir=None,
+    extensions=[],
+    target_extension="mscx",
+    regex=".*",
+    suffix=None,
+    recursive=True,
+    ms="mscore",
+    overwrite=False,
+    parallel=False,
+    logger=None,
+):
+    if file_paths is None:
+        file_paths = []
+    else:
+        file_paths = list(file_paths)
+    tsv_files = set(f for f in os.listdir(directory) if f.endswith(".tsv"))
+    if "metadata.tsv" in tsv_files:
+        metadata_fname = "metadata.tsv"
+    else:
+        for f in tsv_files:
+            if f.endswith(".metadata.tsv"):
+                metadata_fname = f
+                break
+        else:
+            raise FileNotFoundError(
+                f"No metadata TSV found in {directory}. Use --all/-a to detect files."
+            )
+    metadata_path = os.path.join(directory, metadata_fname)
+    metadata = load_tsv(metadata_path)
+    file_paths += [os.path.join(directory, rel_path) for rel_path in metadata.rel_path]
+    convert_folder(
+        directory=None,
+        file_paths=file_paths,
+        target_dir=target_dir,
+        extensions=extensions,
+        target_extension=target_extension,
+        regex=regex,
+        suffix=suffix,
+        recursive=recursive,
+        ms=ms,
+        overwrite=overwrite,
+        parallel=parallel,
+        logger=logger,
+    )
 
 
 def decode_harmonies(
@@ -2677,8 +2727,10 @@ TSV_COLUMN_DESCRIPTIONS = {
     "was \\\\",
     "piece": "Name identifier (filename without suffixes) of a piece",
     # 'playthrough':
-    "quarterbeats": "Distance of an event from the piece's beginning. By default, only second endings are taken into "
+    "quarterbeats": "Distance from the piece's beginning. By default, only second endings are taken into "
     "account to reflect the proportions of a simply playthrough without repeats.",
+    "quarterbeats_playthrough": "Distance from the piece's beginning, including all repeats. This column is present "
+    "in unfolded representations that correspond to a full 'playthrough' including all repetitions.",
     "quarterbeats_all_endings": "Distance from the piece's beginning, taking all endings into account for "
     "addressability purposes.",
     "regex_match": "The name of the first registered regular expression matching a label. By default, these include "
@@ -6909,27 +6961,11 @@ def write_soup_to_mscx_file(
 # region concatenating sub-corpus metadata
 
 
-def concat_metadata_tsv_files(path: str) -> pd.DataFrame:
-    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
-    _, folders, _ = next(os.walk(path))
-    tsv_paths, keys = [], []
-    for subdir in sorted(folders):
-        potential = os.path.join(path, subdir, "metadata.tsv")
-        if os.path.isfile(potential):
-            tsv_paths.append(potential)
-            keys.append(subdir)
-    if len(tsv_paths) == 0:
-        return pd.DataFrame()
-    dfs = [pd.read_csv(tsv_path, sep="\t", dtype="string") for tsv_path in tsv_paths]
-    try:
-        concatenated = pd.concat(dfs, keys=keys)
-    except AssertionError:
-        info = "Levels: " + ", ".join(
-            f"{key}: {df.index.nlevels} ({df.index.names})"
-            for key, df in zip(keys, dfs)
-        )
-        print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
-        raise
+def update_relative_paths_with_corpus_dirs(concatenated: pd.DataFrame) -> None:
+    """Assumes that the first index level includes folder names and adds them to the relative paths.
+    The first column to be updated is "subdirectory" (default name) or "rel_paths" (old name).
+    The second column, if present, is "rel_path". The operation is performed in-place.
+    """
     try:
         rel_path_col = next(
             col for col in ("subdirectory", "rel_paths") if col in concatenated.columns
@@ -6953,8 +6989,47 @@ def concat_metadata_tsv_files(path: str) -> pd.DataFrame:
             )
         ]
         concatenated.loc[:, "rel_path"] = rel_paths
+
+
+def concat_metadata_dfs(corpus2metadata_df: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Concats the dataframes corresponding to the metadata.tsv files of sub-corpora.
+    The corpus names will be prepended as an additional index level and to the relative file paths in the column
+    "subdirectory" (default name) or "rel_paths" (old name).
+
+    Args:
+        corpus2metadata_df: Dictionary mapping corpus names (i.e., folder names) to parsed metadata.tsv files.
+
+    """
+    try:
+        concatenated = pd.concat(corpus2metadata_df)
+    except AssertionError:
+        info = "Levels: " + ", ".join(
+            f"{key}: {df.index.nlevels} ({df.index.names})"
+            for key, df in corpus2metadata_df.items()
+        )
+        print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
+        raise
+    update_relative_paths_with_corpus_dirs(concatenated)
     concatenated = concatenated.droplevel(1)
     concatenated.index.rename("corpus", inplace=True)
+    return concatenated
+
+
+def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
+    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
+    _, folders, _ = next(os.walk(path))
+    corpus2tsv_path = {}
+    for subdir in sorted(folders):
+        potential = os.path.join(path, subdir, "metadata.tsv")
+        if os.path.isfile(potential):
+            corpus2tsv_path[subdir] = potential
+    if len(corpus2tsv_path) == 0:
+        return pd.DataFrame()
+    corpus2metadata_df = {
+        key: pd.read_csv(tsv_path, sep="\t", dtype="string")
+        for key, tsv_path in corpus2tsv_path.items()
+    }
+    concatenated = concat_metadata_dfs(corpus2metadata_df)
     return concatenated
 
 
@@ -6993,7 +7068,7 @@ def concat_metadata(
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
-    concatenated = concat_metadata_tsv_files(meta_corpus_dir)
+    concatenated = concat_metadata_tsv_files_of_subdirs(meta_corpus_dir)
     if len(concatenated) == 0:
         print(f"No metadata found in the child directories of {meta_corpus_dir}.")
         return

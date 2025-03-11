@@ -1,6 +1,7 @@
-""" This is the same code as in the corpora repo as copied on September 24, 2020
+"""This is the same code as in the corpora repo as copied on September 24, 2020
 and then adapted.
 """
+
 import re
 import sys
 from collections import defaultdict
@@ -709,7 +710,7 @@ def propagate_pedal(
             if n_beginnings == n_endings_cleaned:
                 mismatch_maybe_due_to_voltas = True
                 logger.info(
-                    "One or several pedal points have there endings in a first/second ending scenario. "
+                    "One or several pedal points have their endings in a first/second ending scenario. "
                     "So far I can only correctly propagate the pedal note into first endings, not the others."
                 )
     if mismatch_maybe_due_to_voltas is False:
@@ -746,12 +747,14 @@ def propagate_pedal(
             # if the localkey changes during the pedal point, the reference changes and the Roman numeral indicating
             # the pedal note needs to be adapted
             key2pedal = {
-                key: ped
-                if key == first_localkey
-                else abs2rel_key(
-                    rel2abs_key(ped, first_localkey, global_minor, logger=logger),
-                    key,
-                    global_minor,
+                key: (
+                    ped
+                    if key == first_localkey
+                    else abs2rel_key(
+                        rel2abs_key(ped, first_localkey, global_minor, logger=logger),
+                        key,
+                        global_minor,
+                    )
                 )
                 for key in localkeys.unique()
             }
