@@ -1,6 +1,7 @@
 """This module contains the functions called by the ms3 commandline interface, which is why they may use
 print() instead of log messages from time to time.
 """
+
 import os
 from typing import Dict, Iterator, List, Literal, Optional, Tuple, Union
 
@@ -25,6 +26,7 @@ from ms3.utils import (
     store_dataframe_resource,
     store_dataframes_package,
     tpc2scale_degree,
+    update_relative_paths_with_corpus_dirs,
     write_tsv,
 )
 from ms3.utils.constants import LATEST_MUSESCORE_VERSION
@@ -457,6 +459,7 @@ def _transform(
         # get concatenated dataframe:
         if facet == "metadata":
             df = ms3_object.metadata()
+            update_relative_paths_with_corpus_dirs(df)
         else:
             if obj_is_corpus:
                 df = ms3_object.get_facet(
