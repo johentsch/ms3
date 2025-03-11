@@ -6964,21 +6964,23 @@ def write_soup_to_mscx_file(
 def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
     """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
     _, folders, _ = next(os.walk(path))
-    tsv_paths, keys = [], []
+    corpus2tsv_path = {}
     for subdir in sorted(folders):
         potential = os.path.join(path, subdir, "metadata.tsv")
         if os.path.isfile(potential):
-            tsv_paths.append(potential)
-            keys.append(subdir)
-    if len(tsv_paths) == 0:
+            corpus2tsv_path[subdir] = potential
+    if len(corpus2tsv_path) == 0:
         return pd.DataFrame()
-    dfs = [pd.read_csv(tsv_path, sep="\t", dtype="string") for tsv_path in tsv_paths]
+    corpus2metadata_df = {
+        key: pd.read_csv(tsv_path, sep="\t", dtype="string")
+        for key, tsv_path in corpus2tsv_path.items()
+    }
     try:
-        concatenated = pd.concat(dfs, keys=keys)
+        concatenated = pd.concat(corpus2metadata_df)
     except AssertionError:
         info = "Levels: " + ", ".join(
             f"{key}: {df.index.nlevels} ({df.index.names})"
-            for key, df in zip(keys, dfs)
+            for key, df in corpus2metadata_df.items()
         )
         print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
         raise
