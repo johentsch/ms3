@@ -6961,24 +6961,11 @@ def write_soup_to_mscx_file(
 # region concatenating sub-corpus metadata
 
 
-def concat_metadata_dfs(corpus2metadata_df: Dict[str, pd.Dataframe]) -> pd.DataFrame:
-    """Concats the dataframes corresponding to the metadata.tsv files of sub-corpora.
-    The corpus names will be prepended as an additional index level and to the relative file paths in the column
-    "subdirectory" (default name) or "rel_paths" (old name).
-
-    Args:
-        corpus2metadata_df: Dictionary mapping corpus names (i.e., folder names) to parsed metadata.tsv files.
-
+def update_relative_paths_with_corpus_dirs(concatenated: pd.DataFrame) -> None:
+    """Assumes that the first index level includes folder names and adds them to the relative paths.
+    The first column to be updated is "subdirectory" (default name) or "rel_paths" (old name).
+    The second column, if present, is "rel_path". The operation is performed in-place.
     """
-    try:
-        concatenated = pd.concat(corpus2metadata_df)
-    except AssertionError:
-        info = "Levels: " + ", ".join(
-            f"{key}: {df.index.nlevels} ({df.index.names})"
-            for key, df in corpus2metadata_df.items()
-        )
-        print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
-        raise
     try:
         rel_path_col = next(
             col for col in ("subdirectory", "rel_paths") if col in concatenated.columns
@@ -7002,6 +6989,27 @@ def concat_metadata_dfs(corpus2metadata_df: Dict[str, pd.Dataframe]) -> pd.DataF
             )
         ]
         concatenated.loc[:, "rel_path"] = rel_paths
+
+
+def concat_metadata_dfs(corpus2metadata_df: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Concats the dataframes corresponding to the metadata.tsv files of sub-corpora.
+    The corpus names will be prepended as an additional index level and to the relative file paths in the column
+    "subdirectory" (default name) or "rel_paths" (old name).
+
+    Args:
+        corpus2metadata_df: Dictionary mapping corpus names (i.e., folder names) to parsed metadata.tsv files.
+
+    """
+    try:
+        concatenated = pd.concat(corpus2metadata_df)
+    except AssertionError:
+        info = "Levels: " + ", ".join(
+            f"{key}: {df.index.nlevels} ({df.index.names})"
+            for key, df in corpus2metadata_df.items()
+        )
+        print(f"Concatenation of DataFrames failed due to an alignment error. {info}")
+        raise
+    update_relative_paths_with_corpus_dirs(concatenated)
     concatenated = concatenated.droplevel(1)
     concatenated.index.rename("corpus", inplace=True)
     return concatenated
