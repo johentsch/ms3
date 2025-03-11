@@ -306,12 +306,15 @@ def transform_cmd(args):
     if repo is None:
         version_info = None
     elif repo.is_dirty():
-        print(
-            "The repository is dirty. Please commit or stash your changes before running ms3 transform. This is "
-            "important because the version information in the JSON descriptor(s) needs to be consistent with the "
-            "repository state."
-        )
-        return
+        if args.dirty:
+            version_info = None
+        else:
+            print(
+                "The repository is dirty. Please commit or stash your changes before running ms3 transform. This is "
+                "important because the version information in the JSON descriptor(s) needs to be consistent with the "
+                "repository state. To ignore this warning, add the --dirty flag to the command."
+            )
+            return
     else:
         version_info = get_git_version_info(repo=repo)
     parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
@@ -1214,6 +1217,11 @@ In particular, check DCML harmony labels for syntactic correctness.""",
         "--uncompressed",
         action="store_true",
         help="Store the transformed files as uncompressed TSVs rather than writing them into a ZIP file.",
+    )
+    transform_parser.add_argument(
+        "--dirty",
+        action="store_true",
+        help="Allows to override the 'This repository is dirty' blocker.",
     )
     transform_parser.set_defaults(func=transform_cmd)
 
