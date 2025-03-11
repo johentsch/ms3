@@ -6961,20 +6961,15 @@ def write_soup_to_mscx_file(
 # region concatenating sub-corpus metadata
 
 
-def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
-    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
-    _, folders, _ = next(os.walk(path))
-    corpus2tsv_path = {}
-    for subdir in sorted(folders):
-        potential = os.path.join(path, subdir, "metadata.tsv")
-        if os.path.isfile(potential):
-            corpus2tsv_path[subdir] = potential
-    if len(corpus2tsv_path) == 0:
-        return pd.DataFrame()
-    corpus2metadata_df = {
-        key: pd.read_csv(tsv_path, sep="\t", dtype="string")
-        for key, tsv_path in corpus2tsv_path.items()
-    }
+def concat_metadata_dfs(corpus2metadata_df: Dict[str, pd.Dataframe]) -> pd.DataFrame:
+    """Concats the dataframes corresponding to the metadata.tsv files of sub-corpora.
+    The corpus names will be prepended as an additional index level and to the relative file paths in the column
+    "subdirectory" (default name) or "rel_paths" (old name).
+
+    Args:
+        corpus2metadata_df: Dictionary mapping corpus names (i.e., folder names) to parsed metadata.tsv files.
+
+    """
     try:
         concatenated = pd.concat(corpus2metadata_df)
     except AssertionError:
@@ -7009,6 +7004,24 @@ def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
         concatenated.loc[:, "rel_path"] = rel_paths
     concatenated = concatenated.droplevel(1)
     concatenated.index.rename("corpus", inplace=True)
+    return concatenated
+
+
+def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
+    """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
+    _, folders, _ = next(os.walk(path))
+    corpus2tsv_path = {}
+    for subdir in sorted(folders):
+        potential = os.path.join(path, subdir, "metadata.tsv")
+        if os.path.isfile(potential):
+            corpus2tsv_path[subdir] = potential
+    if len(corpus2tsv_path) == 0:
+        return pd.DataFrame()
+    corpus2metadata_df = {
+        key: pd.read_csv(tsv_path, sep="\t", dtype="string")
+        for key, tsv_path in corpus2tsv_path.items()
+    }
+    concatenated = concat_metadata_dfs(corpus2metadata_df)
     return concatenated
 
 
