@@ -3754,7 +3754,8 @@ class Instrumentation(LoggedClass):
                     if name == "trackName" and (
                         tag is None or tag.get_text() == ""
                     ):  # this corresponds to the current behaviour of bs4_parser.get_part_info
-                        instrument_tag.trackName.string = part.trackName.string
+                        part_trackName = part.trackName.string
+                        instrument_tag.trackName.string = part_trackName if part_trackName else ""
                         tag = instrument_tag.find(name)
                     cur_dict[name] = tag
             tag_dict.update(
