@@ -6961,7 +6961,7 @@ def write_soup_to_mscx_file(
 # region concatenating sub-corpus metadata
 
 
-def concat_metadata_tsv_files(path: str) -> pd.DataFrame:
+def concat_metadata_tsv_files_of_subdirs(path: str) -> pd.DataFrame:
     """Walk through the first level of subdirectories and concatenate their metadata.tsv files."""
     _, folders, _ = next(os.walk(path))
     tsv_paths, keys = [], []
@@ -7045,7 +7045,7 @@ def concat_metadata(
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
-    concatenated = concat_metadata_tsv_files(meta_corpus_dir)
+    concatenated = concat_metadata_tsv_files_of_subdirs(meta_corpus_dir)
     if len(concatenated) == 0:
         print(f"No metadata found in the child directories of {meta_corpus_dir}.")
         return
