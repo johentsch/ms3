@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.6.0](https://github.com/johentsch/ms3/compare/v2.5.4...v2.6.0) (2025-03-11)
+
+
+### Features
+
+* adds the --dirty parameter to ms3 transform which allows one to use the command on a dirty repository ([6a33678](https://github.com/johentsch/ms3/commit/6a3367829165f686f57ecfb3a80f2d2274dc88fd))
+* adds the helper check_and_create_unresolved and uses it to not resolve the CLI --out parameter ([214bc52](https://github.com/johentsch/ms3/commit/214bc52ae022324fe31d7c4a815eae77fddcf4dd))
+* applies updates relative file paths in ms3 transform -D (i.e., concatenating metadata) ([4398a25](https://github.com/johentsch/ms3/commit/4398a25e9c05091f485e4f2b69bebf0bf2af40d5))
+* ms3 convert without -a now looks for metadata to convert only the files indicated there ([994d206](https://github.com/johentsch/ms3/commit/994d2063394c68d664349eb256f5f1edf086daaa))
+* the ms3 convert command now differentiates between a relative and an absolute target directory ([0546bdc](https://github.com/johentsch/ms3/commit/0546bdcc6866dedf6fa4cee10904a3b5914ce86e))
+
+
+### Bug Fixes
+
+* catches bug caused by empty &lt;trackName&gt; tags in the instrumentation header of a MuseScore file ([aa0979a](https://github.com/johentsch/ms3/commit/aa0979aaa7a2929ae839ad1566921e9382cd85af))
+* do not remove spaces from tempo markings (in the chords tables) ([9294db8](https://github.com/johentsch/ms3/commit/9294db81746f25fade1e73846c84bbaa345dc21c))
+* fixes bug that caused add_quarterbeats_col() to file in the special case where column "mc" is missing yet "quarterbeats" is present ([7441cab](https://github.com/johentsch/ms3/commit/7441cab4b4e4cd3f0702644704aeb488a18e4eaf))
+* fixes bug that caused Piece.get_parsed_tsv() to fail ([7c268fd](https://github.com/johentsch/ms3/commit/7c268fd0d2faea71b01522e461031316d4a27162))
+
 ## [2.5.4](https://github.com/johentsch/ms3/compare/v2.5.3...v2.5.4) (2025-02-28)
 
 
