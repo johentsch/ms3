@@ -2,6 +2,6 @@ jupyter_sphinx
 linkify-it-py
 myst_nb
 pydata_sphinx_theme
-sphinx
+sphinx>=3.2.1
 sphinx-argparse
 sphinxcontrib-programoutput
