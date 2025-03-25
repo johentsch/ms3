@@ -1333,18 +1333,32 @@ class Piece(LoggedClass):
             len(facets) == 1
         ), f"Pass exactly one valid TSV type {literal_type2tuple(TSVtype)} or use _.get_parsed_tsvs()\nGot: {facets}"
         facet = facets[0]
-        return self.get_parsed(facet, view_name=view_name, choose=choose)
+        return self.get_parsed(
+            facet,
+            view_name=view_name,
+            choose=choose,
+            unfold=unfold,
+            interval_index=interval_index,
+        )
 
     def get_parsed_tsvs(
         self,
         facets: TSVtypes,
         view_name: Optional[str] = None,
         force: bool = False,
+        unfold: bool = False,
+        interval_index: bool = False,
         choose: Literal["all", "auto", "ask"] = "all",
     ) -> List[FileDataframeTupleMaybe]:
         facets = argument_and_literal_type2list(facets, TSVtype, logger=self.logger)
         return self.get_all_parsed(
-            facets, view_name=view_name, force=force, choose=choose, flat=True
+            facets,
+            view_name=view_name,
+            force=force,
+            choose=choose,
+            unfold=unfold,
+            interval_index=interval_index,
+            flat=True,
         )
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None) -> FileList:
