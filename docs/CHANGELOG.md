@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.6.1](https://github.com/johentsch/ms3/compare/v2.6.0...v2.6.1) (2026-05-13)
+
+
+### Bug Fixes
+
+* adds missing arguments to Piece.get_parsed_tsvs() ([8e9f219](https://github.com/johentsch/ms3/commit/8e9f21925c78160f11464b9ecac197a3c066685f))
+* bug that made parsing of MuseScore 4 files fail because of missing "id" attributes ([3a840ff](https://github.com/johentsch/ms3/commit/3a840fff9275d105c94090cc56ec584122885675))
+* updates pyproject.toml to fix the version when using pre-commit ([210aeba](https://github.com/johentsch/ms3/commit/210aebadf5bb089e470a509f153a68bc9478564a))
+
 ## [2.6.0](https://github.com/johentsch/ms3/compare/v2.5.4...v2.6.0) (2025-03-11)
 
 
