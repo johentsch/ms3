@@ -1689,10 +1689,12 @@ and {loc_after} before the subsequent {nxt_name}."""
             ambitus[staff]["max_name"] = fifths2name(
                 max_tpc, max_midi, logger=self.logger
             )
-        data["parts"] = {
-            f"part_{i}": get_part_info(part)
-            for i, part in enumerate(self.soup.find_all("Part"), 1)
-        }
+        data["parts"] = {}
+        next_staff_id = 1
+        for i, part in enumerate(self.soup.find_all("Part"), 1):
+            part_info = get_part_info(part, start_staff_id=next_staff_id)
+            data["parts"][f"part_{i}"] = part_info
+            next_staff_id += len(part_info["staves"])
         # for including the metadata as one line in metadata.tsv the function utils.metadata2series() is used
         # which updates `data` with the items of all part dictionaries, removing they key 'parts' afterwards
         for part, part_dict in data["parts"].items():
@@ -3757,7 +3759,9 @@ class Instrumentation(LoggedClass):
                         tag is None or tag.get_text() == ""
                     ):  # this corresponds to the current behaviour of bs4_parser.get_part_info
                         part_trackName = part.trackName.string
-                        instrument_tag.trackName.string = part_trackName if part_trackName else ""
+                        instrument_tag.trackName.string = (
+                            part_trackName if part_trackName else ""
+                        )
                         tag = instrument_tag.find(name)
                     cur_dict[name] = tag
             tag_dict.update(
@@ -4350,11 +4354,23 @@ def get_vbox(soup: bs4.BeautifulSoup, logger=None) -> Optional[bs4.Tag]:
     return result
 
 
-def get_part_info(part_tag):
+def get_part_info(part_tag, start_staff_id=1):
     """Instrument names come in different forms in different places. This function extracts the information from a
-    <Part> tag and returns it as a dictionary."""
+    <Part> tag and returns it as a dictionary.
+
+    ``start_staff_id`` is used as the base for staff numbering when the inner ``<Staff>`` tags
+    lack an ``id`` attribute (MuseScore 4 format), where the canonical IDs live on the top-level
+    ``<Staff id="N">`` siblings instead. MuseScore numbers staves sequentially across parts, so
+    callers should pass a running counter.
+    """
     res = {}
-    res["staves"] = [int(staff["id"]) for staff in part_tag.find_all("Staff")]
+    staff_ids = []
+    for offset, staff in enumerate(part_tag.find_all("Staff")):
+        if staff.has_attr("id"):
+            staff_ids.append(int(staff["id"]))
+        else:
+            staff_ids.append(start_staff_id + offset)
+    res["staves"] = staff_ids
     if part_tag.trackName is not None and part_tag.trackName.string is not None:
         res["trackName"] = part_tag.trackName.string.strip()
     else:
