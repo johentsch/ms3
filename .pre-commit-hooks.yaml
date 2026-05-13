@@ -1,6 +1,4 @@
--   id: review
-    name: Review annotated MuseScore files
-    description: This hook is equivalent to running ms3 extract, ms3 check, and ms3 compare
-    entry: ms3 precommit
+-   id: version
+    name: Show ms3 version
+    entry: ms3 --version
     language: python
-    files: \.(mscx|mscz)$

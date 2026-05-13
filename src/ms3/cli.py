@@ -360,15 +360,14 @@ def update_cmd(args, parse_obj: Optional[Parse] = None):
 
 def check_and_create(d, resolve=True):
     """Turn input into an existing, absolute directory path."""
-    if not os.path.isdir(d):
-        d_resolved = resolve_dir(os.path.join(os.getcwd(), d))
-        if not os.path.isdir(d_resolved):
-            if input(d_resolved + " does not exist. Create? (y|n)") == "y":
-                os.mkdir(d_resolved)
-            else:
-                raise argparse.ArgumentTypeError(
-                    d + " needs to be an existing directory"
-                )
+    if os.path.isdir(d):
+        return os.path.abspath(d)
+    d_resolved = resolve_dir(os.path.join(os.getcwd(), d))
+    if not os.path.isdir(d_resolved):
+        if input(d_resolved + " does not exist. Create? (y|n)") == "y":
+            os.mkdir(d_resolved)
+        else:
+            raise argparse.ArgumentTypeError(d + " needs to be an existing directory")
     return d_resolved if resolve else d
 
 

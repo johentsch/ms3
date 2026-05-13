@@ -10,7 +10,7 @@ import os.path
 from argparse import Namespace
 
 from ms3 import Parse, Score
-from ms3.cli import review_cmd
+from ms3.cli import extract_cmd
 from ms3.logger import get_logger
 from ms3.operations import transform_to_resources
 
@@ -72,8 +72,54 @@ def single_score():
 
 
 if __name__ == "__main__":
+    # args = Namespace(
+    #     action="review",
+    #     ignore_scores=False,
+    #     ignore_labels=False,
+    #     fail=True,
+    #     ignore_metronome=False,
+    #     ask=False,
+    #     use="expanded",
+    #     flip=False,
+    #     safe=True,
+    #     force=False,
+    #     measures="../measures",
+    #     notes="../notes",
+    #     rests=None,
+    #     labels=None,
+    #     expanded="../harmonies",
+    #     form_labels="../form_labels",
+    #     events=None,
+    #     chords="../chords",
+    #     joined_chords=None,
+    #     metadata="",
+    #     positioning=False,
+    #     raw=True,
+    #     unfold=False,
+    #     interval_index=False,
+    #     corpuswise=False,
+    #     dir="/home/laser/git/389_chorale_settings",
+    #     out=None,
+    #     nonrecursive=False,
+    #     all=False,
+    #     include=None,
+    #     exclude=None,
+    #     folders=None,
+    #     musescore=None,
+    #     reviewed=False,
+    #     files=["/home/laser/git/389_chorale_settings/original_complete/MS3/B378.mscx"],
+    #     iterative=False,
+    #     level="i",
+    #     log=None,
+    #     test=False,
+    #     verbose=False,
+    #     compare="LATEST_VERSION",
+    #     threshold=0.6,
+    #     # func=review_cmd
+    # )
+    # review_cmd(args)
     args = Namespace(
-        action="review",
+        action="extract",
         ignore_scores=False,
         ignore_labels=False,
         fail=True,
@@ -83,14 +129,14 @@ if __name__ == "__main__":
         flip=False,
         safe=True,
         force=False,
-        measures="../measures",
-        notes="../notes",
+        measures=None,
+        notes=None,
         rests=None,
         labels=None,
-        expanded="../harmonies",
-        form_labels="../form_labels",
+        expanded=None,
+        form_labels=None,
         events=None,
-        chords="../chords",
+        chords=None,
         joined_chords=None,
         metadata="",
         positioning=False,
@@ -98,23 +144,21 @@ if __name__ == "__main__":
         unfold=False,
         interval_index=False,
         corpuswise=False,
-        dir="/home/laser/git/389_chorale_settings",
+        dir=r"C:\Users\hentschel\git\distant_listening_corpus\corelli",
         out=None,
         nonrecursive=False,
-        all=False,
-        include=None,
+        all=True,
+        include="op02",
         exclude=None,
         folders=None,
         musescore=None,
         reviewed=False,
-        files=["/home/laser/git/389_chorale_settings/original_complete/MS3/B378.mscx"],
+        files=None,
         iterative=False,
         level="i",
         log=None,
         test=False,
         verbose=False,
-        compare="LATEST_VERSION",
-        threshold=0.6,
         # func=review_cmd
     )
-    review_cmd(args)
+    extract_cmd(args)
