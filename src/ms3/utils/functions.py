@@ -2249,7 +2249,8 @@ def contains_corpus_indicator(path, logger=None):
 def get_first_level_corpora(path: str, logger=None) -> List[str]:
     """Checks the first-level subdirectories of path for indicators of being a corpus. If one of them shows an
     indicator (presence of a 'metadata.tsv' file, or of a '.git' folder or any of the default folder names), returns
-    a list of all subdirectories.
+    a list of all subdirectories. If, however, ``path`` itself contains a 'metadata.tsv', returns an empty list so
+    that the caller treats ``path`` itself as the corpus rather than its children.
     """
     if logger is None:
         logger = module_logger
@@ -2258,6 +2259,11 @@ def get_first_level_corpora(path: str, logger=None) -> List[str]:
     if path is None or not os.path.isdir(path):
         logger.info(f"{path} is not an existing directory.")
         return
+    if contains_metadata(path):
+        logger.debug(
+            f"{path} recognized as corpus directory because it contains metadata."
+        )
+        return []
     subpaths = [
         os.path.join(path, subdir)
         for subdir in first_level_subdirs(path)
