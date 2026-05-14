@@ -2522,6 +2522,12 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             ):
                 concert_key.name = "accidental"
 
+        # MuseScore 4 splits the MS3 <Tremolo> tag into <TremoloSingleChord> and
+        # <TremoloTwoChord>; the chord-count distinction is already carried by
+        # the <subtype> r-/c- prefix, so rename them back to <Tremolo>.
+        for tag in self.soup.find_all(["TremoloSingleChord", "TremoloTwoChord"]):
+            tag.name = "Tremolo"
+
         root_tag = self.soup.find("museScore")
         if root_tag is None:
             self.logger.error(
