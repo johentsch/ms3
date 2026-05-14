@@ -2507,6 +2507,11 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 f"Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert."
             )
 
+        # MuseScore 4 wraps <Harmony> children (e.g. <name>) in a <harmonyInfo>
+        # element. Unwrap it so the rest of the parser sees the MS3-style tree.
+        for harmony_info in self.soup.find_all("harmonyInfo"):
+            harmony_info.unwrap()
+
         root_tag = self.soup.find("museScore")
         if root_tag is None:
             self.logger.error(
