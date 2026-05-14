@@ -2512,6 +2512,16 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         for harmony_info in self.soup.find_all("harmonyInfo"):
             harmony_info.unwrap()
 
+        # MuseScore 4 renames the <accidental> child of <KeySig> to <concertKey>.
+        # Rename it back so the keysig is read from the same path as in MS3.
+        for key_sig in self.soup.find_all("KeySig"):
+            concert_key = key_sig.find("concertKey", recursive=False)
+            if (
+                concert_key is not None
+                and key_sig.find("accidental", recursive=False) is None
+            ):
+                concert_key.name = "accidental"
+
         root_tag = self.soup.find("museScore")
         if root_tag is None:
             self.logger.error(
