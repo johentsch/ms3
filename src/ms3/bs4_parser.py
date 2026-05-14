@@ -2531,12 +2531,21 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         # if len(all_part_tags) == 0:
         #     self.logger.error(f"Looks like an empty score to me.")
         part_tag = None
+        next_staff_id = 1
         for part_tag in score_tag.find_all("Part", recursive=False):
             drum_tags = part_tag.find_all("Drum")
-            staff_tag = part_tag.find("Staff")
+            inner_staves = part_tag.find_all("Staff")
+            staff_tag = inner_staves[0] if inner_staves else None
+            # MuseScore 4 omits the ``id`` attribute on inner <Staff> tags inside
+            # <Part>; the canonical IDs are then sequential across parts.
+            if staff_tag is not None and staff_tag.has_attr("id"):
+                first_staff_id = int(staff_tag["id"])
+            else:
+                first_staff_id = next_staff_id
+            next_staff_id = first_staff_id + max(len(inner_staves), 1)
             if len(drum_tags) == 0 or staff_tag is None:
                 continue
-            staff = int(staff_tag["id"])
+            staff = first_staff_id
             drum_map = {}
             for tag in drum_tags:
                 pitch = int(tag["pitch"])
