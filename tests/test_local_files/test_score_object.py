@@ -16,24 +16,48 @@ from ms3.utils import (
     no_collections_no_booleans,
 )
 
+_SCORE_STEMS = [
+    ("sarti", "Did03M-Son_regina-1762-Sarti"),
+    ("schubert", "D973deutscher01"),
+    ("berlioz", "05_symph_fant"),
+    ("bach", "BWV_0815"),
+    ("mozart", "K284-3_section_breaks"),
+    ("monty", "76CASM34A33UM"),
+    ("pergolesi", "stabat_03_coloured"),
+]
+_SCORE_VARIANTS = [("MS3", ".mscx"), ("MS4", ".mscz")]
 
-@pytest.fixture(
-    params=[
-        "Did03M-Son_regina-1762-Sarti.mscx",
-        "D973deutscher01.mscx",
-        "05_symph_fant.mscx",
-        "BWV_0815.mscx",
-        "K284-3_section_breaks.mscx",
-        "76CASM34A33UM.mscx",
-        "stabat_03_coloured.mscx",
-    ],
-    ids=["sarti", "schubert", "berlioz", "bach", "mozart", "monty", "pergolesi"],
-)
+_score_params = [
+    (subdir, stem + ext) for _, stem in _SCORE_STEMS for subdir, ext in _SCORE_VARIANTS
+]
+_score_ids = [
+    f"{nick}-{subdir.lower()}"
+    for nick, _ in _SCORE_STEMS
+    for subdir, _ in _SCORE_VARIANTS
+]
+
+
+@pytest.fixture(params=_score_params, ids=_score_ids)
 def score_object(request):
     test_folder = os.path.dirname(os.path.realpath(__file__))
-    mscx_path = os.path.join(test_folder, "MS3", request.param)
-    s = ms3.Score(mscx_path)
+    subdir, filename = request.param
+    s = ms3.Score(os.path.join(test_folder, subdir, filename))
     return s
+
+
+def _skip_if_ms4(score_object):
+    """Round-trip tests compare the on-disk source against ms3's serialization.
+    Since ms3 only writes MS3-format XML, MS4 sources cannot round-trip."""
+    if score_object.mscx.parsed.version.startswith("4"):
+        pytest.skip("Round-trip to source format unsupported for MS4 input.")
+
+
+def _piece_name(score_object):
+    """Return the bare piece stem, regardless of source format (.mscx vs .mscz)."""
+    for key in ("mscx", "mscz"):
+        if key in score_object.fnames:
+            return score_object.fnames[key]
+    raise KeyError(f"Score has no MuseScore source: {score_object.fnames}")
 
 
 class TestBasic:
@@ -62,11 +86,12 @@ class TestScore:
 
     @pytest.fixture()
     def target_measures_table(self, score_object):
-        piece_name = score_object.fnames["mscx"] + ".measures.tsv"
+        piece_name = _piece_name(score_object) + ".measures.tsv"
         target_path = os.path.join(self.test_results, piece_name)
         return load_tsv(target_path)
 
     def test_parse_and_write_back(self, score_object):
+        _skip_if_ms4(score_object)
         original_mscx = score_object.full_paths["mscx"]
         try:
             tmp_file = tempfile.NamedTemporaryFile(
@@ -90,8 +115,9 @@ class TestScore:
             os.remove(tmp_file.name)
 
     def test_store_and_load_labels(self, score_object):
+        _skip_if_ms4(score_object)
         if score_object.mscx.has_annotations:
-            piece_name = score_object.fnames["mscx"] + ".labels.tsv"
+            piece_name = _piece_name(score_object) + ".labels.tsv"
             labels_path = os.path.join(self.test_results, piece_name)
             score_object.load_annotations(labels_path, key="tsv")
             score_object.detach_labels("labels")
@@ -121,7 +147,7 @@ class TestScore:
         tmp_path,
     ):
         if score_object.mscx.has_annotations:
-            piece_name = score_object.fnames["mscx"] + ".labels.tsv"
+            piece_name = _piece_name(score_object) + ".labels.tsv"
             target_path = os.path.join(self.test_results, piece_name)
             tmp_filepath = str(tmp_path / piece_name)
             target_labels = decode_harmonies(load_tsv(target_path))
@@ -141,14 +167,14 @@ class TestScore:
     ):
         extracted_measurelist = no_collections_no_booleans(score_object.mscx.measures())
 
-        tmp_file = tmp_path / (score_object.fnames["mscx"] + ".measures.tsv")
+        tmp_file = tmp_path / (_piece_name(score_object) + ".measures.tsv")
         extracted_measurelist.to_csv(tmp_file, sep="\t", index=False)
         new_measurelist = load_tsv(tmp_file)
         assert len(new_measurelist) > 0
         assert_dfs_equal(target_measures_table, new_measurelist)
 
     def test_parse_to_notelist(self, score_object):
-        piece_name = score_object.fnames["mscx"] + ".notes.tsv"
+        piece_name = _piece_name(score_object) + ".notes.tsv"
         target_path = os.path.join(self.test_results, piece_name)
         target_notelist = load_tsv(target_path)
         try:

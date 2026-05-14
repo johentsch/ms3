@@ -239,15 +239,15 @@ class TestEmptyParse:
                 everything={
                     "mixed_files": {
                         ".mscx": 22,
-                        ".mscz": 1,
+                        ".mscz": 23,
                         ".musicxml": 1,
                         ".mxl": 1,
                         ".xml": 1,
                     },
-                    "outputs": {".mscx": 1},
-                    "ravel_piano": {".mscx": 8, ".tsv": 21},
-                    "sweelinck_keyboard": {".mscx": 2, ".tsv": 5},
-                    "wagner_overtures": {".mscx": 4, ".tsv": 10},
+                    "outputs": {".mscx": 1, ".mscz": 1},
+                    "ravel_piano": {".mscx": 8, ".mscz": 8, ".tsv": 21},
+                    "sweelinck_keyboard": {".mscx": 2, ".mscz": 2, ".tsv": 5},
+                    "wagner_overtures": {".mscx": 4, ".mscz": 4, ".tsv": 10},
                 },
                 # file_re_without_key = {'outputs': {'.mscx': 1, '.tsv': 3},
                 #                        'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
@@ -330,7 +330,7 @@ class TestParsedParse:
     def n_parsed_files(self, request):
         expected = {  # (n_scores, n_tsvs)
             "regex": (2, 0),
-            "everything": (38, 36),
+            "everything": (71, 36),
             "chaotic_dirs": (11, 4),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),

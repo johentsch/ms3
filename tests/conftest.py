@@ -12,7 +12,7 @@ UNITTEST_METACORPUS = os.path.join(
     os.path.expanduser(CORPUS_DIR), "unittest_metacorpus"
 )
 TEST_COMMIT = (
-    "aeebac1"  # commit of DCMLab/unittest_metacorpus for which the tests should pass
+    "04609151"  # commit of DCMLab/unittest_metacorpus for which the tests should pass
 )
 MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", ".."))
 DOCS_DIR = os.path.join(MS3_DIR, "docs")
@@ -171,39 +171,57 @@ def parsed_parse_objects(parsed_parse_obj, request):
 #             print(f"{fldrs + (f,)},")
 
 
-@pytest.fixture(
-    params=[
-        ("mixed_files", "76CASM34A33UM.mscx"),
-        ("mixed_files", "stabat_03_coloured.mscx"),
-        ("mixed_files", "orchestral", "05_symph_fant.mscx"),
-        ("mixed_files", "orchestral", "Did03M-Son_regina-1762-Sarti.mscx"),
-        ("mixed_files", "orchestral", "caldara_form.mscx"),
-        ("mixed_files", "keyboard", "baroque", "BWV_0815.mscx"),
+_SCORE_OBJECT_PATHS = [
+    ("monty[tremolo]", ("mixed_files", "76CASM34A33UM")),
+    ("pergolesi[form]", ("mixed_files", "stabat_03_coloured")),
+    ("berlioz[tremolo]", ("mixed_files", "orchestral", "05_symph_fant")),
+    ("sarti[endings]", ("mixed_files", "orchestral", "Did03M-Son_regina-1762-Sarti")),
+    ("caldara[form]", ("mixed_files", "orchestral", "caldara_form")),
+    ("bach[endings]", ("mixed_files", "keyboard", "baroque", "BWV_0815")),
+    (
+        "frescobaldi",
         (
             "mixed_files",
             "keyboard",
             "ancient",
-            "12.16_Toccata_cromaticha_per_l’elevatione_phrygian.mscx",
+            "12.16_Toccata_cromaticha_per_l’elevatione_phrygian",
         ),
-        ("mixed_files", "keyboard", "nineteenth", "D973deutscher01.mscx"),
-        ("mixed_files", "keyboard", "classic", "K281-3.mscx"),
-    ],
-    ids=[
-        "monty[tremolo]",
-        "pergolesi[form]",
-        "berlioz[tremolo]",
-        "sarti[endings]",
-        "caldara[form]",
-        "bach[endings]",
-        "frescobaldi",
+    ),
+    (
         "schubert[endings][tremolo]",
-        "mozart",
-    ],
-)
+        ("mixed_files", "keyboard", "nineteenth", "D973deutscher01"),
+    ),
+    ("mozart", ("mixed_files", "keyboard", "classic", "K281-3")),
+]
+_SCORE_OBJECT_VARIANTS = [("ms3", ".mscx"), ("ms4", ".mscz")]
+
+
+def _score_object_param(parts, ext):
+    return parts[:-1] + (parts[-1] + ext,)
+
+
+_score_object_params = [
+    _score_object_param(parts, ext)
+    for _, parts in _SCORE_OBJECT_PATHS
+    for _, ext in _SCORE_OBJECT_VARIANTS
+]
+_score_object_ids = [
+    f"{nick}-{ver}"
+    for nick, _ in _SCORE_OBJECT_PATHS
+    for ver, _ in _SCORE_OBJECT_VARIANTS
+]
+
+
+@pytest.fixture(params=_score_object_params, ids=_score_object_ids)
 def score_object(directory, request):
     mscx_path = os.path.join(directory, *request.param)
     s = Score(mscx_path)
     return s
+
+
+def is_ms4_score(score_object):
+    """True for Score objects backed by an MS4 source file."""
+    return score_object.mscx.parsed.version.startswith("4")
 
 
 @pytest.fixture(scope="session")

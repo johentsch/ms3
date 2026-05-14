@@ -7,6 +7,8 @@ import ms3
 import pytest
 from ms3 import Score, assert_dfs_equal
 
+from tests.conftest import is_ms4_score
+
 
 def assert_store_scores_identical(
     score_object: Score,
@@ -46,11 +48,15 @@ class TestScore:
     test_folder = os.path.dirname(os.path.realpath(__file__))
 
     def test_store_scores(self, score_object, tmp_path):
+        if is_ms4_score(score_object):
+            pytest.skip("Round-trip to source format unsupported for MS4 input.")
         assert_store_scores_identical(
             score_object, tmp_dir=str(tmp_path), suffix="_rewrite"
         )
 
     def test_removing_and_reinserting_labels(self, score_object, tmp_path):
+        if is_ms4_score(score_object):
+            pytest.skip("Round-trip to source format unsupported for MS4 input.")
         if not score_object.mscx.has_annotations:
             return
         before = score_object.get_labels()
