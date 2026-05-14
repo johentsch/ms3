@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.6.2](https://github.com/johentsch/ms3/compare/v2.6.1...v2.6.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* corrects computation of "next" field for a measure that has a 2nd volta AND a fine marker ([ab0341e](https://github.com/johentsch/ms3/commit/ab0341ef58709fed43110da63dc020c6c022f274))
+* drum-mapped parts in MuseScore 4 files crash during parse because inner &lt;Staff&gt; tags lack the 'id' attribute ([4f9e6c6](https://github.com/johentsch/ms3/commit/4f9e6c6db62d0fbfc53f7dde6e5ac78098c90c78))
+* harmony labels in MuseScore 4 files were lost because their &lt;name&gt; child is wrapped in a <harmonyInfo> element ([760c199](https://github.com/johentsch/ms3/commit/760c199dd2f571163e6ec9c66ea9548c0670447a))
+* key signatures in MuseScore 4 files were read as 0 because &lt;KeySig&gt; uses <concertKey> instead of <accidental> ([ae2a747](https://github.com/johentsch/ms3/commit/ae2a74788c533fba30b8b8d2fcc2614cba798433))
+* tremolos in MuseScore 4 files were missed because &lt;Tremolo&gt; was renamed to <TremoloSingleChord> and <TremoloTwoChord> ([99df260](https://github.com/johentsch/ms3/commit/99df260be8f4035800223a3340a093690d69c66e))
+
 ## [2.6.1](https://github.com/johentsch/ms3/compare/v2.6.0...v2.6.1) (2026-05-13)
 
 
