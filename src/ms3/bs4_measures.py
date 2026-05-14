@@ -903,6 +903,41 @@ class MeasureList(LoggedClass):
             )
 
 
+def _fine_reached_on_natural_flow(
+    fine_mc: int,
+    df: pd.DataFrame,
+    volta_structure: Dict[int, Dict[int, List[int]]],
+) -> bool:
+    """Return True if ``fine_mc`` is reached during the natural play sequence before any
+    D.C./D.S. could fire. For a Fine outside any volta, this is always True. For a Fine
+    inside a volta, it is True iff every volta numbered lower (in the same group) loops
+    back to the section start via an endRepeat or a backward jump — otherwise the natural
+    flow takes only volta 1 and skips past the Fine volta, and the Fine MC is only ever
+    visited during a later D.C./D.S. pass.
+    """
+    volta_mcs = dict(df.loc[df.volta.notna(), ["mc", "volta"]].values)
+    if fine_mc not in volta_mcs:
+        return True
+    fine_volta = volta_mcs[fine_mc]
+    for first_mc, group in volta_structure.items():
+        if fine_mc not in {mc for mcs in group.values() for mc in mcs}:
+            continue
+        repeats = df.set_index("mc")["repeats"]
+        jump_bwd = df.set_index("mc")["jump_bwd"]
+        for volta_n, mcs in group.items():
+            if volta_n >= fine_volta:
+                continue
+            loops_back = any(
+                (pd.notna(repeats.get(mc)) and repeats.get(mc) == "end")
+                or pd.notna(jump_bwd.get(mc))
+                for mc in mcs
+            )
+            if not loops_back:
+                return False
+        return True
+    return True
+
+
 class NextColumnMaker(LoggedClass):
     def __init__(self, df, volta_structure, sections=True, logger_cfg=None):
         super().__init__(subclass="NextColumnMaker", logger_cfg=logger_cfg)
@@ -932,12 +967,14 @@ class NextColumnMaker(LoggedClass):
             else:
                 fine_mc = df[fines].iloc[0].mc
                 if -1 not in self.next[fine_mc]:
-                    volta_mcs = dict(df.loc[df.volta.notna(), ["mc", "volta"]].values)
-                    if fine_mc in volta_mcs:
-                        # voltas can be reached only a single time, hence the name
-                        self.next[fine_mc] = [-1]
-                    else:
+                    if _fine_reached_on_natural_flow(fine_mc, df, volta_structure):
+                        # Music flows forward to the next MC on the natural pass; the Fine only
+                        # terminates a later visit via D.C./D.S.
                         self.next[fine_mc].append(-1)
+                    else:
+                        # The Fine MC is only ever reached after a D.C./D.S. has fired, so the
+                        # Fine terminates the music on its single visit.
+                        self.next[fine_mc] = [-1]
                     if fine_mc != self.last_mc:
                         if -1 in self.next[self.last_mc]:
                             self.next[self.last_mc].remove(-1)
