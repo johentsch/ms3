@@ -1357,7 +1357,10 @@ and {loc_after} before the subsequent {nxt_name}."""
             if any(c in df.columns for c in ("Spanner:type", "Chord/Spanner:type")):
                 params["spanners"] = True
         if "nominal_duration" in df.columns:
-            df.loc[:, "nominal_duration"] = df.nominal_duration.map(
+            # NB: assign via df[col] (not df.loc[:, col]) so the column is replaced
+            # rather than written in place. Since pandas 3.0, in-place assignment keeps
+            # the column's 'str' dtype and rejects the Fraction objects from the map.
+            df["nominal_duration"] = df.nominal_duration.map(
                 self.durations
             )  # replace string values by fractions
         new_cols = {}
@@ -1998,7 +2001,9 @@ and {loc_after} before the subsequent {nxt_name}."""
         if len(self._rl) == 0:
             return
         self._rl = self._rl.rename(columns={"Rest/durationType": "nominal_duration"})
-        self._rl.loc[:, "nominal_duration"] = self._rl.nominal_duration.map(
+        # NB: see make_standard_notelist — df[col] replaces the column so the Fraction
+        # values can override the original 'str' dtype under pandas 3.0.
+        self._rl["nominal_duration"] = self._rl.nominal_duration.map(
             self.durations
         )  # replace string values by fractions
         cols = [

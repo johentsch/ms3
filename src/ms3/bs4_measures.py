@@ -175,7 +175,13 @@ def keep_one_row_each(
             log_this(msg, extra={"message_id": (9, compress_col, which, col_name)})
         return keep_row
 
-    result = result.groupby(compress_col, group_keys=False).apply(squash_staves)
+    # NB: group by the column's values (not its name) so that pandas >= 3.0 keeps
+    # `compress_col` inside the groups passed to squash_staves. Since pandas 3.0,
+    # DataFrameGroupBy.apply excludes the grouping column, which would make
+    # squash_staves' drop_duplicates(subset=consider_for_duplicated) raise a KeyError.
+    result = result.groupby(result[compress_col].values, group_keys=False).apply(
+        squash_staves
+    )
     return result.drop(columns=differentiating_col) if drop_differentiating else result
 
 

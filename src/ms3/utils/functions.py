@@ -4174,11 +4174,15 @@ def sort_note_list(
             )
             df.loc[:, midi_col] = df[midi_col].fillna(1000)
     normal_ix = (
-        df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]]
-        .groupby([mc_col, mc_onset_col])
+        df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby(
+            [mc_col, mc_onset_col]
+        )
+        # NB: reference the sort columns by name rather than positionally
+        # (gr.values[:, 2/3]); since pandas 3.0 the grouping columns are excluded
+        # from the group passed to apply, so positional indices would be off.
         .apply(
             lambda gr: gr.index[
-                np.lexsort((gr.values[:, 3], gr.values[:, 2]))
+                np.lexsort((gr[duration_col].values, gr[midi_col].values))
             ].to_numpy()
         )
     )
@@ -4549,7 +4553,9 @@ def adjacency_groups(
     beginnings.iat[0] = True
     if prevent_merge:
         beginnings |= forced_beginnings
-    groups = beginnings.cumsum()
+    # NB: cast to int before cumsum() because pandas >= 3.0 may back boolean Series
+    # with the pyarrow dtype 'bool[pyarrow]', for which cumsum() is not implemented.
+    groups = beginnings.astype(int).cumsum()
     names = dict(enumerate(s[beginnings], 1))
     if reindex_flag:
         groups = groups.reindex(S.index)
