@@ -261,6 +261,56 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False, logger=No
     ]
 
 
+def series_match_regex(series: pd.Series, regex: "re.Pattern | str") -> pd.Series:
+    """Apply ``re.match`` to every value of ``series`` and return a boolean Series.
+
+    This is a drop-in replacement for ``series.str.match(regex)`` that also accepts
+    compiled patterns whose flags include more than ``re.UNICODE`` (e.g. ``re.VERBOSE``).
+    Since pandas 3.0, ``Series.str.match`` raises
+    "Cannot pass flags that do not match pat.flags" for such compiled patterns
+    (the value gets recompiled internally with only ``re.U``), so we bypass the
+    string accessor and apply the pattern element-wise. NaN values yield ``pd.NA``,
+    mirroring the original behaviour.
+    """
+    if not isinstance(regex, re.Pattern):
+        regex = re.compile(regex)
+    return series.map(
+        lambda value: (
+            regex.match(value) is not None if isinstance(value, str) else pd.NA
+        )
+    )
+
+
+def series_extract_regex(series: pd.Series, regex: "re.Pattern | str") -> pd.DataFrame:
+    """Apply ``re.search`` to every value of ``series`` and return a DataFrame with one
+    column per named capturing group.
+
+    This is a replacement for ``series.str.extract(regex, expand=True)`` restricted to
+    the regex's named groups. Like :func:`series_match_regex`, it bypasses the pandas
+    string accessor so that compiled ``re.VERBOSE`` patterns keep working under pandas
+    3.0. Non-matching or NaN values yield ``pd.NA`` for every group.
+    """
+    if not isinstance(regex, re.Pattern):
+        regex = re.compile(regex, re.VERBOSE)
+    group_names = list(regex.groupindex.keys())
+
+    def extract_one(value):
+        if isinstance(value, str):
+            match = regex.search(value)
+            if match is not None:
+                return [
+                    pd.NA if (group := match.group(name)) is None else group
+                    for name in group_names
+                ]
+        return [pd.NA] * len(group_names)
+
+    return pd.DataFrame(
+        (extract_one(value) for value in series),
+        index=series.index,
+        columns=group_names,
+    )
+
+
 def check_labels(
     df,
     regex,
@@ -301,7 +351,9 @@ def check_labels(
         check_this = df[[column]]
     if regex.__class__ != re.compile("").__class__:
         regex = re.compile(regex, re.VERBOSE)
-    not_matched = check_this.apply(lambda c: ~c.str.match(regex).fillna(True))
+    not_matched = check_this.apply(
+        lambda c: ~series_match_regex(c, regex).fillna(True).astype(bool)
+    )
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other=".")[select_wrong]

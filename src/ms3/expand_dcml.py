@@ -20,6 +20,7 @@ from .utils import (
     changes2list,
     rel2abs_key,
     resolve_relative_keys,
+    series_extract_regex,
     series_is_minor,
     split_alternatives,
     transform,
@@ -238,7 +239,9 @@ def extract_features_from_labels(
     if regex.__class__ != re.compile("").__class__:
         regex = re.compile(regex, re.VERBOSE)
     features = list(regex.groupindex.keys())
-    extracted = S.str.extract(regex, expand=True)
+    # NB: series_extract_regex instead of S.str.extract because pandas >= 3.0 rejects
+    # compiled re.VERBOSE patterns in the string accessor (see series_match_regex).
+    extracted = series_extract_regex(S, regex)
     return extracted[features].copy()  # removes superfluous columns
 
 
