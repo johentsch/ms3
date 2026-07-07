@@ -127,6 +127,7 @@ from .utils import (
     rgb_tuple2format,
     rgba2attrs,
     sort_note_list,
+    str_match,
     unfold_measures_table,
     unfold_repeats,
     write_score_to_handler,
@@ -1620,8 +1621,8 @@ and {loc_after} before the subsequent {nxt_name}."""
             decoded_labels = decode_harmonies(
                 all_labels, return_series=True, logger=self.logger
             )
-            matches_dcml = decoded_labels[decoded_labels.notna()].str.match(
-                DCML_DOUBLE_REGEX
+            matches_dcml = str_match(
+                decoded_labels[decoded_labels.notna()], DCML_DOUBLE_REGEX
             )
             n_dcml = int(matches_dcml.sum())
             data["guitar_chord_count"] = len(all_labels) - n_dcml

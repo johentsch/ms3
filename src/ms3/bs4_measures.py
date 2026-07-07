@@ -175,7 +175,13 @@ def keep_one_row_each(
             log_this(msg, extra={"message_id": (9, compress_col, which, col_name)})
         return keep_row
 
-    result = result.groupby(compress_col, group_keys=False).apply(squash_staves)
+    # Selecting all columns after groupby ensures the grouping column (compress_col)
+    # remains present in the sub-frames passed to squash_staves. Since pandas 2.2+
+    # (default in 3.0) excludes grouping columns from apply, omitting this would drop
+    # `compress_col` and raise `KeyError: Index(['mc'])` inside squash_staves.
+    result = result.groupby(compress_col, group_keys=False)[
+        result.columns.tolist()
+    ].apply(squash_staves)
     return result.drop(columns=differentiating_col) if drop_differentiating else result
 
 

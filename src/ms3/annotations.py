@@ -17,6 +17,7 @@ from .utils import (
     name2format,
     resolve_dir,
     rgb2format,
+    str_match,
     update_cfg,
 )
 from .utils.constants import DCML_DOUBLE_REGEX, DCML_REGEX, FORM_DETECTION_REGEX
@@ -377,7 +378,7 @@ class Annotations(LoggedClass):
             # harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
             sel = sel & (self.df.harmony_layer == str(harmony_layer))
         if regex is not None:
-            sel = sel & self.df[self.cols["label"]].str.match(regex).fillna(False)
+            sel = sel & str_match(self.df[self.cols["label"]], regex).fillna(False)
         if inverse:
             sel = ~sel
         res = self.df[sel].copy()
@@ -614,7 +615,7 @@ class Annotations(LoggedClass):
             for name, regex in regex_dict.items():
                 # TODO Check if in the loop, previously matched regex names are being overwritten by those matched after
                 try:
-                    mtch = decoded[sel].str.match(regex)
+                    mtch = str_match(decoded[sel], regex)
                 except AttributeError:
                     self.logger.warning(
                         f"Couldn't match regex against these labels: {decoded[sel]}"

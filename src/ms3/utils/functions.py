@@ -301,7 +301,7 @@ def check_labels(
         check_this = df[[column]]
     if regex.__class__ != re.compile("").__class__:
         regex = re.compile(regex, re.VERBOSE)
-    not_matched = check_this.apply(lambda c: ~c.str.match(regex).fillna(True))
+    not_matched = check_this.apply(lambda c: ~str_match(c, regex).fillna(True))
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other=".")[select_wrong]
@@ -4167,10 +4167,13 @@ def sort_note_list(
                 ),
             )
             df.loc[:, midi_col] = df[midi_col].fillna(1000)
+    sort_cols = [mc_col, mc_onset_col, midi_col, duration_col]
     normal_ix = (
-        df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]]
-        .groupby([mc_col, mc_onset_col])
-        .apply(
+        df.loc[~is_grace, sort_cols]
+        # Re-select all columns after groupby so the grouping columns remain present in
+        # the sub-frames: pandas 2.2+ (default in 3.0) excludes grouping columns from
+        # apply, which would shift the positional ``gr.values[:, 2/3]`` indexing below.
+        .groupby([mc_col, mc_onset_col])[sort_cols].apply(
             lambda gr: gr.index[
                 np.lexsort((gr.values[:, 3], gr.values[:, 2]))
             ].to_numpy()
@@ -4470,6 +4473,23 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
         )
         res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
+
+
+def str_match(series: pd.Series, pattern) -> pd.Series:
+    """Version-safe replacement for ``series.str.match(pattern)``.
+
+    Since pandas 3.0, ``Series.str.match`` raises
+    ``ValueError: Cannot pass flags that do not match pat.flags`` when ``pattern`` is a
+    compiled regex that carries flags (e.g. ``re.VERBOSE``). This helper accepts either a
+    string or a compiled pattern and reproduces ``str.match`` semantics (anchored at the
+    start of the string), returning a nullable boolean Series with NA preserved for
+    missing values.
+    """
+    if not isinstance(pattern, re.Pattern):
+        return series.str.match(pattern)
+    return series.map(
+        lambda v: pattern.match(v) is not None if isinstance(v, str) else pd.NA
+    ).astype("boolean")
 
 
 def adjacency_groups(

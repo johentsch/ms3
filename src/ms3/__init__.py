@@ -8,6 +8,33 @@ import logging
 import os
 from importlib.metadata import PackageNotFoundError, version  # pragma: no cover
 
+import pandas as pd
+
+# ms3 was written against pandas < 3.0, where text columns are NumPy ``object`` arrays.
+# pandas 3.0 enables a dedicated string dtype by default (PDEP-14), which changes several
+# behaviours ms3 relies on:
+#   * constructed DataFrames get the immutable ``str`` dtype, which rejects in-place
+#     assignment of non-string values (e.g. replacing duration strings with Fractions via
+#     ``df.loc[:, col] = series.map(...)``);
+#   * the nullable ``string`` dtype (from explicit ``.astype("string")``) becomes
+#     pyarrow-backed under the "auto" storage, so boolean results of string comparisons
+#     are pyarrow-backed and lack compute kernels ms3 uses (e.g. ``cumsum``).
+# Restoring the pre-3.0 defaults keeps behaviour uniform across supported pandas versions.
+# Both calls are guarded because the options do not exist on every supported pandas release
+# (``future.infer_string`` was added in 2.1; on < 2.1 object strings are already the default).
+for _option, _value in (
+    ("future.infer_string", False),
+    ("mode.string_storage", "python"),
+):
+    try:
+        pd.set_option(_option, _value)
+    except (
+        KeyError,
+        ValueError,
+    ):  # pragma: no cover - option absent on this pandas version
+        pass
+del _option, _value
+
 try:
     # Change here if project is renamed and does not equal the package name
     dist_name = __name__
