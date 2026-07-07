@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.3](https://github.com/johentsch/ms3/compare/v2.6.2...v2.6.3) (2026-07-07)
+
+
+### Bug Fixes
+
+* adds the constraint pandas&lt;3 ([7a13b55](https://github.com/johentsch/ms3/commit/7a13b55bb3c14f4e288a50720f50d553449a9c11))
+
 ## [2.6.2](https://github.com/johentsch/ms3/compare/v2.6.1...v2.6.2) (2026-05-14)
 
 
