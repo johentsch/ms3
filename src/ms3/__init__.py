@@ -18,9 +18,22 @@ finally:
     del version, PackageNotFoundError
 
 version_file_path = os.path.join(os.path.dirname(__file__), "_version.py")
-# store version in the "once canonical place" (https://stackoverflow.com/a/7071358)
-with open(version_file_path, "w") as f:
-    f.write(f'__version__ = "{__version__}"')
+# store version in the "once canonical place" (https://stackoverflow.com/a/7071358);
+# only rewrite when stale, and tolerate read-only installs — an unconditional write
+# races when parallel processes import ms3 concurrently (e.g. pytest-xdist workers)
+_version_line = f'__version__ = "{__version__}"'
+try:
+    with open(version_file_path) as f:
+        _current = f.read()
+except OSError:
+    _current = None
+if _current != _version_line:
+    try:
+        with open(version_file_path, "w") as f:
+            f.write(_version_line)
+    except OSError:
+        pass
+del _version_line
 
 from .annotations import Annotations
 from .corpus import Corpus
