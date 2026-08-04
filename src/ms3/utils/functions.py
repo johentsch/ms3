@@ -2892,6 +2892,7 @@ TSV_COLUMN_DTYPES = {
     "rightParen": "string",
     "root": "Int64",
     "rootCase": "Int64",
+    "SID": "Int64",
     "slur": "string",
     "special": "string",
     "staff": "Int64",
