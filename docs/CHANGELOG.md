@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.6.4](https://github.com/johentsch/ms3/compare/v2.6.3...v2.6.4) (2026-08-04)
+
+
+### Bug Fixes
+
+* avoid racy unconditional _version.py rewrite on import ([1b0470b](https://github.com/johentsch/ms3/commit/1b0470bbbc676154f808d5d4bb8c6f1f01235460))
+* DCML label matching/extraction broke under pandas 3.0 compiled-regex check ([a5536a5](https://github.com/johentsch/ms3/commit/a5536a52306fadd56ec3f235d3bfc201ff886c04))
+* directories containing a metadata.tsv at the root were misclassified as collections of corpora when one of their subdirectories happened to match STANDARD_NAMES (e.g. an MS3/ folder containing chords/measures/notes/), causing "NO SCORES PARSED" — get_first_level_corpora now short-circuits and returns [] when the root itself contains a metadata.tsv, so the caller treats the root as the single corpus ([d8042fc](https://github.com/johentsch/ms3/commit/d8042fc28736bc286ed712627420c73dd4609106))
+* load SID metadata column as nullable Int64 ([627bc11](https://github.com/johentsch/ms3/commit/627bc11f8dbbfc2d7eff4defd8dbc90fb20bd0da))
+* parsing failed under pandas 3.0 due to several API/dtype changes ([8e8844a](https://github.com/johentsch/ms3/commit/8e8844a5530560226c0775c7e37ba3bbffdc68dd))
+
 ## [2.6.3](https://github.com/johentsch/ms3/compare/v2.6.2...v2.6.3) (2026-07-07)
 
 
