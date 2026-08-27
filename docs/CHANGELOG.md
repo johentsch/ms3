@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.5](https://github.com/johentsch/ms3/compare/v2.6.4...v2.6.5) (2026-08-27)
+
+
+### Bug Fixes
+
+* re-running `ms3 review` on a corpus without metadata.tsv crashed ([62e6dc3](https://github.com/johentsch/ms3/commit/62e6dc33db8b903aad8651522850c4b8d042c9dd))
+
 ## [2.6.4](https://github.com/johentsch/ms3/compare/v2.6.3...v2.6.4) (2026-08-04)
 
 
