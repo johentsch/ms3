@@ -663,7 +663,7 @@ class Corpus(LoggedClass):
         """
         resolved_paths = resolve_paths_argument(paths, logger=self.logger)
         if len(resolved_paths) == 0:
-            return
+            return []
         score_extensions = ["." + ext for ext in Score.parseable_formats]
         detected_extensions = score_extensions + [".tsv"]
         newly_added = []
@@ -707,8 +707,33 @@ class Corpus(LoggedClass):
     def collect_fnames_from_scores(self) -> None:
         """Construct sorted list of pieces from all detected scores."""
         files_df = self.files_df
+        if len(files_df) == 0:
+            self.score_fnames = []
+            return
         detected_scores = files_df.loc[files_df.type == "scores"]
-        self.score_fnames = sorted(detected_scores.piece.unique())
+        if len(detected_scores) == 0:
+            self.score_fnames = []
+            return
+        in_review = detected_scores.rel_path.map(
+            lambda rel_path: re.search(View.review_regex, rel_path) is not None
+        )
+        regular_pnames = sorted(detected_scores.loc[~in_review, "piece"].unique())
+        review_pnames = sorted(detected_scores.loc[in_review, "piece"].unique())
+        # Scores in review files/folders (e.g. 'reviewed/piece_reviewed.mscx') are copies of a regular score and
+        # must not spawn a Piece of their own; otherwise the copy would be registered with that spurious Piece and
+        # storing the score again would fail. Review scores that do not correspond to any regular score, on the
+        # other hand, are the only representatives of their piece and need to be kept.
+        without_counterpart = [
+            pname
+            for pname in review_pnames
+            if not any(pname.startswith(regular) for regular in regular_pnames)
+        ]
+        if len(without_counterpart) < len(review_pnames):
+            self.logger.debug(
+                f"Ignoring review scores when collecting piece names: "
+                f"{sorted(set(review_pnames) - set(without_counterpart))}"
+            )
+        self.score_fnames = sorted(set(regular_pnames + without_counterpart))
 
     def create_metadata_tsv(
         self,
@@ -2197,6 +2222,38 @@ class Corpus(LoggedClass):
                     )
                     self.ix2orphan_file[file.ix] = file
 
+    def register_parsed_score(
+        self, file: File, score_obj: Score, piece_obj: Optional[Piece] = None
+    ) -> bool:
+        """Attaches a parsed score to the Piece that ``file`` has been registered with.
+
+        Args:
+          file: A :obj:`File` object that is part of :attr:`files`.
+          score_obj: The parsed score to be attached to the corresponding :obj:`Piece` object.
+          piece_obj:
+              The Piece that the caller expects ``file`` to belong to. Only used for emitting a debug message when
+              the file actually belongs to a different Piece.
+
+        Returns:
+          True if the score has been attached to a Piece, False otherwise.
+        """
+        if piece_obj is not None and file.ix in piece_obj.ix2file:
+            piece_obj.add_parsed_score(file.ix, score_obj)
+            return True
+        if file.ix not in self.ix2pname:
+            self.logger.warning(
+                f"'{file.rel_path}' has not been registered with any piece, so I cannot attach the parsed "
+                f"score to it."
+            )
+            return False
+        owner = self.get_piece(self.ix2pname[file.ix])
+        if piece_obj is not None:
+            self.logger.debug(
+                f"'{file.rel_path}' belongs to Piece('{owner.name}'), not to Piece('{piece_obj.name}')."
+            )
+        owner.add_parsed_score(file.ix, score_obj)
+        return True
+
     def metadata(
         self,
         view_name: Optional[str] = None,
@@ -2422,9 +2479,15 @@ class Corpus(LoggedClass):
                     convert(file.full_path, new_path, self.ms, logger=logger)
                     if not updated_existed:
                         new_files = self.add_file_paths([new_path])
-                        updated_file = new_files[0]
+                        updated_file = new_files[0] if new_files else None
+                    if updated_file is None:
+                        logger.warning(
+                            f"Converted {file.rel_path} to {new_path} but could not register the result with "
+                            f"the corpus."
+                        )
+                        continue
                     new_score = Score(new_path)
-                    piece_obj.add_parsed_score(updated_file.ix, new_score)
+                    self.register_parsed_score(updated_file, new_score, piece_obj)
                     compare_two_score_objects(score, new_score, logger=logger)
                 else:
                     updated_file = file
@@ -3393,7 +3456,12 @@ class Corpus(LoggedClass):
                     file_to_register = self.get_file_from_path(path)
                 else:
                     file_to_register = new_files[0]
-                piece_obj.add_parsed_score(file_to_register.ix, score)
+                if file_to_register is None:
+                    self.logger.warning(
+                        f"Stored {path} but could not register it with the corpus."
+                    )
+                    continue
+                self.register_parsed_score(file_to_register, score, piece_obj)
         return file_paths
 
     #
