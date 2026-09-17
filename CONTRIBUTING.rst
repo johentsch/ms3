@@ -238,13 +238,16 @@ Troubleshooting
 The following tips can be used when facing problems to build or test the
 package:
 
-#. Make sure to fetch all the tags from the upstream repository_.
-   The command ``git describe --abbrev=0 --tags`` should return the version you
-   are expecting. If you are trying to run CI scripts in a fork repository,
-   make sure to push all the tags.
+#. ``ms3 --version`` reads the installed package metadata. If you change
+   ``[project].version`` in ``pyproject.toml`` while using an editable install,
+   reinstall with ``pip install -e .`` to update that metadata.
    You can also try to remove all the egg files or the complete egg folder, i.e.,
    ``.eggs``, as well as the ``*.egg-info`` folders in the ``src`` folder or
    potentially in the root of your project.
+
+#. After running ``putup --update``, review changes to ``pyproject.toml`` and
+   ``setup.py``. PyScaffold can restore ``setuptools-scm`` configuration, which
+   would make pre-commit builds depend on Git tags again.
 
 #. Sometimes |tox|_ misses out when new dependencies are added, especially to
    ``setup.cfg`` and ``docs/requirements.txt``. If you find any problems with
@@ -290,13 +293,16 @@ on PyPI_, the following steps can be used to release a new version for
 ``ms3``:
 
 #. Make sure all unit tests are successful.
+#. Make sure ``[project].version`` in ``pyproject.toml`` matches the intended
+   release. Release Please updates it in the release pull request; for a manual
+   release, update it before creating the tag.
 #. Tag the current commit on the main branch with a release tag, e.g., ``v1.2.3``.
 #. Push the new tag to the upstream repository_, e.g., ``git push upstream v1.2.3``
 #. Clean up the ``dist`` and ``build`` folders with ``tox -e clean``
    (or ``rm -rf dist build``)
    to avoid confusion with old builds and Sphinx docs.
 #. Run ``tox -e build`` and check that the files in ``dist`` have
-   the correct version (no ``.dirty`` or git_ hash) according to the git_ tag.
+   the same version as ``pyproject.toml`` and the git_ tag.
    Also check the sizes of the distributions, if they are too big (e.g., >
    500KB), unwanted clutter may have been accidentally included.
 #. Run ``tox -e publish -- --repository pypi`` and check that everything was

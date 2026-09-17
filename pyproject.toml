@@ -1,10 +1,12 @@
 [build-system]
-# AVOID CHANGING REQUIRES: IT WILL BE UPDATED BY PYSCAFFOLD!
-requires = ["setuptools>=64", "setuptools-scm>=8"]
+# Keep the build independent of Git tags, including in pre-commit checkouts.
+# A future PyScaffold update may restore setuptools-scm; review that diff.
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ms3"
+version = "2.6.4"
 dynamic = [
     "authors",
     "classifiers",
@@ -17,11 +19,5 @@ dynamic = [
     "readme",
     "requires-python",
     "scripts",
-    "urls",
-    "version"
+    "urls"
 ]
-
-[tool.setuptools_scm]
-# For smarter version schemes and other configuration options,
-# check out https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
