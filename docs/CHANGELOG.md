@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.6.5](https://github.com/johentsch/ms3/compare/v2.6.4...v2.6.5) (2026-09-17)
+
+
+### Bug Fixes
+
+* re-running `ms3 review` on a corpus without metadata.tsv crashed ([62e6dc3](https://github.com/johentsch/ms3/commit/62e6dc33db8b903aad8651522850c4b8d042c9dd))
+* unfold expanded labels when some pieces lack them ([2f8673f](https://github.com/johentsch/ms3/commit/2f8673fe5033823a89aaf444311c067118f8fce4))
+* use static version for pre-commit installs ([dbe6301](https://github.com/johentsch/ms3/commit/dbe63017759b482da98c835a583c92ccdcd7c0fa))
+
 ## [2.6.4](https://github.com/johentsch/ms3/compare/v2.6.3...v2.6.4) (2026-08-04)
 
 
