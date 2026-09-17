@@ -317,7 +317,16 @@ def transform_cmd(args):
             return
     else:
         version_info = get_git_version_info(repo=repo)
-    parse_obj = make_parse_obj(args, parse_tsv=True, facets=params)
+    # Unfolding any facet requires the corresponding measures table, even when
+    # measures are not among the requested output facets.
+    input_facets = list(params)
+    if (
+        args.unfold
+        and any(facet != "metadata" for facet in params)
+        and "measures" not in input_facets
+    ):
+        input_facets.append("measures")
+    parse_obj = make_parse_obj(args, parse_tsv=True, facets=input_facets)
     filename = os.path.basename(args.dir)
     func = transform_to_resources if args.resources else transform_to_package
     # noinspection PyTypeChecker

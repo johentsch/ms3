@@ -4699,7 +4699,12 @@ def unfold_repeats(
             [],
         )
     )
-    result_df = result_df.loc[playthrough2mc.values].reset_index()
+    # Pandas 2.2 raises an IndexError when selecting repeated keys from a
+    # non-unique nullable integer index. Use a regular index for the lookup.
+    if pd.api.types.is_extension_array_dtype(result_df.index.dtype):
+        index_dtype = "object" if result_df.index.hasnans else "int64"
+        result_df.index = result_df.index.astype(index_dtype)
+    result_df = result_df.loc[playthrough2mc.tolist()].reset_index()
     if "mn" in result_df.columns:
         column_position = result_df.columns.get_loc("mn") + 1
         if playthrough2mn is not None:

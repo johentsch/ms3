@@ -166,6 +166,14 @@ def add_quarterbeats_col(
     if len(new_cols) > 0:
         # removes existing columns because they will be reinserted later in their canonical position
         df = df.drop(columns=list(new_cols.keys()))
+    if (
+        offset_dict_all_endings is not None
+        and "mc" in df.columns
+        and "quarterbeats_all_endings" in df.columns
+    ):
+        # This column is recalculated below; keeping the old one would create
+        # duplicate column names when concatenating unfolded pieces.
+        df = df.drop(columns="quarterbeats_all_endings")
 
     if "mc_onset" in df.columns:
         mc_onset_column = df.mc_onset
