@@ -130,6 +130,7 @@ def extract(
     unfold: bool = False,
     interval_index: bool = False,
     corpuswise: bool = False,
+    measure_maps_folder: Optional[str] = None,
 ):
     mode = "IN PARALLEL" if parallel else "ONE AFTER THE OTHER"
     if not corpuswise:
@@ -152,6 +153,7 @@ def extract(
             simulate=simulate,
             unfold=unfold,
             interval_index=interval_index,
+            measure_maps_folder=measure_maps_folder,
         )
         return
     for (
@@ -177,6 +179,7 @@ def extract(
             simulate=simulate,
             unfold=unfold,
             interval_index=interval_index,
+            measure_maps_folder=measure_maps_folder,
         )
 
 

@@ -1703,6 +1703,7 @@ class Parse(LoggedClass):
         simulate: bool = False,
         unfold: bool = False,
         interval_index: bool = False,
+        measure_maps_folder: Optional[str] = None,
     ):
         """Store facets extracted from parsed scores as TSV files.
 
@@ -1726,6 +1727,10 @@ class Parse(LoggedClass):
               By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
               playthrough, including correct positioning of first and second endings.
           interval_index:
+          measure_maps_folder:
+              Specify directory where to store one ``<piece>.mm.json`` file per score, containing the score's
+              measures in the MeasureMap format. Measure maps are always computed from the measures as they appear
+              in the score, i.e. independent of ``unfold``.
 
         Returns:
 
@@ -1749,6 +1754,7 @@ class Parse(LoggedClass):
                 simulate=simulate,
                 unfold=unfold,
                 interval_index=interval_index,
+                measure_maps_folder=measure_maps_folder,
             )
 
     def store_parsed_scores(

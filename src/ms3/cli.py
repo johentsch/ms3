@@ -51,6 +51,7 @@ def gather_extract_params(args) -> List[str]:
         for name, arg in zip(
             (
                 "measures",
+                "measure_maps",
                 "notes",
                 "rests",
                 "labels",
@@ -61,6 +62,8 @@ def gather_extract_params(args) -> List[str]:
             ),
             (
                 args.measures,
+                # only the extract_args parser (ms3 extract/review) has this argument
+                getattr(args, "measure_maps", None),
                 args.notes,
                 args.rests,
                 args.labels,
@@ -231,8 +234,9 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
     params = gather_extract_params(args)
     if len(params) == 0:
         print(
-            "In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), "
-            "-R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)"
+            "In order to extract DataFrames, pass at least one of the following arguments: -M (measures), "
+            "-MM (measure_maps), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), "
+            "-C (chords), -D (metadata)"
         )
         return
     extract(
@@ -241,6 +245,7 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
         notes_folder=args.notes,
         labels_folder=args.labels,
         measures_folder=args.measures,
+        measure_maps_folder=args.measure_maps,
         rests_folder=args.rests,
         events_folder=args.events,
         chords_folder=args.chords,
@@ -795,6 +800,16 @@ def get_arg_parser():
         nargs="?",
         const="../measures",
         help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.",
+    )
+    extract_args.add_argument(
+        "-MM",
+        "--measure_maps",
+        metavar="folder",
+        nargs="?",
+        const="../measure_maps",
+        help="Folder where to store <piece>.mm.json files containing the score's measures in the MeasureMap format "
+        "(https://github.com/measure-map). They are always computed from the measures as they appear in the "
+        "score, i.e. independently of -u/--unfold.",
     )
     extract_args.add_argument(
         "-N",
