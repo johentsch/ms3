@@ -23,6 +23,7 @@ from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -40,11 +41,9 @@ from typing import (
 from zipfile import ZipFile as Zip
 
 import bs4
-import git
 import numpy as np
 import pandas as pd
 import webcolors
-from gitdb.exc import BadName
 from ms3._typing import Facet, FileDataframeTupleMaybe, FileDict, ViewDict
 from ms3.logger import LogCapturer, get_logger, update_cfg
 from numpy.typing import NDArray
@@ -81,6 +80,9 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+if TYPE_CHECKING:
+    import git
 
 module_logger = get_logger(__name__)
 
@@ -1947,8 +1949,36 @@ def _fifths2str(fifths: int, steps: Collection[str], inverted: bool = False) -> 
     return acc + steps[fifths % 7]
 
 
+def import_git():
+    """Returns the GitPython module or raises an ImportError explaining how to install it."""
+    try:
+        import git
+    except ImportError as e:
+        raise ImportError(
+            f"This functionality requires GitPython, which can be installed via `pip install ms3[git]` ({e})"
+        ) from e
+    return git
+
+
+def is_inside_git_work_tree(
+    directory: str | Path, search_parent_directories: bool = True
+) -> bool:
+    """Checks for a .git folder (or file, for submodules and worktrees) without requiring GitPython."""
+    path = Path(directory).expanduser().resolve()
+    candidates = [path, *path.parents] if search_parent_directories else [path]
+    return any((candidate / ".git").exists() for candidate in candidates)
+
+
+@cache
+def _warn_about_missing_gitpython(logger: logging.Logger) -> None:
+    logger.warning(
+        "This corpus is (part of) a git repository but GitPython is not installed, so no version information "
+        "will be included in the output metadata. Install it via `pip install ms3[git]`."
+    )
+
+
 def get_name_of_highest_version_tag(
-    repo: git.Repo,
+    repo: "git.Repo",
 ) -> Optional[str]:
     descending_tags = repo.git.tag(l=True, sort="-v:refname")
     latest_version = descending_tags.split("\n")[0]
@@ -1959,7 +1989,7 @@ def get_name_of_highest_version_tag(
 @cache
 def get_git_commit(
     repo_path: str, git_revision: Optional[str], logger=None
-) -> Optional[git.Commit]:
+) -> Optional["git.Commit"]:
     """Returns the git commit object for the given revision.
 
     Args:
@@ -1976,6 +2006,7 @@ def get_git_commit(
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
+    git = import_git()
     try:
         repo = git.Repo(repo_path, search_parent_directories=True)
     except Exception as e:
@@ -1989,7 +2020,7 @@ def get_git_commit(
             )
     try:
         return repo.commit(git_revision)
-    except BadName:
+    except git.BadName:
         logger.error(
             f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}."
         )
@@ -1999,11 +2030,17 @@ def get_git_repo(
     directory: str | Path,
     search_parent_directories: bool = True,
     logger: Optional[logging.Logger | str] = None,
-) -> Optional[git.Repo]:
+) -> Optional["git.Repo"]:
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
+    try:
+        git = import_git()
+    except ImportError:
+        if is_inside_git_work_tree(directory, search_parent_directories):
+            _warn_about_missing_gitpython(logger)
+        return None
     try:
         repo = git.Repo(directory, search_parent_directories=search_parent_directories)
         logger.debug(
@@ -2019,7 +2056,7 @@ def get_git_repo(
 
 
 def get_git_revision(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
 ) -> str:
     if repo is None:
@@ -2032,18 +2069,18 @@ def get_git_revision(
 
 @overload
 def get_git_tag(
-    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[True]
+    repo: Optional["git.Repo"], repo_path: Optional[str], always: Literal[True]
 ) -> str: ...
 
 
 @overload
 def get_git_tag(
-    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[False]
+    repo: Optional["git.Repo"], repo_path: Optional[str], always: Literal[False]
 ) -> Optional[str]: ...
 
 
 def get_git_tag(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
     always: bool = True,
 ) -> Optional[str]:
@@ -2062,7 +2099,7 @@ def get_git_tag(
 
 
 def get_git_version_info(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
     only_if_clean: bool = True,
 ):
@@ -2080,7 +2117,7 @@ def get_git_version_info(
 
 
 def git_repo_is_clean(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
 ) -> bool:
     if repo is None:
