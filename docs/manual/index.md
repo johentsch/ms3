@@ -785,6 +785,8 @@ the available tables:
 ```console
 -M [folder], --measures [folder]
                     Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.
+-MM [folder], --measure_maps [folder]
+                    Folder where to store <piece>.mm.json files containing the score's measures in the MeasureMap format (https://github.com/measure-map). They are always computed from the measures as they appear in the score, i.e. independently of -u/--unfold.
 -N [folder], --notes [folder]
                     Folder where to store TSV files with information on all notes.
 -R [folder], --rests [folder]

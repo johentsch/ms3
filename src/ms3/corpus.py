@@ -20,7 +20,10 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pathos.multiprocessing as mp
-from ms3.utils.frictionless_helpers import store_dataframe_resource
+from ms3.utils.frictionless_helpers import (
+    store_as_json_or_yaml,
+    store_dataframe_resource,
+)
 from ms3.utils.functions import (
     compute_path_from_file,
     get_git_repo,
@@ -49,6 +52,7 @@ from .logger import (
 )
 from .piece import Piece
 from .score import Score, compare_two_score_objects
+from .transformations import measures2measure_map
 from .utils import (
     File,
     ask_user_to_choose,
@@ -3171,6 +3175,7 @@ class Corpus(LoggedClass):
         unfold: bool = False,
         interval_index: bool = False,
         frictionless: bool = True,
+        measure_maps_folder: Optional[str] = None,
     ) -> List[str]:
         """Store facets extracted from parsed scores as TSV files.
 
@@ -3194,12 +3199,17 @@ class Corpus(LoggedClass):
           frictionless:
             If True (default), the file is written together with a frictionless resource descriptor JSON file
             whose column schema is used to validate the stored TSV file.
+          measure_maps_folder:
+              Specify directory where to store one ``<piece>.mm.json`` file per score, containing the score's
+              measures in the MeasureMap format (see :func:`~ms3.transformations.measures2measure_map`). Measure
+              maps are always computed from the measures as they appear in the score, i.e. independent of ``unfold``.
 
 
         Returns:
             A list of file stored to disk. If ``frictionless=True`` (default), it will be the list of descriptor file
             paths describing the stored TSV files (i.e., the list contains one file for every two files written to
-            disk). Otherwise, it will be the list of TSV file paths.
+            disk). Otherwise, it will be the list of TSV file paths. Paths of measure maps and metadata files are
+            included. With ``simulate=True``, the list contains the paths that would have been written.
         """
         lcls = locals()
         df_types = [t for t in Score.dataframe_types if t != "metadata"]
@@ -3208,7 +3218,8 @@ class Corpus(LoggedClass):
             t: lcls[p] for t, p in zip(df_types, folder_vars) if lcls[p] is not None
         }
         output_metadata = metadata_suffix is not None
-        if len(folder_params) == 0 and not output_metadata:
+        output_measure_maps = measure_maps_folder is not None
+        if len(folder_params) == 0 and not output_metadata and not output_measure_maps:
             self.logger.warning("Pass at least one parameter to store files.")
             return []
         facets = list(folder_params.keys())
@@ -3269,6 +3280,14 @@ class Corpus(LoggedClass):
                                 custom_metadata=version_info,
                             )
                         paths.append(descriptor_or_resource_path)
+        if output_measure_maps:
+            measure_map_paths = self.store_measure_maps(
+                folder=measure_maps_folder,
+                view_name=view_name,
+                root_dir=root_dir,
+                simulate=simulate,
+            )
+            paths.extend(measure_map_paths)
         if output_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_tsv_from_parsed_scores(
@@ -3279,6 +3298,65 @@ class Corpus(LoggedClass):
                     root_dir=root_dir, suffix=metadata_suffix
                 )
             paths.extend(metadata_paths)
+        return paths
+
+    def store_measure_maps(
+        self,
+        folder: str,
+        view_name: Optional[str] = None,
+        root_dir: Optional[str] = None,
+        simulate: bool = False,
+    ) -> List[str]:
+        """Store one ``<piece>.mm.json`` file per parsed score, containing the score's measures in the MeasureMap
+        format (see :func:`~ms3.transformations.measures2measure_map`). Measure maps describe the measures as they
+        appear in the score and how they connect (via the 'next' field), which is why they are always computed from
+        the measures table without unfolding repeats.
+
+        Args:
+          folder:
+              Directory where to store the measure maps. Relative paths are resolved relative to each score's
+              directory or, if ``root_dir`` is specified, relative to the respective subdirectory of ``root_dir``.
+          view_name:
+          root_dir:
+          simulate: Pass True to only log the paths that would have been written.
+
+        Returns:
+          The paths of the measure maps that were (or, with ``simulate=True``, would have been) written.
+        """
+        paths = []
+        for _, piece_obj in self.iter_pieces(view_name=view_name):
+            for file, facet2dataframe in piece_obj.iter_extracted_facets(
+                "measures",
+                view_name=view_name,
+                unfold=False,
+                interval_index=False,
+            ):
+                measures = facet2dataframe["measures"]
+                if measures is None:
+                    continue
+                directory = compute_path_from_file(
+                    file, root_dir=root_dir, folder=folder
+                )
+                piece_name = file.piece
+                file_path = os.path.join(directory, f"{piece_name}.mm.json")
+                if simulate:
+                    self.logger.info(
+                        f"Would have stored the measure map from {file.rel_path} as {file_path}."
+                    )
+                else:
+                    try:
+                        measure_map = measures2measure_map(measures)
+                    except ValueError as e:
+                        self.logger.warning(
+                            f"Could not create a measure map for {file.rel_path}: {e}"
+                        )
+                        continue
+                    store_as_json_or_yaml(
+                        measure_map.to_dict(orient="records"),
+                        file_path,
+                        logger=self.logger,
+                    )
+                paths.append(file_path)
         return paths
 
     def update_metadata_tsv_from_parsed_scores(
