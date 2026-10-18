@@ -117,6 +117,7 @@ from .utils import (
     column_order,
     decode_harmonies,
     fifths2name,
+    fifths2sd,
     make_continuous_offset_series,
     make_offset_dict_from_measures,
     make_playthrough2mc,
@@ -1481,6 +1482,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how="all")
         if len(df.index) == 0:
             return pd.DataFrame(columns=std_cols)
+        df = self._convert_ms4_harmony_columns(df)
         df.rename(
             columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True
         )
@@ -1495,6 +1497,54 @@ and {loc_after} before the subsequent {nxt_name}."""
         df.rename(columns=additional_cols, inplace=True)
         columns += list(additional_cols.values())
         return df[columns]
+
+    def _convert_ms4_harmony_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """MuseScore 4 encodes some <Harmony> properties differently from MuseScore 3. This method converts the
+        corresponding columns of the raw <Harmony> events to the MS3 columns expected by :meth:`get_raw_labels`.
+        """
+        # MuseScore 4 renames <base> to <bass>
+        if "Harmony/bass" in df.columns:
+            if "Harmony/base" in df.columns:
+                df["Harmony/base"] = df["Harmony/base"].fillna(df["Harmony/bass"])
+            else:
+                df["Harmony/base"] = df["Harmony/bass"]
+            df = df.drop(columns="Harmony/bass")
+        # MuseScore 4 replaces the empty tags <leftParen/> and <rightParen/> with
+        # <parentheses>left|right|both</parentheses>
+        if "Harmony/parentheses" in df.columns:
+            parentheses = df["Harmony/parentheses"]
+            for col, values in (
+                ("Harmony/leftParen", ("left", "both")),
+                ("Harmony/rightParen", ("right", "both")),
+            ):
+                paren = pd.Series(pd.NA, index=df.index, dtype="object")
+                paren[parentheses.isin(values)] = "/"
+                if col in df.columns:
+                    paren = df[col].fillna(paren)
+                df[col] = paren
+            df = df.drop(columns="Harmony/parentheses")
+        # MuseScore 4 stores Nashville numbers (<harmonyType>2</harmonyType>) not as <function> but as absolute <root>
+        # whose scale degree is relative to the major key of the current key signature
+        if "Harmony/harmonyType" in df.columns and "Harmony/root" in df.columns:
+            is_nashville = (df["Harmony/harmonyType"].astype(str) == "2") & df[
+                "Harmony/root"
+            ].notna()
+            if "Harmony/function" in df.columns:
+                is_nashville &= df["Harmony/function"].isna()
+            if is_nashville.any():
+                keysigs = self.ml().set_index("mc").keysig
+                root_fifths = df.loc[is_nashville, "Harmony/root"].astype(int) - 14
+                keysig = df.loc[is_nashville, "mc"].map(keysigs).astype(int)
+                nashville = pd.Series(
+                    fifths2sd((root_fifths - keysig).to_list()),
+                    index=root_fifths.index,
+                    dtype="object",
+                )
+                if "Harmony/function" in df.columns:
+                    nashville = df["Harmony/function"].fillna(nashville)
+                df["Harmony/function"] = nashville
+                df["Harmony/root"] = df["Harmony/root"].mask(is_nashville)
+        return df
 
     def get_texts(self, only_header: bool = True) -> Dict[str, str]:
         """Process <Text> nodes (normally attached to <Staff id="1">)."""
