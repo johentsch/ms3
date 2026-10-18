@@ -70,6 +70,7 @@
 .. |volta| replace:: :ref:`volta <volta>`
 .. |voice| replace:: :ref:`voice <voice>`
 """
+
 import os
 import re
 from contextlib import contextmanager
@@ -217,8 +218,13 @@ class MSCX(LoggedClass):
                     f"Using temporally converted file {os.path.basename(tmp)} for parsing the version {ms_version} "
                     f"file."
                 )
+                original_src = self.mscx_src
                 self.mscx_src = tmp
-                self.parse_mscx()
+                try:
+                    self.parse_mscx()
+                finally:
+                    # the temporary file is about to be deleted
+                    self.mscx_src = original_src
 
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1239,7 +1245,8 @@ class MSCX(LoggedClass):
             localkey=local_key,
         )
 
-        original_directory, original_filename = os.path.split(excerpt.filepath)
+        # self.mscx_src, not excerpt.filepath, which can be a temporary file (e.g. for .mscz sources)
+        original_directory, original_filename = os.path.split(self.mscx_src)
         original_file_name = os.path.splitext(original_filename)[0]
         new_file_name = original_file_name + f"{suffix}_{start}-{end}" + ".mscx"
         if directory is None:
@@ -1469,7 +1476,8 @@ class MSCX(LoggedClass):
                 decompose_repeat_tags=True,
             )
 
-            original_directory, original_filename = os.path.split(excerpt.filepath)
+            # self.mscx_src, not excerpt.filepath, which can be a temporary file (e.g. for .mscz sources)
+            original_directory, original_filename = os.path.split(self.mscx_src)
             original_file_name = os.path.splitext(original_filename)[0]
             new_file_name = (
                 original_file_name
@@ -2898,10 +2906,10 @@ class Score(LoggedClass):
 
     @contextmanager
     def _tmp_convert(self, file, dir=None):
-        if dir is None:
-            dir = os.path.dirname(file)
+        """Converts the file with MuseScore to a temporary .mscx file in ``dir`` (default: the system's temporary
+        directory) and yields its path."""
         try:
-            tmp_file = Temp(suffix=".mscx", prefix=".", dir=dir, delete=False)
+            tmp_file = Temp(suffix=".mscx", prefix="ms3_", dir=dir, delete=False)
             convert(file, tmp_file.name, self.ms, logger=self.logger)
             yield tmp_file.name
         except Exception:

@@ -4835,13 +4835,13 @@ def unfold_repeats(
 
 @contextmanager
 def unpack_mscz(mscz, tmp_dir=None, logger=None):
+    """Extracts the .mscx file contained in ``mscz`` to a temporary file in ``tmp_dir`` (default: the system's
+    temporary directory) and yields its path."""
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
-    if tmp_dir is None:
-        tmp_dir = os.path.dirname(mscz)
-    tmp_file = Temp(suffix=".mscx", prefix=".", dir=tmp_dir, delete=False)
+    tmp_file = Temp(suffix=".mscx", prefix="ms3_", dir=tmp_dir, delete=False)
     with Zip(mscz) as zip_file:
         mscx_files = [f for f in zip_file.namelist() if f.endswith(".mscx")]
         if len(mscx_files) > 1:

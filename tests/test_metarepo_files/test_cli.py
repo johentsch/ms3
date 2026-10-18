@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 from typing import Optional
 
@@ -47,22 +46,13 @@ def assert_test_repo_unchanged(path_to_git_repo):
     assert all(is_clean.values())
 
 
-# ms3 converts .mscz files to temporary files named like '.k3j_x9a2.mscx' next to them
-MS3_TMP_FILE = re.compile(r"^\.[a-z0-9_]{8}\.mscx$")
-
-
-def ignore_ms3_tmp_files(_, names):
-    return [name for name in names if MS3_TMP_FILE.match(name)]
-
-
 @pytest.fixture()
 def corpus_copy(directory, tmp_path):
     """A private copy of the metacorpus (including the git metadata of its submodules) so that the commands, which
-    write into the corpus, neither change the clone nor disturb other tests reading it in parallel. Skips the
-    temporary files that tests parsing .mscz files of the clone in parallel may have created.
+    write into the corpus, neither change the clone nor disturb other tests reading it in parallel.
     """
     path = os.path.join(tmp_path, os.path.basename(directory))
-    shutil.copytree(directory, path, symlinks=True, ignore=ignore_ms3_tmp_files)
+    shutil.copytree(directory, path, symlinks=True)
     yield path
     shutil.rmtree(path, ignore_errors=True)
 
