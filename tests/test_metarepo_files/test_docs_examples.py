@@ -13,5 +13,6 @@ def example_script(request):
 
 def test_examples(example_script):
     print(f"Running {example_script} ...")
-    exit_value = subprocess.run(["python", example_script])
+    # examples use paths relative to docs/examples, e.g. Parse("..") for the docs folder
+    exit_value = subprocess.run(["python", example_script], cwd=DOCS_EXAMPLES_DIR)
     exit_value.check_returncode()
