@@ -221,7 +221,8 @@ class _MSCX_bs4(LoggedClass):
         super().__init__(subclass="_MSCX_bs4", logger_cfg=logger_cfg)
         self.filepath = None  # is set by :meth:`from_filepath`
         self.soup = soup
-        self.metadata = None
+        self._metadata = None
+        self._unfolded_metadata_added = False
         self._metatags = None
         self._measures, self._events, self._notes = (
             pd.DataFrame(),
@@ -1648,25 +1649,7 @@ and {loc_after} before the subsequent {nxt_name}."""
         data["last_mc"] = int(last_measure.mc)
         data["last_mn"] = int(last_measure.mn)
         data["length_qb"] = round(measures.duration_qb.sum(), 2)
-        # the same unfolded
-        unfolded_measures = self.measures(unfold=True)
-        if unfolded_measures is None:
-            for aspect in (
-                "last_mc_unfolded",
-                "last_mn_unfolded",
-                "length_qb_unfolded",
-            ):
-                data[aspect] = None
-        else:
-            data["last_mc_unfolded"] = int(max(unfolded_measures.mc_playthrough))
-            if "mn_playthrough" in unfolded_measures.columns:
-                unfolded_mn = unfolded_measures.mn_playthrough.nunique()
-                if measures.iloc[0].mn == 0:
-                    unfolded_mn -= 1
-                data["last_mn_unfolded"] = unfolded_mn
-            else:
-                data["last_mn_unfolded"] = None
-            data["length_qb_unfolded"] = round(unfolded_measures.duration_qb.sum(), 2)
+        # the same values for the unfolded measures are added lazily by the metadata property
         if self.has_voltas:
             data["volta_mcs"] = list(
                 list(list(mcs) for mcs in group.values())
@@ -3011,6 +2994,14 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
     def perform_checks(self):
         """Perform a series of checks after parsing and emit warnings registered by the ms3 check command (and,
         by extension, by ms3 review, too)."""
+        # check if the repeat structure can be unfolded (this used to happen implicitly when computing the metadata
+        # which now unfold the measures only on demand)
+        playthrough2mc = make_playthrough2mc(self.ml(), logger=self.logger)
+        if playthrough2mc is None or len(playthrough2mc) == 0:
+            self.logger.warning(
+                f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n"
+                f"{self.ml().set_index('mc').next}"
+            )
         # check if the first measure includes a metronome mark
         events = self._events
         first_two_mcs_event_types = events.loc[events.mc.isin((1, 2)), "event"]
@@ -3071,8 +3062,48 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         self.logger.debug(f"{facet} successfully unfolded.")
         return facet_df
 
+    @property
+    def metadata(self) -> Optional[dict]:
+        """Metadata from and about the MuseScore file. The values that require unfolding the repeats
+        ('last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded') are computed only when the metadata are
+        accessed for the first time (after each parse)."""
+        if self._metadata is not None and not self._unfolded_metadata_added:
+            self._add_unfolded_metadata()
+        return self._metadata
+
+    def _get_unfolded_metadata(self) -> dict:
+        unfolded_measures = self.measures(unfold=True)
+        if unfolded_measures is None:
+            return dict(
+                last_mc_unfolded=None, last_mn_unfolded=None, length_qb_unfolded=None
+            )
+        data = {"last_mc_unfolded": int(max(unfolded_measures.mc_playthrough))}
+        if "mn_playthrough" in unfolded_measures.columns:
+            unfolded_mn = unfolded_measures.mn_playthrough.nunique()
+            if self.ml().iloc[0].mn == 0:
+                unfolded_mn -= 1
+            data["last_mn_unfolded"] = unfolded_mn
+        else:
+            data["last_mn_unfolded"] = None
+        data["length_qb_unfolded"] = round(unfolded_measures.duration_qb.sum(), 2)
+        return data
+
+    def _add_unfolded_metadata(self):
+        """Inserts the unfolded values after 'length_qb' into the existing metadata dict (rather than replacing it
+        because callers may have added fields)."""
+        unfolded = self._get_unfolded_metadata()
+        items = list(self._metadata.items())
+        self._metadata.clear()
+        for key, value in items:
+            self._metadata[key] = value
+            if key == "length_qb":
+                self._metadata.update(unfolded)
+        self._metadata.update(unfolded)  # in case 'length_qb' is missing
+        self._unfolded_metadata_added = True
+
     def update_metadata(self):
-        self.metadata = self._get_metadata()
+        self._metadata = self._get_metadata()
+        self._unfolded_metadata_added = False
 
     def write_score_to_handler(self, file_handler: IO) -> bool:
         return write_score_to_handler(self.soup, file_handler, logger=self.logger)
