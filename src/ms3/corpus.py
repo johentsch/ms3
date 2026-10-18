@@ -3247,11 +3247,12 @@ class Corpus(LoggedClass):
                             piece_name += "_unfolded"
                         facet_param = "harmonies" if facet == "expanded" else facet
                         if simulate:
-                            file_path = os.path.join(
-                                directory, f"{piece}.{facet_param}.tsv"
+                            descriptor_or_resource_path = os.path.join(
+                                directory, f"{piece_name}.{facet_param}.tsv"
                             )
                             self.logger.info(
-                                f"Would have stored the {facet} from {file.rel_path} as {file_path}."
+                                f"Would have stored the {facet} from {file.rel_path} as "
+                                f"{descriptor_or_resource_path}."
                             )
                         else:
                             create_descriptor = frictionless and facet != "events"
