@@ -54,11 +54,13 @@ class TestScore:
             score_object, tmp_dir=str(tmp_path), suffix="_rewrite"
         )
 
-    def test_removing_and_reinserting_labels(self, score_object, tmp_path):
+    def test_removing_and_reinserting_labels(self, score_object, score_path, tmp_path):
         if is_ms4_score(score_object):
             pytest.skip("Round-trip to source format unsupported for MS4 input.")
         if not score_object.mscx.has_annotations:
             return
+        # this test modifies the score, so it must not use the shared one
+        score_object = Score(score_path)
         before = score_object.get_labels()
         assert len(before) == len(
             score_object.mscx.parsed.soup.find_all("Harmony")

@@ -190,34 +190,11 @@ def node_name2cfg_name(node_name):
     return cfg_name
 
 
-TEST_NAMES = defaultdict(list)
-
-
-@pytest.fixture()
-def collect_test_name(request):
-    """Helper for test_collect_cfg_names. Collects names in CFG_NAMES"""
-    function_name = request.function.__name__
-    test_name = node_name2cfg_name(request.node.name)
-    TEST_NAMES[function_name].append(test_name)
-
-
-class TestNameCollection:
-    # def test_collect_parse_obj_names(self, parse_obj, collect_test_name):
-    #     """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
-    #     print('\ntest_names = [')
-    #     for name in sorted(TEST_NAMES['test_collect_parse_obj_names']):
-    #         print(f" '{name}',")
-    #     print("]")
-
-    def test_collect_parsed_parse_obj_names(self, parsed_parse_obj, collect_test_name):
-        """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
-        print("\nname2expected.update({")
-        for name in sorted(TEST_NAMES["test_collect_parsed_parse_obj_names"]):
-            print(f" {name}:" + " {},")
-        print("})")
-
-
 # endregion test helpers
+
+
+# all tests sharing the (module-scoped) parse_obj fixture run on the same worker so that it is created only once
+pytestmark = pytest.mark.xdist_group("parse_obj")
 
 
 @pytest.mark.usefixtures("parse_objects")
@@ -344,10 +321,8 @@ class TestParsedParse:
             "without_metadata": (3, 0),
         }
         name2expected = {}  # defaultdict(lambda: (0,0))
-        parse_modes = "parsed_all-", "parse_scores-", "parsed_tsv-"
-        mode2selector = dict(
-            zip(parse_modes, ((True, True), (True, False), (False, True)))
-        )
+        parse_modes = "parsed_all-", "parsed_tsv-"
+        mode2selector = dict(zip(parse_modes, ((True, True), (False, True))))
 
         def mode_filter(expected_pair, selector):
             (n_mscx, n_tsv), (a, b) = expected_pair, selector
@@ -358,7 +333,7 @@ class TestParsedParse:
                 parse_mode
                 + test_mode: mode_filter(expected_pair, mode2selector[parse_mode])
                 for parse_mode, (test_mode, expected_pair) in product(
-                    ["parsed_all-", "parse_scores-", "parsed_tsv-"], expected.items()
+                    parse_modes, expected.items()
                 )
             }
         )
@@ -421,11 +396,6 @@ class TestParsedParse:
     #             assert False
     #         for record in eligible_records:
     #             assert record._message_id not in message_ids
-
-
-def test_fixture(get_all_warnings_parsed):
-    print(get_all_warnings_parsed)
-    assert len(get_all_warnings_parsed) > 0
 
 
 # add_dir (different keys)

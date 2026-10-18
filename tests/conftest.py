@@ -1,11 +1,13 @@
+import multiprocessing
 import os
+import re
 from copy import deepcopy
 
 import pytest
 from git import Repo
 from ms3 import Parse, Score
-from ms3.logger import get_logger
-from ms3.utils import capture_parse_logs, ignored_warnings2dict, scan_directory
+from ms3.logger import WarningFilter, get_logger, iter_ms3_loggers
+from ms3.utils import capture_parse_logs, scan_directory
 
 CORPUS_DIR = "~/git/meta_repositories/"  # Directory holding your clone of DCMLab/unittest_metacorpus
 UNITTEST_METACORPUS = os.path.join(
@@ -17,6 +19,16 @@ TEST_COMMIT = (
 MS3_DIR = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", ".."))
 DOCS_DIR = os.path.join(MS3_DIR, "docs")
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, "examples")
+
+
+def pytest_configure(config):
+    """When running on several xdist workers, shrink the process pools that ms3 creates for parsing
+    (mp.Pool(mp.cpu_count())) so that the workers together don't spawn n_workers * n_cores processes.
+    """
+    n_workers = int(os.environ.get("PYTEST_XDIST_WORKER_COUNT", 1))
+    if n_workers > 1:
+        n_processes = max(1, os.cpu_count() // n_workers)
+        multiprocessing.cpu_count = lambda: n_processes
 
 
 @pytest.fixture(scope="session")
@@ -44,7 +56,7 @@ def small_directory(directory):
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         "regex",
         "everything",
@@ -127,24 +139,21 @@ def parse_obj(directory, request) -> Parse:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         0,
-        1,
         2,
     ],
     ids=[
         "parsed_tsv",
-        "parse_scores",
         "parsed_all",
     ],
 )
 def parsed_parse_obj(parse_obj, request) -> Parse:
+    """Parsing only the scores is not tested separately because 'parsed_all' covers it."""
     p = deepcopy(parse_obj)
     if request.param == 0:
         p.parse_tsv()
-    elif request.param == 1:
-        p.parse_scores()
     elif request.param == 2:
         p.parse()
     else:
@@ -200,23 +209,37 @@ def _score_object_param(parts, ext):
     return parts[:-1] + (parts[-1] + ext,)
 
 
-_score_object_params = [
-    _score_object_param(parts, ext)
-    for _, parts in _SCORE_OBJECT_PATHS
-    for _, ext in _SCORE_OBJECT_VARIANTS
-]
-_score_object_ids = [
-    f"{nick}-{ver}"
-    for nick, _ in _SCORE_OBJECT_PATHS
-    for ver, _ in _SCORE_OBJECT_VARIANTS
-]
+def score_params(paths_and_ids):
+    """Turns (path, id) pairs into fixture params pinned to one xdist worker per score, so that the module-scoped
+    Score object is parsed only once."""
+    # xdist ignores group names containing ']' because they would be confused with parameter IDs
+    return [
+        pytest.param(
+            path,
+            id=id,
+            marks=pytest.mark.xdist_group("score-" + re.sub(r"[\[\]]", "_", id)),
+        )
+        for path, id in paths_and_ids
+    ]
 
 
-@pytest.fixture(params=_score_object_params, ids=_score_object_ids)
-def score_object(directory, request):
-    mscx_path = os.path.join(directory, *request.param)
-    s = Score(mscx_path)
-    return s
+_score_object_params = score_params(
+    (_score_object_param(parts, ext), f"{nick}-{ver}")
+    for nick, parts in _SCORE_OBJECT_PATHS
+    for ver, ext in _SCORE_OBJECT_VARIANTS
+)
+
+
+@pytest.fixture(scope="module", params=_score_object_params)
+def score_path(directory, request):
+    return os.path.join(directory, *request.param)
+
+
+@pytest.fixture(scope="module")
+def score_object(score_path):
+    """Parsed once per module and shared between tests. Tests that modify the score need to create their own
+    Score(score_path)."""
+    return Score(score_path)
 
 
 def is_ms4_score(score_object):
@@ -234,23 +257,31 @@ def get_all_warnings(directory):
 
 
 @pytest.fixture(scope="session")
-def get_all_warnings_parsed(get_all_warnings):
-    return ignored_warnings2dict(get_all_warnings)
+def parse_with_all_warnings_ignored(directory, get_all_warnings) -> dict:
+    """Parses the whole corpus with all warnings ignored and returns the captured messages
+    {'warnings': [<messages that were not ignored>], 'ignored': [<ignored messages without header line>]}.
 
-
-@pytest.fixture(scope="session")
-def get_all_supressed_warnings(directory):
+    The WarningFilters remain attached to the (global) loggers, which is why this fixture depends on
+    get_all_warnings (which would otherwise capture nothing) and removes them afterwards.
+    """
     ignored_warnings_file = os.path.join(
         directory, "mixed_files", "ALL_WARNINGS_IGNORED"
     )
     p = Parse(directory, level="d")
     p.load_ignored_warnings(ignored_warnings_file)
-    with capture_parse_logs(p.logger, level="d") as captured_msgs:
+    with capture_parse_logs(p.logger, level="d") as captured_msgs, capture_parse_logs(
+        p.logger, level="w"
+    ) as captured_warnings:
         p.parse()
         _ = p.get_dataframes(expanded=True)
-        all_msgs = captured_msgs.content_list
-    return [
+    for _, logger in iter_ms3_loggers():
+        for warning_filter in [
+            f for f in logger.filters if isinstance(f, WarningFilter)
+        ]:
+            logger.removeFilter(warning_filter)
+    ignored = [
         "\n".join(msg.split("\n\t")[1:])
-        for msg in all_msgs
+        for msg in captured_msgs.content_list
         if msg.startswith("IGNORED")
     ]
+    return dict(warnings=captured_warnings.content_list, ignored=ignored)

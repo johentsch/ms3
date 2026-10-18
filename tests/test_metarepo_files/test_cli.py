@@ -1,6 +1,8 @@
 import os
+import shutil
 from typing import Optional
 
+import pytest
 from git import Repo
 from ms3.cli import compare_cmd, extract_cmd, get_arg_parser, review_cmd
 
@@ -44,23 +46,34 @@ def assert_test_repo_unchanged(path_to_git_repo):
     assert all(is_clean.values())
 
 
-def test_review_cmd(directory):
+@pytest.fixture()
+def corpus_copy(directory, tmp_path):
+    """A private copy of the metacorpus (including the git metadata of its submodules) so that the commands, which
+    write into the corpus, neither change the clone nor disturb other tests reading it in parallel.
+    """
+    path = os.path.join(tmp_path, os.path.basename(directory))
+    shutil.copytree(directory, path, symlinks=True)
+    yield path
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def test_review_cmd(corpus_copy):
+    """Review (= check + extract + compare) parses serially, hence it is run on a single, small corpus."""
     parser = get_arg_parser()
+    directory = os.path.join(corpus_copy, "wagner_overtures")
     args = parser.parse_args(["review", "-d", directory])
     review_cmd(args)
     # make sure the repo has not changed
     # currently deactivated because the .warning files change with every new ms3 version
-    # assert_test_repo_unchanged(directory)
+    # assert_test_repo_unchanged(corpus_copy)
 
 
-def test_compare_cmd(directory):
+def test_compare_cmd(corpus_copy):
     parser = get_arg_parser()
-    directory = os.path.join(directory, "ravel_piano")
+    directory = os.path.join(corpus_copy, "sweelinck_keyboard")
     args = parser.parse_args(["compare", "-d", directory])
     compare_cmd(args)
-    repo = Repo(directory)
-    new_files = repo.untracked_files
-    repo.git.clean("-fdx")
+    new_files = Repo(directory).untracked_files
     assert len(new_files) == 0
 
 
@@ -71,20 +84,18 @@ def test_compare_cmd(directory):
 #     review_cmd(args)
 
 
-def test_extract_cmd(directory):
+def test_extract_cmd(corpus_copy):
     parser = get_arg_parser()
-    args = parser.parse_args(["extract", "-d", directory, "-M", "-N", "-X"])
+    args = parser.parse_args(["extract", "-d", corpus_copy, "-M", "-N", "-X"])
     extract_cmd(args)
-    repo = Repo(directory)
+    repo = Repo(corpus_copy)
     new_files = repo.untracked_files
     if len(new_files) > 0:
-        repo.git.clean("-fdx")
         print(
             f"ms3 extract added these files that had not been there before: {new_files}"
         )
     modified_files = [item.a_path for item in repo.index.diff(None)]
     n_modified = len(modified_files)
-    repo.git.submodule("foreach", "git", "reset", "--hard")
     if n_modified != 3:
         print(
             f"expected only the 3 CSV files to change during extraction but: {modified_files}"

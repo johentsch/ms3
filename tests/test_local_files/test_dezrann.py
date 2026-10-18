@@ -7,6 +7,7 @@ second endings).
 
 import ast
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -321,6 +322,9 @@ def test_main_with_unsuffixed_file_names(tmp_path):
 
 
 def test_main_reports_failures(tmp_path, caplog):
+    # set the level explicitly because, depending on which tests ran before on the same worker, ms3 may have set
+    # pytest's capturing handler (which pytest attaches also to ms3's non-propagating loggers) to WARNING
+    caplog.set_level(logging.INFO, logger=dezrann.logger.name)
     for folder in ("harmonies", "measures"):
         (tmp_path / folder).mkdir()
     shutil.copy(measures_path("K283-2"), tmp_path / "measures")

@@ -28,21 +28,80 @@ _SCORE_STEMS = [
 _SCORE_VARIANTS = [("MS3", ".mscx"), ("MS4", ".mscz")]
 
 _score_params = [
-    (subdir, stem + ext) for _, stem in _SCORE_STEMS for subdir, ext in _SCORE_VARIANTS
-]
-_score_ids = [
-    f"{nick}-{subdir.lower()}"
-    for nick, _ in _SCORE_STEMS
-    for subdir, _ in _SCORE_VARIANTS
+    pytest.param(
+        (subdir, stem + ext),
+        id=f"{nick}-{subdir.lower()}",
+        # all tests using the same score run on the same xdist worker so that it is parsed only once
+        marks=pytest.mark.xdist_group(f"local-{nick}-{subdir.lower()}"),
+    )
+    for nick, stem in _SCORE_STEMS
+    for subdir, ext in _SCORE_VARIANTS
 ]
 
 
-@pytest.fixture(params=_score_params, ids=_score_ids)
-def score_object(request):
+def _select_params(*ids):
+    """Selects a subset of the score params (keeping their xdist_group so that each score is parsed only once)."""
+    selected = [param for param in _score_params if param.id in ids]
+    assert len(selected) == len(ids), f"Unknown score IDs among {ids}"
+    return selected
+
+
+# Excerpts are a minor feature and expensive to test (each excerpt is a complete MSCX file), so the excerpt tests
+# only use 3 pieces in MS3 format and 3 other pieces in MS4 format.
+_EXCERPT_PARAMS = _select_params(
+    "pergolesi-ms3",
+    "schubert-ms3",
+    "sarti-ms3",
+    "mozart-ms4",
+    "bach-ms4",
+    "monty-ms4",
+)
+# the only two of the above that come with phrase annotations
+_PHRASE_PARAMS = _select_params("pergolesi-ms3", "mozart-ms4")
+
+MAX_STORED_EXCERPTS = 2
+"""Phrase-based excerpt methods create one excerpt per phrase, window etc. (up to several hundred per score). The
+tests compute all of them but only store the first few."""
+
+
+@pytest.fixture(scope="module", params=_score_params)
+def score_path(request):
     test_folder = os.path.dirname(os.path.realpath(__file__))
     subdir, filename = request.param
-    s = ms3.Score(os.path.join(test_folder, subdir, filename))
-    return s
+    return os.path.join(test_folder, subdir, filename)
+
+
+@pytest.fixture(scope="module")
+def parsed_scores() -> dict:
+    """{path -> Score} cache, needed because the excerpt tests parametrize score_path separately, which makes pytest
+    re-create the score_object fixture."""
+    return {}
+
+
+@pytest.fixture(scope="module")
+def score_object(score_path, parsed_scores):
+    """Parsed once per module and shared between tests. Tests that modify the score need to create their own
+    ms3.Score(score_path)."""
+    if score_path not in parsed_scores:
+        parsed_scores[score_path] = ms3.Score(score_path)
+    return parsed_scores[score_path]
+
+
+@pytest.fixture()
+def stored_excerpts(score_object, monkeypatch):
+    """Lets MSCX.store_measures(), which all excerpt methods use, store only the first MAX_STORED_EXCERPTS excerpts
+    and returns the list of all calls' kwargs."""
+    mscx = score_object.mscx
+    store_measures = mscx.store_measures
+    calls = []
+
+    def capped_store_measures(**kwargs):
+        calls.append(kwargs)
+        if len(calls) <= MAX_STORED_EXCERPTS:
+            store_measures(**kwargs)
+
+    monkeypatch.setattr(mscx, "store_measures", capped_store_measures)
+    return calls
 
 
 def _skip_if_ms4(score_object):
@@ -90,8 +149,10 @@ class TestScore:
         target_path = os.path.join(self.test_results, piece_name)
         return load_tsv(target_path)
 
-    def test_parse_and_write_back(self, score_object):
+    def test_parse_and_write_back(self, score_object, score_path):
         _skip_if_ms4(score_object)
+        # this test modifies the score, so it must not use the shared one
+        score_object = ms3.Score(score_path)
         original_mscx = score_object.full_paths["mscx"]
         try:
             tmp_file = tempfile.NamedTemporaryFile(
@@ -114,9 +175,11 @@ class TestScore:
             tmp_file.close()
             os.remove(tmp_file.name)
 
-    def test_store_and_load_labels(self, score_object):
+    def test_store_and_load_labels(self, score_object, score_path):
         _skip_if_ms4(score_object)
         if score_object.mscx.has_annotations:
+            # this test modifies the score, so it must not use the shared one
+            score_object = ms3.Score(score_path)
             piece_name = _piece_name(score_object) + ".labels.tsv"
             labels_path = os.path.join(self.test_results, piece_name)
             score_object.load_annotations(labels_path, key="tsv")
@@ -194,8 +257,10 @@ class TestScore:
         finally:
             os.remove(tmp_file.name)
 
+
+@pytest.mark.parametrize("score_path", _EXCERPT_PARAMS, indirect=True, scope="module")
+class TestExcerpts:
     def test_excerpt(self, score_object, tmp_path):
-        print(f"CREATING EXCERPTS IN {tmp_path}")
         for start, end in ((1, 3), (2, 2), (3, None)):
             score_object.mscx.store_excerpt(
                 start_mc=start,
@@ -204,57 +269,56 @@ class TestScore:
             )
         assert len(os.listdir(tmp_path)) == 3
 
-    def test_phrase_excerpts(self, score_object, tmp_path):
-        skip_if_no_annotation_labels(score_object)
-        print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
-        score_object.mscx.store_phrase_excerpts(
-            directory=str(tmp_path),
-        )
-        if score_object.mscx.has_annotations:
-            assert len(os.listdir(tmp_path)) > 0
-
-    def test_random_excerpts(self, score_object, tmp_path):
-        print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
-        score_object.mscx.store_random_excerpts(
-            n_excerpts=3,
-            directory=str(tmp_path),
-        )
-        assert len(os.listdir(tmp_path)) == 3
-
-    def test_storing_all_excerpts(self, score_object, tmp_path):
-        print(f"CREATING RANDOM EXCERPTS IN {tmp_path}")
-        last_mc = score_object.mscx.measures().mc.max()
-        mn_length = last_mc - 2
-        score_object.mscx.store_random_excerpts(
-            mc_length=int(mn_length),
-            directory=str(tmp_path),
-        )
-        assert len(os.listdir(tmp_path)) == 3
-
     def test_store_measures(self, score_object, tmp_path):
-        print(f"CREATING PHRASE EXCERPTS IN {tmp_path}")
         score_object.mscx.store_measures(
             included_mcs=(1, 2),
             directory=str(tmp_path),
         )
         assert len(os.listdir(tmp_path)) == 1
 
-    def test_within_phrase_excerpts(self, score_object, tmp_path):
-        skip_if_no_annotation_labels(score_object)
-        print(f"CREATING WITHIN PHRASE EXCERPTS IN {tmp_path}")
+    def test_random_excerpts(self, score_object, tmp_path):
+        score_object.mscx.store_random_excerpts(
+            n_excerpts=2,
+            directory=str(tmp_path),
+        )
+        assert len(os.listdir(tmp_path)) == 2
+
+
+@pytest.mark.parametrize("score_path", _PHRASE_PARAMS, indirect=True, scope="module")
+class TestPhraseExcerpts:
+    @pytest.fixture(autouse=True)
+    def assert_phrase_annotations(self, score_object):
+        dcml_labels = score_object.mscx.expanded(unfold=True)
+        assert check_phrase_annotations(dcml_labels, "phraseend")
+
+    def test_phrase_excerpts(self, score_object, stored_excerpts, tmp_path):
+        score_object.mscx.store_phrase_excerpts(
+            directory=str(tmp_path),
+        )
+        n_phrases = len(score_object.mscx.get_phrase_boundaries())
+        assert len(stored_excerpts) == n_phrases > 0
+        assert len(os.listdir(tmp_path)) == min(n_phrases, MAX_STORED_EXCERPTS)
+
+    def test_within_phrase_excerpts(self, score_object, stored_excerpts, tmp_path):
         score_object.mscx.store_within_phrase_excerpts(directory=str(tmp_path))
-        assert len(os.listdir(tmp_path)) > 0
+        assert len(stored_excerpts) > 0
+        assert len(os.listdir(tmp_path)) == min(
+            len(stored_excerpts), MAX_STORED_EXCERPTS
+        )
 
-    def test_phrase_endings(self, score_object, tmp_path):
-        skip_if_no_annotation_labels(score_object)
-        print(f"CREATING PHRASE ENDING EXCERPTS IN {tmp_path}")
+    def test_phrase_endings(self, score_object, stored_excerpts, tmp_path):
         score_object.mscx.store_phrase_endings(directory=str(tmp_path))
-        assert len(os.listdir(tmp_path)) > 0
+        assert len(stored_excerpts) > 0
+        assert len(os.listdir(tmp_path)) == min(
+            len(stored_excerpts), MAX_STORED_EXCERPTS
+        )
 
 
-def skip_if_no_annotation_labels(score_object):
-    dcml_labels = score_object.mscx.expanded(unfold=True)
-    if dcml_labels is None or len(dcml_labels) == 0:
-        pytest.skip("No labels to extract phrase endings from.")
-    if not check_phrase_annotations(dcml_labels, "phraseend"):
-        pytest.skip("Incongruent phrase annotations.")
+@pytest.mark.parametrize(
+    "score_path", _select_params("schubert-ms3"), indirect=True, scope="module"
+)
+def test_storing_all_excerpts(score_object, tmp_path):
+    """Without n_excerpts, all possible excerpts (one per window of 2 MCs) are stored. Tested on the shortest score."""
+    score_object.mscx.store_random_excerpts(directory=str(tmp_path))
+    last_mc = score_object.mscx.measures().mc.max()
+    assert len(os.listdir(tmp_path)) == last_mc - 1

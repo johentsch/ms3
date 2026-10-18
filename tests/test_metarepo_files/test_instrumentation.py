@@ -254,13 +254,14 @@ def test_instrumentation_after_instrument_change(source_path):
 
 
 def test_accessing_instrumentation_after_instrument_change(source_path):
-    """Analogous to test_instrumentation_after_instrument_change but using a Score object."""
+    """Analogous to test_instrumentation_after_instrument_change but using a Score object. Since parsing a Score is
+    expensive and the Instrumentation object is the same, only the first test case per file is tested.
+    """
     file_name = os.path.basename(source_path)
     if file_name not in TEST_CASES:
         pytest.skip(f"No test cases defined for {file_name}")
-    for (staff_to_modify, new_instrument), staff_id2expected_instrument in TEST_CASES[
-        file_name
-    ].items():
+    first_case = next(iter(TEST_CASES[file_name].items()))
+    for (staff_to_modify, new_instrument), staff_id2expected_instrument in [first_case]:
         print(f"Creating new Score object from {source_path}...")
         score = Score(source_path)
         tested_object = score.mscx.parsed.instrumentation

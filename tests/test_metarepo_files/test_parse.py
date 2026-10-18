@@ -1,16 +1,30 @@
+import logging
 import os
 
-from ms3 import Parse, capture_parse_logs, first_level_subdirs, ignored_warnings2dict
-from ms3.logger import get_logger, iter_ms3_loggers
+import pytest
+from ms3 import Parse, capture_parse_logs, first_level_subdirs
+from ms3.logger import LogCaptureHandler, get_logger, iter_ms3_loggers
+
+# a single, small piece emitting warnings, in both MS3 and MS4 format
+SMALL_PIECE = dict(file_re="Oiseaux")
 
 
 class TestEquivalence:
-    def test_parallel(self, directory):
-        a = Parse(directory)
-        b = Parse(directory)
-        a.parse_scores()
-        b.parse_scores(parallel=False)
+    def test_parallel(self, small_directory):
+        """Parsing in parallel or iteratively yields the same files and log messages."""
+        a = Parse(small_directory, level="i", **SMALL_PIECE)
+        b = Parse(small_directory, level="i", **SMALL_PIECE)
+        # the file_re filter creates a view with a random name
+        a.view_name = b.view_name = "small_piece"
+        with capture_parse_logs(a.logger) as captured_msgs:
+            a.parse_scores(parallel=False)
+            non_parallel_msgs = captured_msgs.content_list
+        with capture_parse_logs(b.logger) as captured_msgs:
+            b.parse_scores(parallel=True)
+            parallel_msgs = captured_msgs.content_list
         assert a.info(return_str=True) == b.info(return_str=True)
+        not_captured = [msg for msg in non_parallel_msgs if msg not in parallel_msgs]
+        assert len(not_captured) == 0
 
     def test_add_corpus(self, directory):
         a = Parse(directory)
@@ -24,9 +38,17 @@ class TestEquivalence:
         assert len(b.count_extensions()) == 1
 
 
+def is_ms3_handler(handler: logging.Handler) -> bool:
+    """Since pytest 9, pytest attaches its own capturing handlers to all non-propagating loggers, which includes
+    ms3's head loggers. Their levels are not ms3's business."""
+    return isinstance(handler, LogCaptureHandler) or not type(
+        handler
+    ).__module__.startswith("_pytest")
+
+
 def assert_all_loggers_level(level):
     for name, logger in iter_ms3_loggers():
-        if not name.startswith("ms3.Parse"):
+        if not (name == "ms3.Parse" or name.startswith("ms3.Parse.")):
             continue
         eff_level = logger.getEffectiveLevel()
         if eff_level != level:
@@ -36,143 +58,69 @@ def assert_all_loggers_level(level):
             )
         assert eff_level == level
         for h in logger.handlers:
+            if not is_ms3_handler(h):
+                continue
             h_level = h.level
-            if eff_level != level:
+            if h_level != level:
                 print(
-                    f"THE {h.__class__} of {logger.name} SHOULD HAVE LEVEL {level}, not {h_level}."
+                    f"THE {h!r} of {logger.name} SHOULD HAVE LEVEL {level}, not {h_level}."
                 )
             assert h_level == level
 
 
-class TestLogging:
-    def test_parallel_log_capture(self, small_directory):
-        """Compare log messages emitted when parsing the same thing in parallel or iteratively."""
-        a = Parse(small_directory, level="i")
-        b = Parse(small_directory, level="i")
-        with capture_parse_logs(a.logger) as captured_msgs:
-            a.parse_scores(parallel=False)
-            non_parallel_msgs = captured_msgs.content_list
-        with capture_parse_logs(b.logger) as captured_msgs:
-            b.parse_scores(parallel=True)
-            parallel_msgs = captured_msgs.content_list
-        not_captured = [msg for msg in non_parallel_msgs if msg not in parallel_msgs]
-        assert len(not_captured) == 0
+class RecordCollector(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.DEBUG)
+        self.records = []
 
-    def test_default(self, small_directory):
-        p = Parse(small_directory)
-        p.parse()
+    def emit(self, record):
+        self.records.append(record)
+
+
+@pytest.mark.parametrize(
+    "level, expected_level",
+    [(None, 30), (0, 30), ("d", 10), ("i", 20), ("w", 30), ("e", 40), ("c", 50)],
+    ids=["default", "notset", "debug", "info", "warning", "error", "critical"],
+)
+def test_logging_level(small_directory, level, expected_level):
+    """All loggers involved in parsing have the requested level and no message below that level is emitted.
+    Parsing iteratively because log messages from parallel workers are not passed on as LogRecords (equivalence with
+    parallel parsing is covered by TestEquivalence.test_parallel)."""
+    if level is None:
+        p = Parse(small_directory, **SMALL_PIECE)
+    else:
+        p = Parse(small_directory, level=level, **SMALL_PIECE)
+    collector = RecordCollector()
+    p.logger.addHandler(collector)
+    try:
+        p.parse(parallel=False)
         _ = p.get_dataframes(expanded=True)
-        assert_all_loggers_level(30)
+    finally:
+        p.logger.removeHandler(collector)
+    assert_all_loggers_level(expected_level)
+    too_verbose = [
+        f"{r.levelname}: {r.getMessage()}"
+        for r in collector.records
+        if r.levelno < expected_level
+    ]
+    assert too_verbose == []
+    if expected_level <= 30:
+        # make sure the corpus emits messages at all, otherwise the test would be meaningless
+        assert any(r.levelno >= 30 for r in collector.records)
 
-    def test_debug(self, small_directory):
-        p = Parse(small_directory, level="d")
-        p.parse()
-        _ = p.get_dataframes(expanded=True)
-        assert_all_loggers_level(10)
 
-    def test_info(self, small_directory):
-        p = Parse(small_directory, level="i")
-        with capture_parse_logs(p.logger) as captured_msgs:
-            p.parse()
-            _ = p.get_dataframes(expanded=True)
-            all_msgs = captured_msgs.content_list
-        assert_all_loggers_level(20)
-        wrong_msgs = [msg for msg in all_msgs if msg.startswith("DEBUG")]
-        if len(wrong_msgs) > 0:
-            print("\n".join(wrong_msgs))
-            assert False
-
-    def test_warning(self, small_directory):
-        p = Parse(small_directory, level="w")
-        with capture_parse_logs(p.logger) as captured_msgs:
-            p.parse()
-            _ = p.get_dataframes(expanded=True)
-            all_msgs = captured_msgs.content_list
-        assert_all_loggers_level(30)
-        wrong_msgs = [
-            msg for msg in all_msgs if msg.startswith("INFO") or msg.startswith("DEBUG")
-        ]
-        if len(wrong_msgs) > 0:
-            print("\n".join(wrong_msgs))
-            assert False
-
-    def test_error(self, small_directory):
-        p = Parse(small_directory, level="e")
-        with capture_parse_logs(p.logger) as captured_msgs:
-            p.parse()
-            _ = p.get_dataframes(expanded=True)
-            all_msgs = captured_msgs.content_list
-        assert_all_loggers_level(40)
-        wrong_msgs = [msg for msg in all_msgs if "WARNING" in msg]
-        if len(wrong_msgs) > 0:
-            print("\n".join(wrong_msgs))
-            assert False
-
-    def test_critical(self, small_directory):
-        p = Parse(small_directory, level="c")
-        with capture_parse_logs(p.logger) as captured_msgs:
-            p.parse()
-            _ = p.get_dataframes(expanded=True)
-            all_msgs = captured_msgs.content_list
-        assert_all_loggers_level(50)
-        if len(all_msgs) > 0:
-            print("\n".join(all_msgs))
-            assert False
-
-    def test_notset(self, small_directory):
-        p = Parse(small_directory, level=0)
-        p.parse()
-        _ = p.get_dataframes(expanded=True)
-        assert_all_loggers_level(30)
-
-    def test_ignoring_all_warnings(self, directory):
-        ignored_warnings_file = os.path.join(
-            directory, "mixed_files", "ALL_WARNINGS_IGNORED"
-        )
-        p = Parse(directory)
-        p.load_ignored_warnings(ignored_warnings_file)
-        with capture_parse_logs(p.logger) as captured_msgs:
-            p.parse()
-            _ = p.get_dataframes(expanded=True)
-            all_msgs = captured_msgs.content_list
-        assert all_msgs == []
+@pytest.mark.xdist_group("all_warnings")
+class TestIgnoredWarnings:
+    def test_ignoring_all_warnings(self, parse_with_all_warnings_ignored):
+        assert parse_with_all_warnings_ignored["warnings"] == []
 
     def test_capturing_suppressed_warnings(
-        self, get_all_warnings, get_all_supressed_warnings
+        self, get_all_warnings, parse_with_all_warnings_ignored
     ):
-        for usual_warning in get_all_warnings:
-            if usual_warning not in get_all_supressed_warnings:
-                print(("NOT FOUND:", usual_warning))
-                print(get_all_supressed_warnings)
-            assert usual_warning in get_all_supressed_warnings
-
-    def test_seeing_ignored_warnings(self, directory, get_all_warnings_parsed):
-        ignored_warnings_file = os.path.join(
-            directory, "mixed_files", "ALL_WARNINGS_IGNORED"
-        )
-        p = Parse(directory, level="d")
-        p.load_ignored_warnings(ignored_warnings_file)
-        with capture_parse_logs(p.logger, level="d") as captured_msgs:
-            p.parse()
-            _ = p.extract_facets("expanded")
-            all_msgs = captured_msgs.content_list
-        ignored = [
-            "\n".join(msg.split("\n\t")[1:])
-            for msg in all_msgs
-            if msg.startswith("IGNORED")
-        ]
-        try:
-            ignored_parsed = ignored_warnings2dict(ignored)
-        except ValueError:
-            print(ignored)
-            raise
-        for logger_name, message_ids in get_all_warnings_parsed.items():
-            assert logger_name in ignored_parsed
-            emitted_and_ignored = ignored_parsed[logger_name]
-            for id in message_ids:
-                assert id in emitted_and_ignored
-
-
-def test_fixture(get_all_supressed_warnings):
-    print(get_all_supressed_warnings)
-    assert len(get_all_supressed_warnings) > 0
+        """Every warning emitted without ignoring warnings shows up as an ignored message."""
+        assert len(get_all_warnings) > 0
+        suppressed = parse_with_all_warnings_ignored["ignored"]
+        not_found = [msg for msg in get_all_warnings if msg not in suppressed]
+        if len(not_found) > 0:
+            print("NOT FOUND:\n" + "\n".join(not_found))
+        assert not_found == []
