@@ -4882,8 +4882,12 @@ def capture_parse_logs(
         logger = get_logger(logger)
     captured_warnings = LogCapturer(level=level)
     logger_object.addHandler(captured_warnings.log_handler)
-    yield captured_warnings
-    logger_object.removeHandler(captured_warnings.log_handler)
+    try:
+        yield captured_warnings
+    finally:
+        # config_logger() leaves the level of LogCaptureHandlers untouched, so a leftover one would keep
+        # capturing at its level after an exception within the context
+        logger_object.removeHandler(captured_warnings.log_handler)
 
 
 def update_labels_cfg(labels_cfg, logger=None):

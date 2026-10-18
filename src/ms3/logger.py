@@ -500,8 +500,10 @@ def inspect_loggers(exclude_placeholders=False) -> dict:
 def temporarily_suppress_warnings(logged_object: LoggedClass):
     prev_level = logged_object.logger.level
     logged_object.change_logger_cfg(level="c")
-    yield logged_object
-    logged_object.change_logger_cfg(level=prev_level)
+    try:
+        yield logged_object
+    finally:
+        logged_object.change_logger_cfg(level=prev_level)
 
 
 def normalize_logger_name(name: str) -> str:
