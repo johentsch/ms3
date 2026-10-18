@@ -52,7 +52,6 @@ from pandas._typing import Dtype
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
-from typing_extensions import Self
 
 from .constants import (
     BOOLEAN_COLUMNS,
@@ -77,6 +76,11 @@ from .constants import (
     TIMESIG_DICT_ENTRY_REGEX,
     rgba,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 module_logger = get_logger(__name__)
 
