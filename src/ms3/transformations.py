@@ -1232,6 +1232,116 @@ def make_gantt_data(
     return res
 
 
+MEASURE_MAP_FIELDS = (
+    "ID",
+    "count",
+    "qstamp",
+    "number",
+    "name",
+    "time_signature",
+    "nominal_length",
+    "actual_length",
+    "start_repeat",
+    "end_repeat",
+    "next",
+)
+"""The fields of a MeasureMap entry in the order in which :func:`measures2measure_map` outputs them."""
+
+
+def _volta2letter(volta) -> str:
+    """Turns a volta number into the letter that is appended to the measure number: 1 -> 'a', 2 -> 'b', etc."""
+    if pd.isna(volta):
+        return ""
+    return chr(int(volta) + 96)
+
+
+def measures2measure_map(df: pd.DataFrame) -> pd.DataFrame:
+    """Turns the given measures table into a table corresponding to the MeasureMap specification
+    (https://github.com/measure-map). This includes renaming columns and applying mild transformations to some of them.
+    All values are native Python objects, so the result can be serialized to JSON via
+    ``json.dump(measure_map.to_dict(orient="records"), f)``.
+
+    The resulting columns are:
+
+    * ``ID`` (str): the measure count as string.
+    * ``count`` (int): the measure count (|mc|).
+    * ``qstamp`` (float): offset from the beginning in quarter notes, counting all endings.
+    * ``number`` (int): the measure number (|mn|).
+    * ``name`` (str): the measure number, followed by a letter for measures within voltas (1 -> 'a', 2 -> 'b', etc.).
+    * ``time_signature`` (str): the time signature, e.g. '3/4'.
+    * ``nominal_length`` (float): the length implied by the time signature, in quarter notes.
+    * ``actual_length`` (float): the actual length of the measure, in quarter notes.
+    * ``start_repeat`` (bool): whether the measure begins with a start repeat sign.
+    * ``end_repeat`` (bool): whether the measure ends with an end repeat sign.
+    * ``next`` (list of int): the counts of the measures that can follow this one; [-1] means end of the piece.
+
+    Args:
+        df: Measures table for a single piece, as output by ms3 (without unfolding repeats).
+
+    Returns:
+        The measure map where each row corresponds to one entry.
+
+    Raises:
+        ValueError:
+            If the measures table has been unfolded, or if the column used for "qstamp" contains NA values. This
+            column is quarterbeats_all_endings if present (scores with voltas), which never includes NA values,
+            and quarterbeats otherwise.
+    """
+    if "mc_playthrough" in df.columns:
+        raise ValueError(
+            "Measure maps describe the score's measures and need to be computed from a measures table that has not "
+            "been unfolded."
+        )
+    count_col = df.mc.astype(int).rename("count")
+    id_col = count_col.astype(str).rename("ID")
+    number_col = df.mn.astype(int).rename("number")
+    name_col = number_col.astype(str).rename("name")
+    if "volta" in df.columns:
+        volta_letters = [_volta2letter(volta) for volta in df.volta]
+        name_col = (name_col + pd.Series(volta_letters, index=df.index)).rename("name")
+    timesig_col = df.timesig.astype(str).rename("time_signature")
+
+    # quarterbeats_all_endings only present in measures if score has voltas
+    if "quarterbeats_all_endings" in df.columns:
+        qstamp_col = df.quarterbeats_all_endings
+    else:
+        qstamp_col = df.quarterbeats
+    if qstamp_col.isna().any():
+        raise ValueError(f"There are NA values in the column {qstamp_col.name!r}.")
+    qstamp_col = qstamp_col.map(float).rename("qstamp")
+    nominal_col = df.timesig.map(lambda ts: float(frac(ts) * 4)).rename(
+        "nominal_length"
+    )
+    actual_col = df.act_dur.map(lambda dur: float(frac(dur) * 4)).rename(
+        "actual_length"
+    )
+    if "repeats" in df.columns:
+        repeats = df.repeats.astype("string").fillna("")
+    else:
+        repeats = pd.Series("", index=df.index, dtype="string")
+    start_repeat_col = repeats.str.contains("start").astype(bool).rename("start_repeat")
+    end_repeat_col = repeats.str.contains("end").astype(bool).rename("end_repeat")
+    next_col = df.next.map(lambda nxt: [int(mc) for mc in nxt]).rename("next")
+
+    measure_map = pd.concat(
+        [
+            id_col,
+            count_col,
+            qstamp_col,
+            number_col,
+            name_col,
+            timesig_col,
+            nominal_col,
+            actual_col,
+            start_repeat_col,
+            end_repeat_col,
+            next_col,
+        ],
+        axis=1,
+    )
+    return measure_map
+
+
 def notes2pcvs(
     notes,
     pitch_class_format="tpc",
