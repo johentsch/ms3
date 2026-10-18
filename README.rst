@@ -99,6 +99,8 @@ that has Python 3.10 installed you can pip-install the library via one of the tw
     pip install ms3
 
 If successful, the installation will make the ``ms3`` commands available in your PATH (try by typing ``ms3``).
+For working with corpora that are git repositories (e.g. including their version information in the extracted
+metadata), install ``pip install "ms3[git]"`` instead.
 
 Quick demo
 ==========

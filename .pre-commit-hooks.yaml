@@ -4,3 +4,4 @@
     entry: ms3 precommit
     language: python
     files: \.(mscx|mscz)$
+    additional_dependencies: ["ms3[precommit]"]

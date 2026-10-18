@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 import warnings
 from ast import literal_eval
 from collections import Counter, defaultdict
@@ -22,6 +23,7 @@ from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -39,20 +41,16 @@ from typing import (
 from zipfile import ZipFile as Zip
 
 import bs4
-import git
 import numpy as np
 import pandas as pd
 import webcolors
-from gitdb.exc import BadName
 from ms3._typing import Facet, FileDataframeTupleMaybe, FileDict, ViewDict
 from ms3.logger import LogCapturer, get_logger, update_cfg
 from numpy.typing import NDArray
 from pandas._typing import Dtype
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
-from pytablewriter import MarkdownTableWriter
 from tqdm import tqdm
-from typing_extensions import Self
 
 from .constants import (
     BOOLEAN_COLUMNS,
@@ -77,6 +75,14 @@ from .constants import (
     TIMESIG_DICT_ENTRY_REGEX,
     rgba,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
+if TYPE_CHECKING:
+    import git
 
 module_logger = get_logger(__name__)
 
@@ -982,19 +988,95 @@ def decode_harmonies(
     return df
 
 
-def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
+def df2md(df: pd.DataFrame, name: str = "Overview") -> str:
     """Alias for :func:`dataframe2markdown`."""
     return dataframe2markdown(df, name=name)
 
 
-def dataframe2markdown(
-    df: pd.DataFrame, name: Optional[str] = None
-) -> MarkdownTableWriter:
-    """Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string."""
-    writer = MarkdownTableWriter()
-    writer.table_name = name
-    writer.from_dataframe(df)
-    return writer
+def _markdown_cell(value) -> Tuple[str, Optional[float]]:
+    """Returns the cell's text and, if the value is numerical (including numerical strings), its float value."""
+    if isinstance(value, (bool, np.bool_)) or (
+        not isinstance(value, str) and pd.isnull(value)
+    ):
+        return ("" if pd.isnull(value) else str(value)), None
+    if isinstance(value, (int, float, np.number)):
+        return np.format_float_positional(value, trim="-"), float(value)
+    text = str(value).replace("|", "\\|").replace("\n", " ")
+    try:
+        number = float(text)
+    except ValueError:
+        return text, None
+    return text, (number if np.isfinite(number) else None)
+
+
+def _markdown_width(text: str) -> int:
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+
+
+def _pad(text: str, width: int, align: Literal["<", ">", "^"]) -> str:
+    return f"{text:{align}{width - _markdown_width(text) + len(text)}}"
+
+
+def dataframe2markdown(df: pd.DataFrame, name: Optional[str] = None) -> str:
+    """Turns a DataFrame into a MarkDown table (ignoring the index), optionally preceded by a first-level heading.
+    Numerical columns are right-aligned and use the same number of decimal places for all values.
+    """
+    header = [str(col) for col in df.columns]
+    cells, aligns = [], []
+    for col in df.columns:
+        texts, numbers = (
+            zip(*(_markdown_cell(v) for v in df[col])) if len(df) else ((), ())
+        )
+        filled = [(t, n) for t, n in zip(texts, numbers) if t != ""]
+        if len(filled) == 0 or any(n is None for _, n in filled):
+            # like pytablewriter, right-align numbers in a string column, numerical strings only if the first
+            # value is numerical
+            cell_texts, cell_aligns = [], []
+            numerical_strings = len(df) > 0 and (
+                texts[0] == "" or numbers[0] is not None
+            )
+            for value, text, number in zip(df[col], texts, numbers):
+                if number is not None and (
+                    numerical_strings or not isinstance(value, str)
+                ):
+                    text = np.format_float_positional(number, trim="-")
+                    cell_aligns.append(">")
+                else:
+                    cell_aligns.append("<")
+                cell_texts.append(text)
+            aligns.append(cell_aligns)
+            cells.append(cell_texts)
+            continue
+        aligns.append(">")
+        decimals = max(
+            len(np.format_float_positional(n, trim="-").partition(".")[2])
+            for _, n in filled
+        )
+        cells.append(
+            ["" if t == "" else f"{n:.{decimals}f}" for t, n in zip(texts, numbers)]
+        )
+    widths = [
+        max([3, _markdown_width(head)] + [_markdown_width(c) for c in col])
+        for head, col in zip(header, cells)
+    ]
+    lines = [
+        "|" + "|".join(_pad(h, w, "^") for h, w in zip(header, widths)) + "|",
+        "|"
+        + "|".join(
+            "-" * (w - 1) + (":" if a == ">" else "-") for w, a in zip(widths, aligns)
+        )
+        + "|",
+    ]
+    for i, row in enumerate(zip(*cells)):
+        row_aligns = [a if isinstance(a, str) else a[i] for a in aligns]
+        lines.append(
+            "|"
+            + "|".join(_pad(c, w, a) for c, w, a in zip(row, widths, row_aligns))
+            + "|"
+        )
+    if name:
+        lines.insert(0, f"# {name}")
+    return "\n".join(lines) + "\n"
 
 
 def dict2oneliner(d: dict) -> str:
@@ -1867,8 +1949,36 @@ def _fifths2str(fifths: int, steps: Collection[str], inverted: bool = False) -> 
     return acc + steps[fifths % 7]
 
 
+def import_git():
+    """Returns the GitPython module or raises an ImportError explaining how to install it."""
+    try:
+        import git
+    except ImportError as e:
+        raise ImportError(
+            f"This functionality requires GitPython, which can be installed via `pip install ms3[git]` ({e})"
+        ) from e
+    return git
+
+
+def is_inside_git_work_tree(
+    directory: str | Path, search_parent_directories: bool = True
+) -> bool:
+    """Checks for a .git folder (or file, for submodules and worktrees) without requiring GitPython."""
+    path = Path(directory).expanduser().resolve()
+    candidates = [path, *path.parents] if search_parent_directories else [path]
+    return any((candidate / ".git").exists() for candidate in candidates)
+
+
+@cache
+def _warn_about_missing_gitpython(logger: logging.Logger) -> None:
+    logger.warning(
+        "This corpus is (part of) a git repository but GitPython is not installed, so no version information "
+        "will be included in the output metadata. Install it via `pip install ms3[git]`."
+    )
+
+
 def get_name_of_highest_version_tag(
-    repo: git.Repo,
+    repo: "git.Repo",
 ) -> Optional[str]:
     descending_tags = repo.git.tag(l=True, sort="-v:refname")
     latest_version = descending_tags.split("\n")[0]
@@ -1879,7 +1989,7 @@ def get_name_of_highest_version_tag(
 @cache
 def get_git_commit(
     repo_path: str, git_revision: Optional[str], logger=None
-) -> Optional[git.Commit]:
+) -> Optional["git.Commit"]:
     """Returns the git commit object for the given revision.
 
     Args:
@@ -1896,6 +2006,7 @@ def get_git_commit(
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
+    git = import_git()
     try:
         repo = git.Repo(repo_path, search_parent_directories=True)
     except Exception as e:
@@ -1909,7 +2020,7 @@ def get_git_commit(
             )
     try:
         return repo.commit(git_revision)
-    except BadName:
+    except git.BadName:
         logger.error(
             f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}."
         )
@@ -1919,11 +2030,17 @@ def get_git_repo(
     directory: str | Path,
     search_parent_directories: bool = True,
     logger: Optional[logging.Logger | str] = None,
-) -> Optional[git.Repo]:
+) -> Optional["git.Repo"]:
     if logger is None:
         logger = module_logger
     elif isinstance(logger, str):
         logger = get_logger(logger)
+    try:
+        git = import_git()
+    except ImportError:
+        if is_inside_git_work_tree(directory, search_parent_directories):
+            _warn_about_missing_gitpython(logger)
+        return None
     try:
         repo = git.Repo(directory, search_parent_directories=search_parent_directories)
         logger.debug(
@@ -1939,7 +2056,7 @@ def get_git_repo(
 
 
 def get_git_revision(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
 ) -> str:
     if repo is None:
@@ -1952,18 +2069,18 @@ def get_git_revision(
 
 @overload
 def get_git_tag(
-    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[True]
+    repo: Optional["git.Repo"], repo_path: Optional[str], always: Literal[True]
 ) -> str: ...
 
 
 @overload
 def get_git_tag(
-    repo: Optional[git.Repo], repo_path: Optional[str], always: Literal[False]
+    repo: Optional["git.Repo"], repo_path: Optional[str], always: Literal[False]
 ) -> Optional[str]: ...
 
 
 def get_git_tag(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
     always: bool = True,
 ) -> Optional[str]:
@@ -1982,7 +2099,7 @@ def get_git_tag(
 
 
 def get_git_version_info(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
     only_if_clean: bool = True,
 ):
@@ -2000,7 +2117,7 @@ def get_git_version_info(
 
 
 def git_repo_is_clean(
-    repo: Optional[git.Repo] = None,
+    repo: Optional["git.Repo"] = None,
     repo_path: Optional[str] = None,
 ) -> bool:
     if repo is None:

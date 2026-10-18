@@ -5,6 +5,7 @@ from functools import cache
 from itertools import zip_longest
 from logging import Logger
 from typing import (
+    TYPE_CHECKING,
     Collection,
     Dict,
     Iterator,
@@ -16,7 +17,6 @@ from typing import (
     Union,
 )
 
-import git
 import numpy as np
 import pandas as pd
 import pathos.multiprocessing as mp
@@ -79,6 +79,9 @@ from .utils import (
 )
 from .utils.constants import LATEST_MUSESCORE_VERSION, METADATA_COLUMN_ORDER
 from .view import DefaultView, View, create_view_from_parameters
+
+if TYPE_CHECKING:
+    import git
 
 
 class Corpus(LoggedClass):
@@ -148,7 +151,7 @@ class Corpus(LoggedClass):
         #     logger_cfg['level'] = 'w'
         super().__init__(subclass="Corpus", logger_cfg=logger_cfg)
 
-        self.repo: Optional[git.Repo] = None
+        self.repo: Optional["git.Repo"] = None
         """If the corpus is part of a git repository, this attribute holds the corresponding :obj:`git.Repo` object."""
         self.repo = get_git_repo(directory, logger=self.logger)
 

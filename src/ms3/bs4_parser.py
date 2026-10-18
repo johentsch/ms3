@@ -79,6 +79,7 @@ from __future__ import annotations
 import difflib
 import os
 import re
+import sys
 import warnings
 from collections import ChainMap, defaultdict  # for merging dictionaries
 from copy import copy
@@ -105,7 +106,6 @@ import numpy as np
 import pandas as pd
 from bs4 import NavigableString
 from ms3._version import __version__
-from typing_extensions import Self
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
@@ -133,6 +133,11 @@ from .utils import (
     write_score_to_handler,
 )
 from .utils.constants import DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 module_logger = get_logger(__name__)
 

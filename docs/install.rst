@@ -49,3 +49,10 @@ Then you're ready to install ms3:
 
     python3 -m pip install ms3
 
+If you are working with corpora that are git repositories, install the optional GitPython dependency, too.
+It is needed for including the repository's version information in the metadata of extracted files and for
+accessing files at a particular git revision:
+
+.. code-block:: console
+
+    python3 -m pip install "ms3[git]"
