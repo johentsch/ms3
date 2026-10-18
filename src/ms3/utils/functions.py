@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 import warnings
 from ast import literal_eval
 from collections import Counter, defaultdict
@@ -50,7 +51,6 @@ from numpy.typing import NDArray
 from pandas._typing import Dtype
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
-from pytablewriter import MarkdownTableWriter
 from tqdm import tqdm
 from typing_extensions import Self
 
@@ -982,19 +982,95 @@ def decode_harmonies(
     return df
 
 
-def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
+def df2md(df: pd.DataFrame, name: str = "Overview") -> str:
     """Alias for :func:`dataframe2markdown`."""
     return dataframe2markdown(df, name=name)
 
 
-def dataframe2markdown(
-    df: pd.DataFrame, name: Optional[str] = None
-) -> MarkdownTableWriter:
-    """Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string."""
-    writer = MarkdownTableWriter()
-    writer.table_name = name
-    writer.from_dataframe(df)
-    return writer
+def _markdown_cell(value) -> Tuple[str, Optional[float]]:
+    """Returns the cell's text and, if the value is numerical (including numerical strings), its float value."""
+    if isinstance(value, (bool, np.bool_)) or (
+        not isinstance(value, str) and pd.isnull(value)
+    ):
+        return ("" if pd.isnull(value) else str(value)), None
+    if isinstance(value, (int, float, np.number)):
+        return np.format_float_positional(value, trim="-"), float(value)
+    text = str(value).replace("|", "\\|").replace("\n", " ")
+    try:
+        number = float(text)
+    except ValueError:
+        return text, None
+    return text, (number if np.isfinite(number) else None)
+
+
+def _markdown_width(text: str) -> int:
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+
+
+def _pad(text: str, width: int, align: Literal["<", ">", "^"]) -> str:
+    return f"{text:{align}{width - _markdown_width(text) + len(text)}}"
+
+
+def dataframe2markdown(df: pd.DataFrame, name: Optional[str] = None) -> str:
+    """Turns a DataFrame into a MarkDown table (ignoring the index), optionally preceded by a first-level heading.
+    Numerical columns are right-aligned and use the same number of decimal places for all values.
+    """
+    header = [str(col) for col in df.columns]
+    cells, aligns = [], []
+    for col in df.columns:
+        texts, numbers = (
+            zip(*(_markdown_cell(v) for v in df[col])) if len(df) else ((), ())
+        )
+        filled = [(t, n) for t, n in zip(texts, numbers) if t != ""]
+        if len(filled) == 0 or any(n is None for _, n in filled):
+            # like pytablewriter, right-align numbers in a string column, numerical strings only if the first
+            # value is numerical
+            cell_texts, cell_aligns = [], []
+            numerical_strings = len(df) > 0 and (
+                texts[0] == "" or numbers[0] is not None
+            )
+            for value, text, number in zip(df[col], texts, numbers):
+                if number is not None and (
+                    numerical_strings or not isinstance(value, str)
+                ):
+                    text = np.format_float_positional(number, trim="-")
+                    cell_aligns.append(">")
+                else:
+                    cell_aligns.append("<")
+                cell_texts.append(text)
+            aligns.append(cell_aligns)
+            cells.append(cell_texts)
+            continue
+        aligns.append(">")
+        decimals = max(
+            len(np.format_float_positional(n, trim="-").partition(".")[2])
+            for _, n in filled
+        )
+        cells.append(
+            ["" if t == "" else f"{n:.{decimals}f}" for t, n in zip(texts, numbers)]
+        )
+    widths = [
+        max([3, _markdown_width(head)] + [_markdown_width(c) for c in col])
+        for head, col in zip(header, cells)
+    ]
+    lines = [
+        "|" + "|".join(_pad(h, w, "^") for h, w in zip(header, widths)) + "|",
+        "|"
+        + "|".join(
+            "-" * (w - 1) + (":" if a == ">" else "-") for w, a in zip(widths, aligns)
+        )
+        + "|",
+    ]
+    for i, row in enumerate(zip(*cells)):
+        row_aligns = [a if isinstance(a, str) else a[i] for a in aligns]
+        lines.append(
+            "|"
+            + "|".join(_pad(c, w, a) for c, w, a in zip(row, widths, row_aligns))
+            + "|"
+        )
+    if name:
+        lines.insert(0, f"# {name}")
+    return "\n".join(lines) + "\n"
 
 
 def dict2oneliner(d: dict) -> str:
