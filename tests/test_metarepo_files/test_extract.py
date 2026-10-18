@@ -330,7 +330,7 @@ class TestParsedParse:
     def n_parsed_files(self, request):
         expected = {  # (n_scores, n_tsvs)
             "regex": (2, 0),
-            "everything": (71, 36),
+            "everything": (75, 36),
             "chaotic_dirs": (11, 4),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),
