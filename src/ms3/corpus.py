@@ -833,7 +833,8 @@ class Corpus(LoggedClass):
             parseable_files = [
                 (f,) + os.path.splitext(f)
                 for f in files
-                if os.path.splitext(f)[1] in detected_extensions
+                if not f.startswith(".")
+                and os.path.splitext(f)[1] in detected_extensions
             ]
             for file, file_name, file_ext in sorted(parseable_files):
                 full_path = os.path.join(current_path, file)
