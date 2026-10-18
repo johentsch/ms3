@@ -103,6 +103,10 @@ def keep_one_row_each(
         ignore_columns = [differentiating_col]
     else:
         ignore_columns.append(differentiating_col)
+    # MuseScore 4 assigns every element a unique <eid>, so these never coincide between staves
+    ignore_columns = ignore_columns + [
+        col for col in df.columns if col == "eid" or col.endswith("/eid")
+    ]
     consider_for_notna = [
         col for col in df.columns if col not in ignore_columns + [compress_col]
     ]
