@@ -169,9 +169,17 @@ Implement your changes
 
 #. Please check that your changes don't break any unit tests with::
 
-    tox
+    tox -e test
 
-   (after having installed |tox|_ with ``pip install tox`` or ``pipx``).
+   (after having installed |tox|_ with ``pip install tox`` or ``pipx``), or, directly in your development
+   environment (after ``pip install -e .[testing]``), with::
+
+    pytest
+
+   Both run the tests in parallel on all CPU cores via pytest-xdist_ (configured in ``setup.cfg``). To run them
+   serially, e.g. for setting breakpoints, add ``-n0`` (``tox -e test -- -n0``). For measuring the test coverage, add
+   ``--cov ms3 --cov-report term-missing``. Most tests require a clone of the unittest_metacorpus_
+   (see the section "Unittests" in the reference).
 
    You can also use |tox|_ to run several other pre-configured tasks in the
    repository. Try ``tox -av`` to see a list of the available checks.
@@ -354,6 +362,8 @@ on PyPI_, the following steps can be used to release a new version for
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/
 .. _Sphinx: https://www.sphinx-doc.org/en/master/
 .. _tox: https://tox.wiki/en/stable/
+.. _pytest-xdist: https://pytest-xdist.readthedocs.io
+.. _unittest_metacorpus: https://github.com/DCMLab/unittest_metacorpus
 .. _virtual environment: https://realpython.com/python-virtual-environments-a-primer/
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
 

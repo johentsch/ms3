@@ -126,7 +126,7 @@ In order to run the tests you need to
 
 * clone the `unittest_metacorpus <https://github.com/DCMLab/unittest_metacorpus>`__ including submodules
   (ask for permission)
-* in the configuration file ``new_tests/conftest.py``, change the value of ``CORPUS_DIR`` to the path
+* in the configuration file ``tests/conftest.py``, change the value of ``CORPUS_DIR`` to the path
   containing your clone of the metacorpus (defaults to the user's home directory)
 * in the line below, copy the commit SHA of ``TEST_COMMIT``, e.g. ``51e4cb5``, and checkout your metacorpus to that
   commit (e.g., ``git checkout 51e4cb5``).
@@ -134,5 +134,7 @@ In order to run the tests you need to
 Running the tests
 -----------------
 
-In the commandline, head to your ``ms3`` folder and call ``pytest new_tests``. Alternatively, some IDEs allow
-you to right-click on the folder ``new_tests`` and select something like ``Run pytest in new_tests``.
+In the commandline, head to your ``ms3`` folder and call either ``pytest`` or ``tox -e test``. Both run the tests
+in parallel on all CPU cores (``-n auto``, configured in ``setup.cfg``); add ``-n0`` to run them serially
+(``tox -e test -- -n0``). Alternatively, some IDEs allow you to right-click on the folder ``tests`` and select
+something like ``Run pytest in tests``.
