@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.7.0](https://github.com/johentsch/ms3/compare/v2.6.5...v2.7.0) (2026-10-19)
+
+
+### Features
+
+* add measures2measure_map() converting a measures table into MeasureMap entries ([b719e08](https://github.com/johentsch/ms3/commit/b719e089eeb52b948c1513dc27d62b2f970aef8a))
+* make GitPython optional and slim down dependencies ([#140](https://github.com/johentsch/ms3/issues/140)) ([ef54104](https://github.com/johentsch/ms3/commit/ef541048ce8931bde486c94d2ed8647c347a5951))
+* make GitPython optional via the ms3[git] extra ([cfd3d96](https://github.com/johentsch/ms3/commit/cfd3d967dd25e11ba47a6c4b2eea6612f420635d))
+* ms3 extract -MM stores measure maps as .mm.json ([ac76935](https://github.com/johentsch/ms3/commit/ac769351591e10580dc720eca5805736d3d7fd84))
+* standalone DCML-to-Dezrann converter script ([08b7c08](https://github.com/johentsch/ms3/commit/08b7c08606fea67d399bc1d83eee9ce8bdaebd11))
+
+
+### Bug Fixes
+
+* chord symbols in MuseScore 4 files lost their bass note, parentheses, and Nashville numbers ([5929daf](https://github.com/johentsch/ms3/commit/5929dafbdfcadf579694f8f9cabca1446a7831c5))
+* create temporary .mscx files in the system's temp directory ([24ed86d](https://github.com/johentsch/ms3/commit/24ed86d3d853ebc78bdb62d0dca3282a7634a4cf))
+* hidden files such as leftover temporary .mscx files were detected as scores ([13d1b74](https://github.com/johentsch/ms3/commit/13d1b7474ec84481381c31c9aa41ae78600a5fea))
+* log-capturing and warning-suppressing context managers did not clean up after exceptions ([047c8ab](https://github.com/johentsch/ms3/commit/047c8ab0efe4634a9966339e2af03a97503238d5))
+* make convert_folder() work iteratively and log failures properly ([33c7f6a](https://github.com/johentsch/ms3/commit/33c7f6a6841d778af5c61cb83b83e3d6ff95940c))
+* MuseScore 4 files emitted spurious warnings about competing &lt;eid&gt; values across staves ([90c2d34](https://github.com/johentsch/ms3/commit/90c2d347b1303880be5295e508ab03e7c86ab71e))
+* simulated store_extracted_facets() crashed instead of reporting the paths ([9148cac](https://github.com/johentsch/ms3/commit/9148cacb186195621cac471ee0b39f7b60eaf26d))
+
+
+### Performance Improvements
+
+* compute the unfolded metadata lazily ([94fabf3](https://github.com/johentsch/ms3/commit/94fabf3e063b56c45df0232e131c3e77bbf1c151))
+
+
+### Documentation
+
+* document running the tests with pytest and tox -e test ([e0fc97f](https://github.com/johentsch/ms3/commit/e0fc97f1d755dc44107644dad5011c65e90caf1c))
+
 ## [2.6.5](https://github.com/johentsch/ms3/compare/v2.6.4...v2.6.5) (2026-09-17)
 
 
