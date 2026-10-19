@@ -621,10 +621,13 @@ def convert(
         old,
     ]  # [MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS,
     # "-fo", new, old]
-    if subprocess.run(process, capture_output=True, text=True):
+    result = subprocess.run(process, capture_output=True, text=True)
+    if result.returncode == 0:
         logger.info(f"Converted {old} to {new}")
     else:
-        logger.warning("Error while converting " + old)
+        logger.warning(
+            f"Error while converting {old} (exit code {result.returncode}):\n{result.stderr}"
+        )
 
 
 def convert_to_ms4(old, new, MS="mscore", logger=None):
@@ -699,7 +702,9 @@ def convert_to_ms4(old, new, MS="mscore", logger=None):
             shutil.rmtree(tmp_dir)
         logger.info(f"Successfully converted {old} => {new}")
     else:
-        logger.error(f"Conversion to MuseScore 4 failed:\n{result.stderr}")
+        logger.error(
+            f"Converting {old} with MuseScore 4 failed (exit code {result.returncode}):\n{result.stderr}"
+        )
         if tmp_needed and os.path.isdir(tmp_dir):
             shutil.rmtree(tmp_dir)
 
@@ -807,9 +812,13 @@ def convert_folder(
         old = os.path.join(subdir, file)
         new = os.path.join(new_subdir, piece_name)
         if overwrite or not os.path.isfile(new):
-            conversion_params.append([dict(old=old, new=new, MS=MS, logger=logger)])
+            # pass the logger's name rather than the object: an unpickled Logger lacks ms3's custom makeRecord,
+            # which makes the CustomFormatter fail in the worker processes
+            conversion_params.append(
+                [dict(old=old, new=new, MS=MS, logger=logger.name)]
+            )
         else:
-            logger.debug(new, "exists already. Pass -o to overwrite.")
+            logger.debug(f"{new} exists already. Pass -o to overwrite.")
 
     if len(conversion_params) == 0:
         logger.info("No files to convert.")
@@ -820,8 +829,8 @@ def convert_folder(
         pool.close()
         pool.join()
     else:
-        for old, new, MS in conversion_params:
-            convert(old=old, new=new, MS=MS, logger=logger)
+        for (kwargs,) in conversion_params:
+            _convert_kwargs(kwargs)
 
 
 def convert_from_metadata_tsv(
