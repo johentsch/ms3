@@ -39,7 +39,7 @@ def get_volta_structure(
         logger.debug(
             f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed."
         )
-        voltas[volta_length] = voltas[volta_length].fillna(0)
+        voltas.loc[voltas[volta_length].isna(), volta_length] = 0
     try:
         voltas = voltas.astype(int)
     except ValueError:
@@ -204,7 +204,7 @@ def make_keysig_col(
     df: pd.DataFrame, keysig_col: str = "keysig_col", name: str = "keysig"
 ) -> pd.Series:
     if keysig_col in df:
-        return df[keysig_col].ffill().fillna(0).astype(int).rename(name)
+        return pd.to_numeric(df[keysig_col]).ffill().fillna(0).astype(int).rename(name)
     return pd.Series(0, index=df.index).rename(name)
 
 
@@ -232,12 +232,12 @@ def make_mn_col(
     if dont_count is None:
         mn = pd.Series(range(1, len(df) + 1), index=df.index)
     else:
-        excluded = df[dont_count].fillna(0).astype(bool)
+        excluded = pd.to_numeric(df[dont_count]).fillna(0).astype(bool)
         mn = (~excluded).cumsum()
     if numbering_offset is not None:
         offset = df[numbering_offset]
         if offset.notna().any():
-            offset = offset.fillna(0).astype(int).cumsum()
+            offset = pd.to_numeric(offset).fillna(0).astype(int).cumsum()
             mn += offset
     return mn.rename(name)
 
@@ -453,9 +453,9 @@ def make_offset_col(
         auxiliary_df["potential_anacrusis"] = False
         auxiliary_df.loc[1, "potential_anacrusis"] = True
     else:
-        auxiliary_df["potential_anacrusis"] = (
-            has_section_break.shift().fillna(True).values  # has df.index
-        )
+        auxiliary_df["potential_anacrusis"] = has_section_break.shift(
+            fill_value=True
+        ).values  # has df.index
 
     section_grouper = auxiliary_df.potential_anacrusis.cumsum()
 
@@ -898,8 +898,8 @@ class MeasureList(LoggedClass):
             mcs_str = ", ".join(mcs.astype(str))
             context_mask = (
                 error_mask
-                | error_mask.shift(-1).fillna(False)
-                | error_mask.shift().fillna(False)
+                | error_mask.shift(-1, fill_value=False)
+                | error_mask.shift(fill_value=False)
             )
             context = self.ml.loc[
                 context_mask,
