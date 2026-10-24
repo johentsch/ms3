@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ms3"
-version = "2.6.5"
+version = "2.7.0"
 dynamic = [
     "authors",
     "classifiers",
