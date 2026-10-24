@@ -380,9 +380,12 @@ class Annotations(LoggedClass):
         if regex is not None:
             # NB: series_match_regex instead of .str.match because pandas >= 3.0 rejects
             # compiled re.VERBOSE patterns in the string accessor (see series_match_regex).
-            sel = sel & series_match_regex(self.df[self.cols["label"]], regex).fillna(
-                False
-            ).astype(bool)
+            sel = sel & (
+                series_match_regex(self.df[self.cols["label"]], regex)
+                .astype("boolean")
+                .fillna(False)
+                .astype(bool)
+            )
         if inverse:
             sel = ~sel
         res = self.df[sel].copy()
