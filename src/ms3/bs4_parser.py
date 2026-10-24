@@ -1201,20 +1201,16 @@ and {loc_after} before the subsequent {nxt_name}."""
                 pd.NA, index=self._events.index, dtype="string", name="form_label"
             )
             if has_stafftext:
-                stafftext_selector = (
-                    self._events[stafftext_col]
-                    .str.contains(detection_regex)
-                    .fillna(False)
+                stafftext_selector = self._events[stafftext_col].str.contains(
+                    detection_regex, na=False
                 )
                 if stafftext_selector.sum() > 0:
                     form_label_column.loc[stafftext_selector] = self._events.loc[
                         stafftext_selector, stafftext_col
                     ]
             if has_harmony_layer:
-                harmony_selector = (
-                    self._events[harmony_col]
-                    .str.contains(detection_regex)
-                    .fillna(False)
+                harmony_selector = self._events[harmony_col].str.contains(
+                    detection_regex, na=False
                 )
                 if harmony_selector.sum() > 0:
                     form_label_column.loc[harmony_selector] = self._events.loc[
@@ -2982,10 +2978,8 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         else:
             self.has_annotations = "Harmony" in self._events.event.values
             if "StaffText/text" in self._events.columns:
-                form_labels = (
-                    self._events["StaffText/text"]
-                    .str.contains(FORM_DETECTION_REGEX)
-                    .fillna(False)
+                form_labels = self._events["StaffText/text"].str.contains(
+                    FORM_DETECTION_REGEX, na=False
                 )
                 if form_labels.any():
                     self.n_form_labels = sum(form_labels)
@@ -4608,10 +4602,10 @@ def make_spanner_cols(
                 ),
             )
             duration_df.iloc[:, 0] = (
-                duration_df.iloc[:, 0].fillna(0).astype(int).abs()
+                pd.to_numeric(duration_df.iloc[:, 0]).fillna(0).astype(int).abs()
             )  # nxt_m
-            duration_df.iloc[:, 1] = (
-                duration_df.iloc[:, 1].fillna(0).map(Fraction)
+            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].map(
+                lambda f: Fraction(0) if pd.isnull(f) else Fraction(f)
             )  # nxt_f
         custom_text_col = f"Spanner/{spanner_type}/beginText"
         add_custom_text_cols = (
