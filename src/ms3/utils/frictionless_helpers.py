@@ -299,8 +299,11 @@ def get_schema_or_url(
             filepath=schema_filepath,
             **kwargs,
         )
-        fl.Schema(descriptor).to_yaml(schema_path)
-        return descriptor
+        schema = fl.Schema(descriptor)
+        schema.to_yaml(schema_path)
+        # return the normalized descriptor (rather than ``descriptor``) so that the property order is identical to
+        # the one obtained when the schema is loaded from the YAML file above, preventing spurious diffs
+        return schema.to_descriptor()
 
 
 def get_schema(
