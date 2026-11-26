@@ -67,10 +67,13 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         if not hasattr(record, "_message_type"):
-            raise ValueError(
-                f"Logger {record.name} has not been correctly defined and is missing the default _message_type field."
-            )
-        msg = record.msg.replace("\n", "\n\t")
+            # Records created by a logger whose makeRecord() has not been patched by get_logger(), e.g. in
+            # worker processes of a multiprocessing pool, lack the custom fields. Raising here would make the
+            # logging module print a "--- Logging error ---" traceback instead of the actual message.
+            record._message_id = ()
+            record._message_type = 0
+            record._message_type_full = MessageType(0).name
+        msg = str(record.msg).replace("\n", "\n\t")
         if record._message_type == 0:  # if there is no message type
             record.msg = "%-8s %s -- %s (line %s) %s():\n\t%s" % (
                 record.levelname,
