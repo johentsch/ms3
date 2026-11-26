@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.7.1](https://github.com/johentsch/ms3/compare/v2.7.0...v2.7.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* avoid pandas FutureWarning about downcasting object dtype on fillna ([fcc1909](https://github.com/johentsch/ms3/commit/fcc1909fa933f07a8e0bdc8c9ab0e688507439d5))
+* make extracted tables and metadata independent of the Python process ([9e445f8](https://github.com/johentsch/ms3/commit/9e445f833ea490efcc8673e29a13994fe5a504b4))
+* removes the numpy&lt;2.0.0 pin ([7829372](https://github.com/johentsch/ms3/commit/7829372a573b853e4e2cec4eef723ccb4bd243fc))
+* removes the numpy&lt;2.0.0 pin ([#146](https://github.com/johentsch/ms3/issues/146)) ([ffc4415](https://github.com/johentsch/ms3/commit/ffc441582f72b760ae2c816a750249c9f4d86700))
+* serialize newly created schema descriptors in the same property order as loaded ones ([e9b1977](https://github.com/johentsch/ms3/commit/e9b197788dad7734fa65b13bae5277758eb990fd))
+* stable property order in JSON resource descriptors ([#145](https://github.com/johentsch/ms3/issues/145)) ([4e9e64d](https://github.com/johentsch/ms3/commit/4e9e64daa4e929c1cb9f7c5a8c7c6590af72a9a9))
+* survive broken score parsing and unpatched loggers ([c9b1081](https://github.com/johentsch/ms3/commit/c9b10813416dff9372e0af0ff8abc59520ee0c0f))
+* survive broken score parsing and unpatched loggers ([#148](https://github.com/johentsch/ms3/issues/148)) ([e51817f](https://github.com/johentsch/ms3/commit/e51817f4af31276fb4b072caae7d9a599d3928ba))
+
 ## [2.7.0](https://github.com/johentsch/ms3/compare/v2.6.5...v2.7.0) (2026-10-19)
 
 
