@@ -2313,10 +2313,10 @@ class Corpus(LoggedClass):
                 if row is not None:
                     rows.append(row)
                     pieces.append(piece)
-            except ValueError:
-                print(piece)
-                print(piece_obj.score_metadata())
-                raise
+            except Exception as e:
+                self.logger.error(
+                    f"Could not retrieve the score metadata of piece '{piece}' and skipped it: {e!r}"
+                )
         if len(rows) > 0:
             df = pd.DataFrame(rows).set_index("piece")
             return column_order(df, METADATA_COLUMN_ORDER, sort=False).sort_index()
