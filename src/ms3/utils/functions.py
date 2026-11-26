@@ -5114,7 +5114,11 @@ def prepare_metadata_for_writing(metadata_df):
     metadata_df.sort_index(inplace=True)
     metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
     # on Windows, make sure the paths are written with / separators
-    path_cols = [col for col in ("subdir", "rel_path") if col in metadata_df.columns]
+    path_cols = [
+        col
+        for col in ("subdir", "subdirectory", "rel_path")
+        if col in metadata_df.columns
+    ]
     for col in path_cols:
         with warnings.catch_warnings():
             # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0

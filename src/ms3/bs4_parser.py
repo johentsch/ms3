@@ -81,7 +81,7 @@ import os
 import re
 import sys
 import warnings
-from collections import ChainMap, defaultdict  # for merging dictionaries
+from collections import defaultdict
 from copy import copy
 from fractions import Fraction
 from functools import cache
@@ -1545,7 +1545,9 @@ and {loc_after} before the subsequent {nxt_name}."""
 
     def get_texts(self, only_header: bool = True) -> Dict[str, str]:
         """Process <Text> nodes (normally attached to <Staff id="1">)."""
-        texts = defaultdict(set)
+        # dicts used as ordered sets: deduplicate while keeping the order of appearance (iterating over a set of
+        # strings yields a different order in every Python process because of hash randomization)
+        texts = defaultdict(dict)
         tags = self.soup.find_all("Text")
         for t in tags:
             txt, style = tag2text(t)
@@ -1563,7 +1565,7 @@ and {loc_after} before the subsequent {nxt_name}."""
                 if only_header:
                     continue
                 style = "text"
-            texts[style].add(txt)
+            texts[style][txt] = None
         return {st: "; ".join(txt) for st, txt in texts.items()}
 
     def _get_metadata(self):
@@ -4105,7 +4107,9 @@ class Instrumentation(LoggedClass):
                     self.instrumentation_fields.remove(elem)
         else:
             self.instrumentation_fields.extend(self.only_drumset_features)
-            self.instrumentation_fields = list(set(self.instrumentation_fields))
+            self.instrumentation_fields = list(
+                dict.fromkeys(self.instrumentation_fields)
+            )
         if len(staves_within_part) > 0:
             damaged_upd_staves = [
                 staff_key
@@ -4576,9 +4580,12 @@ def make_spanner_cols(
         subtype_col = f"Spanner/{spanner_type}/subtype"
         if subtype is None and subtype_col in df:
             # automatically generate one column per available subtype
-            subtypes = set(df.loc[df[subtype_col].notna(), subtype_col])
+            # sorted to make the column order independent of hash randomization
+            subtypes = sorted(
+                set(df.loc[df[subtype_col].notna(), subtype_col]), key=str
+            )
             results = [get_spanner_ids(spanner_type, st) for st in subtypes]
-            return dict(ChainMap(*results))
+            return merge_in_order(results)
 
         # select rows corresponding to spanner_type
         boolean_selector = df[type_col] == spanner_type
@@ -4697,18 +4704,27 @@ def make_spanner_cols(
             res[custom_column_name] = custom_column
         return res
 
+    def merge_in_order(dicts: List[dict]) -> dict:
+        """Merge dicts such that keys keep the order of the list (on duplicate keys, the first one wins)."""
+        merged = {}
+        for d in dicts:
+            for key, value in d.items():
+                merged.setdefault(key, value)
+        return merged
+
     type_col = cols["type"]
+    # sorted to make the column order independent of hash randomization
     types = (
-        list(set(df.loc[df[type_col].notna(), type_col]))
+        sorted(set(df.loc[df[type_col].notna(), type_col]), key=str)
         if type_col in df.columns
         else []
     )
-    if "Chord/" + type_col in df.columns:
+    if "Chord/" + type_col in df.columns and "Slur" not in types:
         types += ["Slur"]
     if spanner_types is not None:
         types = [t for t in types if t in spanner_types]
     list_of_dicts = [get_spanner_ids(t) for t in types]
-    merged_dict = dict(ChainMap(*list_of_dicts))
+    merged_dict = merge_in_order(list_of_dicts)
     renaming = {
         "HairPin:0": "crescendo_hairpin",
         "HairPin:1": "decrescendo_hairpin",
